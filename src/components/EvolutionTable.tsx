@@ -229,6 +229,9 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
         </Card>
       ) : (
         <Card>
+          <div className="flex items-center justify-between px-4 py-2 text-xs text-muted-foreground sm:hidden">
+            <span>← Deslize para ver os valores →</span>
+          </div>
           <ScrollArea className="w-full">
             <div className="min-w-[600px]">
               <table className="w-full text-sm">

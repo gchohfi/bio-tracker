@@ -97,19 +97,50 @@ const MARKER_LIST = [
 ];
 
 const systemPrompt = `You are a lab result extraction assistant. You receive raw text from a Brazilian lab report PDF.
-Your task: extract numeric values and map them to the known marker IDs.
+Your task: extract ALL numeric values and map them to the known marker IDs. Be thorough — extract every single marker you can find.
 
 Here are the known markers (id | name | unit):
 ${MARKER_LIST.map((m) => `${m.id} | ${m.name} | ${m.unit}`).join("\n")}
 
+IMPORTANT — Common alternative names in Brazilian lab reports:
+- "Hemácias" or "Glóbulos Vermelhos" → eritrocitos
+- "Glóbulos Brancos" → leucocitos
+- "Segmentados" or "Neutrófilos Segmentados" → neutrofilos
+- "Colesterol HDL" or "HDL-Colesterol" → hdl
+- "Colesterol LDL" or "LDL-Colesterol" → ldl
+- "Colesterol não-HDL" → ignore (not in our list)
+- "Triglicérides" or "Triglicerídios" → triglicerides
+- "AST" or "TGO" or "Aspartato" → tgo_ast
+- "ALT" or "TGP" or "Alanina" → tgp_alt
+- "Gama GT" or "Gama Glutamil" → ggt
+- "25-Hidroxivitamina D" or "25(OH)D" or "Vitamina D3" → vitamina_d
+- "Ácido Fólico" or "Folato" → acido_folico
+- "TSH Ultra-sensível" or "Tirotropina" → tsh
+- "T4L" or "Tiroxina Livre" → t4_livre
+- "T3L" or "Triiodotironina Livre" → t3_livre
+- "SHBG" or "Globulina Ligadora" → shbg
+- "PCR ultra-sensível" or "PCR-us" or "Proteína C Reativa" → pcr
+- "VHS" or "Velocidade de Hemossedimentação" → vhs
+- "Clearance" or "Filtração Glomerular" or "CKD-EPI" → tfg
+- "PTH Intacto" or "Paratormônio" → pth
+- "TIBC" or "Capacidade Total de Ligação do Ferro" → tibc
+- "Saturação de Transferrina" or "Índice de Saturação" → sat_transferrina
+- "Hemoglobina Glicada" or "A1C" → hba1c
+- "HOMA" or "HOMA-IR" or "Índice HOMA" → homa_ir
+- "Relação CT/HDL" or "Índice de Castelli" → relacao_ct_hdl
+- "Relação TG/HDL" → relacao_tg_hdl
+
 Rules:
-- Only return markers that you can confidently identify in the text.
+- Extract EVERY marker you can find. Be aggressive — if a value looks like it matches a marker, include it.
 - Convert values to the expected unit if needed (e.g. thousands to units).
 - For Plaquetas, the value in the PDF is usually in thousands (e.g. "250.000 /µL" → return 250).
 - For Leucócitos, the value is usually absolute (e.g. "6.500 /µL" → return 6500).
 - For Eritrócitos, the value is usually in millions (e.g. "4.80 milhões/µL" → return 4.80).
+- Brazilian decimals use comma: "4,37" → 4.37. Convert commas to dots.
+- Values with dot as thousands separator: "6.500" for leucocitos → 6500.
 - Return ONLY numeric values, no text.
-- If a marker appears multiple times, use the first occurrence.`;
+- If a marker appears multiple times, use the first occurrence.
+- Look for values in tables, lists, and inline text formats.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -140,7 +171,7 @@ serve(async (req) => {
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `Extract lab results from this text:\n\n${pdfText.slice(0, 15000)}`,
+            content: `Extract ALL lab results from this Brazilian lab report. Be thorough and extract every single marker you can identify:\n\n${pdfText.slice(0, 20000)}`,
           },
         ],
         tools: [
