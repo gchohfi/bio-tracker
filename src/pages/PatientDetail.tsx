@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,6 +25,8 @@ import {
   FlaskConical,
   Edit2,
   BarChart3,
+  FileUp,
+  Loader2,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
 import {
@@ -60,6 +62,8 @@ export default function PatientDetail() {
   const [markerValues, setMarkerValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [detailTab, setDetailTab] = useState<"sessions" | "evolution">("sessions");
+  const [extracting, setExtracting] = useState(false);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -180,6 +184,61 @@ export default function PatientDetail() {
     [markerValues]
   );
 
+  const handlePdfImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so same file can be re-selected
+    e.target.value = "";
+
+    setExtracting(true);
+    try {
+      // Extract text from PDF using PDF.js
+      const pdfjsLib = await import("pdfjs-dist");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        fullText += content.items.map((item: any) => item.str).join(" ") + "\n";
+      }
+
+      if (!fullText.trim()) {
+        toast({ title: "PDF vazio", description: "Não foi possível extrair texto do PDF.", variant: "destructive" });
+        return;
+      }
+
+      // Send to AI edge function
+      const { data, error } = await supabase.functions.invoke("extract-lab-results", {
+        body: { pdfText: fullText },
+      });
+
+      if (error) throw error;
+
+      const results = data?.results as { marker_id: string; value: number }[] | undefined;
+      if (!results || results.length === 0) {
+        toast({ title: "Nenhum marcador encontrado", description: "A IA não conseguiu identificar resultados no PDF.", variant: "destructive" });
+        return;
+      }
+
+      // Pre-fill marker values
+      const newValues = { ...markerValues };
+      results.forEach((r) => {
+        newValues[r.marker_id] = String(r.value);
+      });
+      setMarkerValues(newValues);
+
+      toast({ title: `${results.length} marcadores importados!`, description: "Revise os valores antes de salvar." });
+    } catch (err: any) {
+      console.error("PDF import error:", err);
+      toast({ title: "Erro na importação", description: err.message || "Erro ao processar PDF", variant: "destructive" });
+    } finally {
+      setExtracting(false);
+    }
+  };
+
   if (loading) {
     return (
       <AppLayout>
@@ -214,6 +273,25 @@ export default function PatientDetail() {
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="outline">{filledCount} marcadores</Badge>
+              <input
+                ref={pdfInputRef}
+                type="file"
+                accept=".pdf"
+                className="hidden"
+                onChange={handlePdfImport}
+              />
+              <Button
+                variant="outline"
+                onClick={() => pdfInputRef.current?.click()}
+                disabled={extracting}
+              >
+                {extracting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileUp className="mr-2 h-4 w-4" />
+                )}
+                {extracting ? "Extraindo..." : "Importar PDF"}
+              </Button>
               <Button onClick={handleSaveSession} disabled={saving}>
                 <Save className="mr-2 h-4 w-4" />
                 {saving ? "Salvando..." : "Salvar"}
