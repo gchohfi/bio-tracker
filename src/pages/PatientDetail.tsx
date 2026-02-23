@@ -27,8 +27,10 @@ import {
   BarChart3,
   FileUp,
   Loader2,
+  FileDown,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
+import { generatePatientReport } from "@/lib/generateReport";
 import {
   CATEGORIES,
   CATEGORY_COLORS,
@@ -177,6 +179,22 @@ export default function PatientDetail() {
       toast({ title: "Sessão excluída!" });
       fetchData();
     }
+  };
+
+  const handleExportPdf = async () => {
+    if (!patient) return;
+    const sessionIds = sessions.map((s) => s.id);
+    const { data } = await supabase
+      .from("lab_results")
+      .select("*")
+      .in("session_id", sessionIds);
+    generatePatientReport(
+      patient.name,
+      sex,
+      sessions,
+      (data || []).map((r) => ({ marker_id: r.marker_id, session_id: r.session_id, value: r.value }))
+    );
+    toast({ title: "Relatório exportado!" });
   };
 
   const filledCount = useMemo(
@@ -417,10 +435,18 @@ export default function PatientDetail() {
               </div>
             </div>
           </div>
-          <Button onClick={openNewSession}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Sessão
-          </Button>
+          <div className="flex gap-2">
+            {sessions.length > 0 && (
+              <Button variant="outline" onClick={handleExportPdf}>
+                <FileDown className="mr-2 h-4 w-4" />
+                Exportar PDF
+              </Button>
+            )}
+            <Button onClick={openNewSession}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Sessão
+            </Button>
+          </div>
         </div>
 
         {/* Tabs for Sessions and Evolution */}
