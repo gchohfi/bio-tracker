@@ -284,29 +284,49 @@ export default function PatientDetail() {
 
       // Clean up text: remove repetitive headers, footers, and boilerplate
       const cleanedLines = fullText.split("\n").filter((line) => {
-        const trimmed = line.trim();
-        if (!trimmed) return false;
-        // Skip repeated headers/footers
+        // Normalize multiple spaces into single for matching
+        const normalized = line.trim().replace(/\s+/g, " ");
+        if (!normalized) return false;
+        if (normalized.length < 3) return false;
         // Skip repeated headers/footers/boilerplate from lab reports
-        if (trimmed.startsWith("Cliente:")) return false;
-        if (trimmed.startsWith("Data de Nascimento:")) return false;
-        if (/^Médico:.*CRM/.test(trimmed)) return false;
-        if (trimmed.startsWith("RECEBIDO/COLETADO")) return false;
-        if (trimmed.startsWith("Exame liberado de acordo")) return false;
-        if (trimmed.startsWith("Assinatura digital")) return false;
-        if (/^CRM:.*RESPONSÁVEL/.test(trimmed)) return false;
-        if (trimmed.startsWith("A interpretação do resultado")) return false;
-        if (/^Avenida|^Rua|^Impresso em:/.test(trimmed)) return false;
-        if (/^-{5,}$/.test(trimmed)) return false;
-        if (/^={5,}$/.test(trimmed)) return false;
-        // Skip verbose reference notes but keep values
-        if (/^NOTA\(?[0-9]*\)?:/.test(trimmed)) return false;
-        if (trimmed.startsWith("Referências:")) return false;
-        if (trimmed.startsWith("Atualização da Diretriz")) return false;
-        if (/^Paciente de (baixo|risco|alto|muito)/.test(trimmed)) return false;
+        if (/^Cliente:/i.test(normalized)) return false;
+        if (/^Data de Nascimento:/i.test(normalized)) return false;
+        if (/^Médico:.*CRM/i.test(normalized)) return false;
+        if (/^Data da Ficha:/i.test(normalized)) return false;
+        if (/^Ficha:/i.test(normalized)) return false;
+        if (/^RECEBIDO.COLETADO/i.test(normalized)) return false;
+        if (/^Exame liberado/i.test(normalized)) return false;
+        if (/^Assinatura digital/i.test(normalized)) return false;
+        if (/^CRM:.*RESPONSÁVEL/i.test(normalized)) return false;
+        if (/^A interpretação do resultado/i.test(normalized)) return false;
+        if (/^Avenida|^Rua |^Impresso em:/i.test(normalized)) return false;
+        if (/^Página:/i.test(normalized)) return false;
+        if (/^-{3,}/.test(normalized)) return false;
+        if (/^={3,}/.test(normalized)) return false;
+        // Skip verbose reference notes/descriptions
+        if (/^NOTA\s*\(?[0-9]*\)?:/i.test(normalized)) return false;
+        if (/^Referências?:/i.test(normalized)) return false;
+        if (/^Atualização da Diretriz/i.test(normalized)) return false;
+        if (/^Paciente de (baixo|risco|alto|muito)/i.test(normalized)) return false;
+        if (/^(Desejável|Ótimo|Limítrofe|Alto|Muito alto)\s*:/i.test(normalized)) return false;
+        if (/^(Com|Sem) (ou sem )?jejum/i.test(normalized)) return false;
+        if (/^Maior ou igual a \d+ anos/i.test(normalized)) return false;
+        if (/^Fem:|^Masc:/i.test(normalized)) return false;
+        // Skip long descriptive lines (usually reference explanations)
+        if (normalized.length > 200 && !/\d+[.,]\d+/.test(normalized)) return false;
+        // Skip method descriptions
+        if (/^Método:/i.test(normalized)) return false;
+        // Skip "CARACTERES MORFOLÓGICOS" and related
+        if (/^CARACTERES MORFOLÓGICOS/i.test(normalized)) return false;
+        if (/^não foram observad/i.test(normalized)) return false;
+        if (/^normais$/i.test(normalized)) return false;
         return true;
       });
-      const cleanedText = cleanedLines.join("\n");
+      // Also collapse "--- Página X ---" markers into minimal separators
+      const cleanedText = cleanedLines
+        .map((l) => l.trim().replace(/\s+/g, " "))
+        .filter((l) => !/^--- Página \d+/.test(l))
+        .join("\n");
 
       if (!cleanedText.trim()) {
         toast({ title: "PDF vazio", description: "Não foi possível extrair texto do PDF.", variant: "destructive" });
