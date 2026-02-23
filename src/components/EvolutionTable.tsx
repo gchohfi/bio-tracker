@@ -126,7 +126,19 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
     );
   }
 
-  if (sessions.length === 0) return null;
+  if (sessions.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+          <AlertTriangle className="mb-4 h-12 w-12 text-muted-foreground/50" />
+          <p className="text-lg font-medium">Nenhuma sessão registrada</p>
+          <p className="text-sm text-muted-foreground">
+            Clique no botão <strong>"Nova Sessão"</strong> acima para adicionar exames laboratoriais.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-4">
