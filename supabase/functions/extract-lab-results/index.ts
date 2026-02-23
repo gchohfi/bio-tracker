@@ -132,6 +132,8 @@ IMPORTANT — Common alternative names in Brazilian lab reports:
 
 Rules:
 - Extract EVERY marker you can find. Be aggressive — if a value looks like it matches a marker, include it.
+- The report may have multiple pages separated by "--- Página X ---". Search ALL pages thoroughly.
+- Vitamins, hormones, thyroid, iron, and mineral markers are often on later pages — don't stop early.
 - Convert values to the expected unit if needed (e.g. thousands to units).
 - For Plaquetas, the value in the PDF is usually in thousands (e.g. "250.000 /µL" → return 250).
 - For Leucócitos, the value is usually absolute (e.g. "6.500 /µL" → return 6500).
@@ -140,7 +142,9 @@ Rules:
 - Values with dot as thousands separator: "6.500" for leucocitos → 6500.
 - Return ONLY numeric values, no text.
 - If a marker appears multiple times, use the first occurrence.
-- Look for values in tables, lists, and inline text formats.`;
+- Look for values in tables, lists, and inline text formats.
+- Values like "< 10" or "< 0,5" should use the number (10 or 0.5).
+- Ignore reference ranges — only extract the patient's actual result value.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -171,7 +175,7 @@ serve(async (req) => {
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `Extract ALL lab results from this Brazilian lab report. Be thorough and extract every single marker you can identify:\n\n${pdfText.slice(0, 20000)}`,
+            content: `Extract ALL lab results from this Brazilian lab report. Be thorough and extract every single marker you can identify. Pay special attention to vitamins, hormones, thyroid, iron, minerals, electrolytes, and liver/kidney markers — they are often in separate sections or pages:\n\n${pdfText.slice(0, 40000)}`,
           },
         ],
         tools: [

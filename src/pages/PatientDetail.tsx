@@ -258,7 +258,28 @@ export default function PatientDetail() {
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
-        fullText += content.items.map((item: any) => item.str).join(" ") + "\n";
+        // Preserve line structure by grouping items by Y position
+        const items = content.items as any[];
+        if (items.length === 0) continue;
+        const lines: { y: number; items: { x: number; str: string }[] }[] = [];
+        items.forEach((item) => {
+          if (!item.str) return;
+          const y = Math.round(item.transform[5]);
+          const x = item.transform[4];
+          let line = lines.find((l) => Math.abs(l.y - y) < 3);
+          if (!line) {
+            line = { y, items: [] };
+            lines.push(line);
+          }
+          line.items.push({ x, str: item.str });
+        });
+        // Sort lines top to bottom (higher Y = higher on page)
+        lines.sort((a, b) => b.y - a.y);
+        lines.forEach((line) => {
+          line.items.sort((a, b) => a.x - b.x);
+          fullText += line.items.map((it) => it.str).join("  ") + "\n";
+        });
+        fullText += "\n--- Página " + i + " ---\n\n";
       }
 
       if (!fullText.trim()) {
