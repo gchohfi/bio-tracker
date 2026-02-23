@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/AppLayout";
@@ -16,6 +17,7 @@ import type { Tables } from "@/integrations/supabase/types";
 type Patient = Tables<"patients">;
 
 export default function Index() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -182,7 +184,7 @@ export default function Index() {
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((p) => (
-              <Card key={p.id} className="cursor-pointer transition-colors hover:bg-muted/50">
+              <Card key={p.id} className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => navigate(`/patient/${p.id}`)}>
                 <CardContent className="flex items-center gap-3 p-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
                     {p.name.charAt(0).toUpperCase()}
