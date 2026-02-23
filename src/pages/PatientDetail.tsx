@@ -282,14 +282,42 @@ export default function PatientDetail() {
         fullText += "\n--- Página " + i + " ---\n\n";
       }
 
-      if (!fullText.trim()) {
+      // Clean up text: remove repetitive headers, footers, and boilerplate
+      const cleanedLines = fullText.split("\n").filter((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return false;
+        // Skip repeated headers/footers
+        // Skip repeated headers/footers/boilerplate from lab reports
+        if (trimmed.startsWith("Cliente:")) return false;
+        if (trimmed.startsWith("Data de Nascimento:")) return false;
+        if (/^Médico:.*CRM/.test(trimmed)) return false;
+        if (trimmed.startsWith("RECEBIDO/COLETADO")) return false;
+        if (trimmed.startsWith("Exame liberado de acordo")) return false;
+        if (trimmed.startsWith("Assinatura digital")) return false;
+        if (/^CRM:.*RESPONSÁVEL/.test(trimmed)) return false;
+        if (trimmed.startsWith("A interpretação do resultado")) return false;
+        if (/^Avenida|^Rua|^Impresso em:/.test(trimmed)) return false;
+        if (/^-{5,}$/.test(trimmed)) return false;
+        if (/^={5,}$/.test(trimmed)) return false;
+        // Skip verbose reference notes but keep values
+        if (/^NOTA\(?[0-9]*\)?:/.test(trimmed)) return false;
+        if (trimmed.startsWith("Referências:")) return false;
+        if (trimmed.startsWith("Atualização da Diretriz")) return false;
+        if (/^Paciente de (baixo|risco|alto|muito)/.test(trimmed)) return false;
+        return true;
+      });
+      const cleanedText = cleanedLines.join("\n");
+
+      if (!cleanedText.trim()) {
         toast({ title: "PDF vazio", description: "Não foi possível extrair texto do PDF.", variant: "destructive" });
         return;
       }
 
+      console.log("PDF text length:", fullText.length, "-> cleaned:", cleanedText.length);
+
       // Send to AI edge function
       const { data, error } = await supabase.functions.invoke("extract-lab-results", {
-        body: { pdfText: fullText },
+        body: { pdfText: cleanedText },
       });
 
       if (error) throw error;
