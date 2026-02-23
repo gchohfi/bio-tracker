@@ -28,6 +28,9 @@ import {
   FileUp,
   Loader2,
   FileDown,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
 import { generatePatientReport } from "@/lib/generateReport";
@@ -66,6 +69,8 @@ export default function PatientDetail() {
   const [detailTab, setDetailTab] = useState<"sessions" | "evolution">("sessions");
   const [extracting, setExtracting] = useState(false);
   const pdfInputRef = useRef<HTMLInputElement>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -195,6 +200,39 @@ export default function PatientDetail() {
       (data || []).map((r) => ({ marker_id: r.marker_id, session_id: r.session_id, value: r.value }))
     );
     toast({ title: "Relatório exportado!" });
+  };
+
+  const handleEditName = () => {
+    if (!patient) return;
+    setNameValue(patient.name);
+    setEditingName(true);
+  };
+
+  const handleSaveName = async () => {
+    if (!patient || !nameValue.trim()) return;
+    const { error } = await supabase
+      .from("patients")
+      .update({ name: nameValue.trim() })
+      .eq("id", patient.id);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      setPatient({ ...patient, name: nameValue.trim() });
+      toast({ title: "Nome atualizado!" });
+    }
+    setEditingName(false);
+  };
+
+  const handleDeletePatient = async () => {
+    if (!patient) return;
+    if (!confirm("Excluir este paciente e todos os seus dados? Esta ação não pode ser desfeita.")) return;
+    const { error } = await supabase.from("patients").delete().eq("id", patient.id);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Paciente excluído!" });
+      navigate("/");
+    }
   };
 
   const filledCount = useMemo(
@@ -413,7 +451,7 @@ export default function PatientDetail() {
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
               <ArrowLeft className="h-4 w-4" />
@@ -423,7 +461,33 @@ export default function PatientDetail() {
                 {patient.name.charAt(0).toUpperCase()}
               </div>
               <div>
-                <h1 className="text-xl font-bold">{patient.name}</h1>
+                {editingName ? (
+                  <div className="flex items-center gap-1">
+                    <Input
+                      value={nameValue}
+                      onChange={(e) => setNameValue(e.target.value)}
+                      className="h-8 w-48 text-base font-bold"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveName();
+                        if (e.key === "Escape") setEditingName(false);
+                      }}
+                    />
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSaveName}>
+                      <Check className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingName(false)}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <h1 className="text-xl font-bold">{patient.name}</h1>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleEditName}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">
                     {sex === "M" ? "Masculino" : "Feminino"}
@@ -445,6 +509,9 @@ export default function PatientDetail() {
             <Button onClick={openNewSession}>
               <Plus className="mr-2 h-4 w-4" />
               Nova Sessão
+            </Button>
+            <Button variant="destructive" size="icon" onClick={handleDeletePatient} title="Excluir paciente">
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
