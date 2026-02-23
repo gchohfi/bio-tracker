@@ -175,7 +175,7 @@ serve(async (req) => {
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `Extract ALL lab results from this Brazilian lab report. Be thorough and extract every single marker you can identify. Pay special attention to vitamins, hormones, thyroid, iron, minerals, electrolytes, and liver/kidney markers — they are often in separate sections or pages:\n\n${pdfText.slice(0, 40000)}`,
+            content: `Extract ALL lab results from this Brazilian lab report. Be thorough and extract every single marker you can identify. Pay special attention to vitamins, hormones, thyroid, iron, minerals, electrolytes, and liver/kidney markers — they are often in separate sections or pages:\n\n${pdfText.slice(0, 80000)}`,
           },
         ],
         tools: [
