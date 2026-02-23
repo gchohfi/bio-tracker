@@ -159,7 +159,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
               variant="outline"
               size="sm"
               className="ml-auto text-xs"
-              onClick={() => setStatusFilter("alerts")}
+              onClick={() => { setActiveCategory("Todos"); setStatusFilter("alerts"); }}
             >
               Ver alertas
             </Button>
