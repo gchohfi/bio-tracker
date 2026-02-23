@@ -24,7 +24,9 @@ import {
   Trash2,
   FlaskConical,
   Edit2,
+  BarChart3,
 } from "lucide-react";
+import EvolutionTable from "@/components/EvolutionTable";
 import {
   CATEGORIES,
   CATEGORY_COLORS,
@@ -57,6 +59,7 @@ export default function PatientDetail() {
   const [activeCategory, setActiveCategory] = useState<Category>("Hemograma");
   const [markerValues, setMarkerValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [detailTab, setDetailTab] = useState<"sessions" | "evolution">("sessions");
 
   useEffect(() => {
     if (!id) return;
@@ -342,61 +345,80 @@ export default function PatientDetail() {
           </Button>
         </div>
 
-        {/* Sessions list */}
-        {sessions.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <FlaskConical className="mb-4 h-12 w-12 text-muted-foreground/50" />
-              <p className="text-lg font-medium">Nenhuma sessão registrada</p>
-              <p className="text-sm text-muted-foreground">
-                Clique em "Nova Sessão" para adicionar exames
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {sessions.map((session) => (
-              <Card key={session.id} className="transition-colors hover:bg-muted/30">
-                <CardContent className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                      <CalendarIcon className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">
-                        {format(parseISO(session.session_date), "dd 'de' MMMM 'de' yyyy", {
-                          locale: ptBR,
-                        })}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Criado em {format(parseISO(session.created_at), "dd/MM/yyyy HH:mm")}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEditSession(session)}
-                      title="Editar"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteSession(session.id)}
-                      title="Excluir"
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+        {/* Tabs for Sessions and Evolution */}
+        <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "sessions" | "evolution")}>
+          <TabsList>
+            <TabsTrigger value="sessions" className="gap-1.5">
+              <FlaskConical className="h-3.5 w-3.5" />
+              Sessões
+            </TabsTrigger>
+            <TabsTrigger value="evolution" className="gap-1.5">
+              <BarChart3 className="h-3.5 w-3.5" />
+              Evolução
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="sessions" className="mt-4">
+            {sessions.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <FlaskConical className="mb-4 h-12 w-12 text-muted-foreground/50" />
+                  <p className="text-lg font-medium">Nenhuma sessão registrada</p>
+                  <p className="text-sm text-muted-foreground">
+                    Clique em "Nova Sessão" para adicionar exames
+                  </p>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="space-y-3">
+                {sessions.map((session) => (
+                  <Card key={session.id} className="transition-colors hover:bg-muted/30">
+                    <CardContent className="flex items-center justify-between p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                          <CalendarIcon className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">
+                            {format(parseISO(session.session_date), "dd 'de' MMMM 'de' yyyy", {
+                              locale: ptBR,
+                            })}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Criado em {format(parseISO(session.created_at), "dd/MM/yyyy HH:mm")}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEditSession(session)}
+                          title="Editar"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteSession(session.id)}
+                          title="Excluir"
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="evolution" className="mt-4">
+            <EvolutionTable patientId={patient.id} sessions={sessions} sex={sex} />
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );
