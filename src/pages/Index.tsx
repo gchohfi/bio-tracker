@@ -11,10 +11,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Users, FlaskConical, AlertTriangle, CalendarIcon, ArrowRight } from "lucide-react";
+import { Plus, Search, Users, FlaskConical, AlertTriangle, CalendarIcon, ArrowRight, TrendingDown } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MARKERS, getMarkerStatus } from "@/lib/markers";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from "recharts";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Patient = Tables<"patients">;
@@ -40,6 +41,7 @@ export default function Index() {
   const [totalSessions, setTotalSessions] = useState(0);
   const [totalAlerts, setTotalAlerts] = useState(0);
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([]);
+  const [chartData, setChartData] = useState<{ date: string; alertas: number; normais: number; total: number }[]>([]);
 
   const fetchPatients = async () => {
     const { data, error } = await supabase
@@ -65,6 +67,7 @@ export default function Index() {
       setTotalSessions(0);
       setTotalAlerts(0);
       setRecentSessions([]);
+      setChartData([]);
       return;
     }
 
@@ -127,6 +130,27 @@ export default function Index() {
       };
     });
     setRecentSessions(recent);
+
+    // Build chart data: alerts + normals per session date (sorted asc)
+    const sortedSessions = [...sessions].sort((a, b) => a.session_date.localeCompare(b.session_date));
+    const sessionResultCount = new Map<string, number>();
+    (results || []).forEach((r) => {
+      sessionResultCount.set(r.session_id, (sessionResultCount.get(r.session_id) || 0) + 1);
+    });
+
+    const chart = sortedSessions.map((s) => {
+      const alerts = sessionAlertMap.get(s.id) || 0;
+      const total = sessionResultCount.get(s.id) || 0;
+      const info = sessionPatientMap.get(s.id);
+      return {
+        date: format(parseISO(s.session_date), "dd/MM/yy"),
+        label: `${info?.name || "—"} — ${format(parseISO(s.session_date), "dd/MM/yy")}`,
+        alertas: alerts,
+        normais: total - alerts,
+        total,
+      };
+    });
+    setChartData(chart);
   };
 
   useEffect(() => {
@@ -243,6 +267,75 @@ export default function Index() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Trend Chart */}
+        {chartData.length > 0 && (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                  Alertas por Sessão
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="h-[220px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                      <Tooltip
+                        contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }}
+                        labelFormatter={(_, payload) => payload?.[0]?.payload?.label || ""}
+                      />
+                      <Bar dataKey="normais" stackId="a" fill="hsl(var(--primary))" radius={[0, 0, 0, 0]} name="Normais" />
+                      <Bar dataKey="alertas" stackId="a" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} name="Alertas" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                  Evolução de Alertas
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="h-[220px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="alertGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(var(--destructive))" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="hsl(var(--destructive))" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                      <Tooltip
+                        contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }}
+                        labelFormatter={(_, payload) => payload?.[0]?.payload?.label || ""}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="alertas"
+                        stroke="hsl(var(--destructive))"
+                        fill="url(#alertGradient)"
+                        strokeWidth={2}
+                        name="Alertas"
+                        dot={{ r: 3, fill: "hsl(var(--destructive))" }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Recent Sessions */}
         {recentSessions.length > 0 && (
