@@ -440,6 +440,28 @@ function postProcessResults(results: any[]): any[] {
     }
   }
 
+  // Calculate HOMA-IR = (Glicose × Insulina) / 405
+  if (!resultMap.has("homa_ir") && resultMap.has("glicose_jejum") && resultMap.has("insulina_jejum")) {
+    const glicose = resultMap.get("glicose_jejum").value;
+    const insulina = resultMap.get("insulina_jejum").value;
+    if (typeof glicose === "number" && typeof insulina === "number") {
+      const homa = Math.round((glicose * insulina / 405) * 100) / 100;
+      results.push({ marker_id: "homa_ir", value: homa });
+      console.log(`Calculated homa_ir: (${glicose} × ${insulina}) / 405 = ${homa}`);
+    }
+  }
+
+  // Calculate Neutrófilos = Bastonetes + Segmentados
+  if (!resultMap.has("neutrofilos") && resultMap.has("bastonetes") && resultMap.has("segmentados")) {
+    const bast = resultMap.get("bastonetes").value;
+    const seg = resultMap.get("segmentados").value;
+    if (typeof bast === "number" && typeof seg === "number") {
+      const neutro = Math.round((bast + seg) * 100) / 100;
+      results.push({ marker_id: "neutrofilos", value: neutro });
+      console.log(`Calculated neutrofilos: ${bast} + ${seg} = ${neutro}`);
+    }
+  }
+
   return results;
 }
 
