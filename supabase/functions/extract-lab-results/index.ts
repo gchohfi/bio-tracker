@@ -260,157 +260,172 @@ When you encounter a value with an operator:
 === COMPREHENSIVE NAME ALIASES ===
 
 HEMOGRAMA:
-- "Hemácias" / "Glóbulos Vermelhos" → eritrocitos
-- "Glóbulos Brancos" → leucocitos
+- "Hemácias" / "Glóbulos Vermelhos" / "ERITROGRAMA" / "Contagem de Hemácias" / "HEMÁCIAS (ERITRÓCITOS)" / "RBC" → eritrocitos
+- "Glóbulos Brancos" / "LEUCOGRAMA" / "WBC" / "Contagem de Leucócitos" / "SÉRIE BRANCA" → leucocitos
+- "Neutrófilos Totais" / "NEUT" / "NEUTRÓFILOS (%)" → neutrofilos (use % value, NOT absolute)
 - "Segmentados" / "Neutrófilos Segmentados" / "SEGS" → segmentados
-- "Bastonetes" / "Bastões" / "BASTOES" / "Neutrófilos Bastonetes" / "BAND" → bastonetes
+- "Bastonetes" / "Bastões" / "BASTOES" / "Neutrófilos Bastonetes" / "BAND" / "STAB" → bastonetes
+- "LINF" / "LYMPH" / "LINFÓCITOS (%)" → linfocitos
+- "MONO" / "MONÓCITOS (%)" → monocitos
+- "EOS" / "EOSINÓFILOS (%)" → eosinofilos
+- "BASO" / "BASÓFILOS (%)" → basofilos
+- "PLAQUETOGRAMA" / "PLT" / "TROMBÓCITOS" / "Contagem de Plaquetas" → plaquetas
 - "VPM" / "V.P.M." / "MPV" / "Volume Plaquetário Médio" / "MEAN PLATELET VOLUME" → vpm
 
 COAGULAÇÃO:
-- "FIBRINOGÊNIO" / "FIBRINOGENIO" / "FIBRINOGÊNIO FUNCIONAL" / "FIBRINOGÊNIO - CLAUSS" / "FIBRINOGÊNIO DERIVADO" / "Fator I" → fibrinogenio
+- "FIBRINOGÊNIO" / "FIBRINOGENIO" / "FIBRINOGÊNIO FUNCIONAL" / "FIBRINOGÊNIO - CLAUSS" / "FIBRINOGÊNIO DERIVADO" / "Fator I" / "FIBRINOGÊNIO, PLASMA" / "FIBRINOGÊNIO CLAUSS" / "FIBRINOGÊNIO POR CLAUSS" → fibrinogenio
   Units: mg/dL. If g/L → ×100.
-- "DÍMEROS D" / "D-DÍMERO" / "D-Dímero" → dimeros_d
+- "DÍMEROS D" / "D-DÍMERO" / "D-Dímero" / "D-DÍMEROS" / "DÍMERO D" / "FRAGMENTO D" → dimeros_d
 
 PANCREÁTICOS:
 - "AMILASE" / "α-AMILASE" / "ALFA-AMILASE" / "AMS" / "AMILASE PANCREÁTICA" → amilase
 - "LIPASE" / "LPS" / "LIPASE SÉRICA" → lipase
 
 LIPÍDIOS:
-- "Colesterol HDL" / "HDL-Colesterol" → hdl
-- "Colesterol LDL" / "LDL-Colesterol" → ldl
+- "Colesterol HDL" / "HDL-Colesterol" / "HDL-C" / "COLESTEROL HDL DIRETO" → hdl
+- "Colesterol LDL" / "LDL-Colesterol" / "LDL-C" / "COLESTEROL LDL CALCULADO" / "LDL (FRIEDEWALD)" → ldl
 - "Colesterol não-HDL" / "NÃO-HDL" / "NÃO HDL" / "NON-HDL" → colesterol_nao_hdl
+- "COLESTEROL, SORO" / "COLESTEROL SÉRICO" / "Colesterol Total" → colesterol_total
+- "VLDL-C" / "COLESTEROL VLDL" / "VLDL" → vldl
+- "TRIGLICÉRIDES" / "TRIGLICERÍDIOS" / "TG" / "TRIGLICERIDES, SORO" / "Triglicerídeos" → triglicerides
 - "APOLIPOPROTEÍNA A-1" / "APO A1" / "APO A-1" / "APO A-I" / "APO A" / "APOPROTEÍNA A1" → apo_a1
 - "APOLIPOPROTEÍNA B" / "APO B" / "APO B100" / "APO B-100" → apo_b
-- "LIPOPROTEINA(a)" / "Lp(a)" / "LP(A)" / "LPA" → lipoproteina_a
+- "LIPOPROTEINA(a)" / "Lp(a)" / "LP(A)" / "LPA" / "LIPOPROTEÍNA (a) QUANTITATIVA" / "Lp(a) massa" → lipoproteina_a
   Units: nmol/L. If mg/dL → ×2.15.
 - "CT/HDL" / "Índice de Castelli" → relacao_ct_hdl
 - "TG/HDL" → relacao_tg_hdl
 - "ApoB/ApoA1" / "Razão ApoB/ApoA1" / "Relação ApoB/ApoA-I" / "Apo B/Apo A1" / "Relação Apolipoproteína B / Apolipoproteína A-I" → relacao_apob_apoa1
 
 TIREOIDE:
-- "TSH Ultra-sensível" / "Tirotropina" / "TSH" → tsh
-- "T4L" / "Tiroxina Livre" / "T4 LIVRE" → t4_livre
-- "T4 Total" / "Tiroxina Total" / "Tiroxina (T4) - Total" → t4_total
-- "T3L" / "Triiodotironina Livre" / "T3 LIVRE" → t3_livre (unit: ng/dL — do NOT convert)
-- "T3 Total" / "Triiodotironina Total" / "Triiodotironina (T3) - Total" → t3_total
-- "T3 Reverso" / "T3R" / "REVERSE T3" → t3_reverso
-- "ANTICORPO ANTI TPO" / "Anti-TPO" / "ANTI TPO" → anti_tpo
-- "ANTICORPOS ANTI TIREOGLOBULINA" / "Anti-TG" → anti_tg
+- "TSH Ultra-sensível" / "TSH ULTRASSENSÍVEL" / "Tirotropina" / "TIREOTROPINA" / "TSH" / "TSH 3a GERAÇÃO" / "TSH, SORO" → tsh
+- "T4L" / "Tiroxina Livre" / "T4 LIVRE" / "TIROXINA LIVRE (T4L)" / "FT4" / "FREE T4" → t4_livre
+- "T4 Total" / "Tiroxina Total" / "Tiroxina (T4) - Total" / "TIROXINA (T4) - TOTAL" / "TT4" → t4_total
+- "T3L" / "Triiodotironina Livre" / "T3 LIVRE" / "TRIIODOTIRONINA LIVRE (T3L)" / "FT3" / "FREE T3" → t3_livre (unit: ng/dL — do NOT convert)
+- "T3 Total" / "Triiodotironina Total" / "Triiodotironina (T3) - Total" / "TRIIODOTIRONINA (T3) - TOTAL" / "TT3" → t3_total
+- "T3 Reverso" / "T3R" / "REVERSE T3" / "TRIIODOTIRONINA REVERSA" / "rT3" / "RT3" → t3_reverso
+- "ANTICORPO ANTI TPO" / "Anti-TPO" / "ANTI TPO" / "ANTICORPOS ANTI-PEROXIDASE TIREOIDIANA" / "ANTI-PEROXIDASE" / "TPO-Ab" / "ATPO" → anti_tpo
+- "ANTICORPOS ANTI TIREOGLOBULINA" / "Anti-TG" / "ANTICORPOS ANTI-TIREOGLOBULINA" / "ATG" / "TgAb" / "ANTI TIREOGLOBULINA" → anti_tg
 - "TRAb" / "TRAB" / "Anticorpo Anti-Receptor de TSH" / "Anti-receptor de TSH" / "Anti receptor TSH" / "Anticorpos Anti Receptores de TSH" → trab
 
 HORMÔNIOS:
-- "Testosterona Total" → testosterona_total
-- "Testosterona Livre" → testosterona_livre. If pmol/L → ×0.28842 to get pg/mL. If ng/dL → ×10.
-- "Estradiol" → estradiol. If ng/dL → ×10 to get pg/mL.
-- "Estrona" / "E1" / "Estrona (E1)" / "Estrona, soro" → estrona
-- "Progesterona" → progesterona. If ng/dL → ÷100 to get ng/mL.
-- "DHEA-S" / "SDHEA" / "S-DHEA" / "Sulfato de Dehidroepiandrosterona" → dhea_s
-- "Cortisol" / "CORTISOL MATINAL" (blood) → cortisol
-- "SHBG" / "Globulina Ligadora" / "S H B G" → shbg
-- "FSH" / "HORMÔNIO FOLÍCULO ESTIMULANTE" → fsh
-- "LH" / "HORMÔNIO LUTEINIZANTE" → lh
-- "Prolactina" → prolactina
-- "AMH" / "Hormônio Anti-Mülleriano" / "Hormonio Anti-Mulleriano" / "Anti-Müllerian Hormone" / "HAM" → amh
+- "Testosterona Total" / "TESTOSTERONA, SORO" / "TESTOSTERONA SÉRICA" → testosterona_total
+- "Testosterona Livre" / "TESTOSTERONA LIVRE CALCULADA" / "TESTOSTERONA LIVRE, SORO" / "FTE" → testosterona_livre. If pmol/L → ×0.28842 to get pg/mL. If ng/dL → ×10.
+- "Estradiol" / "ESTRADIOL (E2)" / "17-BETA-ESTRADIOL" / "17β-ESTRADIOL" / "E2" → estradiol. If ng/dL → ×10 to get pg/mL.
+- "Estrona" / "E1" / "Estrona (E1)" / "Estrona, soro" / "ESTRONA (E1)" → estrona
+- "Progesterona" / "PROGESTERONA, SORO" / "P4" → progesterona. If ng/dL → ÷100 to get ng/mL.
+- "DHEA-S" / "SDHEA" / "S-DHEA" / "Sulfato de Dehidroepiandrosterona" / "DHEA SULFATO" / "SULFATO DE DEIDROEPIANDROSTERONA" / "DEIDROEPIANDROSTERONA SULFATO" → dhea_s
+- "Cortisol" / "CORTISOL MATINAL" / "CORTISOL SÉRICO" / "CORTISOL, SORO" / "CORTISOL BASAL" / "CORTISOL (8h)" / "CORTISOL MATUTINO" (blood) → cortisol
+- "SHBG" / "Globulina Ligadora" / "S H B G" / "GLOBULINA LIGADORA DE HORMÔNIOS SEXUAIS" / "SEX HORMONE BINDING GLOBULIN" → shbg
+- "FSH" / "HORMÔNIO FOLÍCULO ESTIMULANTE" / "HORMÔNIO FOLICULOESTIMULANTE" / "FOLITROPINA" → fsh
+- "LH" / "HORMÔNIO LUTEINIZANTE" / "HORMÔNIO LUTEINIZANTE, SORO" / "LUTROPINA" → lh
+- "Prolactina" / "PROLACTINA, SORO" / "PRL" → prolactina
+- "AMH" / "Hormônio Anti-Mülleriano" / "Hormonio Anti-Mulleriano" / "Anti-Müllerian Hormone" / "HAM" / "HORMÔNIO ANTIMÜLLERIANO" / "HORMÔNIO ANTI MULLERIANO" → amh
 
 EIXO GH:
-- "IGF-1" / "IGF1" / "IGF I" / "IGF 1" / "SOMATOMEDINA C" / "SOMATOMEDINA-C" / "IGF 1- SOMATOMEDINA C" / "FATOR DE CRESCIMENTO INSULINA-SÍMILE" → igf1
-- "IGFBP-3" / "IGFBP3" / "IGF BP3" / "PROTEÍNA LIGADORA 3 DO IGF" / "PROTEINA LIGADORA DE IGF TIPO 3" / "IGFBP-3 PROTEÍNA LIGADORA -3 DO IGF" → igfbp3
+- "IGF-1" / "IGF1" / "IGF I" / "IGF 1" / "SOMATOMEDINA C" / "SOMATOMEDINA-C" / "IGF 1- SOMATOMEDINA C" / "FATOR DE CRESCIMENTO INSULINA-SÍMILE" / "FATOR DE CRESCIMENTO INSULINO-SÍMILE TIPO 1" / "IGF-I" → igf1
+- "IGFBP-3" / "IGFBP3" / "IGF BP3" / "PROTEÍNA LIGADORA 3 DO IGF" / "PROTEINA LIGADORA DE IGF TIPO 3" / "IGFBP-3 PROTEÍNA LIGADORA -3 DO IGF" / "IGFBP-3 (PROTEÍNA LIGADORA -3 DO IGF)" / "PROTEÍNA TRANSPORTADORA 3 DO IGF" → igfbp3
   ⚠️ If in ng/mL → ÷1000 to get µg/mL. Example: 6120 ng/mL → 6.12 µg/mL.
 
 EIXO ADRENAL:
-- "ACTH" / "A.C.T.H." / "HORMÔNIO ADRENOCORTICOTRÓFICO" / "HORMÔNIO ADRENOCORTICOTRÓFICO A.C.T.H." / "CORTICOTROFINA" / "ADRENOCORTICOTROFINA" → acth
-- "CORTISOL LIVRE, URINA DE 24 HORAS" / "CORTISOL LIVRE URINÁRIO" / "CORTISOL URINÁRIO" / "CORTISOL LIVRE - URINA 24H" / "CORTISOL, URINA" → cortisol_livre_urina
+- "ACTH" / "A.C.T.H." / "HORMÔNIO ADRENOCORTICOTRÓFICO" / "HORMÔNIO ADRENOCORTICOTRÓFICO A.C.T.H." / "CORTICOTROFINA" / "ADRENOCORTICOTREFINA" / "HORMÔNIO ADRENOCORTICOTRÓFICO (ACTH)" / "HORMÔNIO ADRENOCORTICOTRÓFICO, PLASMA" → acth
+- "CORTISOL LIVRE, URINA DE 24 HORAS" / "CORTISOL LIVRE URINÁRIO" / "CORTISOL URINÁRIO" / "CORTISOL LIVRE - URINA 24H" / "CORTISOL, URINA" / "CLU" → cortisol_livre_urina
   ⚠️ Material is URINE not blood! mcg/24 HORAS = µg/24h.
-- "ALDOSTERONA" / "ALDOSTERONA SÉRICA" / "ALDOSTERONA - SENTADO" / "ALDOSTERONA - DEITADO" / "ALDOSTERONA - EM PÉ" → aldosterona
+- "ALDOSTERONA" / "ALDOSTERONA SÉRICA" / "ALDOSTERONA - SENTADO" / "ALDOSTERONA - DEITADO" / "ALDOSTERONA - EM PÉ" / "ALDOSTERONA, SORO" / "ALDOSTERONA PLASMÁTICA" → aldosterona
   Units: ng/dL. If pg/mL → ÷10.
 
 ANDRÓGENOS:
-- "DIHIDROTESTOSTERONA" / "DHT" / "D.H.T." / "5-ALFA-DIHIDROTESTOSTERONA" / "5α-DIHIDROTESTOSTERONA" → dihidrotestosterona
+- "DIHIDROTESTOSTERONA" / "DHT" / "D.H.T." / "5-ALFA-DIHIDROTESTOSTERONA" / "5α-DIHIDROTESTOSTERONA" / "DIIDROTESTOSTERONA" / "5α-DHT" / "5-ALFA-DHT" → dihidrotestosterona
   Units: pg/mL. If ng/dL → ×10.
-- "ANDROSTENEDIONA" → androstenediona (ng/dL)
+- "ANDROSTENEDIONA" / "ANDROSTENEDIONA, SORO" / "DELTA 4 ANDROSTENEDIONA" / "Δ4-ANDROSTENEDIONA" / "4-ANDROSTENEDIONA" → androstenediona (ng/dL)
 
 VITAMINAS:
-- "25 HIDROXI VITAMINA D" / "25-OH" / "CALCIDIOL" / "25(OH)D" / "Vitamina D3" → vitamina_d (ng/mL)
-- "1,25 DIHIDROXI" / "1.25 DIHIDROXI" / "CALCITRIOL" / "1,25(OH)2D" → vitamina_d_125 (pg/mL)
-- "Vitamina B12" → vitamina_b12. ng/L = pg/mL.
-- "Ácido Fólico" / "Folato" → acido_folico
-- "Retinol" / "Vitamina A" → vitamina_a
+- "25 HIDROXI VITAMINA D" / "25-OH" / "CALCIDIOL" / "25(OH)D" / "Vitamina D3" / "25-HIDROXIVITAMINA D" / "25-HIDROXI VITAMINA D3" / "VITAMINA D, 25-HIDROXI" / "25 OH VITAMINA D" → vitamina_d (ng/mL)
+- "1,25 DIHIDROXI" / "1.25 DIHIDROXI" / "CALCITRIOL" / "1,25(OH)2D" / "1,25-DIHIDROXI-COLECALCIFEROL" / "1,25-DIHIDROXI VITAMINA D3" / "CALCITRIOL, SORO" → vitamina_d_125 (pg/mL)
+- "Vitamina B12" / "CIANOCOBALAMINA" / "COBALAMINA" / "VITAMINA B12, SORO" → vitamina_b12. ng/L = pg/mL.
+- "Ácido Fólico" / "Folato" / "ÁCIDO FÓLICO, SORO" / "FOLATO SÉRICO" / "VITAMINA B9" → acido_folico
+- "Retinol" / "Vitamina A" / "RETINOL, SORO" / "RETINOL SÉRICO" / "VITAMINA A, SORO" → vitamina_a
 - "Vitamina E" → vitamina_e
-- "Ácido Ascórbico" / "Vitamina C" → vitamina_c
+- "Ácido Ascórbico" / "Vitamina C" / "ÁCIDO ASCÓRBICO, PLASMA" / "VITAMINA C, SORO" / "ASCORBATO" → vitamina_c
 - "Vitamina B6" → vitamina_b6
 - "Vitamina B1" → vitamina_b1
-- "Homocisteína" → homocisteina
+- "Homocisteína" / "HOMOCISTEÍNA, PLASMA" / "HOMOCISTEÍNA TOTAL" / "HCY" → homocisteina
 
 MINERAIS:
-- "Magnésio" → magnesio
-- "Zinco" → zinco. If µg/mL → ×100 to get µg/dL.
-- "Selênio" → selenio
+- "Magnésio" / "MAGNÉSIO, SORO" / "MAGNÉSIO SÉRICO" / "Mg SÉRICO" → magnesio
+- "Zinco" / "ZINCO, SORO" / "ZINCO SÉRICO" / "Zn" → zinco. If µg/mL → ×100 to get µg/dL.
+- "Selênio" / "SELÊNIO, SORO" / "SELÊNIO SÉRICO" / "Se SÉRICO" → selenio
 - "Cobre" → cobre
 - "Manganês" → manganes
-- "Cromo" → cromo
+- "Cromo" / "CROMO, SORO" / "CROMO SÉRICO" / "Cr SÉRICO" → cromo
 - "Iodo Urinário" → iodo_urinario
 
 TOXICOLOGIA:
-- "CHUMBO" / "PLUMBEMIA" / "Pb SANGUE" / "CHUMBO (Pb)" / "LEAD" → chumbo. If µg/L → ÷10 to get µg/dL.
-- "MERCURIO" / "Mercúrio" → mercurio
-- "CADMIO" / "Cádmio" → cadmio
-- "ALUMINIO" / "Alumínio" → aluminio
+- "CHUMBO" / "PLUMBEMIA" / "Pb SANGUE" / "CHUMBO (Pb)" / "LEAD" / "CHUMBO SANGUE" / "DOSAGEM DE CHUMBO" → chumbo. If µg/L → ÷10 to get µg/dL.
+- "MERCURIO" / "Mercúrio" / "MERCÚRIO, SANGUE" / "MERCÚRIO TOTAL" / "Hg" → mercurio
+- "CADMIO" / "Cádmio" / "CÁDMIO, SANGUE" / "Cd" → cadmio
+- "ALUMINIO" / "Alumínio" / "ALUMÍNIO, SORO" / "Al" → aluminio
 
 HEPÁTICO:
-- "AST" / "TGO" / "GOT" / "GOT/AST" / "TRANSAMINASE GLUTÂMICO OXALACÉTICA" → tgo_ast
-- "ALT" / "TGP" / "GPT" / "GPT/ALT" / "TRANSAMINASE GLUTÂMICO PIRÚVICA" → tgp_alt
-- "Gama GT" / "γ-GT" / "GGT" / "Gama Glutamil" → ggt
-- "Fosfatase Alcalina" / "FA" → fosfatase_alcalina
+- "AST" / "TGO" / "GOT" / "GOT/AST" / "TRANSAMINASE GLUTÂMICO OXALACÉTICA" / "ASPARTATO AMINOTRANSFERASE" / "AST/TGO" / "SGOT" → tgo_ast
+- "ALT" / "TGP" / "GPT" / "GPT/ALT" / "TRANSAMINASE GLUTÂMICO PIRÚVICA" / "ALANINA AMINOTRANSFERASE" / "ALT/TGP" / "SGPT" → tgp_alt
+- "Gama GT" / "γ-GT" / "GGT" / "Gama Glutamil" / "GAMA-GLUTAMILTRANSFERASE" / "GAMA-GLUTAMIL TRANSFERASE" / "γGT" / "G-GT" → ggt
+- "Fosfatase Alcalina" / "FA" / "FOSFATASE ALCALINA, SORO" / "ALP" / "FAL" → fosfatase_alcalina
 - "Bilirrubina Total" → bilirrubina_total
 - "Bilirrubina Direta" / "Conjugada" → bilirrubina_direta
 - "Bilirrubina Indireta" / "Não Conjugada" / "CALCULADA" → bilirrubina_indireta
-- "Albumina" (standalone, not electrophoresis) → albumina
+- "Albumina" / "ALBUMINA, SORO" / "ALBUMINA SÉRICA" / "ALB" (standalone, not electrophoresis) → albumina
 - "Proteínas Totais" → proteinas_totais
-- "LDH" / "Desidrogenase Láctica" → ldh
+- "LDH" / "Desidrogenase Láctica" / "LACTATO DESIDROGENASE" / "DESIDROGENASE LÁTICA" / "LDH, SORO" → ldh
 
 RENAL:
-- "Creatinina" → creatinina
-- "Ureia" → ureia
-- "Ácido Úrico" → acido_urico
-- "Clearance" / "Filtração Glomerular" / "CKD-EPI" / "TFG ESTIMADA" / "TFGe" / "eGFR" / "MDRD" → tfg
+- "Creatinina" / "CREATININA, SORO" / "CREATININA SÉRICA" → creatinina
+- "Ureia" / "UREIA, SORO" / "UREIA SÉRICA" / "BUN" → ureia
+- "Ácido Úrico" / "ÁCIDO ÚRICO, SORO" / "URATO" → acido_urico
+- "Clearance" / "Filtração Glomerular" / "CKD-EPI" / "TFG ESTIMADA" / "TFGe" / "eGFR" / "MDRD" / "TAXA DE FILTRAÇÃO GLOMERULAR ESTIMADA" / "TFGe CKD-EPI 2021" / "RITMO DE FILTRAÇÃO GLOMERULAR" / "RFG" / "GFR" → tfg
   Often appears as sub-item of creatinine.
 - "Cistatina C" → cistatina_c
 
 ELETRÓLITOS:
-- "Sódio" → sodio
-- "Potássio" → potassio
-- "Cálcio Total" → calcio_total
-- "Cálcio Ionizável" / "Cálcio Iônico" / "Cálcio ionizado" → calcio_ionico (mmol/L)
-- "Fósforo" → fosforo
+- "Sódio" / "SÓDIO, SORO" / "SÓDIO SÉRICO" / "Na" / "Na+" → sodio
+- "Potássio" / "POTÁSSIO, SORO" / "POTÁSSIO SÉRICO" / "K" / "K+" → potassio
+- "Cálcio Total" / "CÁLCIO, SORO" / "CÁLCIO SÉRICO" / "Ca" / "Ca TOTAL" → calcio_total
+- "Cálcio Ionizável" / "Cálcio Iônico" / "Cálcio ionizado" / "CÁLCIO IONIZADO, SORO" / "Ca++" / "Ca2+" / "iCa" → calcio_ionico (mmol/L)
+- "Fósforo" / "FÓSFORO, SORO" / "FÓSFORO SÉRICO" / "FOSFATO INORGÂNICO" / "Pi" → fosforo
 - "Cloro" / "CLORETO" → cloro
 - "Bicarbonato" / "CO2 Total" → bicarbonato
-- "PTH Intacto" / "Paratormônio" → pth
-- "Calcitonina" / "Calcitonina, soro" → calcitonina
+- "PTH Intacto" / "Paratormônio" / "PARATORMÔNIO INTACTO" / "PTH INTACTO, SORO" / "PTHi" / "iPTH" / "PARATORMÔNIO MOLÉCULA INTACTA" → pth
+- "Calcitonina" / "Calcitonina, soro" / "TIREOCALCITONINA" → calcitonina
 
 FERRO:
-- "Ferro Sérico" → ferro_serico
-- "Ferritina" → ferritina. microg/L = ng/mL.
-- "Transferrina" → transferrina
-- "Saturação de Transferrina" / "Índice de Saturação" → sat_transferrina
+- "Ferro Sérico" / "FERRO, SORO" / "Ferro (Fe)" / "FE SÉRICO" / "SIDEREMIA" → ferro_serico
+- "Ferritina" / "FERRITINA SÉRICA" / "FERRITINA, SORO" → ferritina. microg/L = ng/mL.
+- "Transferrina" / "TRANSFERRINA SÉRICA" / "TRANSFERRINA, SORO" → transferrina
+- "Saturação de Transferrina" / "Índice de Saturação" / "ÍNDICE DE SATURAÇÃO DA TRANSFERRINA" / "IST" / "SATURAÇÃO DA TRANSFERRINA" → sat_transferrina
 - "TIBC" / "Capacidade Total de Fixação do Ferro" / "CTFF" / "Capacidade Total de Ligação do Ferro" / "Capacidade Ferropéxica Total" / "CTLF" → tibc
   If µmol/L → ÷0.179.
 - "UIBC" / "Capacidade livre de fixação" / "CLFF" → IGNORE (NOT TIBC)
 
+GLICEMIA:
+- "Glicose Jejum" / "GLICEMIA DE JEJUM" / "GLICEMIA" / "GLICOSE, PLASMA" / "GLICOSE, SORO" / "GLICOSE PLASMÁTICA" / "GLUCOSE" → glicose_jejum
+- "HbA1c" / "HEMOGLOBINA GLICADA" / "HEMOGLOBINA GLICOSILADA" / "A1C" / "HB GLICADA" / "HEMOGLOBINA A1C" / "HEMOGLOBINA GLICOSILADA (HbA1c)" → hba1c
+- "Insulina Jejum" / "INSULINA BASAL" / "INSULINA, SORO" / "INSULINA SÉRICA" / "INSULINEMIA" → insulina_jejum
+- "HOMA-IR" / "ÍNDICE HOMA" / "HOMA" / "HOMA IR" / "HOMEOSTASIS MODEL ASSESSMENT" → homa_ir
+
 INFLAMAÇÃO:
-- "PCR ultra-sensível" / "PCR-us" / "Proteína C Reativa" → pcr. If mg/dL → ×10 to get mg/L.
-- "VHS" / "V.H.S." / "Velocidade de Hemossedimentação" → vhs
+- "PCR ultra-sensível" / "PCR-us" / "Proteína C Reativa" / "hsCRP" / "PCR-AS" / "PROTEÍNA C REATIVA ULTRASSENSÍVEL" / "PROTEÍNA C REATIVA (ALTA SENSIBILIDADE)" / "PCR QUANTITATIVA" → pcr. If mg/dL → ×10 to get mg/L.
+- "VHS" / "V.H.S." / "Velocidade de Hemossedimentação" / "VSG" / "ESR" / "VELOCIDADE DE SEDIMENTAÇÃO" / "Hemossedimentação" → vhs
 
 IMUNOLOGIA:
 - "FAN" / "FAN - FATOR ANTI-NÚCLEO" / "FATOR ANTINÚCLEO" / "ANA" / "FAN (HEP-2)" / "PESQUISA DE FAN" → fan
   QUALITATIVE! Use text_value. Set value=0.
 
 MARCADORES TUMORAIS:
-- "CA 19-9" / "CA 19.9" / "Antígeno CA 19-9" / "Antigeno Carboidrato 19-9" / "CA19-9" → ca_19_9
-- "CA-125" / "CA 125" / "Antígeno CA-125" / "Antigeno CA 125" → ca_125
-- "CA 72-4" / "CA 72.4" / "Antígeno CA 72-4" / "CA72-4" → ca_72_4
-- "CA 15-3" / "CA 15.3" / "Antígeno CA 15-3" / "CA15-3" → ca_15_3
-- "AFP" / "Alfafetoproteína" / "Alfa-fetoproteína" / "Alfa Feto Proteína" / "Alpha-Fetoprotein" → afp
-- "CEA" / "Antígeno Carcinoembrionário" / "Antigeno Carcinoembrionario" / "Carcinoembryonic Antigen" → cea
+- "CA 19-9" / "CA 19.9" / "Antígeno CA 19-9" / "Antigeno Carboidrato 19-9" / "CA19-9" / "ANTÍGENO CARBOIDRATO 19.9" / "ANTÍGENO CA 19-9, SORO" → ca_19_9
+- "CA-125" / "CA 125" / "Antígeno CA-125" / "Antigeno CA 125" / "ANTÍGENO DO CÂNCER 125" / "ANTÍGENO CA 125, SORO" → ca_125
+- "CA 72-4" / "CA 72.4" / "Antígeno CA 72-4" / "CA72-4" / "ANTÍGENO ASSOCIADO A TUMOR 72-4" → ca_72_4
+- "CA 15-3" / "CA 15.3" / "Antígeno CA 15-3" / "CA15-3" / "ANTÍGENO DO CÂNCER 15-3" → ca_15_3
+- "AFP" / "Alfafetoproteína" / "Alfa-fetoproteína" / "Alfa Feto Proteína" / "Alpha-Fetoprotein" / "ALFA-1-FETOPROTEÍNA" / "α-FETOPROTEÍNA" / "ALFAFETOPROTEÍNA, SORO" → afp
+- "CEA" / "Antígeno Carcinoembrionário" / "Antigeno Carcinoembrionario" / "Carcinoembryonic Antigen" / "ANTÍGENO CARCINOEMBRIOGÊNICO" / "CEA, SORO" → cea
 
 ELETROFORESE DE PROTEÍNAS:
 - Within the electrophoresis section, extract each fraction using % values:
