@@ -23,7 +23,35 @@ interface Result {
   value: number;
 }
 
-// Generate a tiny sparkline as a SVG data URL drawn on the PDF canvas
+/* ─── Color palette ─── */
+const BRAND = { r: 34, g: 60, b: 90 };        // Deep navy
+const BRAND_LIGHT = { r: 45, g: 80, b: 120 };  // Lighter navy
+const ACCENT = { r: 0, g: 150, b: 136 };        // Teal accent
+const GREEN = { r: 22, g: 160, b: 90 };
+const BLUE = { r: 37, g: 99, b: 235 };
+const RED = { r: 210, g: 45, b: 45 };
+const GRAY = { r: 120, g: 130, b: 140 };
+const LIGHT_BG = { r: 248, g: 250, b: 252 };
+
+/* ─── Category colors (RGB) mapped from HSL ─── */
+function getCategoryRGB(cat: Category): { r: number; g: number; b: number } {
+  const map: Record<Category, { r: number; g: number; b: number }> = {
+    Hemograma: { r: 55, g: 115, b: 210 },
+    Ferro: { r: 204, g: 120, b: 25 },
+    Glicemia: { r: 140, g: 70, b: 190 },
+    Lipídios: { r: 200, g: 55, b: 100 },
+    Tireoide: { r: 30, g: 150, b: 130 },
+    Hormônios: { r: 165, g: 75, b: 165 },
+    Vitaminas: { r: 190, g: 160, b: 20 },
+    Minerais: { r: 40, g: 140, b: 170 },
+    Hepático: { r: 55, g: 140, b: 70 },
+    Renal: { r: 65, g: 130, b: 190 },
+    Eletrólitos: { r: 210, g: 80, b: 60 },
+  };
+  return map[cat] || BRAND;
+}
+
+/* ─── Sparkline drawing ─── */
 function drawSparkline(
   doc: jsPDF,
   values: number[],
@@ -45,29 +73,29 @@ function drawSparkline(
   const toX = (i: number) => x + (i / (values.length - 1)) * w;
 
   // Reference range band
-  doc.setFillColor(220, 240, 220);
+  doc.setFillColor(220, 245, 225);
   const bandTop = toY(refMax);
   const bandBottom = toY(refMin);
-  doc.rect(x, bandTop, w, bandBottom - bandTop, "F");
+  doc.roundedRect(x, bandTop, w, Math.max(bandBottom - bandTop, 0.5), 0.5, 0.5, "F");
 
-  // Line
-  doc.setDrawColor(80, 80, 80);
-  doc.setLineWidth(0.3);
+  // Line with smooth appearance
+  doc.setDrawColor(60, 70, 85);
+  doc.setLineWidth(0.4);
   for (let i = 1; i < values.length; i++) {
     doc.line(toX(i - 1), toY(values[i - 1]), toX(i), toY(values[i]));
   }
 
   // Dots
   values.forEach((v, i) => {
-    const status =
-      v < refMin ? "low" : v > refMax ? "high" : "normal";
-    if (status === "normal") doc.setFillColor(34, 160, 90);
-    else if (status === "low") doc.setFillColor(59, 130, 246);
-    else doc.setFillColor(220, 50, 50);
-    doc.circle(toX(i), toY(v), 0.8, "F");
+    const status = v < refMin ? "low" : v > refMax ? "high" : "normal";
+    if (status === "normal") doc.setFillColor(GREEN.r, GREEN.g, GREEN.b);
+    else if (status === "low") doc.setFillColor(BLUE.r, BLUE.g, BLUE.b);
+    else doc.setFillColor(RED.r, RED.g, RED.b);
+    doc.circle(toX(i), toY(v), 0.9, "F");
   });
 }
 
+/* ─── Trend helpers ─── */
 function getTrend(values: number[]): "up" | "down" | "stable" | null {
   if (values.length < 2) return null;
   const last = values[values.length - 1];
@@ -79,12 +107,132 @@ function getTrend(values: number[]): "up" | "down" | "stable" | null {
 }
 
 function trendSymbol(trend: "up" | "down" | "stable" | null): string {
-  if (trend === "up") return "↑";
-  if (trend === "down") return "↓";
-  if (trend === "stable") return "→";
+  if (trend === "up") return "▲";
+  if (trend === "down") return "▼";
+  if (trend === "stable") return "●";
   return "";
 }
 
+/* ─── Status dot (small colored circle) ─── */
+function drawStatusDot(doc: jsPDF, x: number, y: number, status: "normal" | "low" | "high") {
+  if (status === "normal") doc.setFillColor(GREEN.r, GREEN.g, GREEN.b);
+  else if (status === "low") doc.setFillColor(BLUE.r, BLUE.g, BLUE.b);
+  else doc.setFillColor(RED.r, RED.g, RED.b);
+  doc.circle(x, y, 1, "F");
+}
+
+/* ─── Draw rounded pill background ─── */
+function drawPill(doc: jsPDF, x: number, y: number, w: number, h: number, color: { r: number; g: number; b: number }) {
+  doc.setFillColor(color.r, color.g, color.b);
+  doc.roundedRect(x, y, w, h, h / 2, h / 2, "F");
+}
+
+/* ─── Header ─── */
+function drawHeader(doc: jsPDF, pageW: number, patientName: string, sex: "M" | "F", period: string) {
+  // Top brand bar
+  doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
+  doc.rect(0, 0, pageW, 28, "F");
+
+  // Accent stripe
+  doc.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
+  doc.rect(0, 28, pageW, 1.5, "F");
+
+  // Title
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(255, 255, 255);
+  doc.text("Relatório de Evolução Laboratorial", 14, 13);
+
+  // Subtitle info
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(200, 215, 230);
+  doc.text(`Paciente: ${patientName}   •   Sexo: ${sex === "M" ? "Masculino" : "Feminino"}   •   ${period}`, 14, 21);
+
+  // Generated date on right
+  doc.setFontSize(7);
+  doc.setTextColor(160, 180, 200);
+  const dateStr = format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  doc.text(`Gerado em: ${dateStr}`, pageW - 14, 21, { align: "right" });
+
+  // Logo text (right side)
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(ACCENT.r, ACCENT.g, ACCENT.b);
+  doc.text("LabTrack", pageW - 14, 13, { align: "right" });
+}
+
+/* ─── Footer ─── */
+function drawFooter(doc: jsPDF, pageW: number, pageH: number, pageNum: number, totalPages: number) {
+  // Subtle line
+  doc.setDrawColor(200, 210, 220);
+  doc.setLineWidth(0.3);
+  doc.line(14, pageH - 12, pageW - 14, pageH - 12);
+
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(GRAY.r, GRAY.g, GRAY.b);
+  doc.text("LabTrack — Relatório de Evolução Laboratorial", 14, pageH - 7);
+  doc.text(`Página ${pageNum} de ${totalPages}`, pageW - 14, pageH - 7, { align: "right" });
+}
+
+/* ─── Category header ─── */
+function drawCategoryHeader(doc: jsPDF, cat: Category, y: number, pageW: number): number {
+  const color = getCategoryRGB(cat);
+
+  // Colored pill/badge
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  const textWidth = doc.getTextWidth(cat);
+  const pillW = textWidth + 10;
+  const pillH = 6;
+
+  drawPill(doc, 14, y - 4, pillW, pillH, color);
+  doc.setTextColor(255, 255, 255);
+  doc.text(cat, 14 + 5, y);
+
+  // Thin line across
+  doc.setDrawColor(color.r, color.g, color.b);
+  doc.setLineWidth(0.2);
+  doc.line(14 + pillW + 3, y - 1, pageW - 14, y - 1);
+
+  return y + 4;
+}
+
+/* ─── Legend ─── */
+function drawLegend(doc: jsPDF, x: number, y: number) {
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(BRAND.r, BRAND.g, BRAND.b);
+  doc.text("LEGENDA", x, y);
+  y += 5;
+
+  doc.setFont("helvetica", "normal");
+
+  // Green dot + text
+  doc.setFillColor(GREEN.r, GREEN.g, GREEN.b);
+  doc.circle(x + 2, y - 1, 1.2, "F");
+  doc.setTextColor(60, 60, 60);
+  doc.text("Dentro da faixa funcional", x + 5, y);
+
+  // Blue dot + text
+  doc.setFillColor(BLUE.r, BLUE.g, BLUE.b);
+  doc.circle(x + 55, y - 1, 1.2, "F");
+  doc.text("Abaixo da faixa", x + 58, y);
+
+  // Red dot + text
+  doc.setFillColor(RED.r, RED.g, RED.b);
+  doc.circle(x + 95, y - 1, 1.2, "F");
+  doc.text("Acima da faixa", x + 98, y);
+
+  y += 5;
+  doc.setTextColor(GRAY.r, GRAY.g, GRAY.b);
+  doc.text("▲ Subindo (> 5%)    ▼ Descendo (> 5%)    ● Estável    Faixa verde no sparkline = faixa de referência funcional", x, y);
+
+  return y + 3;
+}
+
+/* ─── Main export ─── */
 export function generatePatientReport(
   patientName: string,
   sex: "M" | "F",
@@ -107,55 +255,32 @@ export function generatePatientReport(
     resultMap[r.marker_id][r.session_id] = r.value;
   });
 
-  // ── Header ──
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("Relatório de Evolução Laboratorial", 14, 16);
+  // Period string
+  const periodStr = sorted.length > 0
+    ? `Período: ${format(parseISO(sorted[0].session_date), "dd/MM/yyyy")} a ${format(parseISO(sorted[sorted.length - 1].session_date), "dd/MM/yyyy")}`
+    : "Sem sessões registradas";
 
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100);
-  doc.text(`Paciente: ${patientName}  |  Sexo: ${sex === "M" ? "Masculino" : "Feminino"}`, 14, 23);
-  doc.text(
-    `Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
-    14,
-    28
-  );
-  doc.text(
-    `Período: ${sorted.length > 0 ? format(parseISO(sorted[0].session_date), "dd/MM/yyyy") : "—"} a ${sorted.length > 0 ? format(parseISO(sorted[sorted.length - 1].session_date), "dd/MM/yyyy") : "—"}`,
-    14,
-    33
-  );
-  doc.setTextColor(0);
+  // ── Header (first page) ──
+  drawHeader(doc, pageW, patientName, sex, periodStr);
 
-  // Divider
-  doc.setDrawColor(200);
-  doc.line(14, 36, pageW - 14, 36);
-
-  let startY = 40;
+  let startY = 36;
 
   // ── Iterate categories ──
   CATEGORIES.forEach((cat) => {
     const markers = getMarkersByCategory(cat);
-    // Only show markers that have data
     const markersWithData = markers.filter(
       (m) => resultMap[m.id] && Object.keys(resultMap[m.id]).length > 0
     );
     if (markersWithData.length === 0) return;
 
-    // Check if we need a new page
-    if (startY > pageH - 30) {
+    // Check if we need a new page (leave space for category header + at least a few rows)
+    if (startY > pageH - 35) {
       doc.addPage();
       startY = 16;
     }
 
     // Category header
-    const [h, s, l] = CATEGORY_COLORS[cat].split(" ").map((v) => parseInt(v));
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0);
-    doc.text(`● ${cat}`, 14, startY);
-    startY += 2;
+    startY = drawCategoryHeader(doc, cat, startY, pageW);
 
     // Build table data
     const sessionDateHeaders = sorted.map((s) =>
@@ -163,7 +288,7 @@ export function generatePatientReport(
     );
 
     const head = [
-      ["Marcador", "Un.", "Ref.", ...sessionDateHeaders, "Trend", "Spark"],
+      ["Marcador", "Un.", "Ref. Funcional", ...sessionDateHeaders, "Tend.", "Evolução"],
     ];
 
     const body: any[][] = [];
@@ -182,7 +307,7 @@ export function generatePatientReport(
       const row: any[] = [
         marker.name,
         marker.unit,
-        `${min}–${max}`,
+        `${min} – ${max}`,
         ...values.map((v) => (v !== undefined ? String(v) : "—")),
         trendSymbol(trend),
         "", // placeholder for sparkline
@@ -196,6 +321,7 @@ export function generatePatientReport(
 
     const sparkColIdx = head[0].length - 1;
     const trendColIdx = head[0].length - 2;
+    const catColor = getCategoryRGB(cat);
 
     autoTable(doc, {
       startY,
@@ -203,25 +329,31 @@ export function generatePatientReport(
       body,
       margin: { left: 14, right: 14 },
       styles: {
-        fontSize: 7,
-        cellPadding: 1.5,
+        fontSize: 7.5,
+        cellPadding: { top: 2, bottom: 2, left: 2, right: 2 },
         overflow: "linebreak",
+        lineColor: [230, 235, 240],
+        lineWidth: 0.2,
       },
       headStyles: {
-        fillColor: [60, 60, 70],
+        fillColor: [catColor.r, catColor.g, catColor.b],
         textColor: 255,
         fontSize: 7,
         fontStyle: "bold",
+        cellPadding: { top: 2.5, bottom: 2.5, left: 2, right: 2 },
+      },
+      alternateRowStyles: {
+        fillColor: [LIGHT_BG.r, LIGHT_BG.g, LIGHT_BG.b],
       },
       columnStyles: {
-        0: { cellWidth: 35, fontStyle: "bold" },
-        1: { cellWidth: 18 },
-        2: { cellWidth: 18 },
-        [trendColIdx]: { cellWidth: 10, halign: "center" },
-        [sparkColIdx]: { cellWidth: 28 },
+        0: { cellWidth: 34, fontStyle: "bold", textColor: [BRAND.r, BRAND.g, BRAND.b] },
+        1: { cellWidth: 16, textColor: [GRAY.r, GRAY.g, GRAY.b] },
+        2: { cellWidth: 20, textColor: [GRAY.r, GRAY.g, GRAY.b], fontStyle: "italic" },
+        [trendColIdx]: { cellWidth: 10, halign: "center", fontSize: 8 },
+        [sparkColIdx]: { cellWidth: 30 },
       },
       didParseCell(data) {
-        // Color code values
+        // Color code result values
         if (data.section === "body" && data.column.index >= 3 && data.column.index < trendColIdx) {
           const val = parseFloat(data.cell.raw as string);
           if (!isNaN(val)) {
@@ -229,24 +361,24 @@ export function generatePatientReport(
             if (marker) {
               const status = getMarkerStatus(val, marker, sex);
               if (status === "normal") {
-                data.cell.styles.textColor = [22, 120, 60];
+                data.cell.styles.textColor = [GREEN.r, GREEN.g, GREEN.b];
                 data.cell.styles.fontStyle = "bold";
               } else if (status === "low") {
-                data.cell.styles.textColor = [37, 99, 235];
+                data.cell.styles.textColor = [BLUE.r, BLUE.g, BLUE.b];
                 data.cell.styles.fontStyle = "bold";
               } else if (status === "high") {
-                data.cell.styles.textColor = [200, 30, 30];
+                data.cell.styles.textColor = [RED.r, RED.g, RED.b];
                 data.cell.styles.fontStyle = "bold";
               }
             }
           }
         }
-        // Color trend arrows
+        // Color trend symbols
         if (data.section === "body" && data.column.index === trendColIdx) {
           const sym = data.cell.raw as string;
-          if (sym === "↑") data.cell.styles.textColor = [200, 30, 30];
-          else if (sym === "↓") data.cell.styles.textColor = [37, 99, 235];
-          else if (sym === "→") data.cell.styles.textColor = [100, 100, 100];
+          if (sym === "▲") data.cell.styles.textColor = [RED.r, RED.g, RED.b];
+          else if (sym === "▼") data.cell.styles.textColor = [BLUE.r, BLUE.g, BLUE.b];
+          else if (sym === "●") data.cell.styles.textColor = [GRAY.r, GRAY.g, GRAY.b];
         }
       },
       didDrawCell(data) {
@@ -262,65 +394,97 @@ export function generatePatientReport(
               sparkData.values,
               min,
               max,
-              data.cell.x + 1,
-              data.cell.y + 1,
-              data.cell.width - 2,
-              data.cell.height - 2
+              data.cell.x + 1.5,
+              data.cell.y + 1.5,
+              data.cell.width - 3,
+              data.cell.height - 3
             );
           }
         }
       },
     });
 
-    startY = (doc as any).lastAutoTable.finalY + 6;
+    startY = (doc as any).lastAutoTable.finalY + 8;
   });
 
-  // ── Summary footer on last page ──
-  if (startY > pageH - 25) {
+  // ── Summary section ──
+  if (startY > pageH - 35) {
     doc.addPage();
     startY = 16;
   }
 
-  doc.setDrawColor(200);
+  // Divider
+  doc.setDrawColor(200, 210, 220);
+  doc.setLineWidth(0.3);
   doc.line(14, startY, pageW - 14, startY);
-  startY += 5;
+  startY += 6;
 
   // Count alerts
   let alertCount = 0;
+  let normalCount = 0;
   const latestSession = sorted[sorted.length - 1];
   if (latestSession) {
     MARKERS.forEach((m) => {
       const val = resultMap[m.id]?.[latestSession.id];
-      if (val !== undefined && getMarkerStatus(val, m, sex) !== "normal") {
-        alertCount++;
+      if (val !== undefined) {
+        if (getMarkerStatus(val, m, sex) !== "normal") alertCount++;
+        else normalCount++;
       }
     });
   }
 
+  // Summary card
+  doc.setFillColor(LIGHT_BG.r, LIGHT_BG.g, LIGHT_BG.b);
+  doc.roundedRect(14, startY - 2, pageW - 28, 16, 2, 2, "F");
+
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.text("Resumo:", 14, startY);
+  doc.setTextColor(BRAND.r, BRAND.g, BRAND.b);
+  doc.text("RESUMO", 18, startY + 4);
+
+  doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.text(
-    `${sorted.length} sessões  |  ${results.length} resultados  |  ${alertCount} marcador(es) fora da faixa funcional na última sessão`,
-    40,
-    startY
-  );
+  doc.setTextColor(60, 60, 60);
 
-  startY += 5;
-  doc.setFontSize(7);
-  doc.setTextColor(130);
-  doc.text("Legenda: Verde = dentro da faixa funcional  |  Azul = abaixo  |  Vermelho = acima  |  Faixa verde no sparkline = faixa de referência", 14, startY);
-  doc.text("↑ subindo  |  ↓ descendo  |  → estável (variação < 5%)", 14, startY + 4);
+  const summaryParts = [
+    `${sorted.length} sessão(ões)`,
+    `${results.length} resultados registrados`,
+  ];
+  if (latestSession) {
+    summaryParts.push(`${normalCount} dentro da faixa`);
+    summaryParts.push(`${alertCount} fora da faixa na última sessão`);
+  }
+  doc.text(summaryParts.join("   •   "), 42, startY + 4);
 
-  // Page numbers
+  // Alert highlight
+  if (alertCount > 0) {
+    doc.setFillColor(RED.r, RED.g, RED.b);
+    doc.roundedRect(18, startY + 7, 3, 3, 0.5, 0.5, "F");
+    doc.setFontSize(7);
+    doc.setTextColor(RED.r, RED.g, RED.b);
+    doc.text(`${alertCount} marcador(es) requerem atenção`, 23, startY + 10);
+  } else if (latestSession) {
+    doc.setFillColor(GREEN.r, GREEN.g, GREEN.b);
+    doc.roundedRect(18, startY + 7, 3, 3, 0.5, 0.5, "F");
+    doc.setFontSize(7);
+    doc.setTextColor(GREEN.r, GREEN.g, GREEN.b);
+    doc.text("Todos os marcadores dentro da faixa funcional", 23, startY + 10);
+  }
+
+  startY += 20;
+
+  // Legend
+  if (startY > pageH - 20) {
+    doc.addPage();
+    startY = 16;
+  }
+  drawLegend(doc, 14, startY);
+
+  // ── Page numbers & footer ──
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    doc.setFontSize(7);
-    doc.setTextColor(150);
-    doc.text(`Página ${i} de ${totalPages}`, pageW - 30, pageH - 6);
-    doc.text("LabTrack", 14, pageH - 6);
+    drawFooter(doc, pageW, pageH, i, totalPages);
   }
 
   doc.save(`Relatorio_${patientName.replace(/\s+/g, "_")}_${format(new Date(), "yyyyMMdd")}.pdf`);
