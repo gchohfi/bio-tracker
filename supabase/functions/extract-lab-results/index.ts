@@ -45,15 +45,20 @@ const MARKER_LIST = [
   { id: "lipoproteina_a", name: "Lipoproteína (a)", unit: "nmol/L" },
   { id: "relacao_ct_hdl", name: "CT/HDL", unit: "" },
   { id: "relacao_tg_hdl", name: "TG/HDL", unit: "" },
+  { id: "relacao_apob_apoa1", name: "ApoB/ApoA1", unit: "" },
   { id: "tsh", name: "TSH", unit: "mUI/L" },
   { id: "t4_livre", name: "T4 Livre", unit: "ng/dL" },
-  { id: "t3_livre", name: "T3 Livre", unit: "pg/mL" },
+  { id: "t4_total", name: "T4 Total", unit: "µg/dL" },
+  { id: "t3_livre", name: "T3 Livre", unit: "ng/dL" },
+  { id: "t3_total", name: "T3 Total", unit: "ng/dL" },
   { id: "t3_reverso", name: "T3 Reverso", unit: "ng/dL" },
   { id: "anti_tpo", name: "Anti-TPO", unit: "UI/mL" },
   { id: "anti_tg", name: "Anti-TG", unit: "UI/mL" },
+  { id: "trab", name: "TRAb", unit: "UI/L" },
   { id: "testosterona_total", name: "Testosterona Total", unit: "ng/dL" },
   { id: "testosterona_livre", name: "Testosterona Livre", unit: "pg/mL" },
   { id: "estradiol", name: "Estradiol", unit: "pg/mL" },
+  { id: "estrona", name: "Estrona (E1)", unit: "pg/mL" },
   { id: "progesterona", name: "Progesterona", unit: "ng/mL" },
   { id: "dhea_s", name: "DHEA-S", unit: "µg/dL" },
   { id: "cortisol", name: "Cortisol (manhã)", unit: "µg/dL" },
@@ -61,6 +66,7 @@ const MARKER_LIST = [
   { id: "fsh", name: "FSH", unit: "mUI/mL" },
   { id: "lh", name: "LH", unit: "mUI/mL" },
   { id: "prolactina", name: "Prolactina", unit: "ng/mL" },
+  { id: "amh", name: "AMH (Hormônio Anti-Mülleriano)", unit: "ng/mL" },
   { id: "igf1", name: "IGF-1 (Somatomedina C)", unit: "ng/mL" },
   { id: "igfbp3", name: "IGFBP-3", unit: "µg/mL" },
   { id: "acth", name: "ACTH", unit: "pg/mL" },
@@ -108,6 +114,7 @@ const MARKER_LIST = [
   { id: "cloro", name: "Cloro", unit: "mEq/L" },
   { id: "bicarbonato", name: "Bicarbonato", unit: "mEq/L" },
   { id: "pth", name: "PTH", unit: "pg/mL" },
+  { id: "calcitonina", name: "Calcitonina", unit: "pg/mL" },
   { id: "pcr", name: "PCR", unit: "mg/L" },
   { id: "vhs", name: "VHS", unit: "mm/h" },
   { id: "homocisteina", name: "Homocisteína", unit: "µmol/L" },
@@ -126,6 +133,13 @@ const MARKER_LIST = [
   { id: "eletroforese_beta2", name: "Beta 2 (eletroforese)", unit: "%" },
   { id: "eletroforese_gama", name: "Gama (eletroforese)", unit: "%" },
   { id: "relacao_ag", name: "Relação A/G", unit: "" },
+  // Marcadores Tumorais
+  { id: "ca_19_9", name: "CA 19-9", unit: "U/mL" },
+  { id: "ca_125", name: "CA-125", unit: "U/mL" },
+  { id: "ca_72_4", name: "CA 72-4", unit: "U/mL" },
+  { id: "ca_15_3", name: "CA 15-3", unit: "U/mL" },
+  { id: "afp", name: "AFP (Alfafetoproteína)", unit: "ng/mL" },
+  { id: "cea", name: "CEA (Antígeno Carcinoembrionário)", unit: "ng/mL" },
   // Qualitative markers - Urina Tipo 1
   { id: "urina_cor", name: "Cor (urina)", unit: "", qualitative: true },
   { id: "urina_aspecto", name: "Aspecto (urina)", unit: "", qualitative: true },
@@ -219,6 +233,30 @@ COPROLÓGICO / COPROGRAMA panel → extract ALL sub-items as qualitative
    - "AMILASE" / "AMILASE TOTAL" / "AMILASE SÉRICA" / "α-AMILASE" / "ALFA-AMILASE" → amilase
    - "AMILASE PANCREÁTICA" → also map to amilase (close enough)
 
+6. T3 Livre vs T3 Total:
+   - "T3 Livre" / "T3L" / "Triiodotironina Livre" → t3_livre (unit: ng/dL)
+   - "T3 Total" / "Triiodotironina Total" → t3_total (unit: ng/dL)
+
+7. T4 Livre vs T4 Total:
+   - "T4 Livre" / "T4L" / "Tiroxina Livre" → t4_livre (unit: ng/dL)
+   - "T4 Total" / "Tiroxina Total" → t4_total (unit: µg/dL)
+
+=== OPERATOR HANDLING (CRITICAL — "<" and ">" VALUES) ===
+Many results come with comparison operators like "< 34", "< 1.0", "> 90".
+These are CRITICAL to preserve — they indicate values below/above detection limits.
+
+When you encounter a value with an operator:
+1. EXTRACT the numeric part as "value"
+2. ALSO set "text_value" to the FULL string including operator: e.g. "< 34", "< 1.0", "> 90"
+3. Examples:
+   - Anti-TPO: "< 34" → { marker_id: "anti_tpo", value: 34, text_value: "< 34" }
+   - TRAb: "< 1.0" → { marker_id: "trab", value: 1.0, text_value: "< 1.0" }
+   - Anti-TG: "< 1.3" → { marker_id: "anti_tg", value: 1.3, text_value: "< 1.3" }
+   - Calcitonina: "< 1.0" → { marker_id: "calcitonina", value: 1.0, text_value: "< 1.0" }
+   - CA 72-4: "< 2.5" → { marker_id: "ca_72_4", value: 2.5, text_value: "< 2.5" }
+   - "Inferior a 10" → { value: 10, text_value: "< 10" }
+   - "Superior a 90" → { value: 90, text_value: "> 90" }
+
 === COMPREHENSIVE NAME ALIASES ===
 
 HEMOGRAMA:
@@ -247,19 +285,24 @@ LIPÍDIOS:
   Units: nmol/L. If mg/dL → ×2.15.
 - "CT/HDL" / "Índice de Castelli" → relacao_ct_hdl
 - "TG/HDL" → relacao_tg_hdl
+- "ApoB/ApoA1" / "Razão ApoB/ApoA1" / "Relação ApoB/ApoA-I" / "Apo B/Apo A1" / "Relação Apolipoproteína B / Apolipoproteína A-I" → relacao_apob_apoa1
 
 TIREOIDE:
 - "TSH Ultra-sensível" / "Tirotropina" / "TSH" → tsh
 - "T4L" / "Tiroxina Livre" / "T4 LIVRE" → t4_livre
-- "T3L" / "Triiodotironina Livre" / "T3 LIVRE" → t3_livre
+- "T4 Total" / "Tiroxina Total" / "Tiroxina (T4) - Total" → t4_total
+- "T3L" / "Triiodotironina Livre" / "T3 LIVRE" → t3_livre (unit: ng/dL — do NOT convert)
+- "T3 Total" / "Triiodotironina Total" / "Triiodotironina (T3) - Total" → t3_total
 - "T3 Reverso" / "T3R" / "REVERSE T3" → t3_reverso
 - "ANTICORPO ANTI TPO" / "Anti-TPO" / "ANTI TPO" → anti_tpo
 - "ANTICORPOS ANTI TIREOGLOBULINA" / "Anti-TG" → anti_tg
+- "TRAb" / "TRAB" / "Anticorpo Anti-Receptor de TSH" / "Anti-receptor de TSH" / "Anti receptor TSH" / "Anticorpos Anti Receptores de TSH" → trab
 
 HORMÔNIOS:
 - "Testosterona Total" → testosterona_total
 - "Testosterona Livre" → testosterona_livre. If pmol/L → ×0.28842 to get pg/mL. If ng/dL → ×10.
 - "Estradiol" → estradiol. If ng/dL → ×10 to get pg/mL.
+- "Estrona" / "E1" / "Estrona (E1)" / "Estrona, soro" → estrona
 - "Progesterona" → progesterona. If ng/dL → ÷100 to get ng/mL.
 - "DHEA-S" / "SDHEA" / "S-DHEA" / "Sulfato de Dehidroepiandrosterona" → dhea_s
 - "Cortisol" / "CORTISOL MATINAL" (blood) → cortisol
@@ -267,6 +310,7 @@ HORMÔNIOS:
 - "FSH" / "HORMÔNIO FOLÍCULO ESTIMULANTE" → fsh
 - "LH" / "HORMÔNIO LUTEINIZANTE" → lh
 - "Prolactina" → prolactina
+- "AMH" / "Hormônio Anti-Mülleriano" / "Hormonio Anti-Mulleriano" / "Anti-Müllerian Hormone" / "HAM" → amh
 
 EIXO GH:
 - "IGF-1" / "IGF1" / "IGF I" / "IGF 1" / "SOMATOMEDINA C" / "SOMATOMEDINA-C" / "IGF 1- SOMATOMEDINA C" / "FATOR DE CRESCIMENTO INSULINA-SÍMILE" → igf1
@@ -341,6 +385,7 @@ ELETRÓLITOS:
 - "Cloro" / "CLORETO" → cloro
 - "Bicarbonato" / "CO2 Total" → bicarbonato
 - "PTH Intacto" / "Paratormônio" → pth
+- "Calcitonina" / "Calcitonina, soro" → calcitonina
 
 FERRO:
 - "Ferro Sérico" → ferro_serico
@@ -358,6 +403,14 @@ INFLAMAÇÃO:
 IMUNOLOGIA:
 - "FAN" / "FAN - FATOR ANTI-NÚCLEO" / "FATOR ANTINÚCLEO" / "ANA" / "FAN (HEP-2)" / "PESQUISA DE FAN" → fan
   QUALITATIVE! Use text_value. Set value=0.
+
+MARCADORES TUMORAIS:
+- "CA 19-9" / "CA 19.9" / "Antígeno CA 19-9" / "Antigeno Carboidrato 19-9" / "CA19-9" → ca_19_9
+- "CA-125" / "CA 125" / "Antígeno CA-125" / "Antigeno CA 125" → ca_125
+- "CA 72-4" / "CA 72.4" / "Antígeno CA 72-4" / "CA72-4" → ca_72_4
+- "CA 15-3" / "CA 15.3" / "Antígeno CA 15-3" / "CA15-3" → ca_15_3
+- "AFP" / "Alfafetoproteína" / "Alfa-fetoproteína" / "Alfa Feto Proteína" / "Alpha-Fetoprotein" → afp
+- "CEA" / "Antígeno Carcinoembrionário" / "Antigeno Carcinoembrionario" / "Carcinoembryonic Antigen" → cea
 
 ELETROFORESE DE PROTEÍNAS:
 - Within the electrophoresis section, extract each fraction using % values:
@@ -391,9 +444,11 @@ COPROLÓGICO:
 - For Plaquetas: "336 mil/mm³" → 336.
 - For Eritrócitos: "3,8 milhões" → 3.8.
 - For Leucócitos: small value like "3,9" in thousands → 3900.
-- Values like "< 10" or "Inferior a X" → use X.
-- "Superior a 90" → use 90.
-- For NUMERIC markers: return number in 'value'.
+- For T3 Livre: the standard unit is ng/dL. Do NOT convert. Most Brazilian labs report in ng/dL.
+- CRITICAL: For values with operators ("<", ">", "<=", ">="): set BOTH "value" (numeric part) AND "text_value" (full string with operator).
+- "Inferior a X" → value=X, text_value="< X"
+- "Superior a X" → value=X, text_value="> X"
+- For NUMERIC markers without operators: return number in 'value' only.
 - For QUALITATIVE markers (fan, urina_*, copro_*): return text in 'text_value', set value=0.
 - If marker appears multiple times: use FIRST occurrence (actual result, not historical).
 - mcg = µg. mcg/dL = µg/dL, mcg/L = µg/L.
@@ -455,6 +510,17 @@ function postProcessResults(results: any[]): any[] {
     }
   }
 
+  // Calculate ApoB/ApoA1 ratio
+  if (!resultMap.has("relacao_apob_apoa1") && resultMap.has("apo_b") && resultMap.has("apo_a1")) {
+    const apoB = resultMap.get("apo_b").value;
+    const apoA1 = resultMap.get("apo_a1").value;
+    if (typeof apoB === "number" && typeof apoA1 === "number" && apoA1 > 0) {
+      const ratio = Math.round((apoB / apoA1) * 100) / 100;
+      results.push({ marker_id: "relacao_apob_apoa1", value: ratio });
+      console.log(`Calculated relacao_apob_apoa1: ${apoB} / ${apoA1} = ${ratio}`);
+    }
+  }
+
   // Calculate HOMA-IR = (Glicose × Insulina) / 405
   if (!resultMap.has("homa_ir") && resultMap.has("glicose_jejum") && resultMap.has("insulina_jejum")) {
     const glicose = resultMap.get("glicose_jejum").value;
@@ -513,22 +579,27 @@ serve(async (req) => {
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `Extract ALL lab results from this Brazilian lab report. Target: 85+ markers. Be EXHAUSTIVE — do not skip ANY marker.
+            content: `Extract ALL lab results from this Brazilian lab report. Target: 95+ markers. Be EXHAUSTIVE — do not skip ANY marker.
 
 STEP-BY-STEP APPROACH:
 1. First, normalize the text: remove accents, dots from abbreviations, replace Greek letters
-2. Identify all panels/sections (Hemograma, Lipídios, Bilirrubinas, Ferro, Eletroforese, Urina, Fezes, etc.)
+2. Identify all panels/sections (Hemograma, Lipídios, Bilirrubinas, Ferro, Eletroforese, Urina, Fezes, Marcadores Tumorais, etc.)
 3. For each panel, extract EVERY sub-item individually
 4. For standalone exams, match against aliases
 5. Apply unit conversions where needed
 6. For material = urine/stool, still extract (cortisol_livre_urina, urina_*, copro_*)
+7. CRITICAL: For values with "<" or ">" operators, set BOTH value AND text_value
 
 COMMONLY MISSED — search EXPLICITLY for each of these:
 - Hemograma: Bastonetes/Bastões, Segmentados, VPM/V.P.M./MPV
 - Coagulação: Fibrinogênio (may say "CLAUSS" or "g/L"→×100)
 - Pancreáticos: Amilase/α-Amilase, Lipase
-- Lipídios avançados: Apo A-1, Apo B, Lp(a), Colesterol Não-HDL, CT/HDL, TG/HDL
+- Lipídios avançados: Apo A-1, Apo B, Lp(a), Colesterol Não-HDL, CT/HDL, TG/HDL, ApoB/ApoA1
 - Ferro: TIBC/CTFF/Capacidade Ferropéxica Total, Transferrina, Sat. Transferrina
+- Tireoide: T4 Total, T3 Total, TRAb (often "< 1.0")
+- Hormônios: Estrona (E1), AMH
+- Eletrólitos: Calcitonina (often "< 1.0")
+- Marcadores Tumorais: CA 19-9, CA-125, CA 72-4 (often "< 2.5"), CA 15-3, AFP, CEA
 - Eixo GH: IGF-1/Somatomedina C, IGFBP-3 (ng/mL÷1000=µg/mL)
 - Eixo Adrenal: ACTH/A.C.T.H., Cortisol Urina 24h, Aldosterona
 - Andrógenos: DHT/D.H.T./Dihidrotestosterona, Androstenediona
@@ -541,6 +612,14 @@ COMMONLY MISSED — search EXPLICITLY for each of these:
 - Urina Tipo 1/EAS: ALL sub-items as qualitative
 - Coprológico: ALL sub-items as qualitative
 
+OPERATOR VALUES (CRITICAL):
+- Anti-TPO often comes as "< 34" → value=34, text_value="< 34"
+- TRAb often comes as "< 1.0" → value=1.0, text_value="< 1.0"
+- Anti-TG often comes as "< 1.3" → value=1.3, text_value="< 1.3"
+- Calcitonina often comes as "< 1.0" → value=1.0, text_value="< 1.0"
+- CA 72-4 often comes as "< 2.5" → value=2.5, text_value="< 2.5"
+- AFP often comes as "< 1.0" → value=1.0, text_value="< 1.0"
+
 Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSend}`,
           },
         ],
@@ -549,7 +628,7 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
             type: "function",
             function: {
               name: "extract_results",
-              description: "Return extracted lab marker values mapped to their IDs. Use 'value' for numeric results and 'text_value' for qualitative/text results.",
+              description: "Return extracted lab marker values mapped to their IDs. Use 'value' for numeric results and 'text_value' for qualitative/text results. IMPORTANT: For values with operators like '<' or '>', set BOTH value (numeric part) AND text_value (full string with operator).",
               parameters: {
                 type: "object",
                 properties: {
@@ -559,8 +638,8 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
                       type: "object",
                       properties: {
                         marker_id: { type: "string", description: "The marker ID from the known list" },
-                        value: { type: "number", description: "The numeric value extracted (use 0 for qualitative markers)" },
-                        text_value: { type: "string", description: "The text result for qualitative markers (e.g. 'Negativo', 'Ausente', 'Amarelo Citrino')" },
+                        value: { type: "number", description: "The numeric value extracted (use 0 for qualitative markers, use the numeric part for operator values like '< 34' → 34)" },
+                        text_value: { type: "string", description: "The text result for qualitative markers (e.g. 'Negativo', 'Ausente') OR for operator values (e.g. '< 34', '< 1.0', '> 90')" },
                       },
                       required: ["marker_id"],
                       additionalProperties: false,
@@ -612,7 +691,7 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
       if (QUALITATIVE_IDS.has(r.marker_id)) {
         return typeof r.text_value === "string" && r.text_value.length > 0;
       }
-      // Numeric markers: need valid number
+      // Numeric markers: need valid number (may also have text_value for operator values)
       return typeof r.value === "number" && !isNaN(r.value);
     });
     

@@ -26,6 +26,7 @@ export const CATEGORIES = [
   "Pancreático",
   "Imunologia",
   "Proteínas",
+  "Marcadores Tumorais",
   "Toxicologia",
   "Urina",
   "Fezes",
@@ -52,6 +53,7 @@ export const CATEGORY_COLORS: Record<Category, string> = {
   Pancreático: "50 70% 45%",
   Imunologia: "270 50% 55%",
   Proteínas: "180 50% 45%",
+  "Marcadores Tumorais": "350 65% 50%",
   Toxicologia: "15 80% 45%",
   Urina: "55 70% 50%",
   Fezes: "35 60% 45%",
@@ -102,17 +104,22 @@ export const MARKERS: MarkerDef[] = [
   { id: "lipoproteina_a", name: "Lipoproteína (a)", unit: "nmol/L", category: "Lipídios", refRange: { M: [0, 75], F: [0, 75] } },
   { id: "relacao_ct_hdl", name: "CT/HDL", unit: "", category: "Lipídios", refRange: { M: [0, 3.5], F: [0, 3.5] } },
   { id: "relacao_tg_hdl", name: "TG/HDL", unit: "", category: "Lipídios", refRange: { M: [0, 2.0], F: [0, 2.0] } },
+  { id: "relacao_apob_apoa1", name: "ApoB/ApoA1", unit: "", category: "Lipídios", refRange: { M: [0, 0.70], F: [0, 0.70] } },
   // Tireoide
   { id: "tsh", name: "TSH", unit: "mUI/L", category: "Tireoide", refRange: { M: [1.0, 2.0], F: [1.0, 2.0] } },
   { id: "t4_livre", name: "T4 Livre", unit: "ng/dL", category: "Tireoide", refRange: { M: [1.0, 1.5], F: [1.0, 1.5] } },
-  { id: "t3_livre", name: "T3 Livre", unit: "pg/mL", category: "Tireoide", refRange: { M: [3.0, 4.0], F: [3.0, 4.0] } },
+  { id: "t4_total", name: "T4 Total", unit: "µg/dL", category: "Tireoide", refRange: { M: [6.0, 10.0], F: [6.0, 10.0] } },
+  { id: "t3_livre", name: "T3 Livre", unit: "ng/dL", category: "Tireoide", refRange: { M: [0.27, 0.42], F: [0.27, 0.42] } },
+  { id: "t3_total", name: "T3 Total", unit: "ng/dL", category: "Tireoide", refRange: { M: [80, 180], F: [80, 180] } },
   { id: "t3_reverso", name: "T3 Reverso", unit: "ng/dL", category: "Tireoide", refRange: { M: [10, 20], F: [10, 20] } },
   { id: "anti_tpo", name: "Anti-TPO", unit: "UI/mL", category: "Tireoide", refRange: { M: [0, 15], F: [0, 15] } },
   { id: "anti_tg", name: "Anti-TG", unit: "UI/mL", category: "Tireoide", refRange: { M: [0, 20], F: [0, 20] } },
+  { id: "trab", name: "TRAb", unit: "UI/L", category: "Tireoide", refRange: { M: [0, 1.75], F: [0, 1.75] } },
   // Hormônios
   { id: "testosterona_total", name: "Testosterona Total", unit: "ng/dL", category: "Hormônios", refRange: { M: [500, 900], F: [15, 70] } },
   { id: "testosterona_livre", name: "Testosterona Livre", unit: "pg/mL", category: "Hormônios", refRange: { M: [15, 25], F: [1.0, 5.0] } },
   { id: "estradiol", name: "Estradiol", unit: "pg/mL", category: "Hormônios", refRange: { M: [20, 40], F: [50, 200] } },
+  { id: "estrona", name: "Estrona (E1)", unit: "pg/mL", category: "Hormônios", refRange: { M: [10, 60], F: [17, 200] } },
   { id: "progesterona", name: "Progesterona", unit: "ng/mL", category: "Hormônios", refRange: { M: [0.2, 1.4], F: [5.0, 20.0] } },
   { id: "dhea_s", name: "DHEA-S", unit: "µg/dL", category: "Hormônios", refRange: { M: [200, 450], F: [150, 350] } },
   { id: "cortisol", name: "Cortisol (manhã)", unit: "µg/dL", category: "Hormônios", refRange: { M: [10, 18], F: [10, 18] } },
@@ -120,6 +127,7 @@ export const MARKERS: MarkerDef[] = [
   { id: "fsh", name: "FSH", unit: "mUI/mL", category: "Hormônios", refRange: { M: [1.5, 12.4], F: [3.5, 12.5] } },
   { id: "lh", name: "LH", unit: "mUI/mL", category: "Hormônios", refRange: { M: [1.7, 8.6], F: [2.4, 12.6] } },
   { id: "prolactina", name: "Prolactina", unit: "ng/mL", category: "Hormônios", refRange: { M: [4.0, 15.2], F: [4.8, 23.3] } },
+  { id: "amh", name: "AMH", unit: "ng/mL", category: "Hormônios", refRange: { M: [0.7, 19.0], F: [0.5, 6.0] } },
   // Eixo GH
   { id: "igf1", name: "IGF-1 (Somatomedina C)", unit: "ng/mL", category: "Eixo GH", refRange: { M: [115, 355], F: [115, 355] } },
   { id: "igfbp3", name: "IGFBP-3", unit: "µg/mL", category: "Eixo GH", refRange: { M: [3.5, 7.6], F: [3.5, 7.6] } },
@@ -179,6 +187,7 @@ export const MARKERS: MarkerDef[] = [
   { id: "cloro", name: "Cloro", unit: "mEq/L", category: "Eletrólitos", refRange: { M: [100, 106], F: [100, 106] } },
   { id: "bicarbonato", name: "Bicarbonato", unit: "mEq/L", category: "Eletrólitos", refRange: { M: [22, 26], F: [22, 26] } },
   { id: "pth", name: "PTH", unit: "pg/mL", category: "Eletrólitos", refRange: { M: [15, 50], F: [15, 50] } },
+  { id: "calcitonina", name: "Calcitonina", unit: "pg/mL", category: "Eletrólitos", refRange: { M: [0, 8.4], F: [0, 5.0] } },
   // Coagulação
   { id: "fibrinogenio", name: "Fibrinogênio", unit: "mg/dL", category: "Coagulação", refRange: { M: [200, 400], F: [200, 400] } },
   { id: "dimeros_d", name: "Dímeros D", unit: "ng/mL", category: "Coagulação", refRange: { M: [0, 500], F: [0, 500] } },
@@ -195,6 +204,13 @@ export const MARKERS: MarkerDef[] = [
   { id: "eletroforese_beta2", name: "Beta 2", unit: "%", category: "Proteínas", refRange: { M: [3.1, 6.1], F: [3.1, 6.1] } },
   { id: "eletroforese_gama", name: "Gama", unit: "%", category: "Proteínas", refRange: { M: [10.3, 18.2], F: [10.3, 18.2] } },
   { id: "relacao_ag", name: "Relação A/G", unit: "", category: "Proteínas", refRange: { M: [1.5, 2.5], F: [1.5, 2.5] } },
+  // Marcadores Tumorais
+  { id: "ca_19_9", name: "CA 19-9", unit: "U/mL", category: "Marcadores Tumorais", refRange: { M: [0, 37], F: [0, 37] } },
+  { id: "ca_125", name: "CA-125", unit: "U/mL", category: "Marcadores Tumorais", refRange: { M: [0, 35], F: [0, 35] } },
+  { id: "ca_72_4", name: "CA 72-4", unit: "U/mL", category: "Marcadores Tumorais", refRange: { M: [0, 6.9], F: [0, 6.9] } },
+  { id: "ca_15_3", name: "CA 15-3", unit: "U/mL", category: "Marcadores Tumorais", refRange: { M: [0, 25], F: [0, 25] } },
+  { id: "afp", name: "AFP", unit: "ng/mL", category: "Marcadores Tumorais", refRange: { M: [0, 7.0], F: [0, 7.0] } },
+  { id: "cea", name: "CEA", unit: "ng/mL", category: "Marcadores Tumorais", refRange: { M: [0, 3.0], F: [0, 3.0] } },
   // Urina Tipo 1
   { id: "urina_cor", name: "Cor", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
   { id: "urina_aspecto", name: "Aspecto", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
@@ -231,8 +247,24 @@ export const MARKERS: MarkerDef[] = [
   { id: "copro_ph", name: "pH Fecal", unit: "", category: "Fezes", refRange: { M: [6.0, 7.5], F: [6.0, 7.5] } },
 ];
 
-export function getMarkerStatus(value: number, marker: MarkerDef, sex: "M" | "F"): "normal" | "low" | "high" {
+/**
+ * Determine marker status, with optional operator support for "<" / ">" values.
+ * - operator "<": if the numeric value <= upper ref limit, classify as "normal" (below detection limit but within range)
+ * - operator ">": if the numeric value >= lower ref limit, classify as "high"
+ */
+export function getMarkerStatus(value: number, marker: MarkerDef, sex: "M" | "F", operator?: string): "normal" | "low" | "high" {
   const [min, max] = marker.refRange[sex];
+  if (operator === "<" || operator === "<=") {
+    // Value is "< X" — the real value is somewhere between 0 and X
+    // If X <= upper limit, it's within range (or below detection)
+    if (value <= max) return "normal";
+    // If X > upper limit, we can't determine — but the real value could still be in range
+    return "normal"; // indeterminate, default to normal
+  }
+  if (operator === ">" || operator === ">=") {
+    if (value >= min) return "high";
+    return "normal";
+  }
   if (value < min) return "low";
   if (value > max) return "high";
   return "normal";
@@ -240,4 +272,17 @@ export function getMarkerStatus(value: number, marker: MarkerDef, sex: "M" | "F"
 
 export function getMarkersByCategory(category: string): MarkerDef[] {
   return MARKERS.filter((m) => m.category === category);
+}
+
+/**
+ * Parse operator from a text_value like "< 34" or "> 100"
+ * Returns { operator, numericValue } or null if no operator found
+ */
+export function parseOperatorValue(textValue: string): { operator: string; numericValue: number } | null {
+  const match = textValue.match(/^([<>]=?)\s*(\d+[.,]?\d*)/);
+  if (!match) return null;
+  return {
+    operator: match[1],
+    numericValue: parseFloat(match[2].replace(",", ".")),
+  };
 }

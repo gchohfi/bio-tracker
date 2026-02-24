@@ -15,6 +15,7 @@ import {
   MARKERS,
   getMarkersByCategory,
   getMarkerStatus,
+  parseOperatorValue,
   type Category,
   type MarkerDef,
 } from "@/lib/markers";
@@ -61,7 +62,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
     const map: Record<string, Record<string, number>> = {};
     results.forEach((r) => {
       if (!map[r.marker_id]) map[r.marker_id] = {};
-      map[r.marker_id][r.session_id] = r.value;
+      map[r.marker_id][r.session_id] = r.value ?? 0;
     });
     return map;
   }, [results]);
@@ -85,6 +86,18 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
     [sessions]
   );
 
+  // Helper to get status considering operator from text_value
+  const getStatusWithOperator = (val: number, marker: MarkerDef, sessionId: string): "normal" | "low" | "high" => {
+    const textVal = textMap[marker.id]?.[sessionId];
+    if (textVal && !marker.qualitative) {
+      const parsed = parseOperatorValue(textVal);
+      if (parsed) {
+        return getMarkerStatus(parsed.numericValue, marker, sex, parsed.operator);
+      }
+    }
+    return getMarkerStatus(val, marker, sex);
+  };
+
   // Filter markers
   const filteredMarkers = useMemo(() => {
     let markers = activeCategory === "Todos" ? MARKERS : getMarkersByCategory(activeCategory);
@@ -98,9 +111,10 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
       });
     } else if (statusFilter === "alerts") {
       markers = markers.filter((m) => {
+        if (m.qualitative) return false;
         const vals = resultMap[m.id];
         if (!vals) return false;
-        return Object.values(vals).some((v) => getMarkerStatus(v, m, sex) !== "normal");
+        return Object.entries(vals).some(([sid, v]) => getStatusWithOperator(v, m, sid) !== "normal");
       });
     } else if (statusFilter === "normal" || statusFilter === "low" || statusFilter === "high") {
       markers = markers.filter((m) => {
@@ -109,7 +123,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
         if (!vals) return false;
         const latestSession = sortedSessions[sortedSessions.length - 1];
         if (!latestSession || vals[latestSession.id] === undefined) return false;
-        return getMarkerStatus(vals[latestSession.id], m, sex) === statusFilter;
+        return getStatusWithOperator(vals[latestSession.id], m, latestSession.id) === statusFilter;
       });
     }
 
@@ -125,13 +139,13 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
       if (m.qualitative) return;
       const val = resultMap[m.id]?.[latestSession.id];
       if (val === undefined) return;
-      const status = getMarkerStatus(val, m, sex);
+      const status = getStatusWithOperator(val, m, latestSession.id);
       if (status === "normal") normal++;
       else if (status === "low") low++;
       else if (status === "high") high++;
     });
     return { normal, low, high, total: normal + low + high };
-  }, [resultMap, sortedSessions, sex]);
+  }, [resultMap, textMap, sortedSessions, sex]);
 
   const alertCount = summaryStats.low + summaryStats.high;
 
@@ -382,7 +396,15 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                                   </td>
                                 );
                               }
-                              const status = getMarkerStatus(val, marker, sex);
+
+                              // Check for operator in text_value (e.g. "< 34")
+                              const textVal = textMap[marker.id]?.[s.id];
+                              const operatorParsed = textVal ? parseOperatorValue(textVal) : null;
+                              const status = operatorParsed
+                                ? getMarkerStatus(operatorParsed.numericValue, marker, sex, operatorParsed.operator)
+                                : getMarkerStatus(val, marker, sex);
+                              const displayValue = operatorParsed ? textVal : String(val);
+
                               return (
                                 <td key={s.id} className="px-2 py-1.5 text-center">
                                   <span
@@ -393,10 +415,11 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                                       status === "high" && "bg-red-50 text-red-700"
                                     )}
                                   >
-                                    {status === "low" && "↓"}
-                                    {status === "high" && "↑"}
-                                    {val}
-                                    {status === "normal" && " ✓"}
+                                    {!operatorParsed && status === "low" && "↓"}
+                                    {!operatorParsed && status === "high" && "↑"}
+                                    {displayValue}
+                                    {status === "normal" && !operatorParsed && " ✓"}
+                                    {status === "normal" && operatorParsed && " ✓"}
                                   </span>
                                 </td>
                               );
