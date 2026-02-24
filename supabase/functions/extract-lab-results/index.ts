@@ -708,6 +708,183 @@ function postProcessResults(results: any[]): any[] {
   return results;
 }
 
+// Regex fallback for markers the AI frequently misses
+function regexFallback(pdfText: string, aiResults: any[]): any[] {
+  const found = new Set(aiResults.map(r => r.marker_id));
+  const additional: any[] = [];
+  const validIds = new Set(MARKER_LIST.map(m => m.id));
+
+  // Helper: add a numeric result if not already found
+  const addNumeric = (id: string, value: number) => {
+    if (!found.has(id) && validIds.has(id) && !isNaN(value)) {
+      additional.push({ marker_id: id, value });
+      found.add(id);
+      console.log(`Regex fallback found ${id}: ${value}`);
+    }
+  };
+
+  // Helper: add an operator result
+  const addOperator = (id: string, op: string, value: number) => {
+    if (!found.has(id) && validIds.has(id) && !isNaN(value)) {
+      additional.push({ marker_id: id, value, text_value: `${op} ${value}` });
+      found.add(id);
+      console.log(`Regex fallback found ${id}: ${op} ${value}`);
+    }
+  };
+
+  // Helper: add a qualitative result
+  const addQualitative = (id: string, text: string) => {
+    if (!found.has(id) && validIds.has(id) && text) {
+      additional.push({ marker_id: id, value: 0, text_value: text.trim() });
+      found.add(id);
+      console.log(`Regex fallback found ${id}: "${text.trim()}"`);
+    }
+  };
+
+  // --- VHS ---
+  if (!found.has('vhs')) {
+    const m = pdfText.match(/(?:VHS|V\.?H\.?S\.?|Velocidade\s*(?:de\s*)?Hemossedimenta[çc][ãa]o)[^0-9]*?(\d+)/i);
+    if (m) addNumeric('vhs', parseFloat(m[1]));
+  }
+
+  // --- Fosfatase Alcalina ---
+  if (!found.has('fosfatase_alcalina')) {
+    const m = pdfText.match(/(?:Fosfatase\s+Alcalina|FOSFATASE\s+ALCALINA)[^0-9]*?(\d+)/i);
+    if (m) addNumeric('fosfatase_alcalina', parseFloat(m[1]));
+  }
+
+  // --- Sódio ---
+  if (!found.has('sodio')) {
+    const m = pdfText.match(/(?:S[óo]dio)[^0-9]*?(\d{3})/i);
+    if (m) addNumeric('sodio', parseFloat(m[1]));
+  }
+
+  // --- Potássio ---
+  if (!found.has('potassio')) {
+    const m = pdfText.match(/(?:Pot[áa]ssio)[^0-9]*?(\d[.,]\d)/i);
+    if (m) addNumeric('potassio', parseFloat(m[1].replace(',', '.')));
+  }
+
+  // --- Fósforo ---
+  if (!found.has('fosforo')) {
+    const m = pdfText.match(/(?:F[óo]sforo)[^0-9]*?(\d[.,]\d)/i);
+    if (m) addNumeric('fosforo', parseFloat(m[1].replace(',', '.')));
+  }
+
+  // --- Magnésio ---
+  if (!found.has('magnesio')) {
+    const m = pdfText.match(/(?:Magn[ée]sio)[^0-9]*?(\d[.,]\d+)/i);
+    if (m) addNumeric('magnesio', parseFloat(m[1].replace(',', '.')));
+  }
+
+  // --- Selênio ---
+  if (!found.has('selenio')) {
+    const m = pdfText.match(/(?:Sel[êe]nio)[^0-9]*?(\d+[.,]?\d*)/i);
+    if (m) addNumeric('selenio', parseFloat(m[1].replace(',', '.')));
+  }
+
+  // --- Cromo ---
+  if (!found.has('cromo')) {
+    const m = pdfText.match(/(?:Cromo|CROMO)[^0-9]*?(\d+[.,]?\d*)/i);
+    if (m) addNumeric('cromo', parseFloat(m[1].replace(',', '.')));
+  }
+
+  // --- Aldosterona ---
+  if (!found.has('aldosterona')) {
+    const m = pdfText.match(/(?:Aldosterona|ALDOSTERONA)[^0-9]*?(\d+[.,]?\d*)/i);
+    if (m) addNumeric('aldosterona', parseFloat(m[1].replace(',', '.')));
+  }
+
+  // --- 1,25-Dihidroxi Vitamina D ---
+  if (!found.has('vitamina_d_125')) {
+    const m = pdfText.match(/(?:1[.,]25[- ]?(?:Di)?[Hh]idroxi|CALCITRIOL)[^0-9]*?(\d+[.,]?\d*)/i);
+    if (m) addNumeric('vitamina_d_125', parseFloat(m[1].replace(',', '.')));
+  }
+
+  // --- Anti-TPO with operator ---
+  if (!found.has('anti_tpo')) {
+    const m = pdfText.match(/(?:Anti[- ]?TPO|ANTI[- ]?TPO|ANTICORPO\s+ANTI\s+TPO)[^0-9]*?([<>])\s*(\d+[.,]?\d*)/i);
+    if (m) {
+      addOperator('anti_tpo', m[1], parseFloat(m[2].replace(',', '.')));
+    } else {
+      const m2 = pdfText.match(/(?:Anti[- ]?TPO|ANTI[- ]?TPO)[^0-9]*?(\d+[.,]?\d*)/i);
+      if (m2) addNumeric('anti_tpo', parseFloat(m2[1].replace(',', '.')));
+    }
+  }
+
+  // --- Cloro ---
+  if (!found.has('cloro')) {
+    const m = pdfText.match(/(?:Cloro|CLORO|Cloreto)[^0-9]*?(\d{2,3})/i);
+    if (m) addNumeric('cloro', parseFloat(m[1]));
+  }
+
+  // --- Bicarbonato ---
+  if (!found.has('bicarbonato')) {
+    const m = pdfText.match(/(?:Bicarbonato|BICARBONATO|CO2\s*Total)[^0-9]*?(\d+[.,]?\d*)/i);
+    if (m) addNumeric('bicarbonato', parseFloat(m[1].replace(',', '.')));
+  }
+
+  // --- LDH ---
+  if (!found.has('ldh')) {
+    const m = pdfText.match(/(?:LDH|Desidrogenase\s+L[áa]ctica|LACTATO\s+DESIDROGENASE)[^0-9]*?(\d+)/i);
+    if (m) addNumeric('ldh', parseFloat(m[1]));
+  }
+
+  // --- Proteínas Totais ---
+  if (!found.has('proteinas_totais')) {
+    const m = pdfText.match(/(?:Prote[íi]nas\s+Totais)[^0-9]*?(\d[.,]\d+)/i);
+    if (m) addNumeric('proteinas_totais', parseFloat(m[1].replace(',', '.')));
+  }
+
+  // --- Urina Tipo 1 qualitative markers ---
+  const urinaSection = pdfText.match(/(?:URINA\s+TIPO\s+(?:I|1)|EAS|ELEMENTOS\s+ANORMAIS|EXAME\s+DE\s+URINA)([\s\S]*?)(?=\n\s*(?:[A-Z]{3,}(?:\s+[A-Z]{3,})*\s*\n)|$)/i);
+  const urinaText = urinaSection ? urinaSection[0] : '';
+  
+  if (urinaText) {
+    // Density
+    if (!found.has('urina_densidade')) {
+      const m = urinaText.match(/(?:Densidade)[^0-9]*?(1[.,]\d{3})/i);
+      if (m) addNumeric('urina_densidade', parseFloat(m[1].replace(',', '.')));
+    }
+    // pH
+    if (!found.has('urina_ph')) {
+      const m = urinaText.match(/(?:pH)[^0-9]*?(\d[.,]\d)/i);
+      if (m) addNumeric('urina_ph', parseFloat(m[1].replace(',', '.')));
+    }
+    // Qualitative urine markers
+    const urinaQualMap: [string, RegExp][] = [
+      ['urina_cor', /(?:Cor)[:\s]+([^\n,]+)/i],
+      ['urina_aspecto', /(?:Aspecto)[:\s]+([^\n,]+)/i],
+      ['urina_proteinas', /(?:Prote[íi]nas)[:\s]+([^\n,]+)/i],
+      ['urina_glicose', /(?:Glicose)[:\s]+([^\n,]+)/i],
+      ['urina_hemoglobina', /(?:Hemoglobina|Sangue)[:\s]+([^\n,]+)/i],
+      ['urina_leucocitos', /(?:Leuc[óo]citos|Esterase)[:\s]+([^\n,]+)/i],
+      ['urina_hemacias', /(?:Hem[áa]cias)[:\s]+([^\n,]+)/i],
+      ['urina_bacterias', /(?:Bact[ée]rias)[:\s]+([^\n,]+)/i],
+      ['urina_celulas', /(?:C[ée]lulas\s+Epiteliais|Epiteliais)[:\s]+([^\n,]+)/i],
+      ['urina_cilindros', /(?:Cilindros)[:\s]+([^\n,]+)/i],
+      ['urina_cristais', /(?:Cristais)[:\s]+([^\n,]+)/i],
+      ['urina_nitritos', /(?:Nitritos?)[:\s]+([^\n,]+)/i],
+      ['urina_bilirrubina', /(?:Bilirrubina)[:\s]+([^\n,]+)/i],
+      ['urina_urobilinogenio', /(?:Urobilinog[êe]nio)[:\s]+([^\n,]+)/i],
+      ['urina_cetona', /(?:Cetonas?|Corpos\s+Cet[ôo]nicos)[:\s]+([^\n,]+)/i],
+      ['urina_muco', /(?:Muco|Filamentos\s+de\s+Muco)[:\s]+([^\n,]+)/i],
+    ];
+    for (const [id, regex] of urinaQualMap) {
+      if (!found.has(id)) {
+        const m = urinaText.match(regex);
+        if (m) addQualitative(id, m[1]);
+      }
+    }
+  }
+
+  if (additional.length > 0) {
+    console.log(`Regex fallback added ${additional.length} markers: ${additional.map(r => r.marker_id).join(', ')}`);
+  }
+
+  return [...aiResults, ...additional];
+}
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -866,6 +1043,8 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     validResults = validateAndFixValues(validResults);
     // Post-process: calculate derived values if AI missed them
     validResults = postProcessResults(validResults);
+    // Regex fallback for markers the AI frequently misses
+    validResults = regexFallback(textToSend, validResults);
     
     console.log(`Extracted ${validResults.length} valid markers:`, validResults.map((r: any) => r.marker_id).join(', '));
 
