@@ -535,14 +535,14 @@ function validateAndFixValues(results: any[]): any[] {
     plaquetas: { min: 50, max: 700, fix: (v) => v > 1000 ? v / 1000 : v },
     // Hormônios
     progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v, label: "progesterona ÷100" },
-    estradiol: { min: 5, max: 5000, fix: (v) => v > 5000 ? v / 10 : v < 5 ? v * 100 : v },
+    estradiol: { min: 5, max: 5000, fix: (v) => v > 5000 ? v / 10 : v < 5 ? v * 100 : v < 50 ? v * 10 : v },
     prolactina: { min: 0.5, max: 200, fix: (v) => v > 200 ? v / 100 : v },
     insulina_jejum: { min: 0.5, max: 100, fix: (v) => v > 100 ? v / 100 : v },
     // Eixo GH
     igfbp3: { min: 0.5, max: 15, fix: (v) => v > 100 ? v / 1000 : v, label: "igfbp3 ÷1000 (ng→µg)" },
     igf1: { min: 20, max: 1000 },
     // Andrógenos
-    dihidrotestosterona: { min: 10, max: 2000, fix: (v) => v < 50 ? v * 10 : v, label: "DHT ×10" },
+    dihidrotestosterona: { min: 50, max: 2000, fix: (v) => v < 50 ? v * 10 : v, label: "DHT ×10" },
     // Tireoide
     tsh: { min: 0.01, max: 100 },
     t4_livre: { min: 0.1, max: 5 },
@@ -587,7 +587,9 @@ function validateAndFixValues(results: any[]): any[] {
   };
 
   for (const r of results) {
-    if (typeof r.value !== "number" || r.text_value) continue;
+    if (typeof r.value !== "number") continue;
+    if (QUALITATIVE_IDS.has(r.marker_id)) continue;
+    if (r.text_value && /^[<>≤≥]=?\s*\d/.test(r.text_value.trim())) continue; // legitimate operator, skip
     const range = sanityRanges[r.marker_id];
     if (!range || !range.fix) continue;
     if (r.value < range.min || r.value > range.max) {
@@ -721,7 +723,7 @@ serve(async (req) => {
       });
     }
     
-    const textToSend = pdfText.slice(0, 120000);
+    const textToSend = pdfText.slice(0, 200000);
     console.log(`PDF text received: ${pdfText.length} chars, sending: ${textToSend.length} chars to AI`);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -735,6 +737,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        temperature: 0,
         messages: [
           { role: "system", content: systemPrompt },
           {
