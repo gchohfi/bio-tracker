@@ -13,20 +13,65 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  const [error, setError] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Listen for the PASSWORD_RECOVERY event
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    // Listen for PASSWORD_RECOVERY event (fires after code exchange)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") {
         setReady(true);
       }
+      // Also handle: user arrives already authenticated via recovery link
+      if (event === "SIGNED_IN" && session) {
+        // Check if URL had recovery indicators
+        const params = new URLSearchParams(window.location.search);
+        const hash = window.location.hash;
+        if (params.has("code") || hash.includes("type=recovery")) {
+          setReady(true);
+        }
+      }
     });
-    // Also check hash for type=recovery
+
+    // Check hash for type=recovery (implicit flow)
     if (window.location.hash.includes("type=recovery")) {
       setReady(true);
     }
+
+    // Check for code param (PKCE flow) — Supabase will exchange it automatically
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("code")) {
+      // The code exchange happens automatically via onAuthStateChange
+      // Set a timeout as fallback in case event was missed
+      const timeout = setTimeout(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session) {
+            setReady(true);
+          } else {
+            setError(true);
+          }
+        });
+      }, 3000);
+      return () => {
+        subscription.unsubscribe();
+        clearTimeout(timeout);
+      };
+    }
+
+    // If no code and no hash, check if user is already in a recovery session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        // User might have already exchanged the code
+        setReady(true);
+      } else {
+        // No recovery indicators at all — show error after a delay
+        setTimeout(() => {
+          if (!ready) setError(true);
+        }, 3000);
+      }
+    });
+
     return () => subscription.unsubscribe();
   }, []);
 
@@ -50,6 +95,27 @@ export default function ResetPassword() {
     }
     setLoading(false);
   };
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
+              <Beaker className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <CardTitle className="text-2xl">Link inválido</CardTitle>
+            <CardDescription>
+              O link de recuperação expirou ou é inválido. Solicite um novo na tela de login.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <Button onClick={() => navigate("/auth")}>Voltar ao login</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!ready) {
     return (
