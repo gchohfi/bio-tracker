@@ -4,6 +4,7 @@ export interface MarkerDef {
   unit: string;
   category: string;
   refRange: { M: [number, number]; F: [number, number] };
+  qualitative?: boolean; // true for text-only results (FAN, Urina, Coprológico)
 }
 
 export const CATEGORIES = [
@@ -26,6 +27,8 @@ export const CATEGORIES = [
   "Imunologia",
   "Proteínas",
   "Toxicologia",
+  "Urina",
+  "Fezes",
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
@@ -50,6 +53,8 @@ export const CATEGORY_COLORS: Record<Category, string> = {
   Imunologia: "270 50% 55%",
   Proteínas: "180 50% 45%",
   Toxicologia: "15 80% 45%",
+  Urina: "55 70% 50%",
+  Fezes: "35 60% 45%",
 };
 
 // Functional medicine reference ranges (sex-specific)
@@ -176,7 +181,7 @@ export const MARKERS: MarkerDef[] = [
   { id: "amilase", name: "Amilase", unit: "U/L", category: "Pancreático", refRange: { M: [28, 100], F: [28, 100] } },
   { id: "lipase", name: "Lipase", unit: "U/L", category: "Pancreático", refRange: { M: [13, 60], F: [13, 60] } },
   // Imunologia
-  { id: "fan", name: "FAN (Fator Anti-Núcleo)", unit: "", category: "Imunologia", refRange: { M: [0, 0], F: [0, 0] } },
+  { id: "fan", name: "FAN (Fator Anti-Núcleo)", unit: "", category: "Imunologia", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
   // Proteínas (Eletroforese)
   { id: "eletroforese_albumina", name: "Albumina (eletroforese)", unit: "%", category: "Proteínas", refRange: { M: [55.1, 65.7], F: [55.1, 65.7] } },
   { id: "eletroforese_alfa1", name: "Alfa 1", unit: "%", category: "Proteínas", refRange: { M: [3.1, 5.6], F: [3.1, 5.6] } },
@@ -185,6 +190,35 @@ export const MARKERS: MarkerDef[] = [
   { id: "eletroforese_beta2", name: "Beta 2", unit: "%", category: "Proteínas", refRange: { M: [3.1, 6.1], F: [3.1, 6.1] } },
   { id: "eletroforese_gama", name: "Gama", unit: "%", category: "Proteínas", refRange: { M: [10.3, 18.2], F: [10.3, 18.2] } },
   { id: "relacao_ag", name: "Relação A/G", unit: "", category: "Proteínas", refRange: { M: [1.5, 2.5], F: [1.5, 2.5] } },
+  // Urina Tipo 1
+  { id: "urina_cor", name: "Cor", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "urina_aspecto", name: "Aspecto", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "urina_densidade", name: "Densidade", unit: "", category: "Urina", refRange: { M: [1.005, 1.030], F: [1.005, 1.030] } },
+  { id: "urina_ph", name: "pH Urinário", unit: "", category: "Urina", refRange: { M: [5.0, 7.0], F: [5.0, 7.0] } },
+  { id: "urina_proteinas", name: "Proteínas (urina)", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "urina_glicose", name: "Glicose (urina)", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "urina_hemoglobina", name: "Hemoglobina (urina)", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "urina_leucocitos", name: "Leucócitos (urina)", unit: "/campo", category: "Urina", refRange: { M: [0, 5], F: [0, 5] }, qualitative: true },
+  { id: "urina_hemacias", name: "Hemácias (urina)", unit: "/campo", category: "Urina", refRange: { M: [0, 3], F: [0, 3] }, qualitative: true },
+  { id: "urina_bacterias", name: "Bactérias (urina)", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "urina_celulas", name: "Células Epiteliais", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "urina_cilindros", name: "Cilindros", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "urina_cristais", name: "Cristais", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "urina_nitritos", name: "Nitritos", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "urina_bilirrubina", name: "Bilirrubina (urina)", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "urina_urobilinogenio", name: "Urobilinogênio", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "urina_cetona", name: "Cetonas", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  // Coprológico Funcional
+  { id: "copro_cor", name: "Cor (fezes)", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "copro_consistencia", name: "Consistência", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "copro_muco", name: "Muco", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "copro_sangue", name: "Sangue Oculto", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "copro_leucocitos", name: "Leucócitos (fezes)", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "copro_parasitas", name: "Parasitas", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "copro_gordura", name: "Gordura Fecal", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "copro_fibras", name: "Fibras Musculares", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "copro_amido", name: "Amido", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "copro_ph", name: "pH Fecal", unit: "", category: "Fezes", refRange: { M: [6.0, 7.5], F: [6.0, 7.5] } },
 ];
 
 export function getMarkerStatus(value: number, marker: MarkerDef, sex: "M" | "F"): "normal" | "low" | "high" {

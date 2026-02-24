@@ -55,6 +55,8 @@ function getCategoryRGB(cat: Category): { r: number; g: number; b: number } {
     Imunologia: { r: 110, g: 80, b: 190 },
     Proteínas: { r: 40, g: 150, b: 140 },
     Toxicologia: { r: 200, g: 100, b: 30 },
+    Urina: { r: 140, g: 160, b: 40 },
+    Fezes: { r: 170, g: 130, b: 50 },
   };
   return map[cat] || BRAND;
 }

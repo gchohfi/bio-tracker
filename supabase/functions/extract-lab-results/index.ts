@@ -121,10 +121,41 @@ const MARKER_LIST = [
   { id: "eletroforese_beta2", name: "Beta 2 (eletroforese)", unit: "%" },
   { id: "eletroforese_gama", name: "Gama (eletroforese)", unit: "%" },
   { id: "relacao_ag", name: "Relação A/G", unit: "" },
+  // Qualitative markers - Urina Tipo 1
+  { id: "urina_cor", name: "Cor (urina)", unit: "", qualitative: true },
+  { id: "urina_aspecto", name: "Aspecto (urina)", unit: "", qualitative: true },
+  { id: "urina_densidade", name: "Densidade (urina)", unit: "" },
+  { id: "urina_ph", name: "pH Urinário", unit: "" },
+  { id: "urina_proteinas", name: "Proteínas (urina)", unit: "", qualitative: true },
+  { id: "urina_glicose", name: "Glicose (urina)", unit: "", qualitative: true },
+  { id: "urina_hemoglobina", name: "Hemoglobina (urina)", unit: "", qualitative: true },
+  { id: "urina_leucocitos", name: "Leucócitos (urina)", unit: "/campo", qualitative: true },
+  { id: "urina_hemacias", name: "Hemácias (urina)", unit: "/campo", qualitative: true },
+  { id: "urina_bacterias", name: "Bactérias (urina)", unit: "", qualitative: true },
+  { id: "urina_celulas", name: "Células Epiteliais (urina)", unit: "", qualitative: true },
+  { id: "urina_cilindros", name: "Cilindros (urina)", unit: "", qualitative: true },
+  { id: "urina_cristais", name: "Cristais (urina)", unit: "", qualitative: true },
+  { id: "urina_nitritos", name: "Nitritos (urina)", unit: "", qualitative: true },
+  { id: "urina_bilirrubina", name: "Bilirrubina (urina)", unit: "", qualitative: true },
+  { id: "urina_urobilinogenio", name: "Urobilinogênio (urina)", unit: "", qualitative: true },
+  { id: "urina_cetona", name: "Cetonas (urina)", unit: "", qualitative: true },
+  // Qualitative markers - Coprológico
+  { id: "copro_cor", name: "Cor (fezes)", unit: "", qualitative: true },
+  { id: "copro_consistencia", name: "Consistência (fezes)", unit: "", qualitative: true },
+  { id: "copro_muco", name: "Muco (fezes)", unit: "", qualitative: true },
+  { id: "copro_sangue", name: "Sangue Oculto (fezes)", unit: "", qualitative: true },
+  { id: "copro_leucocitos", name: "Leucócitos (fezes)", unit: "", qualitative: true },
+  { id: "copro_parasitas", name: "Parasitas (fezes)", unit: "", qualitative: true },
+  { id: "copro_gordura", name: "Gordura Fecal", unit: "", qualitative: true },
+  { id: "copro_fibras", name: "Fibras Musculares (fezes)", unit: "", qualitative: true },
+  { id: "copro_amido", name: "Amido (fezes)", unit: "", qualitative: true },
+  { id: "copro_ph", name: "pH Fecal", unit: "" },
 ];
 
+const QUALITATIVE_IDS = new Set(MARKER_LIST.filter(m => (m as any).qualitative).map(m => m.id));
+
 const systemPrompt = `You are a lab result extraction assistant. You receive raw text from a Brazilian lab report PDF.
-Your task: extract ALL numeric values and map them to the known marker IDs. Be thorough — extract every single marker you can find.
+Your task: extract ALL values (numeric AND qualitative) and map them to the known marker IDs. Be thorough — extract every single marker you can find.
 
 Here are the known markers (id | name | unit):
 ${MARKER_LIST.map((m) => `${m.id} | ${m.name} | ${m.unit}`).join("\n")}
@@ -213,14 +244,17 @@ Rules:
 - For Eritrócitos, the value is usually in millions (e.g. "3,8 milhões/mm³" → return 3.8).
 - Brazilian decimals use comma: "4,37" → 4.37. Convert commas to dots.
 - Values with dot as thousands separator: "6.500" for leucocitos → 6500.
-- Return ONLY numeric values, no text.
+- For NUMERIC markers: return only the number in 'value'. No text.
+- For QUALITATIVE markers (urina_*, copro_*): return the text description in 'text_value' (e.g. "Amarelo Citrino", "Límpido", "Negativo", "Ausente", "Raros", "Pastosa"). Set value=0.
+- URINA TIPO 1 / EAS / SUMÁRIO DE URINA: extract all sub-items: Cor, Aspecto, Densidade, pH, Proteínas, Glicose, Hemoglobina, Leucócitos, Hemácias, Bactérias, Células Epiteliais, Cilindros, Cristais, Nitritos, Bilirrubina, Urobilinogênio, Cetonas.
+- COPROLÓGICO FUNCIONAL / EXAME DE FEZES: extract Cor, Consistência, Muco, Sangue Oculto, Leucócitos, Parasitas, Gordura Fecal, Fibras Musculares, Amido, pH.
 - If a marker appears multiple times, use the FIRST occurrence (the actual result, not historical).
 - Look for values in tables, lists, and inline text formats.
 - Values like "< 10" or "< 0,5" or "Inferior a 0,5" should use the number (10 or 0.5).
 - "INFERIOR A X" → use X as value.
 - "Superior a 90" for TFG → use 90.
 - Ignore reference ranges — only extract the patient's actual result value.
-- For FAN: NÃO REAGENTE = 0, REAGENTE = 1.
+- For FAN: use text_value. NÃO REAGENTE → text_value="Não Reagente", REAGENTE → text_value="Reagente". (It's now qualitative.)
 - For Cortisol: if from blood/morning → cortisol. If from "URINA 24 HORAS" with "mcg/24 HORAS" → cortisol_livre_urina.
 - For Vitamina A/Retinol: the PDF may show mg/L — use that value directly.
 - For Testosterona Livre: if the value unit is ng/dL, multiply by 10 to get pg/mL. Example: 0.67 ng/dL → 6.7 pg/mL.
@@ -294,7 +328,7 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
             type: "function",
             function: {
               name: "extract_results",
-              description: "Return extracted lab marker values mapped to their IDs",
+              description: "Return extracted lab marker values mapped to their IDs. Use 'value' for numeric results and 'text_value' for qualitative/text results.",
               parameters: {
                 type: "object",
                 properties: {
@@ -304,9 +338,10 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
                       type: "object",
                       properties: {
                         marker_id: { type: "string", description: "The marker ID from the known list" },
-                        value: { type: "number", description: "The numeric value extracted" },
+                        value: { type: "number", description: "The numeric value extracted (use 0 for qualitative markers)" },
+                        text_value: { type: "string", description: "The text result for qualitative markers (e.g. 'Negativo', 'Ausente', 'Amarelo Citrino')" },
                       },
-                      required: ["marker_id", "value"],
+                      required: ["marker_id"],
                       additionalProperties: false,
                     },
                   },
@@ -350,9 +385,15 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     const parsed = JSON.parse(toolCall.function.arguments);
     // Validate marker IDs
     const validIds = new Set(MARKER_LIST.map((m) => m.id));
-    const validResults = (parsed.results || []).filter(
-      (r: any) => validIds.has(r.marker_id) && typeof r.value === "number" && !isNaN(r.value)
-    );
+    const validResults = (parsed.results || []).filter((r: any) => {
+      if (!validIds.has(r.marker_id)) return false;
+      // Qualitative markers: need text_value
+      if (QUALITATIVE_IDS.has(r.marker_id)) {
+        return typeof r.text_value === "string" && r.text_value.length > 0;
+      }
+      // Numeric markers: need valid number
+      return typeof r.value === "number" && !isNaN(r.value);
+    });
     
     console.log(`Extracted ${validResults.length} valid markers:`, validResults.map((r: any) => r.marker_id).join(', '));
 
