@@ -315,7 +315,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                                 return (
                                   <td key={s.id} className="px-2 py-1.5 text-center">
                                     {textVal ? (
-                                      <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium max-w-[120px] truncate" title={textVal}>
+                                      <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-bold max-w-[120px] truncate" title={textVal}>
                                         {textVal}
                                       </span>
                                     ) : (
@@ -337,9 +337,9 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                                 <td key={s.id} className="px-2 py-1.5 text-center">
                                   <span
                                     className={cn(
-                                      "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium",
+                                      "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-xs font-bold",
                                       status === "normal" && "bg-emerald-50 text-emerald-700",
-                                      status === "low" && "bg-blue-50 text-blue-700",
+                                      status === "low" && "bg-red-50 text-red-700",
                                       status === "high" && "bg-red-50 text-red-700"
                                     )}
                                   >
