@@ -13,11 +13,19 @@ export const CATEGORIES = [
   "Lipídios",
   "Tireoide",
   "Hormônios",
+  "Eixo GH",
+  "Eixo Adrenal",
+  "Andrógenos",
   "Vitaminas",
   "Minerais",
   "Hepático",
   "Renal",
   "Eletrólitos",
+  "Coagulação",
+  "Pancreático",
+  "Imunologia",
+  "Proteínas",
+  "Toxicologia",
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
@@ -29,11 +37,19 @@ export const CATEGORY_COLORS: Record<Category, string> = {
   Lipídios: "340 70% 55%",
   Tireoide: "170 60% 40%",
   Hormônios: "300 50% 50%",
+  "Eixo GH": "260 55% 55%",
+  "Eixo Adrenal": "25 65% 50%",
+  Andrógenos: "320 55% 50%",
   Vitaminas: "45 90% 50%",
   Minerais: "190 60% 45%",
   Hepático: "140 50% 40%",
   Renal: "200 50% 50%",
   Eletrólitos: "10 70% 55%",
+  Coagulação: "0 60% 50%",
+  Pancreático: "50 70% 45%",
+  Imunologia: "270 50% 55%",
+  Proteínas: "180 50% 45%",
+  Toxicologia: "15 80% 45%",
 };
 
 // Functional medicine reference ranges (sex-specific)
@@ -48,11 +64,16 @@ export const MARKERS: MarkerDef[] = [
   { id: "rdw", name: "RDW", unit: "%", category: "Hemograma", refRange: { M: [11.5, 13.0], F: [11.5, 13.0] } },
   { id: "leucocitos", name: "Leucócitos", unit: "/µL", category: "Hemograma", refRange: { M: [5000, 8000], F: [5000, 8000] } },
   { id: "neutrofilos", name: "Neutrófilos", unit: "%", category: "Hemograma", refRange: { M: [40, 60], F: [40, 60] } },
+  { id: "bastonetes", name: "Bastonetes", unit: "%", category: "Hemograma", refRange: { M: [0, 5], F: [0, 5] } },
+  { id: "segmentados", name: "Segmentados", unit: "%", category: "Hemograma", refRange: { M: [45, 70], F: [45, 70] } },
   { id: "linfocitos", name: "Linfócitos", unit: "%", category: "Hemograma", refRange: { M: [25, 40], F: [25, 40] } },
   { id: "monocitos", name: "Monócitos", unit: "%", category: "Hemograma", refRange: { M: [4, 8], F: [4, 8] } },
   { id: "eosinofilos", name: "Eosinófilos", unit: "%", category: "Hemograma", refRange: { M: [1, 3], F: [1, 3] } },
   { id: "basofilos", name: "Basófilos", unit: "%", category: "Hemograma", refRange: { M: [0, 1], F: [0, 1] } },
   { id: "plaquetas", name: "Plaquetas", unit: "mil/µL", category: "Hemograma", refRange: { M: [200, 300], F: [200, 300] } },
+  { id: "vpm", name: "VPM", unit: "fL", category: "Hemograma", refRange: { M: [9.2, 12.6], F: [9.2, 12.6] } },
+  { id: "pcr", name: "PCR", unit: "mg/L", category: "Hemograma", refRange: { M: [0, 1.0], F: [0, 1.0] } },
+  { id: "vhs", name: "VHS", unit: "mm/h", category: "Hemograma", refRange: { M: [0, 10], F: [0, 15] } },
   // Ferro
   { id: "ferro_serico", name: "Ferro Sérico", unit: "µg/dL", category: "Ferro", refRange: { M: [85, 130], F: [75, 120] } },
   { id: "ferritina", name: "Ferritina", unit: "ng/mL", category: "Ferro", refRange: { M: [50, 150], F: [40, 100] } },
@@ -70,6 +91,10 @@ export const MARKERS: MarkerDef[] = [
   { id: "ldl", name: "LDL", unit: "mg/dL", category: "Lipídios", refRange: { M: [0, 100], F: [0, 100] } },
   { id: "vldl", name: "VLDL", unit: "mg/dL", category: "Lipídios", refRange: { M: [5, 20], F: [5, 20] } },
   { id: "triglicerides", name: "Triglicerídeos", unit: "mg/dL", category: "Lipídios", refRange: { M: [50, 100], F: [50, 100] } },
+  { id: "colesterol_nao_hdl", name: "Colesterol Não-HDL", unit: "mg/dL", category: "Lipídios", refRange: { M: [0, 130], F: [0, 130] } },
+  { id: "apo_a1", name: "Apolipoproteína A-1", unit: "mg/dL", category: "Lipídios", refRange: { M: [104, 202], F: [108, 225] } },
+  { id: "apo_b", name: "Apolipoproteína B", unit: "mg/dL", category: "Lipídios", refRange: { M: [0, 90], F: [0, 90] } },
+  { id: "lipoproteina_a", name: "Lipoproteína (a)", unit: "nmol/L", category: "Lipídios", refRange: { M: [0, 75], F: [0, 75] } },
   { id: "relacao_ct_hdl", name: "CT/HDL", unit: "", category: "Lipídios", refRange: { M: [0, 3.5], F: [0, 3.5] } },
   { id: "relacao_tg_hdl", name: "TG/HDL", unit: "", category: "Lipídios", refRange: { M: [0, 2.0], F: [0, 2.0] } },
   // Tireoide
@@ -90,15 +115,26 @@ export const MARKERS: MarkerDef[] = [
   { id: "fsh", name: "FSH", unit: "mUI/mL", category: "Hormônios", refRange: { M: [1.5, 12.4], F: [3.5, 12.5] } },
   { id: "lh", name: "LH", unit: "mUI/mL", category: "Hormônios", refRange: { M: [1.7, 8.6], F: [2.4, 12.6] } },
   { id: "prolactina", name: "Prolactina", unit: "ng/mL", category: "Hormônios", refRange: { M: [4.0, 15.2], F: [4.8, 23.3] } },
+  // Eixo GH
+  { id: "igf1", name: "IGF-1 (Somatomedina C)", unit: "ng/mL", category: "Eixo GH", refRange: { M: [115, 355], F: [115, 355] } },
+  { id: "igfbp3", name: "IGFBP-3", unit: "µg/mL", category: "Eixo GH", refRange: { M: [3.5, 7.6], F: [3.5, 7.6] } },
+  // Eixo Adrenal
+  { id: "acth", name: "ACTH", unit: "pg/mL", category: "Eixo Adrenal", refRange: { M: [4.7, 48.8], F: [4.7, 48.8] } },
+  { id: "cortisol_livre_urina", name: "Cortisol Livre (urina 24h)", unit: "µg/24h", category: "Eixo Adrenal", refRange: { M: [13, 85], F: [13, 85] } },
+  { id: "aldosterona", name: "Aldosterona", unit: "ng/dL", category: "Eixo Adrenal", refRange: { M: [2.5, 39.2], F: [2.5, 39.2] } },
+  // Andrógenos
+  { id: "dihidrotestosterona", name: "Dihidrotestosterona", unit: "pg/mL", category: "Andrógenos", refRange: { M: [160, 790], F: [0, 460] } },
   // Vitaminas
   { id: "vitamina_d", name: "Vitamina D (25-OH)", unit: "ng/mL", category: "Vitaminas", refRange: { M: [50, 80], F: [50, 80] } },
+  { id: "vitamina_d_125", name: "1,25-Dihidroxi Vitamina D", unit: "pg/mL", category: "Vitaminas", refRange: { M: [19.9, 79.3], F: [19.9, 79.3] } },
   { id: "vitamina_b12", name: "Vitamina B12", unit: "pg/mL", category: "Vitaminas", refRange: { M: [500, 1000], F: [500, 1000] } },
   { id: "acido_folico", name: "Ácido Fólico", unit: "ng/mL", category: "Vitaminas", refRange: { M: [10, 25], F: [10, 25] } },
-  { id: "vitamina_a", name: "Vitamina A", unit: "µg/dL", category: "Vitaminas", refRange: { M: [40, 80], F: [40, 80] } },
+  { id: "vitamina_a", name: "Vitamina A", unit: "mg/L", category: "Vitaminas", refRange: { M: [0.3, 0.7], F: [0.3, 0.7] } },
   { id: "vitamina_e", name: "Vitamina E", unit: "mg/L", category: "Vitaminas", refRange: { M: [8, 15], F: [8, 15] } },
   { id: "vitamina_c", name: "Vitamina C", unit: "mg/dL", category: "Vitaminas", refRange: { M: [0.6, 2.0], F: [0.6, 2.0] } },
   { id: "vitamina_b6", name: "Vitamina B6", unit: "ng/mL", category: "Vitaminas", refRange: { M: [5, 30], F: [5, 30] } },
   { id: "vitamina_b1", name: "Vitamina B1", unit: "µg/dL", category: "Vitaminas", refRange: { M: [2.5, 7.5], F: [2.5, 7.5] } },
+  { id: "homocisteina", name: "Homocisteína", unit: "µmol/L", category: "Vitaminas", refRange: { M: [5, 8], F: [5, 8] } },
   // Minerais
   { id: "magnesio", name: "Magnésio", unit: "mg/dL", category: "Minerais", refRange: { M: [2.0, 2.5], F: [2.0, 2.5] } },
   { id: "zinco", name: "Zinco", unit: "µg/dL", category: "Minerais", refRange: { M: [80, 120], F: [75, 110] } },
@@ -107,6 +143,7 @@ export const MARKERS: MarkerDef[] = [
   { id: "manganes", name: "Manganês", unit: "µg/L", category: "Minerais", refRange: { M: [4.7, 18.3], F: [4.7, 18.3] } },
   { id: "cromo", name: "Cromo", unit: "µg/L", category: "Minerais", refRange: { M: [0.5, 2.0], F: [0.5, 2.0] } },
   { id: "iodo_urinario", name: "Iodo Urinário", unit: "µg/L", category: "Minerais", refRange: { M: [100, 300], F: [100, 300] } },
+  { id: "chumbo", name: "Chumbo", unit: "µg/dL", category: "Toxicologia", refRange: { M: [0, 5], F: [0, 5] } },
   // Hepático
   { id: "tgo_ast", name: "TGO (AST)", unit: "U/L", category: "Hepático", refRange: { M: [10, 26], F: [10, 25] } },
   { id: "tgp_alt", name: "TGP (ALT)", unit: "U/L", category: "Hepático", refRange: { M: [10, 26], F: [10, 25] } },
@@ -114,6 +151,7 @@ export const MARKERS: MarkerDef[] = [
   { id: "fosfatase_alcalina", name: "Fosfatase Alcalina", unit: "U/L", category: "Hepático", refRange: { M: [35, 85], F: [35, 85] } },
   { id: "bilirrubina_total", name: "Bilirrubina Total", unit: "mg/dL", category: "Hepático", refRange: { M: [0.2, 1.0], F: [0.2, 1.0] } },
   { id: "bilirrubina_direta", name: "Bilirrubina Direta", unit: "mg/dL", category: "Hepático", refRange: { M: [0.0, 0.3], F: [0.0, 0.3] } },
+  { id: "bilirrubina_indireta", name: "Bilirrubina Indireta", unit: "mg/dL", category: "Hepático", refRange: { M: [0.0, 0.8], F: [0.0, 0.8] } },
   { id: "albumina", name: "Albumina", unit: "g/dL", category: "Hepático", refRange: { M: [4.0, 5.0], F: [4.0, 5.0] } },
   { id: "proteinas_totais", name: "Proteínas Totais", unit: "g/dL", category: "Hepático", refRange: { M: [6.5, 7.5], F: [6.5, 7.5] } },
   { id: "ldh", name: "LDH", unit: "U/L", category: "Hepático", refRange: { M: [140, 200], F: [140, 200] } },
@@ -127,15 +165,26 @@ export const MARKERS: MarkerDef[] = [
   { id: "sodio", name: "Sódio", unit: "mEq/L", category: "Eletrólitos", refRange: { M: [138, 142], F: [138, 142] } },
   { id: "potassio", name: "Potássio", unit: "mEq/L", category: "Eletrólitos", refRange: { M: [4.0, 4.5], F: [4.0, 4.5] } },
   { id: "calcio_total", name: "Cálcio Total", unit: "mg/dL", category: "Eletrólitos", refRange: { M: [9.4, 10.2], F: [9.4, 10.2] } },
-  { id: "calcio_ionico", name: "Cálcio Iônico", unit: "mg/dL", category: "Eletrólitos", refRange: { M: [4.6, 5.3], F: [4.6, 5.3] } },
+  { id: "calcio_ionico", name: "Cálcio Iônico", unit: "mmol/L", category: "Eletrólitos", refRange: { M: [1.10, 1.35], F: [1.10, 1.35] } },
   { id: "fosforo", name: "Fósforo", unit: "mg/dL", category: "Eletrólitos", refRange: { M: [3.0, 4.0], F: [3.0, 4.0] } },
   { id: "cloro", name: "Cloro", unit: "mEq/L", category: "Eletrólitos", refRange: { M: [100, 106], F: [100, 106] } },
   { id: "bicarbonato", name: "Bicarbonato", unit: "mEq/L", category: "Eletrólitos", refRange: { M: [22, 26], F: [22, 26] } },
   { id: "pth", name: "PTH", unit: "pg/mL", category: "Eletrólitos", refRange: { M: [15, 50], F: [15, 50] } },
-  // Inflamatórios / Outros
-  { id: "pcr", name: "PCR", unit: "mg/L", category: "Hemograma", refRange: { M: [0, 1.0], F: [0, 1.0] } },
-  { id: "vhs", name: "VHS", unit: "mm/h", category: "Hemograma", refRange: { M: [0, 10], F: [0, 15] } },
-  { id: "homocisteina", name: "Homocisteína", unit: "µmol/L", category: "Vitaminas", refRange: { M: [5, 8], F: [5, 8] } },
+  // Coagulação
+  { id: "fibrinogenio", name: "Fibrinogênio", unit: "mg/dL", category: "Coagulação", refRange: { M: [200, 400], F: [200, 400] } },
+  // Pancreático
+  { id: "amilase", name: "Amilase", unit: "U/L", category: "Pancreático", refRange: { M: [28, 100], F: [28, 100] } },
+  { id: "lipase", name: "Lipase", unit: "U/L", category: "Pancreático", refRange: { M: [13, 60], F: [13, 60] } },
+  // Imunologia
+  { id: "fan", name: "FAN (Fator Anti-Núcleo)", unit: "", category: "Imunologia", refRange: { M: [0, 0], F: [0, 0] } },
+  // Proteínas (Eletroforese)
+  { id: "eletroforese_albumina", name: "Albumina (eletroforese)", unit: "%", category: "Proteínas", refRange: { M: [55.1, 65.7], F: [55.1, 65.7] } },
+  { id: "eletroforese_alfa1", name: "Alfa 1", unit: "%", category: "Proteínas", refRange: { M: [3.1, 5.6], F: [3.1, 5.6] } },
+  { id: "eletroforese_alfa2", name: "Alfa 2", unit: "%", category: "Proteínas", refRange: { M: [8.0, 12.7], F: [8.0, 12.7] } },
+  { id: "eletroforese_beta1", name: "Beta 1", unit: "%", category: "Proteínas", refRange: { M: [4.9, 7.2], F: [4.9, 7.2] } },
+  { id: "eletroforese_beta2", name: "Beta 2", unit: "%", category: "Proteínas", refRange: { M: [3.1, 6.1], F: [3.1, 6.1] } },
+  { id: "eletroforese_gama", name: "Gama", unit: "%", category: "Proteínas", refRange: { M: [10.3, 18.2], F: [10.3, 18.2] } },
+  { id: "relacao_ag", name: "Relação A/G", unit: "", category: "Proteínas", refRange: { M: [1.5, 2.5], F: [1.5, 2.5] } },
 ];
 
 export function getMarkerStatus(value: number, marker: MarkerDef, sex: "M" | "F"): "normal" | "low" | "high" {

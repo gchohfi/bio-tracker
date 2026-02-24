@@ -17,11 +17,14 @@ const MARKER_LIST = [
   { id: "rdw", name: "RDW", unit: "%" },
   { id: "leucocitos", name: "Leucócitos", unit: "/µL" },
   { id: "neutrofilos", name: "Neutrófilos", unit: "%" },
+  { id: "bastonetes", name: "Bastonetes", unit: "%" },
+  { id: "segmentados", name: "Segmentados", unit: "%" },
   { id: "linfocitos", name: "Linfócitos", unit: "%" },
   { id: "monocitos", name: "Monócitos", unit: "%" },
   { id: "eosinofilos", name: "Eosinófilos", unit: "%" },
   { id: "basofilos", name: "Basófilos", unit: "%" },
   { id: "plaquetas", name: "Plaquetas", unit: "mil/µL" },
+  { id: "vpm", name: "VPM (Volume Plaquetário Médio)", unit: "fL" },
   { id: "ferro_serico", name: "Ferro Sérico", unit: "µg/dL" },
   { id: "ferritina", name: "Ferritina", unit: "ng/mL" },
   { id: "transferrina", name: "Transferrina", unit: "mg/dL" },
@@ -36,6 +39,10 @@ const MARKER_LIST = [
   { id: "ldl", name: "LDL", unit: "mg/dL" },
   { id: "vldl", name: "VLDL", unit: "mg/dL" },
   { id: "triglicerides", name: "Triglicerídeos", unit: "mg/dL" },
+  { id: "colesterol_nao_hdl", name: "Colesterol Não-HDL", unit: "mg/dL" },
+  { id: "apo_a1", name: "Apolipoproteína A-1", unit: "mg/dL" },
+  { id: "apo_b", name: "Apolipoproteína B", unit: "mg/dL" },
+  { id: "lipoproteina_a", name: "Lipoproteína (a)", unit: "nmol/L" },
   { id: "relacao_ct_hdl", name: "CT/HDL", unit: "" },
   { id: "relacao_tg_hdl", name: "TG/HDL", unit: "" },
   { id: "tsh", name: "TSH", unit: "mUI/L" },
@@ -54,10 +61,17 @@ const MARKER_LIST = [
   { id: "fsh", name: "FSH", unit: "mUI/mL" },
   { id: "lh", name: "LH", unit: "mUI/mL" },
   { id: "prolactina", name: "Prolactina", unit: "ng/mL" },
+  { id: "igf1", name: "IGF-1 (Somatomedina C)", unit: "ng/mL" },
+  { id: "igfbp3", name: "IGFBP-3", unit: "µg/mL" },
+  { id: "acth", name: "ACTH", unit: "pg/mL" },
+  { id: "cortisol_livre_urina", name: "Cortisol Livre (urina 24h)", unit: "µg/24h" },
+  { id: "aldosterona", name: "Aldosterona", unit: "ng/dL" },
+  { id: "dihidrotestosterona", name: "Dihidrotestosterona", unit: "pg/mL" },
   { id: "vitamina_d", name: "Vitamina D (25-OH)", unit: "ng/mL" },
+  { id: "vitamina_d_125", name: "1,25-Dihidroxi Vitamina D", unit: "pg/mL" },
   { id: "vitamina_b12", name: "Vitamina B12", unit: "pg/mL" },
   { id: "acido_folico", name: "Ácido Fólico", unit: "ng/mL" },
-  { id: "vitamina_a", name: "Vitamina A", unit: "µg/dL" },
+  { id: "vitamina_a", name: "Vitamina A (Retinol)", unit: "mg/L" },
   { id: "vitamina_e", name: "Vitamina E", unit: "mg/L" },
   { id: "vitamina_c", name: "Vitamina C", unit: "mg/dL" },
   { id: "vitamina_b6", name: "Vitamina B6", unit: "ng/mL" },
@@ -69,12 +83,14 @@ const MARKER_LIST = [
   { id: "manganes", name: "Manganês", unit: "µg/L" },
   { id: "cromo", name: "Cromo", unit: "µg/L" },
   { id: "iodo_urinario", name: "Iodo Urinário", unit: "µg/L" },
+  { id: "chumbo", name: "Chumbo", unit: "µg/dL" },
   { id: "tgo_ast", name: "TGO (AST)", unit: "U/L" },
   { id: "tgp_alt", name: "TGP (ALT)", unit: "U/L" },
   { id: "ggt", name: "GGT", unit: "U/L" },
   { id: "fosfatase_alcalina", name: "Fosfatase Alcalina", unit: "U/L" },
   { id: "bilirrubina_total", name: "Bilirrubina Total", unit: "mg/dL" },
   { id: "bilirrubina_direta", name: "Bilirrubina Direta", unit: "mg/dL" },
+  { id: "bilirrubina_indireta", name: "Bilirrubina Indireta", unit: "mg/dL" },
   { id: "albumina", name: "Albumina", unit: "g/dL" },
   { id: "proteinas_totais", name: "Proteínas Totais", unit: "g/dL" },
   { id: "ldh", name: "LDH", unit: "U/L" },
@@ -86,7 +102,7 @@ const MARKER_LIST = [
   { id: "sodio", name: "Sódio", unit: "mEq/L" },
   { id: "potassio", name: "Potássio", unit: "mEq/L" },
   { id: "calcio_total", name: "Cálcio Total", unit: "mg/dL" },
-  { id: "calcio_ionico", name: "Cálcio Iônico", unit: "mg/dL" },
+  { id: "calcio_ionico", name: "Cálcio Iônico", unit: "mmol/L" },
   { id: "fosforo", name: "Fósforo", unit: "mg/dL" },
   { id: "cloro", name: "Cloro", unit: "mEq/L" },
   { id: "bicarbonato", name: "Bicarbonato", unit: "mEq/L" },
@@ -94,6 +110,17 @@ const MARKER_LIST = [
   { id: "pcr", name: "PCR", unit: "mg/L" },
   { id: "vhs", name: "VHS", unit: "mm/h" },
   { id: "homocisteina", name: "Homocisteína", unit: "µmol/L" },
+  { id: "fibrinogenio", name: "Fibrinogênio", unit: "mg/dL" },
+  { id: "amilase", name: "Amilase", unit: "U/L" },
+  { id: "lipase", name: "Lipase", unit: "U/L" },
+  { id: "fan", name: "FAN (Fator Anti-Núcleo)", unit: "" },
+  { id: "eletroforese_albumina", name: "Albumina (eletroforese)", unit: "%" },
+  { id: "eletroforese_alfa1", name: "Alfa 1 (eletroforese)", unit: "%" },
+  { id: "eletroforese_alfa2", name: "Alfa 2 (eletroforese)", unit: "%" },
+  { id: "eletroforese_beta1", name: "Beta 1 (eletroforese)", unit: "%" },
+  { id: "eletroforese_beta2", name: "Beta 2 (eletroforese)", unit: "%" },
+  { id: "eletroforese_gama", name: "Gama (eletroforese)", unit: "%" },
+  { id: "relacao_ag", name: "Relação A/G", unit: "" },
 ];
 
 const systemPrompt = `You are a lab result extraction assistant. You receive raw text from a Brazilian lab report PDF.
@@ -105,16 +132,25 @@ ${MARKER_LIST.map((m) => `${m.id} | ${m.name} | ${m.unit}`).join("\n")}
 IMPORTANT — Common alternative names in Brazilian lab reports:
 - "Hemácias" or "Glóbulos Vermelhos" → eritrocitos
 - "Glóbulos Brancos" → leucocitos
-- "Segmentados" or "Neutrófilos Segmentados" → neutrofilos
+- "Segmentados" or "Neutrófilos Segmentados" → segmentados (NOT neutrofilos)
+- "Bastonetes" or "Bastões" → bastonetes
+- "VPM" or "Volume Plaquetário Médio" or "MPV" → vpm
 - "Colesterol HDL" or "HDL-Colesterol" → hdl
 - "Colesterol LDL" or "LDL-Colesterol" → ldl
-- "Colesterol não-HDL" → ignore (not in our list)
+- "Colesterol não-HDL" or "NÃO-HDL" → colesterol_nao_hdl
 - "Triglicérides" or "Triglicerídios" → triglicerides
-- "AST" or "TGO" or "Aspartato" → tgo_ast
-- "ALT" or "TGP" or "Alanina" → tgp_alt
+- "Apolipoproteína A-1" or "Apo A1" or "Apo A-I" → apo_a1
+- "Apolipoproteína B" or "Apo B" → apo_b
+- "Lipoproteína (a)" or "Lp(a)" or "Lipoproteina A" → lipoproteina_a
+- "AST" or "TGO" or "Aspartato" or "GOT" → tgo_ast
+- "ALT" or "TGP" or "Alanina" or "GPT" → tgp_alt
 - "Gama GT" or "Gama Glutamil" → ggt
+- "Bilirrubina Indireta" → bilirrubina_indireta
 - "25-Hidroxivitamina D" or "25(OH)D" or "Vitamina D3" → vitamina_d
+- "1,25-Dihidroxi Vitamina D" or "1,25(OH)2D" or "Calcitriol" → vitamina_d_125
 - "Ácido Fólico" or "Folato" → acido_folico
+- "Ácido Ascórbico" or "Vitamina C" → vitamina_c
+- "Retinol" or "Vitamina A" → vitamina_a
 - "TSH Ultra-sensível" or "Tirotropina" → tsh
 - "T4L" or "Tiroxina Livre" → t4_livre
 - "T3L" or "Triiodotironina Livre" → t3_livre
@@ -123,12 +159,27 @@ IMPORTANT — Common alternative names in Brazilian lab reports:
 - "VHS" or "Velocidade de Hemossedimentação" → vhs
 - "Clearance" or "Filtração Glomerular" or "CKD-EPI" → tfg
 - "PTH Intacto" or "Paratormônio" → pth
-- "TIBC" or "Capacidade Total de Ligação do Ferro" → tibc
-- "Saturação de Transferrina" or "Índice de Saturação" → sat_transferrina
-- "Hemoglobina Glicada" or "A1C" → hba1c
+- "TIBC" or "Capacidade Total de Ligação do Ferro" or "Capacidade total de fixação do ferro" → tibc
+- "Saturação de Transferrina" or "Índice de Saturação" or "Indice Saturação Transferrina" → sat_transferrina
+- "Hemoglobina Glicada" or "A1C" or "Hemoglobina Glicosilada" → hba1c
 - "HOMA" or "HOMA-IR" or "Índice HOMA" → homa_ir
 - "Relação CT/HDL" or "Índice de Castelli" → relacao_ct_hdl
 - "Relação TG/HDL" → relacao_tg_hdl
+- "Fibrinogênio" or "Fibrinogenio" → fibrinogenio
+- "Amilase" → amilase
+- "Lipase" → lipase
+- "IGF-1" or "Somatomedina C" or "IGF 1" → igf1
+- "IGFBP-3" or "Proteína Ligadora-3 do IGF" or "IGFBP3" → igfbp3
+- "ACTH" or "Hormônio Adrenocorticotrófico" or "Adrenocorticotrofina" → acth
+- "Cortisol Livre" or "Cortisol urinário" (when unit is µg/24h or mcg/24 HORAS) → cortisol_livre_urina
+- "Aldosterona" → aldosterona
+- "Dihidrotestosterona" or "DHT" → dihidrotestosterona
+- "SDHEA" or "Sulfato de Dehidroepiandrosterona" or "S-DHEA" → dhea_s
+- "FAN" or "Fator Anti-Núcleo" or "Anticorpos Anticélula" → fan (use 0 for NÃO REAGENTE, 1 for REAGENTE)
+- "Eletroforese de Proteínas" → extract individual fractions: eletroforese_albumina, eletroforese_alfa1, eletroforese_alfa2, eletroforese_beta1, eletroforese_beta2, eletroforese_gama (use the % values)
+- "Relação A/G" → relacao_ag
+- "Chumbo" → chumbo
+- "Cálcio Ionizável" or "Cálcio Iônico" or "Cálcio ionizado" → calcio_ionico (use mmol/L value)
 
 Rules:
 - Extract EVERY marker you can find. Be aggressive — if a value looks like it matches a marker, include it.
@@ -136,7 +187,7 @@ Rules:
 - Vitamins, hormones, thyroid, iron, and mineral markers are often on later pages — don't stop early.
 - Convert values to the expected unit if needed (e.g. thousands to units).
 - For Plaquetas, the value in the PDF is usually in thousands (e.g. "250.000 /µL" → return 250).
-- For Leucócitos, the value is usually absolute (e.g. "6.500 /µL" → return 6500).
+- For Leucócitos, the value is usually absolute (e.g. "6.500 /µL" → return 6500). But if value is small like "3,9" in thousands, return 3900.
 - For Eritrócitos, the value is usually in millions (e.g. "4.80 milhões/µL" → return 4.80).
 - Brazilian decimals use comma: "4,37" → 4.37. Convert commas to dots.
 - Values with dot as thousands separator: "6.500" for leucocitos → 6500.
@@ -144,7 +195,12 @@ Rules:
 - If a marker appears multiple times, use the first occurrence.
 - Look for values in tables, lists, and inline text formats.
 - Values like "< 10" or "< 0,5" should use the number (10 or 0.5).
-- Ignore reference ranges — only extract the patient's actual result value.`;
+- "Inferior a X" or "INFERIOR A X" → use X as value.
+- "Superior a 90" for TFG → use 90.
+- Ignore reference ranges — only extract the patient's actual result value.
+- For FAN: NÃO REAGENTE = 0, REAGENTE = 1.
+- For Cortisol: if from blood/morning → cortisol. If from urina 24h → cortisol_livre_urina.
+- For Vitamina A/Retinol: the PDF may show mg/L — use that value directly.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -175,7 +231,9 @@ serve(async (req) => {
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `Extract ALL lab results from this Brazilian lab report. Be thorough and extract every single marker you can identify. Pay special attention to vitamins, hormones, thyroid, iron, minerals, electrolytes, and liver/kidney markers — they are often in separate sections or pages:\n\n${pdfText.slice(0, 80000)}`,
+            content: `Extract ALL lab results from this Brazilian lab report. Be thorough and extract every single marker you can identify. Pay special attention to:
+- NEW markers: Fibrinogênio, Amilase, Lipase, Apo A-1, Apo B, Lipoproteína(a), Colesterol Não-HDL, IGF-1, IGFBP-3, ACTH, Cortisol Livre urina 24h, Aldosterona, Dihidrotestosterona, 1,25-Dihidroxi Vitamina D, FAN, Eletroforese de Proteínas frações, Chumbo, Bastonetes, Segmentados, VPM, Bilirrubina Indireta
+- Also all vitamins, hormones, thyroid, iron, minerals, electrolytes, and liver/kidney markers:\n\n${pdfText.slice(0, 80000)}`,
           },
         ],
         tools: [
