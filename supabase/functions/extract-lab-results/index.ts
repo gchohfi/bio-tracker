@@ -1135,6 +1135,36 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
     console.log(`Regex fallback added ${additional.length} markers: ${additional.map(r => r.marker_id).join(', ')}`);
   }
 
+  // === DIAGNOSTIC: log missing markers and check if exam names exist in PDF text ===
+  const criticalMarkers: [string, string[]][] = [
+    ['vhs', ['HEMOSSEDIMENTA', 'VHS', 'V.H.S']],
+    ['t4_total', ['TIROXINA (T4)', 'T4 TOTAL', 'T4, SORO']],
+    ['amh', ['MULLERIANO', 'MÜLLERIANO', 'AMH', 'HAM']],
+    ['fosforo', ['FOSFORO', 'FÓSFORO']],
+    ['vitamina_d_125', ['1,25-DIHIDROXI', '1.25-DIHIDROXI', 'CALCITRIOL', 'DIHIDROXIVITAMINA']],
+    ['estrona', ['ESTRONA']],
+    ['aldosterona', ['ALDOSTERONA']],
+    ['magnesio', ['MAGNESIO', 'MAGNÉSIO']],
+    ['selenio', ['SELENIO', 'SELÊNIO']],
+    ['cromo', ['CROMO']],
+    ['fosfatase_alcalina', ['FOSFATASE ALCALINA', 'FOSFATASE']],
+    ['sodio', ['SODIO', 'SÓDIO']],
+    ['potassio', ['POTASSIO', 'POTÁSSIO']],
+  ];
+  const textUpper = pdfText.toUpperCase();
+  for (const [markerId, searchTerms] of criticalMarkers) {
+    if (!found.has(markerId)) {
+      const foundTerm = searchTerms.find(t => textUpper.includes(t.toUpperCase()));
+      if (foundTerm) {
+        const idx = textUpper.indexOf(foundTerm.toUpperCase());
+        const snippet = pdfText.substring(Math.max(0, idx - 20), Math.min(pdfText.length, idx + 200)).replace(/\n/g, '\\n');
+        console.log(`MISSING ${markerId}: found "${foundTerm}" in PDF at pos ${idx}. Context: "${snippet}"`);
+      } else {
+        console.log(`MISSING ${markerId}: NOT found in PDF text (searched: ${searchTerms.join(', ')})`);
+      }
+    }
+  }
+
   return [...aiResults, ...additional];
 }
 
