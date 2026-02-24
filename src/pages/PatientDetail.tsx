@@ -871,7 +871,7 @@ function MarkerInput({
     status === "normal"
       ? "border-emerald-400 focus-visible:ring-emerald-400"
       : status === "low"
-      ? "border-blue-400 focus-visible:ring-blue-400"
+      ? "border-red-400 focus-visible:ring-red-400"
       : status === "high"
       ? "border-red-400 focus-visible:ring-red-400"
       : "";
@@ -880,7 +880,7 @@ function MarkerInput({
     status === "normal"
       ? "bg-emerald-50"
       : status === "low"
-      ? "bg-blue-50"
+      ? "bg-red-50"
       : status === "high"
       ? "bg-red-50"
       : "";
@@ -909,7 +909,7 @@ function MarkerInput({
             className={cn(
               "h-4 px-1 text-[10px]",
               status === "normal" && "border-emerald-400 text-emerald-700",
-              status === "low" && "border-blue-400 text-blue-700",
+              status === "low" && "border-red-400 text-red-700",
               status === "high" && "border-red-400 text-red-700"
             )}
           >
