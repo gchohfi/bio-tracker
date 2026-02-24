@@ -8,6 +8,7 @@ import {
   MARKERS,
   getMarkersByCategory,
   getMarkerStatus,
+  parseOperatorValue,
   type Category,
   type MarkerDef,
 } from "@/lib/markers";
@@ -55,6 +56,7 @@ function getCategoryRGB(cat: Category): { r: number; g: number; b: number } {
     Pancreático: { r: 160, g: 140, b: 30 },
     Imunologia: { r: 110, g: 80, b: 190 },
     Proteínas: { r: 40, g: 150, b: 140 },
+    "Marcadores Tumorais": { r: 180, g: 50, b: 80 },
     Toxicologia: { r: 200, g: 100, b: 30 },
     Urina: { r: 140, g: 160, b: 40 },
     Fezes: { r: 170, g: 130, b: 50 },
@@ -332,6 +334,10 @@ export function generatePatientReport(
           if (isQualitative) {
             return textValues[i] || "—";
           }
+          // Show operator text_value (e.g. "< 34") if available, otherwise raw number
+          if (textValues[i] && parseOperatorValue(textValues[i])) {
+            return textValues[i];
+          }
           return values[i] !== undefined ? String(values[i]) : "—";
         }),
         isQualitative ? "" : trendSymbol(trend),
@@ -380,11 +386,14 @@ export function generatePatientReport(
       didParseCell(data) {
         // Color code result values
         if (data.section === "body" && data.column.index >= 3 && data.column.index < trendColIdx) {
-          const val = parseFloat(data.cell.raw as string);
+          const rawStr = String(data.cell.raw || "");
+          // Check for operator values like "< 34"
+          const operatorParsed = parseOperatorValue(rawStr);
+          const val = operatorParsed ? operatorParsed.numericValue : parseFloat(rawStr);
             if (!isNaN(val)) {
               const marker = markersWithData[data.row.index];
               if (marker) {
-                const status = getMarkerStatus(val, marker, sex);
+                const status = getMarkerStatus(val, marker, sex, operatorParsed?.operator);
                 data.cell.styles.fontStyle = "bold";
                 if (status === "normal") {
                   data.cell.styles.textColor = [GREEN.r, GREEN.g, GREEN.b];
