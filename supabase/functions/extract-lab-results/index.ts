@@ -165,125 +165,223 @@ Your task: extract ALL values (numeric AND qualitative) and map them to the know
 Here are the known markers (id | name | unit):
 ${MARKER_LIST.map((m) => `${m.id} | ${m.name} | ${m.unit}`).join("\n")}
 
-IMPORTANT — Common alternative names in Brazilian lab reports:
+=== COMPREHENSIVE NAME ALIASES FOR BRAZILIAN LABS ===
+(Fleury, DASA, Hermes Pardini, Confiance, Einstein, Lavoisier, DB Diagnósticos, Laboratório Oswaldo Cruz, etc.)
+
+HEMOGRAMA:
 - "Hemácias" or "Glóbulos Vermelhos" → eritrocitos
 - "Glóbulos Brancos" → leucocitos
-- "Segmentados" or "Neutrófilos Segmentados" → segmentados (NOT neutrofilos)
-- "Bastonetes" or "Bastões" → bastonetes
-- "VPM" or "Volume Plaquetário Médio" or "MPV" → vpm
+- "Segmentados" or "Neutrófilos Segmentados" or "SEGS" → segmentados (NOT neutrofilos)
+- "Bastonetes" or "Bastões" or "BASTOES" or "Neutrófilos Bastonetes" or "Neutrófilos Bastão" or "BAND NEUTROPHILS" → bastonetes
+- "VPM" or "Volume Plaquetário Médio" or "V.P.M." or "MPV" or "MEAN PLATELET VOLUME" → vpm
+
+COAGULAÇÃO:
+- "FIBRINOGÊNIO" or "FIBRINOGENIO" or "FIBRINOGÊNIO FUNCIONAL" or "FIBRINOGÊNIO - CLAUSS" or "FIBRINOGÊNIO DERIVADO" or "Fator I" or "Fibrinogen" → fibrinogenio
+  Units: mg/dL (standard). If g/L → multiply by 100.
+- "DÍMEROS D" or "D-DÍMERO" or "D-Dímero" → dimeros_d
+
+PANCREÁTICOS:
+- "AMILASE" or "AMILASE SÉRICA" or "AMILASE TOTAL" or "α-AMILASE" or "ALFA-AMILASE" or "AMS" → amilase
+  Note: "AMILASE PANCREÁTICA" has a different range (13–53 U/L); treat as amilase unless specifically distinguished.
+- "LIPASE" or "LIPASE SÉRICA" or "LPS" → lipase
+
+LIPÍDIOS:
 - "Colesterol HDL" or "HDL-Colesterol" or "HDL:" → hdl
 - "Colesterol LDL" or "LDL-Colesterol" or "LDL:" → ldl
-- "Colesterol não-HDL" or "NÃO-HDL" or "NÃO-HDL:" → colesterol_nao_hdl
-- "Triglicérides" or "Triglicerídios" or "Triglicérides:" → triglicerides
-- "Apolipoproteína A-1" or "Apo A1" or "Apo A-I" or "APOLIPOPROTEÍNA A-1" → apo_a1
-- "Apolipoproteína B" or "Apo B" or "APOLIPOPROTEÍNA B" → apo_b
-- "Lipoproteína (a)" or "Lp(a)" or "Lipoproteina A" or "LIPOPROTEINA A" → lipoproteina_a
-- "AST" or "TGO" or "Aspartato" or "GOT" or "TRANSAMINASE GLUTÂMICO OXALACÉTICA" or "GOT/AST" → tgo_ast
-- "ALT" or "TGP" or "Alanina" or "GPT" or "TRANSAMINASE GLUTÂMICO PIRÚVICA" or "GPT/ALT" → tgp_alt
-- "Gama GT" or "Gama Glutamil" or "GAMA GT" → ggt
-- "Bilirrubina Indireta" → bilirrubina_indireta
-- "25-Hidroxivitamina D" or "25(OH)D" or "Vitamina D3" or "25 HIDROXI VITAMINA D" → vitamina_d
-- "1,25-Dihidroxi Vitamina D" or "1,25(OH)2D" or "Calcitriol" or "1,25 DIHIDROXI VITAMINA D" → vitamina_d_125
-- "Ácido Fólico" or "Folato" or "ACIDO FOLICO" → acido_folico
-- "Ácido Ascórbico" or "Vitamina C" or "ACIDO ASCORBICO" → vitamina_c
-- "Retinol" or "Vitamina A" or "VITAMINA A - RETINOL" → vitamina_a
+- "Colesterol não-HDL" or "NÃO-HDL" or "NON-HDL" or "NÃO HDL COLESTEROL" → colesterol_nao_hdl
+- "Triglicérides" or "Triglicerídios" → triglicerides
+- "Colesterol Total:" → colesterol_total
+- "VLDL:" → vldl
+- "APOLIPOPROTEÍNA A-1" or "APOLIPOPROTEINA A1" or "APOLIPOPROTEÍNA A-I" or "APO A1" or "APO A-1" or "APO A-I" or "APOPROTEÍNA A1" or "Apo A" → apo_a1
+  Units: mg/dL (standard). If g/L → multiply by 100.
+- "APOLIPOPROTEÍNA B" or "APOLIPOPROTEINA B" or "APOLIPOPROTEÍNA B-100" or "APO B" or "APO B100" or "APO B-100" or "APOPROTEÍNA B" → apo_b
+  Units: mg/dL (standard). If g/L → multiply by 100.
+- "LIPOPROTEINA A" or "LIPOPROTEINA (a)" or "LIPOPROTEÍNA(a)" or "LIPOPROTEÍNA (a)" or "Lp(a)" or "LP(A)" or "LPA" → lipoproteina_a
+  ⚠️ DO NOT confuse with Apolipoproteína A-1 (Apo A1). Lipoproteína(a) is Lp(a), a complete particle. Apo A-1 is a protein. They are DIFFERENT tests.
+  Units: nmol/L (standard). If mg/dL → multiply by 2.15. If mg/L → divide by 10 then multiply by 2.15.
+- "Relação CT/HDL" or "Índice de Castelli" → relacao_ct_hdl
+- "Relação TG/HDL" → relacao_tg_hdl
+
+TIREOIDE:
 - "TSH Ultra-sensível" or "Tirotropina" or "TSH" → tsh
 - "T4L" or "Tiroxina Livre" or "T4 LIVRE" → t4_livre
 - "T3L" or "Triiodotironina Livre" or "T3 LIVRE" → t3_livre
-- "SHBG" or "Globulina Ligadora" or "S H B G" → shbg
-- "PCR ultra-sensível" or "PCR-us" or "Proteína C Reativa" or "PROTEÍNA C REATIVA ULTRA-SENSÍVEL" → pcr
-- "VHS" or "Velocidade de Hemossedimentação" or "VELOCIDADE DE HEMOSSEDIMENTAÇÃO" → vhs
-- "Clearance" or "Filtração Glomerular" or "CKD-EPI" or "Estimativa da Taxa de Filtração Glomerular" → tfg
-- "PTH Intacto" or "Paratormônio" or "PARATORMÔNIO PTH INTACTO" → pth
-- "TIBC" or "Capacidade Total de Ligação do Ferro" or "Capacidade total de fixação do ferro" → tibc
-- "Saturação de Transferrina" or "Índice de Saturação" or "Indice Saturação Transferrina" or "SATURAÇÃO DE TRANSFERRINA" → sat_transferrina
-- "Hemoglobina Glicada" or "A1C" or "Hemoglobina Glicosilada" or "HEMOGLOBINA GLICOSILADA" or "HEMOGLOBINA GLICADA (A1C)" → hba1c
-- "HOMA" or "HOMA-IR" or "Índice HOMA" → homa_ir
-- "Relação CT/HDL" or "Índice de Castelli" → relacao_ct_hdl
-- "Relação TG/HDL" → relacao_tg_hdl
-- "Fibrinogênio" or "Fibrinogenio" or "FIBRINOGÊNIO" → fibrinogenio
-- "Amilase" or "AMILASE" → amilase
-- "Lipase" or "LIPASE" → lipase
-- "IGF-1" or "Somatomedina C" or "IGF 1" or "IGF 1- SOMATOMEDINA C" → igf1
-- "IGFBP-3" or "Proteína Ligadora-3 do IGF" or "IGFBP3" or "IGFBP-3 PROTEÍNA LIGADORA -3 DO IGF" → igfbp3
-- "ACTH" or "Hormônio Adrenocorticotrófico" or "Adrenocorticotrofina" or "HORMÔNIO ADRENOCORTICOTRÓFICO A.C.T.H." → acth
-- "Cortisol Livre" or "Cortisol urinário" (when unit is µg/24h or mcg/24 HORAS) → cortisol_livre_urina
-- "Aldosterona" or "ALDOSTERONA" → aldosterona
-- "Dihidrotestosterona" or "DHT" or "DIHIDROTESTOSTERONA" → dihidrotestosterona
-- "SDHEA" or "Sulfato de Dehidroepiandrosterona" or "S-DHEA" or "SULFATO DE DEHIDROEPIANDROSTERONA (SDHEA)" → dhea_s
-- "FAN" or "Fator Anti-Núcleo" or "Anticorpos Anticélula" or "FAN - FATOR ANTI-NÚCLEO" → fan (use 0 for NÃO REAGENTE, 1 for REAGENTE)
-- "Eletroforese de Proteínas" → extract individual fractions: eletroforese_albumina, eletroforese_alfa1, eletroforese_alfa2, eletroforese_beta1, eletroforese_beta2, eletroforese_gama (use the % values)
-- "Relação A/G" → relacao_ag
-- "Proteínas Totais" or "PROTEÍNAS TOTAIS" → proteinas_totais
-- "Chumbo" or "CHUMBO" → chumbo
-- "Cálcio Ionizável" or "Cálcio Iônico" or "Cálcio ionizado" or "CÁLCIO IONIZÁVEL" → calcio_ionico (use mmol/L value)
-- "HORMÔNIO LUTEINIZANTE" or "LH" → lh
-- "Prolactina" or "PROLACTINA" → prolactina
-- "Progesterona" or "PROGESTERONA" → progesterona
-- "Estradiol" or "ESTRADIOL" → estradiol
-- "Testosterona Total" or "TESTOSTERONA TOTAL" → testosterona_total
-- "Testosterona Livre" or "TESTOSTERONA LIVRE" → testosterona_livre (IMPORTANT: if value is in ng/dL, multiply by 10 to convert to pg/mL)
-- "Zinco" or "ZINCO" → zinco (value in mcg/dL = µg/dL)
-- "Cobre" or "COBRE" → cobre (value in mcg/dL = µg/dL)
-- "Selênio" or "SELÊNIO" → selenio (value in mcg/L = µg/L)
-- "ANTICORPO ANTI TPO" or "Anti-TPO" → anti_tpo
+- "T3 Reverso" or "T3R" or "REVERSE T3" → t3_reverso
+- "ANTICORPO ANTI TPO" or "Anti-TPO" or "ANTI TPO" → anti_tpo
 - "ANTICORPOS ANTI TIREOGLOBULINA" or "Anti-TG" or "Anti-Tireoglobulina" → anti_tg
-- "Capacidade livre de fixação do ferro" - this is NOT TIBC; ignore this value
-- "Colesterol Total:" → colesterol_total
-- "VLDL:" → vldl
-- "Cálcio Total" or "CALCIO TOTAL" → calcio_total
 
-Rules:
+HORMÔNIOS:
+- "Testosterona Total" or "TESTOSTERONA TOTAL" → testosterona_total
+- "Testosterona Livre" or "TESTOSTERONA LIVRE" → testosterona_livre
+  Convert: if ng/dL → multiply by 10. If pmol/L → multiply by 0.28842. Target unit: pg/mL.
+- "Estradiol" or "ESTRADIOL" → estradiol
+  Convert: if ng/dL → multiply by 10. Target unit: pg/mL.
+- "Progesterona" or "PROGESTERONA" → progesterona
+  Convert: if ng/dL → divide by 100. Target unit: ng/mL.
+- "DHEA-S" or "SDHEA" or "Sulfato de Dehidroepiandrosterona" or "S-DHEA" → dhea_s
+- "Cortisol" or "Cortisol (manhã)" or "CORTISOL MATINAL" → cortisol (BLOOD, morning)
+- "SHBG" or "Globulina Ligadora" or "S H B G" → shbg
+- "FSH" or "HORMÔNIO FOLÍCULO ESTIMULANTE" → fsh
+- "LH" or "HORMÔNIO LUTEINIZANTE" → lh
+- "Prolactina" or "PROLACTINA" → prolactina
+
+EIXO GH:
+- "IGF-1" or "IGF1" or "SOMATOMEDINA C" or "SOMATOMEDINA-C" or "IGF I" or "IGF 1" or "INSULIN-LIKE GROWTH FACTOR 1" or "FATOR DE CRESCIMENTO INSULINA-SÍMILE TIPO 1" or "IGF 1- SOMATOMEDINA C" → igf1
+  Units: ng/mL (standard). If nmol/L → multiply by 7.649.
+- "IGFBP-3" or "IGFBP3" or "PROTEÍNA LIGADORA 3 DO IGF" or "PROTEINA LIGADORA DE IGF TIPO 3" or "IGFBP-3 PROTEÍNA LIGADORA -3 DO IGF" or "IGF BP3" or "IGFBP-3 (PROTEÍNA LIGADORA-3 DE IGF-1)" → igfbp3
+  ⚠️ CRITICAL UNIT: if in ng/mL → divide by 1000 to get µg/mL. Example: 6120 ng/mL → 6.12 µg/mL. mg/L = µg/mL.
+
+EIXO ADRENAL:
+- "ACTH" or "A.C.T.H." or "HORMÔNIO ADRENOCORTICOTRÓFICO" or "HORMONIO ADRENOCORTICOTROFICO" or "CORTICOTROFINA" or "ADRENOCORTICOTROFINA" or "HORMÔNIO ADRENOCORTICOTRÓFICO A.C.T.H." → acth
+  Units: pg/mL (standard). ng/L = pg/mL. If pmol/L → divide by 0.2202.
+- "CORTISOL LIVRE, URINA DE 24 HORAS" or "CORTISOL LIVRE URINÁRIO" or "CORTISOL URINÁRIO" or "CORTISOL LIVRE - URINA 24H" or "CORTISOL URINA 24 HORAS" or "CORTISOL, URINA" or "CORTISOL LIVRE (URINA)" → cortisol_livre_urina
+  ⚠️ Material is URINE (not blood!). Look for "URINA 24H" or "URINA DE 24 HORAS" near the name.
+  Units: µg/24h (standard). mcg/24h = µg/24h. If nmol/24h → divide by 2.759.
+- "ALDOSTERONA" or "ALDOSTERONA SÉRICA" or "ALDOSTERONA - SENTADO" or "ALDOSTERONA - DEITADO" or "ALDOSTERONA - EM PÉ" → aldosterona
+  Units: ng/dL (standard). If pg/mL → divide by 10. If pmol/L → divide by 27.74.
+
+ANDRÓGENOS:
+- "DIHIDROTESTOSTERONA" or "DHT" or "5-ALFA-DIHIDROTESTOSTERONA" or "5α-DIHIDROTESTOSTERONA" or "DIHYDROTESTOSTERONE" → dihidrotestosterona
+  Units: pg/mL (standard). If ng/dL → multiply by 10. If nmol/L → divide by 0.003442.
+- "ANDROSTENEDIONA" or "Androstenediona" → androstenediona. Keep value in ng/dL.
+
+VITAMINAS:
+- "25 HIDROXI VITAMINA D" or "25-OH VITAMINA D" or "CALCIDIOL" or "25-HIDROXICOLECALCIFEROL" or "25(OH)D" or "Vitamina D3" → vitamina_d
+  Units: ng/mL (standard). If nmol/L → divide by 2.496.
+- "1,25 DIHIDROXI VITAMINA D" or "1,25-DIHIDROXIVITAMINA D" or "1,25(OH)2D" or "CALCITRIOL" or "1.25 DIHIDROXIVITAMINA D" or "1,25-DIHIDROXI-COLECALCIFEROL" or "1,25 OH VITAMINA D" → vitamina_d_125
+  ⚠️ DO NOT confuse with 25-OH Vitamina D. 25-OH is the storage form (ng/mL); 1,25(OH)2 is the active form (pg/mL — 1000x smaller). TWO SEPARATE markers.
+  Units: pg/mL (standard). ng/L = pg/mL. If pmol/L → divide by 2.4.
+- "Vitamina B12" or "VITAMINA B12" → vitamina_b12. ng/L = pg/mL.
+- "Ácido Fólico" or "Folato" or "ACIDO FOLICO" → acido_folico
+- "Retinol" or "Vitamina A" or "VITAMINA A - RETINOL" → vitamina_a
+- "Vitamina E" → vitamina_e
+- "Ácido Ascórbico" or "Vitamina C" or "ACIDO ASCORBICO" → vitamina_c
+- "Vitamina B6" → vitamina_b6
+- "Vitamina B1" → vitamina_b1
+- "Homocisteína" or "HOMOCISTEINA" → homocisteina
+
+MINERAIS:
+- "Magnésio" or "MAGNESIO" → magnesio
+- "Zinco" or "ZINCO" → zinco (mcg/dL = µg/dL)
+- "Selênio" or "SELÊNIO" → selenio (mcg/L = µg/L)
+- "Cobre" or "COBRE" → cobre (mcg/dL = µg/dL)
+- "Manganês" or "MANGANES" → manganes
+- "Cromo" or "CROMO" → cromo
+- "Iodo Urinário" or "IODO URINÁRIO" → iodo_urinario
+
+TOXICOLOGIA:
+- "CHUMBO" or "CHUMBO NO SANGUE" or "PLUMBEMIA" or "CHUMBO (Pb)" or "Pb SANGUE" or "LEAD" → chumbo
+  Units: µg/dL (standard). If µg/L → divide by 10.
+- "MERCURIO" or "Mercúrio" → mercurio. Value in µg/L.
+- "CADMIO" or "Cádmio" → cadmio. Value in µg/L.
+- "ALUMINIO" or "Alumínio" → aluminio. Value in µg/L.
+
+HEPÁTICO:
+- "AST" or "TGO" or "Aspartato" or "GOT" or "TRANSAMINASE GLUTÂMICO OXALACÉTICA" or "GOT/AST" → tgo_ast
+- "ALT" or "TGP" or "Alanina" or "GPT" or "TRANSAMINASE GLUTÂMICO PIRÚVICA" or "GPT/ALT" → tgp_alt
+- "Gama GT" or "Gama Glutamil" or "GAMA GT" or "γ-GT" → ggt
+- "Fosfatase Alcalina" or "FOSFATASE ALCALINA" or "FA" → fosfatase_alcalina
+- "Bilirrubina Total" → bilirrubina_total
+- "Bilirrubina Direta" or "Bilirrubina Conjugada" → bilirrubina_direta
+- "Bilirrubina Indireta" or "Bilirrubina Não Conjugada" or "BILIRRUBINA INDIRETA (CALCULADA)" → bilirrubina_indireta
+- "Albumina" → albumina
+- "Proteínas Totais" or "PROTEÍNAS TOTAIS" → proteinas_totais
+- "LDH" or "Desidrogenase Láctica" or "DESIDROGENASE LÁTICA" → ldh
+
+RENAL:
+- "Creatinina" → creatinina
+- "Ureia" or "UREIA" → ureia
+- "Ácido Úrico" → acido_urico
+- "Clearance" or "Filtração Glomerular" or "CKD-EPI" or "Estimativa da Taxa de Filtração Glomerular" or "TFG ESTIMADA" or "TFGe" or "eGFR" or "MDRD" → tfg
+  Note: Often appears as a sub-item within creatinine results.
+- "Cistatina C" or "CISTATINA C" or "Cistatina C sérica" → cistatina_c
+
+ELETRÓLITOS:
+- "Sódio" or "SODIO" → sodio
+- "Potássio" or "POTASSIO" → potassio
+- "Cálcio Total" or "CALCIO TOTAL" → calcio_total
+- "Cálcio Ionizável" or "Cálcio Iônico" or "Cálcio ionizado" or "CÁLCIO IONIZÁVEL" → calcio_ionico (use mmol/L value)
+- "Fósforo" or "FOSFORO" → fosforo
+- "Cloro" or "CLORO" or "CLORETO" → cloro
+- "Bicarbonato" or "CO2 Total" → bicarbonato
+- "PTH Intacto" or "Paratormônio" or "PARATORMÔNIO PTH INTACTO" → pth
+
+FERRO:
+- "Ferro Sérico" → ferro_serico
+- "Ferritina" → ferritina. microg/L = ng/mL.
+- "Transferrina" → transferrina
+- "Saturação de Transferrina" or "Índice de Saturação" or "Indice Saturação Transferrina" → sat_transferrina
+- "TIBC" or "Capacidade Total de Fixação do Ferro" or "CTFF" or "Capacidade Total de Ligação do Ferro" or "Capacidade Ferropéxica Total" or "CTLF" → tibc
+  Units: µg/dL (standard). If µmol/L → divide by 0.179.
+- "Capacidade livre de fixação do ferro" or "UIBC" or "CLFF" → IGNORE (this is NOT TIBC)
+
+GLICEMIA:
+- "Glicose Jejum" or "GLICOSE" or "Glicemia" → glicose_jejum
+- "Hemoglobina Glicada" or "HbA1c" or "A1C" or "Hemoglobina Glicosilada" or "HEMOGLOBINA GLICADA (A1C)" → hba1c
+- "Insulina Jejum" or "INSULINA" → insulina_jejum
+- "HOMA" or "HOMA-IR" or "Índice HOMA" → homa_ir
+
+INFLAMAÇÃO:
+- "PCR ultra-sensível" or "PCR-us" or "Proteína C Reativa" or "PROTEÍNA C REATIVA ULTRA-SENSÍVEL" → pcr
+  Convert: if mg/dL → multiply by 10 to get mg/L. Example: 0.07 mg/dL → 0.7 mg/L.
+- "VHS" or "Velocidade de Hemossedimentação" → vhs
+
+IMUNOLOGIA:
+- "FAN" or "FAN - FATOR ANTI-NÚCLEO" or "FATOR ANTINÚCLEO" or "FATOR ANTI-NÚCLEO" or "ANTICORPO ANTI-NÚCLEO" or "ANA" or "ANTICORPOS ANTINUCLEARES" or "FAN (HEP-2)" or "FAN - HEP2" or "PESQUISA DE FAN" or "FATOR ANTINUCLEAR" or "FAN POR IFI" → fan
+  QUALITATIVE: use text_value. "NÃO REAGENTE" → text_value="Não Reagente". "REAGENTE 1/80" → text_value="Reagente 1/80 Nuclear pontilhado fino" (include titer and pattern if available). Set value=0.
+
+ELETROFORESE DE PROTEÍNAS:
+- "ELETROFORESE DE PROTEÍNAS" or "PROTEINOGRAMA" or "PROTEINOGRAMA ELETROFORÉTICO" or "EPS" → extract INDIVIDUAL fractions:
+  - "Albumina" (within electrophoresis) → eletroforese_albumina (use % value)
+  - "Alfa-1 Globulina" or "ALFA 1 GLOBULINA" or "α1-GLOBULINA" → eletroforese_alfa1
+  - "Alfa-2 Globulina" or "ALFA 2 GLOBULINA" or "α2-GLOBULINA" → eletroforese_alfa2
+  - "Beta-1 Globulina" or "BETA 1 GLOBULINA" or "β1-GLOBULINA" → eletroforese_beta1
+  - "Beta-2 Globulina" or "BETA 2 GLOBULINA" or "β2-GLOBULINA" → eletroforese_beta2
+  - "Gamaglobulina" or "GAMA GLOBULINA" or "γ-GLOBULINA" or "GAMMAGLOBULINA" → eletroforese_gama
+  - "Relação A/G" → relacao_ag
+
+URINA TIPO 1 / EAS:
+- "URINA TIPO 1" or "EAS" or "EXAME DE URINA TIPO I" or "URINA ROTINA" or "PARCIAL DE URINA" or "SUMÁRIO DE URINA" or "URINA I" or "ELEMENTOS ANORMAIS E SEDIMENTO" or "URINÁLISE" → extract all sub-items:
+  Cor → urina_cor, Aspecto → urina_aspecto, Densidade → urina_densidade, pH → urina_ph,
+  Proteínas → urina_proteinas, Glicose → urina_glicose, Hemoglobina → urina_hemoglobina,
+  Leucócitos → urina_leucocitos, Hemácias → urina_hemacias, Bactérias → urina_bacterias,
+  Células Epiteliais → urina_celulas, Cilindros → urina_cilindros, Cristais → urina_cristais,
+  Nitritos → urina_nitritos, Bilirrubina → urina_bilirrubina, Urobilinogênio → urina_urobilinogenio, Cetonas → urina_cetona.
+
+COPROLÓGICO FUNCIONAL:
+- "COPROLÓGICO FUNCIONAL" or "EXAME DE FEZES" or "EXAME COPROLÓGICO FUNCIONAL" or "ANÁLISE FUNCIONAL DAS FEZES" or "PROVA FUNCIONAL DAS FEZES" or "COPROGRAMA" → extract all sub-items:
+  Cor → copro_cor, Consistência → copro_consistencia, Muco → copro_muco, Sangue Oculto → copro_sangue,
+  Leucócitos → copro_leucocitos, Parasitas → copro_parasitas, Gordura Fecal → copro_gordura,
+  Fibras Musculares → copro_fibras, Amido → copro_amido, pH Fecal → copro_ph.
+
+=== EXTRACTION RULES ===
 - Extract EVERY marker you can find. Be aggressive — if a value looks like it matches a marker, include it.
 - The report may have multiple pages. Search ALL text thoroughly from start to end.
 - Vitamins, hormones, thyroid, iron, and mineral markers are often at the end — don't stop early.
-- CRITICAL: Extract sub-items within grouped panels. For example:
-  - Hemograma: includes Bastonetes, Segmentados (within differential count), VPM (within platelet section)
-  - Lipidograma: includes Colesterol Não-HDL, VLDL, each listed as sub-items
+- CRITICAL: Extract sub-items within grouped panels:
+  - Hemograma: includes Bastonetes, Segmentados, VPM (within differential/platelet section)
+  - Lipidograma/Perfil Lipídico: includes Colesterol Não-HDL, VLDL, each as sub-items
   - Bilirrubinas: Total, Direta, AND Indireta — all three
-  - Renal: Creatinina, Ureia, Ácido Úrico, TFG (sometimes listed as "Estimativa" or "Clearance")
+  - Renal: Creatinina, Ureia, Ácido Úrico, TFG (sometimes listed as sub-item of Creatinina)
   - Ferro: Ferro Sérico, Ferritina, Transferrina, Sat. Transferrina, AND TIBC
-- Convert values to the expected unit if needed.
+- Convert values to the expected unit if needed (see unit conversion rules above).
 - For Plaquetas, the value in the PDF is usually in thousands (e.g. "336 mil/mm3" → return 336).
-- For Leucócitos, if value is small like "3,9" in thousands/mm³, return 3900. If value is already large like "6500", return 6500.
+- For Leucócitos, if value is small like "3,9" in thousands/mm³, return 3900. If already large like "6500", return 6500.
 - For Eritrócitos, the value is usually in millions (e.g. "3,8 milhões/mm³" → return 3.8).
 - Brazilian decimals use comma: "4,37" → 4.37. Convert commas to dots.
 - Values with dot as thousands separator: "6.500" for leucocitos → 6500.
 - For NUMERIC markers: return only the number in 'value'. No text.
-- For QUALITATIVE markers (urina_*, copro_*): return the text description in 'text_value' (e.g. "Amarelo Citrino", "Límpido", "Negativo", "Ausente", "Raros", "Pastosa"). Set value=0.
-- URINA TIPO 1 / EAS / SUMÁRIO DE URINA: extract all sub-items: Cor, Aspecto, Densidade, pH, Proteínas, Glicose, Hemoglobina, Leucócitos, Hemácias, Bactérias, Células Epiteliais, Cilindros, Cristais, Nitritos, Bilirrubina, Urobilinogênio, Cetonas.
-- COPROLÓGICO FUNCIONAL / EXAME DE FEZES: extract Cor, Consistência, Muco, Sangue Oculto, Leucócitos, Parasitas, Gordura Fecal, Fibras Musculares, Amido, pH.
+- For QUALITATIVE markers (fan, urina_*, copro_*): return the text description in 'text_value' (e.g. "Amarelo Citrino", "Límpido", "Negativo", "Ausente", "Raros", "Pastosa"). Set value=0.
 - If a marker appears multiple times, use the FIRST occurrence (the actual result, not historical).
 - Look for values in tables, lists, and inline text formats.
 - Values like "< 10" or "< 0,5" or "Inferior a 0,5" should use the number (10 or 0.5).
 - "INFERIOR A X" → use X as value.
 - "Superior a 90" for TFG → use 90.
 - Ignore reference ranges — only extract the patient's actual result value.
-- For FAN: use text_value. NÃO REAGENTE → text_value="Não Reagente", REAGENTE → text_value="Reagente". (It's now qualitative.)
-- For Cortisol: if from blood/morning → cortisol. If from "URINA 24 HORAS" with "mcg/24 HORAS" → cortisol_livre_urina.
-- For Vitamina A/Retinol: the PDF may show mg/L — use that value directly.
-- For Testosterona Livre: convert to pg/mL. If ng/dL → multiply by 10. If pmol/L → multiply by 0.28842. Example: 19.9 pmol/L → 5.74 pg/mL.
-- For Estradiol: if in ng/dL, multiply by 10 to convert to pg/mL. Example: 39.6 ng/dL → 396 pg/mL.
-- For Progesterona: if in ng/dL, divide by 100 to convert to ng/mL. Example: 101 ng/dL → 1.01 ng/mL.
-- For DHT/Dihidrotestosterona: if in ng/dL, multiply by 10 to convert to pg/mL. Example: 13 ng/dL → 130 pg/mL.
-- For IGFBP-3: if in ng/mL, divide by 1000 to convert to µg/mL. Example: 6120 ng/mL → 6.12 µg/mL.
-- For PCR: if in mg/dL, multiply by 10 to convert to mg/L. Example: 0.07 mg/dL → 0.7 mg/L.
-- For Vitamina B12: ng/L = pg/mL (same unit). Example: 1028 ng/L → 1028 pg/mL.
-- For Ferritina: microg/L = ng/mL (same unit). Example: 392 microg/L → 392 ng/mL.
-- For Zinco: if in microgramas/mL, multiply by 1000 to get µg/L, then divide by 10 to get µg/dL. Or: microgramas/mL * 100 = µg/dL. Example: 0.8 µg/mL → 80 µg/dL.
-- For Eletroforese: look for a table with Albumina %, Alfa 1 %, Alfa 2 %, Beta 1 %, Beta 2 %, Gama %, Relação A/G, Proteínas Totais.
-- For PERFIL LIPÍDICO/LIPIDOGRAMA: extract Colesterol Total, HDL, LDL, VLDL, Triglicérides, NÃO-HDL from the results table.
 - mcg = µg (microgram). mcg/dL = µg/dL, mcg/L = µg/L, mcg/24 HORAS = µg/24h.
-- For Aldosterona: may appear as "ALDOSTERONA" or "Aldosterona Sérica".
-- For Amilase and Lipase: pancreatic enzymes, often appear together.
-- For Fosfatase Alcalina: may appear as "FOSFATASE ALCALINA" or "FA".
-- For LDH: "Desidrogenase Láctica" or "LDH" or "DESIDROGENASE LÁTICA".
-- For Cistatina C: "CISTATINA C" or "Cistatina C sérica".
-- For Androstenediona: "ANDROSTENEDIONA" or "Androstenediona". Keep value in ng/dL.
-- For Mercúrio: "MERCURIO" or "Mercúrio". Value in µg/L.
-- For Cádmio: "CADMIO" or "Cádmio". Value in µg/L (ug/L).
-- For Alumínio: "ALUMINIO" or "Alumínio". Value in µg/L (microgramas/L).
-- For Dímeros D: "DIMEROS D" or "D-Dímero". Value in ng/mL FEU.
+- For Cortisol: if from blood/morning → cortisol. If from "URINA 24 HORAS" with "mcg/24 HORAS" → cortisol_livre_urina.
+- For Zinco: if in microgramas/mL, multiply by 100 to get µg/dL. Example: 0.8 µg/mL → 80 µg/dL.
+- For Lipoproteína(a): if in mg/dL → multiply by 2.15 to convert to nmol/L.
 - IMPORTANT: Extract ALL markers present. Do NOT skip markers even if you're unsure. The "LAUDO EVOLUTIVO" section at the end has HISTORICAL data — do NOT extract from there. Only use the individual result pages.`;
 
 
