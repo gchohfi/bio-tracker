@@ -381,21 +381,17 @@ export function generatePatientReport(
         // Color code result values
         if (data.section === "body" && data.column.index >= 3 && data.column.index < trendColIdx) {
           const val = parseFloat(data.cell.raw as string);
-          if (!isNaN(val)) {
-            const marker = markersWithData[data.row.index];
-            if (marker) {
-              const status = getMarkerStatus(val, marker, sex);
-              if (status === "normal") {
-                data.cell.styles.textColor = [GREEN.r, GREEN.g, GREEN.b];
+            if (!isNaN(val)) {
+              const marker = markersWithData[data.row.index];
+              if (marker) {
+                const status = getMarkerStatus(val, marker, sex);
                 data.cell.styles.fontStyle = "bold";
-              } else if (status === "low") {
-                data.cell.styles.textColor = [BLUE.r, BLUE.g, BLUE.b];
-                data.cell.styles.fontStyle = "bold";
-              } else if (status === "high") {
-                data.cell.styles.textColor = [RED.r, RED.g, RED.b];
-                data.cell.styles.fontStyle = "bold";
+                if (status === "normal") {
+                  data.cell.styles.textColor = [GREEN.r, GREEN.g, GREEN.b];
+                } else {
+                  data.cell.styles.textColor = [RED.r, RED.g, RED.b];
+                }
               }
-            }
           }
         }
         // Color trend symbols
