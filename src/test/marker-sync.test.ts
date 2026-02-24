@@ -1,14 +1,18 @@
 import { describe, it, expect } from "vitest";
 import { MARKERS } from "@/lib/markers";
-import fs from "fs";
-import path from "path";
+import { readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 describe("Marker ID synchronization", () => {
   const frontendIds = new Set(MARKERS.map((m) => m.id));
 
   // Parse MARKER_LIST IDs from edge function source
-  const edgeFnPath = path.resolve(__dirname, "../../supabase/functions/extract-lab-results/index.ts");
-  const edgeFnSource = fs.readFileSync(edgeFnPath, "utf-8");
+  const edgeFnPath = resolve(__dirname, "../../supabase/functions/extract-lab-results/index.ts");
+  const edgeFnSource = readFileSync(edgeFnPath, "utf-8");
 
   // Extract all { id: "xxx" } from MARKER_LIST block
   const markerListMatch = edgeFnSource.match(/const MARKER_LIST\s*=\s*\[([\s\S]*?)\];/);
