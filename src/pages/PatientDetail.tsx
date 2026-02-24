@@ -326,8 +326,7 @@ export default function PatientDetail() {
         // Skip "Resultados Anteriores" lines and their date-value pairs
         if (/^Resultados? Anteriore?s?:/i.test(normalized)) return false;
         if (/^\d{2}\/\d{2}\/\d{4}\s*-\s*[\d<>,. ]+$/i.test(normalized)) return false;
-        // Skip method/collection/release/review metadata
-        if (/^Material:/i.test(normalized)) return false;
+        // Skip method/collection/release/review metadata (but keep "Material:" for context like "Urina 24h")
         if (/^Método:/i.test(normalized)) return false;
         if (/^Coleta:/i.test(normalized)) return false;
         if (/^Liberação:/i.test(normalized)) return false;
@@ -341,10 +340,12 @@ export default function PatientDetail() {
         if (/^Referência:/i.test(normalized)) return false;
         if (/^Atenção para nov/i.test(normalized)) return false;
         if (/^Limite de detecção/i.test(normalized)) return false;
-        // Skip verbose clinical descriptions
-        if (normalized.length > 80 && !/\d+[.,]\d+/.test(normalized)) return false;
-        // Skip any line that is purely text description without numbers (>40 chars)
-        if (normalized.length > 40 && !/\d/.test(normalized)) return false;
+        // Skip verbose clinical descriptions (but keep lines with qualitative results)
+        // Allow lines containing known qualitative keywords
+        const hasQualitative = /reagente|negativo|positivo|normal|ausente|presente|pastosa|líquida|amarelo|marrom|verde|turva|límpida/i.test(normalized);
+        if (normalized.length > 120 && !/\d+[.,]\d+/.test(normalized) && !hasQualitative) return false;
+        // Skip any line that is purely text description without numbers (>60 chars) — but keep qualitative results
+        if (normalized.length > 60 && !/\d/.test(normalized) && !hasQualitative) return false;
         // Skip age/sex specific reference text
         if (/^Paciente de (baixo|risco|alto|muito)/i.test(normalized)) return false;
         if (/^(Desejável|Ótimo|Limítrofe|Alto|Muito alto)\s*:/i.test(normalized)) return false;
@@ -387,7 +388,7 @@ export default function PatientDetail() {
         if (/^Quando se determina/i.test(normalized)) return false;
         if (/^Diferenças nos resultados/i.test(normalized)) return false;
         if (/^A concentração de ferro/i.test(normalized)) return false;
-        if (/^LDL, VLDL/i.test(normalized)) return false;
+        if (/^LDL, VLDL e Colesterol não-HDL são calculados/i.test(normalized)) return false;
         if (/^Valores de Colesterol/i.test(normalized)) return false;
         if (/^A interpretação clínica/i.test(normalized)) return false;
         if (/^Para valores de triglicérides/i.test(normalized)) return false;
