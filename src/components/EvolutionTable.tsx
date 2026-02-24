@@ -23,7 +23,7 @@ import type { Tables } from "@/integrations/supabase/types";
 type LabSession = Tables<"lab_sessions">;
 type LabResult = Tables<"lab_results">;
 
-type StatusFilter = "all" | "with_data" | "alerts";
+type StatusFilter = "all" | "with_data" | "alerts" | "normal" | "low" | "high";
 
 interface EvolutionTableProps {
   patientId: string;
@@ -102,25 +102,38 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
         if (!vals) return false;
         return Object.values(vals).some((v) => getMarkerStatus(v, m, sex) !== "normal");
       });
+    } else if (statusFilter === "normal" || statusFilter === "low" || statusFilter === "high") {
+      markers = markers.filter((m) => {
+        if (m.qualitative) return false;
+        const vals = resultMap[m.id];
+        if (!vals) return false;
+        const latestSession = sortedSessions[sortedSessions.length - 1];
+        if (!latestSession || vals[latestSession.id] === undefined) return false;
+        return getMarkerStatus(vals[latestSession.id], m, sex) === statusFilter;
+      });
     }
 
     return markers;
-  }, [activeCategory, statusFilter, resultMap, textMap, sex]);
+  }, [activeCategory, statusFilter, resultMap, textMap, sex, sortedSessions]);
 
-  // Alert count
-  const alertCount = useMemo(() => {
-    let count = 0;
+  // Summary stats for the latest session
+  const summaryStats = useMemo(() => {
+    const latestSession = sortedSessions[sortedSessions.length - 1];
+    if (!latestSession) return { normal: 0, low: 0, high: 0, total: 0 };
+    let normal = 0, low = 0, high = 0;
     MARKERS.forEach((m) => {
-      const vals = resultMap[m.id];
-      if (!vals) return;
-      // Check only the latest session
-      const latestSession = sortedSessions[sortedSessions.length - 1];
-      if (latestSession && vals[latestSession.id] !== undefined) {
-        if (getMarkerStatus(vals[latestSession.id], m, sex) !== "normal") count++;
-      }
+      if (m.qualitative) return;
+      const val = resultMap[m.id]?.[latestSession.id];
+      if (val === undefined) return;
+      const status = getMarkerStatus(val, m, sex);
+      if (status === "normal") normal++;
+      else if (status === "low") low++;
+      else if (status === "high") high++;
     });
-    return count;
+    return { normal, low, high, total: normal + low + high };
   }, [resultMap, sortedSessions, sex]);
+
+  const alertCount = summaryStats.low + summaryStats.high;
 
   // Group filtered markers by category
   const groupedMarkers = useMemo(() => {
@@ -135,6 +148,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
     });
     return groups;
   }, [filteredMarkers]);
+
 
   if (loading) {
     return (
@@ -160,6 +174,31 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
 
   return (
     <div className="space-y-4">
+      {/* Summary Bar */}
+      {summaryStats.total > 0 && (
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-3 rounded-full overflow-hidden flex bg-muted">
+            <div
+              className="bg-emerald-400 transition-all duration-500"
+              style={{ width: `${(summaryStats.normal / summaryStats.total) * 100}%` }}
+            />
+            <div
+              className="bg-red-400 transition-all duration-500"
+              style={{ width: `${(summaryStats.low / summaryStats.total) * 100}%` }}
+            />
+            <div
+              className="bg-red-500 transition-all duration-500"
+              style={{ width: `${(summaryStats.high / summaryStats.total) * 100}%` }}
+            />
+          </div>
+          <div className="flex items-center gap-2 text-xs font-medium shrink-0">
+            <span className="text-emerald-600">{summaryStats.normal} ✓</span>
+            {summaryStats.low > 0 && <span className="text-red-600">{summaryStats.low} ↓</span>}
+            {summaryStats.high > 0 && <span className="text-red-600">{summaryStats.high} ↑</span>}
+          </div>
+        </div>
+      )}
+
       {/* Alert banner */}
       {alertCount > 0 && (
         <Card className="border-destructive/50 bg-destructive/5">
@@ -217,22 +256,33 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
 
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap">
           {(
             [
               ["all", "Todos"],
               ["with_data", "Com dados"],
               ["alerts", "Alertas"],
+              ["normal", "Normal"],
+              ["low", "Baixo"],
+              ["high", "Alto"],
             ] as [StatusFilter, string][]
           ).map(([key, label]) => (
             <Button
               key={key}
               variant={statusFilter === key ? "secondary" : "ghost"}
               size="sm"
-              className="text-xs"
+              className={cn(
+                "text-xs",
+                statusFilter === key && key === "normal" && "bg-emerald-100 text-emerald-700 hover:bg-emerald-100",
+                statusFilter === key && key === "low" && "bg-red-100 text-red-700 hover:bg-red-100",
+                statusFilter === key && key === "high" && "bg-red-100 text-red-700 hover:bg-red-100",
+              )}
               onClick={() => setStatusFilter(key)}
             >
               {label}
+              {key === "normal" && summaryStats.normal > 0 && ` (${summaryStats.normal})`}
+              {key === "low" && summaryStats.low > 0 && ` (${summaryStats.low})`}
+              {key === "high" && summaryStats.high > 0 && ` (${summaryStats.high})`}
             </Button>
           ))}
         </div>
