@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ import {
   ClipboardList,
   BarChart3,
   FileSearch,
+  MinusCircle,
 } from "lucide-react";
 
 interface ImportVerificationProps {
@@ -36,6 +37,17 @@ export default function ImportVerification({
   pdfText,
 }: ImportVerificationProps) {
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
+  // Markers manually marked as "not done" by the patient
+  const [notDone, setNotDone] = useState<Set<string>>(new Set());
+
+  const toggleNotDone = useCallback((markerId: string) => {
+    setNotDone((prev) => {
+      const next = new Set(prev);
+      if (next.has(markerId)) next.delete(markerId);
+      else next.add(markerId);
+      return next;
+    });
+  }, []);
 
   const found = useMemo(
     () =>
@@ -53,6 +65,11 @@ export default function ImportVerification({
     [importedMarkers]
   );
 
+  const notExtracted = useMemo(
+    () => notFound.filter((m) => !notDone.has(m.id)),
+    [notFound, notDone]
+  );
+
   const toggleCat = (cat: string) => {
     setExpandedCats((prev) => {
       const next = new Set(prev);
@@ -68,9 +85,10 @@ export default function ImportVerification({
       const foundInCat = markers.filter(
         (m) => importedMarkers[m.id] !== undefined && importedMarkers[m.id] !== ""
       );
-      return { cat, total: markers.length, found: foundInCat.length, markers };
+      const notDoneInCat = markers.filter((m) => notDone.has(m.id));
+      return { cat, total: markers.length, found: foundInCat.length, notDone: notDoneInCat.length, markers };
     });
-  }, [importedMarkers]);
+  }, [importedMarkers, notDone]);
 
   const pdfLines = useMemo(() => {
     return pdfText
@@ -79,7 +97,6 @@ export default function ImportVerification({
       .slice(0, 500);
   }, [pdfText]);
 
-  // Highlight marker names in PDF text
   const highlightLine = (line: string) => {
     const lower = line.toLowerCase();
     const matchedMarker = found.find(
@@ -108,22 +125,29 @@ export default function ImportVerification({
         </DialogHeader>
 
         {/* Summary bar */}
-        <div className="flex items-center gap-3 rounded-lg border bg-muted/50 p-3">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/50 p-3">
           <div className="flex items-center gap-1.5">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
             <span className="text-sm font-medium">{found.length} encontrados</span>
           </div>
           <div className="h-4 w-px bg-border" />
           <div className="flex items-center gap-1.5">
-            <XCircle className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">
-              {notFound.length} não encontrados
+            <XCircle className="h-4 w-4 text-amber-500" />
+            <span className="text-sm font-medium text-amber-600 dark:text-amber-400">
+              {notExtracted.length} não extraídos
             </span>
           </div>
-          <div className="h-4 w-px bg-border" />
-          <span className="text-sm text-muted-foreground">
-            {MARKERS.length} total no sistema
-          </span>
+          {notDone.size > 0 && (
+            <>
+              <div className="h-4 w-px bg-border" />
+              <div className="flex items-center gap-1.5">
+                <MinusCircle className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-muted-foreground">
+                  {notDone.size} não realizados
+                </span>
+              </div>
+            </>
+          )}
           <div className="ml-auto">
             <Badge
               variant={found.length > MARKERS.length * 0.7 ? "default" : "secondary"}
@@ -152,9 +176,12 @@ export default function ImportVerification({
 
           {/* Checklist by category */}
           <TabsContent value="checklist" className="flex-1 overflow-hidden mt-2">
-            <ScrollArea className="h-[400px] pr-3">
+            <p className="text-xs text-muted-foreground mb-2">
+              Clique em <MinusCircle className="inline h-3 w-3" /> nos exames que o paciente <strong>não realizou</strong> para distinguir de "não extraído".
+            </p>
+            <ScrollArea className="h-[370px] pr-3">
               <div className="space-y-1">
-                {catStats.map(({ cat, total, found: catFound, markers }) => (
+                {catStats.map(({ cat, total, found: catFound, notDone: catNotDone, markers }) => (
                   <div key={cat} className="rounded-lg border">
                     <button
                       onClick={() => toggleCat(cat)}
@@ -174,6 +201,11 @@ export default function ImportVerification({
                       <span className="text-sm font-medium flex-1">{cat}</span>
                       <span className="text-xs text-muted-foreground">
                         {catFound}/{total}
+                        {catNotDone > 0 && (
+                          <span className="ml-1 text-muted-foreground/60">
+                            ({catNotDone} n/r)
+                          </span>
+                        )}
                       </span>
                       {catFound === total ? (
                         <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -191,28 +223,50 @@ export default function ImportVerification({
                           const hasVal =
                             importedMarkers[m.id] !== undefined &&
                             importedMarkers[m.id] !== "";
+                          const isNotDone = notDone.has(m.id);
                           return (
                             <div
                               key={m.id}
-                              className="flex items-center gap-2 text-sm py-0.5"
+                              className={cn(
+                                "flex items-center gap-2 text-sm py-0.5",
+                                isNotDone && "opacity-50"
+                              )}
                             >
                               {hasVal ? (
                                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                              ) : isNotDone ? (
+                                <MinusCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                               ) : (
-                                <XCircle className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+                                <XCircle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                               )}
                               <span
                                 className={cn(
                                   "flex-1",
-                                  !hasVal && "text-muted-foreground"
+                                  isNotDone && "line-through text-muted-foreground",
+                                  !hasVal && !isNotDone && "text-muted-foreground"
                                 )}
                               >
                                 {m.name}
                               </span>
-                              {hasVal && (
+                              {hasVal ? (
                                 <span className="text-xs font-mono text-emerald-700 dark:text-emerald-400">
                                   {importedMarkers[m.id]} {m.unit}
                                 </span>
+                              ) : (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleNotDone(m.id);
+                                  }}
+                                  className={cn(
+                                    "text-[10px] px-1.5 py-0.5 rounded border transition-colors",
+                                    isNotDone
+                                      ? "bg-muted border-border text-muted-foreground hover:bg-background"
+                                      : "border-dashed border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground hover:bg-muted"
+                                  )}
+                                >
+                                  {isNotDone ? "Desfazer" : "Não realizou"}
+                                </button>
                               )}
                             </div>
                           );
@@ -246,24 +300,45 @@ export default function ImportVerification({
                     ))}
                   </div>
                 </div>
+
+                {notDone.size > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <MinusCircle className="h-4 w-4" />
+                      Não Realizados pelo Paciente ({notDone.size})
+                    </h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {MARKERS.filter((m) => notDone.has(m.id)).map((m) => (
+                        <Badge
+                          key={m.id}
+                          variant="outline"
+                          className="text-[10px] text-muted-foreground line-through"
+                        >
+                          {m.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <h3 className="text-sm font-semibold text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1.5">
                     <XCircle className="h-4 w-4" />
-                    Não Encontrados ({notFound.length})
+                    Não Extraídos ({notExtracted.length})
                   </h3>
                   <div className="flex flex-wrap gap-1.5">
-                    {notFound.map((m) => (
+                    {notExtracted.map((m) => (
                       <Badge
                         key={m.id}
                         variant="outline"
-                        className="text-[10px] text-muted-foreground"
+                        className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-300"
                       >
                         {m.name}
                       </Badge>
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    * Alguns marcadores podem não estar presentes no PDF do paciente. Apenas os que constam no laudo são importados.
+                    * Estes marcadores estão no sistema mas não foram encontrados no PDF. Use o checklist para marcar os que o paciente não realizou.
                   </p>
                 </div>
               </div>
