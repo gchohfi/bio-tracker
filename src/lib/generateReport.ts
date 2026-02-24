@@ -338,7 +338,7 @@ export function generatePatientReport(
       margin: { left: 14, right: 14 },
       styles: {
         fontSize: 7.5,
-        cellPadding: { top: 2, bottom: 2, left: 2, right: 2 },
+        cellPadding: { top: 1.5, bottom: 1.5, left: 1, right: 1 },
         overflow: "linebreak",
         lineColor: [230, 235, 240],
         lineWidth: 0.2,
@@ -348,17 +348,17 @@ export function generatePatientReport(
         textColor: 255,
         fontSize: 7,
         fontStyle: "bold",
-        cellPadding: { top: 2.5, bottom: 2.5, left: 2, right: 2 },
+        cellPadding: { top: 2, bottom: 2, left: 1, right: 1 },
       },
       alternateRowStyles: {
         fillColor: [LIGHT_BG.r, LIGHT_BG.g, LIGHT_BG.b],
       },
       columnStyles: {
-        0: { cellWidth: 34, fontStyle: "bold", textColor: [BRAND.r, BRAND.g, BRAND.b] },
-        1: { cellWidth: 16, textColor: [GRAY.r, GRAY.g, GRAY.b] },
-        2: { cellWidth: 20, textColor: [GRAY.r, GRAY.g, GRAY.b], fontStyle: "italic" },
-        [trendColIdx]: { cellWidth: 10, halign: "center", fontSize: 8 },
-        [sparkColIdx]: { cellWidth: 30 },
+        0: { cellWidth: 32, fontStyle: "bold", textColor: [BRAND.r, BRAND.g, BRAND.b] },
+        1: { cellWidth: 14, textColor: [GRAY.r, GRAY.g, GRAY.b] },
+        2: { cellWidth: 18, textColor: [GRAY.r, GRAY.g, GRAY.b], fontStyle: "italic" },
+        [trendColIdx]: { cellWidth: 8, halign: "center", fontSize: 8 },
+        [sparkColIdx]: { cellWidth: 28 },
       },
       didParseCell(data) {
         // Color code result values
