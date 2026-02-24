@@ -155,16 +155,35 @@ export default function PatientDetail() {
       }
 
       // Insert results for filled markers
-      const results = Object.entries(markerValues)
-        .filter(([, v]) => v !== "" && !isNaN(Number(v)))
+      const numericResults = Object.entries(markerValues)
+        .filter(([markerId, v]) => {
+          const marker = MARKERS.find(m => m.id === markerId);
+          if (marker?.qualitative) return false; // skip qualitative here
+          return v !== "" && !isNaN(Number(v));
+        })
         .map(([markerId, value]) => ({
           session_id: sessionId!,
           marker_id: markerId,
           value: Number(value),
         }));
 
-      if (results.length > 0) {
-        const { error } = await supabase.from("lab_results").insert(results);
+      // Insert qualitative results (text_value)
+      const qualitativeResults = Object.entries(markerValues)
+        .filter(([markerId, v]) => {
+          const marker = MARKERS.find(m => m.id === markerId);
+          return marker?.qualitative && v !== "";
+        })
+        .map(([markerId, value]) => ({
+          session_id: sessionId!,
+          marker_id: markerId,
+          value: 0, // placeholder numeric value
+          text_value: value,
+        }));
+
+      const allResults = [...numericResults, ...qualitativeResults];
+
+      if (allResults.length > 0) {
+        const { error } = await supabase.from("lab_results").insert(allResults as any);
         if (error) throw error;
       }
 
@@ -444,16 +463,20 @@ export default function PatientDetail() {
 
       if (error) throw error;
 
-      const results = data?.results as { marker_id: string; value: number }[] | undefined;
+      const results = data?.results as { marker_id: string; value?: number; text_value?: string }[] | undefined;
       if (!results || results.length === 0) {
         toast({ title: "Nenhum marcador encontrado", description: "A IA não conseguiu identificar resultados no PDF.", variant: "destructive" });
         return;
       }
 
-      // Pre-fill marker values
+      // Pre-fill marker values (numeric and qualitative)
       const newValues = { ...markerValues };
       results.forEach((r) => {
-        newValues[r.marker_id] = String(r.value);
+        if (r.text_value) {
+          newValues[r.marker_id] = r.text_value;
+        } else if (r.value !== undefined) {
+          newValues[r.marker_id] = String(r.value);
+        }
       });
       setMarkerValues(newValues);
       setLastPdfText(cleanedText);
@@ -788,6 +811,24 @@ function MarkerInput({
   value: string;
   onChange: (v: string) => void;
 }) {
+  if (marker.qualitative) {
+    return (
+      <div className="rounded-lg border p-3 transition-colors">
+        <div className="mb-1 flex items-center justify-between">
+          <label className="text-xs font-medium">{marker.name}</label>
+          <Badge variant="outline" className="text-[9px] h-4 px-1">Qualitativo</Badge>
+        </div>
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Ex: Negativo, Ausente, Normal..."
+          className="h-8 text-sm"
+        />
+      </div>
+    );
+  }
+
   const [min, max] = marker.refRange[sex];
   const numVal = Number(value);
   const hasValue = value !== "" && !isNaN(numVal);

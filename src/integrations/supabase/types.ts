@@ -20,6 +20,7 @@ export type Database = {
           id: string
           marker_id: string
           session_id: string
+          text_value: string | null
           value: number
         }
         Insert: {
@@ -27,6 +28,7 @@ export type Database = {
           id?: string
           marker_id: string
           session_id: string
+          text_value?: string | null
           value: number
         }
         Update: {
@@ -34,6 +36,7 @@ export type Database = {
           id?: string
           marker_id?: string
           session_id?: string
+          text_value?: string | null
           value?: number
         }
         Relationships: [

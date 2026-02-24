@@ -66,6 +66,19 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
     return map;
   }, [results]);
 
+  // Build text lookup: textMap[markerId][sessionId] = text_value
+  const textMap = useMemo(() => {
+    const map: Record<string, Record<string, string>> = {};
+    results.forEach((r) => {
+      const textVal = (r as any).text_value;
+      if (textVal) {
+        if (!map[r.marker_id]) map[r.marker_id] = {};
+        map[r.marker_id][r.session_id] = textVal;
+      }
+    });
+    return map;
+  }, [results]);
+
   // Sorted sessions oldest → newest (left to right)
   const sortedSessions = useMemo(
     () => [...sessions].sort((a, b) => a.session_date.localeCompare(b.session_date)),
@@ -77,7 +90,12 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
     let markers = activeCategory === "Todos" ? MARKERS : getMarkersByCategory(activeCategory);
 
     if (statusFilter === "with_data") {
-      markers = markers.filter((m) => resultMap[m.id] && Object.keys(resultMap[m.id]).length > 0);
+      markers = markers.filter((m) => {
+        if (m.qualitative) {
+          return textMap[m.id] && Object.keys(textMap[m.id]).length > 0;
+        }
+        return resultMap[m.id] && Object.keys(resultMap[m.id]).length > 0;
+      });
     } else if (statusFilter === "alerts") {
       markers = markers.filter((m) => {
         const vals = resultMap[m.id];
@@ -87,7 +105,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
     }
 
     return markers;
-  }, [activeCategory, statusFilter, resultMap, sex]);
+  }, [activeCategory, statusFilter, resultMap, textMap, sex]);
 
   // Alert count
   const alertCount = useMemo(() => {
@@ -276,6 +294,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                       </tr>
                       {group.markers.map((marker) => {
                         const [min, max] = marker.refRange[sex];
+                        const isQualitative = marker.qualitative;
                         return (
                           <tr
                             key={marker.id}
@@ -283,12 +302,28 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                           >
                             <td className="sticky left-0 z-10 bg-card px-3 py-1.5">
                               <div className="text-xs font-medium">{marker.name}</div>
-                              <div className="text-[10px] text-muted-foreground">{marker.unit}</div>
+                              <div className="text-[10px] text-muted-foreground">
+                                {isQualitative ? "qualitativo" : marker.unit}
+                              </div>
                             </td>
                             <td className="px-2 py-1.5 text-[10px] text-muted-foreground whitespace-nowrap">
-                              {min}–{max}
+                              {isQualitative ? "—" : `${min}–${max}`}
                             </td>
                             {sortedSessions.map((s) => {
+                              if (isQualitative) {
+                                const textVal = textMap[marker.id]?.[s.id];
+                                return (
+                                  <td key={s.id} className="px-2 py-1.5 text-center">
+                                    {textVal ? (
+                                      <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium max-w-[120px] truncate" title={textVal}>
+                                        {textVal}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] text-muted-foreground/40">—</span>
+                                    )}
+                                  </td>
+                                );
+                              }
                               const val = resultMap[marker.id]?.[s.id];
                               if (val === undefined) {
                                 return (
