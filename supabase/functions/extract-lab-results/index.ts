@@ -455,6 +455,59 @@ COPROLÓGICO:
 - DO NOT filter by material type — extract from blood, urine, and stool sections.`;
 
 
+// Post-processing: validate values and fix common decimal/unit errors
+function validateAndFixValues(results: any[]): any[] {
+  // Known ranges for sanity checks (marker_id → [absMin, absMax, expectedUnit])
+  // If value is outside absMin-absMax, it's likely a decimal separator error
+  const sanityRanges: Record<string, { min: number; max: number; fix?: (v: number) => number; label?: string }> = {
+    leucocitos: { min: 1000, max: 30000, fix: (v) => v < 100 ? v * 1000 : v, label: "leucocitos: small value → ×1000" },
+    eritrocitos: { min: 1, max: 10, fix: (v) => v > 100 ? v / 1000000 : v > 10 ? v / 10 : v },
+    plaquetas: { min: 50, max: 600, fix: (v) => v > 1000 ? v / 1000 : v },
+    progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v, label: "progesterona: large value → ÷100" },
+    igfbp3: { min: 0.5, max: 15, fix: (v) => v > 100 ? v / 1000 : v, label: "igfbp3: ng/mL → µg/mL ÷1000" },
+    dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 50 ? v * 10 : v, label: "DHT: small value → ×10" },
+    hemoglobina: { min: 5, max: 25 },
+    hematocrito: { min: 20, max: 65 },
+    glicose_jejum: { min: 40, max: 500 },
+    insulina_jejum: { min: 0.5, max: 100 },
+    creatinina: { min: 0.1, max: 15 },
+    tsh: { min: 0.01, max: 100 },
+    t4_livre: { min: 0.1, max: 5 },
+    t3_livre: { min: 0.1, max: 2, fix: (v) => v > 2 ? v / 10 : v },
+    colesterol_total: { min: 50, max: 500 },
+    hdl: { min: 10, max: 150 },
+    ldl: { min: 10, max: 400 },
+    triglicerides: { min: 20, max: 2000 },
+    ferritina: { min: 1, max: 2000 },
+    vitamina_d: { min: 3, max: 200 },
+    vitamina_b12: { min: 50, max: 3000 },
+    testosterona_total: { min: 1, max: 2000 },
+    estradiol: { min: 1, max: 5000 },
+    cortisol: { min: 0.5, max: 50 },
+    albumina: { min: 1, max: 8 },
+    acido_urico: { min: 0.5, max: 15 },
+    calcio_total: { min: 5, max: 15 },
+  };
+
+  for (const r of results) {
+    if (typeof r.value !== "number" || r.text_value) continue; // skip qualitative/operator
+    const range = sanityRanges[r.marker_id];
+    if (!range || !range.fix) continue;
+    if (r.value < range.min || r.value > range.max) {
+      const original = r.value;
+      r.value = range.fix(r.value);
+      // Re-check if still out of range, revert if fix made it worse
+      if (r.value < range.min * 0.5 || r.value > range.max * 2) {
+        r.value = original; // revert
+      } else {
+        console.log(`Fixed ${r.marker_id}: ${original} → ${r.value} (${range.label || 'decimal fix'})`);
+      }
+    }
+  }
+
+  return results;
+}
+
 // Post-processing: calculate derived values if missing
 function postProcessResults(results: any[]): any[] {
   const resultMap = new Map<string, any>();
@@ -695,6 +748,8 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
       return typeof r.value === "number" && !isNaN(r.value);
     });
     
+    // Validate and fix common decimal/unit errors
+    validResults = validateAndFixValues(validResults);
     // Post-process: calculate derived values if AI missed them
     validResults = postProcessResults(validResults);
     

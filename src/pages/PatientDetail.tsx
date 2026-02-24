@@ -155,32 +155,42 @@ export default function PatientDetail() {
       }
 
       // Insert results for filled markers
-      const numericResults = Object.entries(markerValues)
-        .filter(([markerId, v]) => {
-          const marker = MARKERS.find(m => m.id === markerId);
-          if (marker?.qualitative) return false; // skip qualitative here
-          return v !== "" && !isNaN(Number(v));
-        })
-        .map(([markerId, value]) => ({
-          session_id: sessionId!,
-          marker_id: markerId,
-          value: Number(value),
-        }));
-
-      // Insert qualitative results (text_value)
-      const qualitativeResults = Object.entries(markerValues)
-        .filter(([markerId, v]) => {
-          const marker = MARKERS.find(m => m.id === markerId);
-          return marker?.qualitative && v !== "";
-        })
-        .map(([markerId, value]) => ({
-          session_id: sessionId!,
-          marker_id: markerId,
-          value: 0, // placeholder numeric value
-          text_value: value,
-        }));
-
-      const allResults = [...numericResults, ...qualitativeResults];
+      const allResults: { session_id: string; marker_id: string; value: number; text_value?: string }[] = [];
+      
+      Object.entries(markerValues).forEach(([markerId, v]) => {
+        if (v === "") return;
+        const marker = MARKERS.find(m => m.id === markerId);
+        
+        if (marker?.qualitative) {
+          // Qualitative markers: store text_value
+          allResults.push({
+            session_id: sessionId!,
+            marker_id: markerId,
+            value: 0,
+            text_value: v,
+          });
+        } else {
+          // Numeric markers: check for operator prefix (e.g. "< 34", "> 90")
+          const operatorMatch = v.match(/^([<>]=?)\s*(\d+[.,]?\d*)$/);
+          if (operatorMatch) {
+            const numericPart = Number(operatorMatch[2].replace(",", "."));
+            if (!isNaN(numericPart)) {
+              allResults.push({
+                session_id: sessionId!,
+                marker_id: markerId,
+                value: numericPart,
+                text_value: v, // preserve operator string
+              });
+            }
+          } else if (!isNaN(Number(v))) {
+            allResults.push({
+              session_id: sessionId!,
+              marker_id: markerId,
+              value: Number(v),
+            });
+          }
+        }
+      });
 
       if (allResults.length > 0) {
         const { error } = await supabase.from("lab_results").insert(allResults as any);
