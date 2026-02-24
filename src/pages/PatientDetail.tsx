@@ -120,7 +120,14 @@ export default function PatientDetail() {
 
     const vals: Record<string, string> = {};
     data?.forEach((r) => {
-      vals[r.marker_id] = String(r.value);
+      const marker = MARKERS.find(m => m.id === r.marker_id);
+      if (marker?.qualitative) {
+        vals[r.marker_id] = r.text_value || "";
+      } else if (r.text_value && /^[<>]=?\s*\d/.test(r.text_value.trim())) {
+        vals[r.marker_id] = r.text_value.trim();
+      } else {
+        vals[r.marker_id] = String(r.value ?? "");
+      }
     });
     setMarkerValues(vals);
     setFormOpen(true);
@@ -268,7 +275,7 @@ export default function PatientDetail() {
   };
 
   const filledCount = useMemo(
-    () => Object.values(markerValues).filter((v) => v !== "" && !isNaN(Number(v))).length,
+    () => Object.values(markerValues).filter((v) => v !== "").length,
     [markerValues]
   );
 
@@ -851,9 +858,14 @@ function MarkerInput({
   }
 
   const [min, max] = marker.refRange[sex];
-  const numVal = Number(value);
+  
+  // Detect operator values like "< 34", "> 90"
+  const operatorMatch = value.match(/^([<>]=?)\s*(\d+[.,]?\d*)$/);
+  const isOperatorValue = !!operatorMatch;
+  const numVal = isOperatorValue ? parseFloat(operatorMatch![2].replace(",", ".")) : Number(value);
   const hasValue = value !== "" && !isNaN(numVal);
-  const status = hasValue ? getMarkerStatus(numVal, marker, sex) : null;
+  const operator = isOperatorValue ? operatorMatch![1] : undefined;
+  const status = hasValue ? getMarkerStatus(numVal, marker, sex, operator) : null;
 
   const borderColor =
     status === "normal"
@@ -880,7 +892,7 @@ function MarkerInput({
         <span className="text-[10px] text-muted-foreground">{marker.unit}</span>
       </div>
       <Input
-        type="number"
+        type={isOperatorValue ? "text" : "number"}
         step="any"
         value={value}
         onChange={(e) => onChange(e.target.value)}

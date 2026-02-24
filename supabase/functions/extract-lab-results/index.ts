@@ -476,6 +476,55 @@ Only set text_value for: qualitative markers OR operator values.
 - DO NOT filter by material type — extract from blood, urine, and stool sections.`;
 
 
+// Normalize Portuguese operator text to standard format
+function normalizeOperatorText(results: any[]): any[] {
+  for (const r of results) {
+    if (r.text_value && typeof r.text_value === "string") {
+      const tv = r.text_value.trim();
+      // "inferior a 34 U/mL" → "< 34"
+      const inferiorMatch = tv.match(/^inferior\s+a\s+(\d+[.,]?\d*)/i);
+      if (inferiorMatch) {
+        const num = inferiorMatch[1].replace(",", ".");
+        r.text_value = `< ${num}`;
+        r.value = parseFloat(num);
+        console.log(`Normalized operator for ${r.marker_id}: "${tv}" → "${r.text_value}"`);
+        continue;
+      }
+      // "superior a 90" → "> 90"
+      const superiorMatch = tv.match(/^superior\s+a\s+(\d+[.,]?\d*)/i);
+      if (superiorMatch) {
+        const num = superiorMatch[1].replace(",", ".");
+        r.text_value = `> ${num}`;
+        r.value = parseFloat(num);
+        console.log(`Normalized operator for ${r.marker_id}: "${tv}" → "${r.text_value}"`);
+        continue;
+      }
+    }
+  }
+  return results;
+}
+
+// Deduplicate markers: if same marker_id appears multiple times, prefer calculated value over operator
+function deduplicateResults(results: any[]): any[] {
+  const seen = new Map<string, any>();
+  for (const r of results) {
+    const existing = seen.get(r.marker_id);
+    if (!existing) {
+      seen.set(r.marker_id, r);
+    } else {
+      // Prefer non-operator value over operator value (e.g., TFG: 103 > "> 60")
+      const existingHasOp = existing.text_value && /^[<>≤≥]=?\s*\d/.test(existing.text_value);
+      const newHasOp = r.text_value && /^[<>≤≥]=?\s*\d/.test(r.text_value);
+      if (existingHasOp && !newHasOp && typeof r.value === "number") {
+        console.log(`Dedup ${r.marker_id}: replaced operator "${existing.text_value}" with calculated value ${r.value}`);
+        seen.set(r.marker_id, r);
+      }
+      // Otherwise keep first occurrence
+    }
+  }
+  return Array.from(seen.values());
+}
+
 // Post-processing: validate values and fix common decimal/unit errors
 function validateAndFixValues(results: any[]): any[] {
   // Sanity ranges with auto-fix functions for common Brazilian decimal/unit errors
@@ -486,14 +535,14 @@ function validateAndFixValues(results: any[]): any[] {
     plaquetas: { min: 50, max: 700, fix: (v) => v > 1000 ? v / 1000 : v },
     // Hormônios
     progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v, label: "progesterona ÷100" },
-    estradiol: { min: 1, max: 5000, fix: (v) => v > 5000 ? v / 10 : v },
+    estradiol: { min: 5, max: 5000, fix: (v) => v > 5000 ? v / 10 : v < 5 ? v * 100 : v },
     prolactina: { min: 0.5, max: 200, fix: (v) => v > 200 ? v / 100 : v },
     insulina_jejum: { min: 0.5, max: 100, fix: (v) => v > 100 ? v / 100 : v },
     // Eixo GH
     igfbp3: { min: 0.5, max: 15, fix: (v) => v > 100 ? v / 1000 : v, label: "igfbp3 ÷1000 (ng→µg)" },
     igf1: { min: 20, max: 1000 },
     // Andrógenos
-    dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 5 ? v * 10 : v, label: "DHT ×10" },
+    dihidrotestosterona: { min: 10, max: 2000, fix: (v) => v < 50 ? v * 10 : v, label: "DHT ×10" },
     // Tireoide
     tsh: { min: 0.01, max: 100 },
     t4_livre: { min: 0.1, max: 5 },
@@ -806,6 +855,10 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
       return typeof r.value === "number" && !isNaN(r.value);
     });
     
+    // Normalize Portuguese operator text ("inferior a" → "<")
+    validResults = normalizeOperatorText(validResults);
+    // Deduplicate (prefer calculated values over operator values for same marker)
+    validResults = deduplicateResults(validResults);
     // Validate and fix common decimal/unit errors
     validResults = validateAndFixValues(validResults);
     // Post-process: calculate derived values if AI missed them
