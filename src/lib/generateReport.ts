@@ -102,7 +102,7 @@ function drawSparkline(
   values.forEach((v, i) => {
     const status = v < refMin ? "low" : v > refMax ? "high" : "normal";
     if (status === "normal") doc.setFillColor(GREEN.r, GREEN.g, GREEN.b);
-    else if (status === "low") doc.setFillColor(BLUE.r, BLUE.g, BLUE.b);
+    else if (status === "low") doc.setFillColor(RED.r, RED.g, RED.b);
     else doc.setFillColor(RED.r, RED.g, RED.b);
     doc.circle(toX(i), toY(v), 0.9, "F");
   });
@@ -129,7 +129,7 @@ function trendSymbol(trend: "up" | "down" | "stable" | null): string {
 /* ─── Status dot (small colored circle) ─── */
 function drawStatusDot(doc: jsPDF, x: number, y: number, status: "normal" | "low" | "high") {
   if (status === "normal") doc.setFillColor(GREEN.r, GREEN.g, GREEN.b);
-  else if (status === "low") doc.setFillColor(BLUE.r, BLUE.g, BLUE.b);
+  else if (status === "low") doc.setFillColor(RED.r, RED.g, RED.b);
   else doc.setFillColor(RED.r, RED.g, RED.b);
   doc.circle(x, y, 1, "F");
 }
@@ -228,8 +228,8 @@ function drawLegend(doc: jsPDF, x: number, y: number) {
   doc.setTextColor(60, 60, 60);
   doc.text("Dentro da faixa funcional", x + 5, y);
 
-  // Blue dot + text
-  doc.setFillColor(BLUE.r, BLUE.g, BLUE.b);
+  // Red dot + text (below range)
+  doc.setFillColor(RED.r, RED.g, RED.b);
   doc.circle(x + 55, y - 1, 1.2, "F");
   doc.text("Abaixo da faixa", x + 58, y);
 
@@ -407,7 +407,7 @@ export function generatePatientReport(
         if (data.section === "body" && data.column.index === trendColIdx) {
           const sym = data.cell.raw as string;
           if (sym === "▲") data.cell.styles.textColor = [RED.r, RED.g, RED.b];
-          else if (sym === "▼") data.cell.styles.textColor = [BLUE.r, BLUE.g, BLUE.b];
+          else if (sym === "▼") data.cell.styles.textColor = [RED.r, RED.g, RED.b];
           else if (sym === "●") data.cell.styles.textColor = [GRAY.r, GRAY.g, GRAY.b];
         }
       },
