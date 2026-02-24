@@ -439,16 +439,37 @@ COPROLÓGICO:
 - CRITICAL: Extract sub-items within grouped panels (hemograma, lipídios, bilirrubinas, ferro, eletroforese, urina, fezes).
 - DO NOT extract from "LAUDO EVOLUTIVO" section (historical data). Only use individual result pages.
 - Convert units as specified above.
-- Brazilian decimals: comma → dot ("4,37" → 4.37).
-- Thousands separator: "6.500" for leucocitos → 6500.
-- For Plaquetas: "336 mil/mm³" → 336.
-- For Eritrócitos: "3,8 milhões" → 3.8.
-- For Leucócitos: small value like "3,9" in thousands → 3900.
+
+=== BRAZILIAN NUMBER FORMAT (CRITICAL — DO NOT GET THIS WRONG!) ===
+Brazilian labs use COMMA as decimal separator and PERIOD as thousands separator. You MUST parse correctly:
+
+RULE 1: Comma followed by 1-2 digits at end = DECIMAL
+  "1,01" → 1.01 | "6,12" → 6.12 | "0,31" → 0.31 | "4,65" → 4.65
+
+RULE 2: Period followed by exactly 3 digits = THOUSANDS SEPARATOR (remove it)
+  "4.650" → 4650 | "1.124" → 1124 | "6.560" → 6560
+
+RULE 3: Period followed by 1-2 digits = DECIMAL (standard format)
+  "0.07" → 0.07 | "3.1" → 3.1
+
+RULE 4: Combined format "1.234,56" → 1234.56 (period=thousands, comma=decimal)
+
+RULE 5: Context-aware validation — check if value makes sense for the marker:
+  - Leucócitos: expect 1000-30000. If you get 4.65, it's probably 4650 (thousands separator was "4.650")
+  - Progesterona: expect 0.1-40 ng/mL. If you get 101, it's probably 1.01 ("1,01" with comma decimal)
+  - IGFBP-3: expect 1-15 µg/mL. If you get 6120, the lab reported in ng/mL (÷1000 → 6.12)
+  - DHT: expect 5-2000 pg/mL. If you get 13 for female, check if it should be 130 ("130" or "13,0")
+  - Plaquetas: expect 50-600 mil/µL. "336 mil/mm³" → 336.
+  - Eritrócitos: expect 1-10 milhões/µL. "3,8 milhões" → 3.8.
+
+CRITICAL: Do NOT set text_value for numeric markers unless they have an operator (< > <= >=). 
+Only set text_value for: qualitative markers OR operator values.
+
 - For T3 Livre: the standard unit is ng/dL. Do NOT convert. Most Brazilian labs report in ng/dL.
 - CRITICAL: For values with operators ("<", ">", "<=", ">="): set BOTH "value" (numeric part) AND "text_value" (full string with operator).
 - "Inferior a X" → value=X, text_value="< X"
 - "Superior a X" → value=X, text_value="> X"
-- For NUMERIC markers without operators: return number in 'value' only.
+- For NUMERIC markers without operators: return number in 'value' ONLY. Do NOT set text_value.
 - For QUALITATIVE markers (fan, urina_*, copro_*): return text in 'text_value', set value=0.
 - If marker appears multiple times: use FIRST occurrence (actual result, not historical).
 - mcg = µg. mcg/dL = µg/dL, mcg/L = µg/L.
@@ -457,50 +478,87 @@ COPROLÓGICO:
 
 // Post-processing: validate values and fix common decimal/unit errors
 function validateAndFixValues(results: any[]): any[] {
-  // Known ranges for sanity checks (marker_id → [absMin, absMax, expectedUnit])
-  // If value is outside absMin-absMax, it's likely a decimal separator error
+  // Sanity ranges with auto-fix functions for common Brazilian decimal/unit errors
   const sanityRanges: Record<string, { min: number; max: number; fix?: (v: number) => number; label?: string }> = {
-    leucocitos: { min: 1000, max: 30000, fix: (v) => v < 100 ? v * 1000 : v, label: "leucocitos: small value → ×1000" },
-    eritrocitos: { min: 1, max: 10, fix: (v) => v > 100 ? v / 1000000 : v > 10 ? v / 10 : v },
-    plaquetas: { min: 50, max: 600, fix: (v) => v > 1000 ? v / 1000 : v },
-    progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v, label: "progesterona: large value → ÷100" },
-    igfbp3: { min: 0.5, max: 15, fix: (v) => v > 100 ? v / 1000 : v, label: "igfbp3: ng/mL → µg/mL ÷1000" },
-    dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 50 ? v * 10 : v, label: "DHT: small value → ×10" },
-    hemoglobina: { min: 5, max: 25 },
-    hematocrito: { min: 20, max: 65 },
-    glicose_jejum: { min: 40, max: 500 },
-    insulina_jejum: { min: 0.5, max: 100 },
-    creatinina: { min: 0.1, max: 15 },
+    // Hemograma
+    leucocitos: { min: 1000, max: 30000, fix: (v) => v < 100 ? v * 1000 : v < 1000 ? v * 1000 : v, label: "leucocitos ×1000" },
+    eritrocitos: { min: 1, max: 10, fix: (v) => v > 1000 ? v / 1000000 : v > 10 ? v / 10 : v },
+    plaquetas: { min: 50, max: 700, fix: (v) => v > 1000 ? v / 1000 : v },
+    // Hormônios
+    progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v, label: "progesterona ÷100" },
+    estradiol: { min: 1, max: 5000, fix: (v) => v > 5000 ? v / 10 : v },
+    prolactina: { min: 0.5, max: 200, fix: (v) => v > 200 ? v / 100 : v },
+    insulina_jejum: { min: 0.5, max: 100, fix: (v) => v > 100 ? v / 100 : v },
+    // Eixo GH
+    igfbp3: { min: 0.5, max: 15, fix: (v) => v > 100 ? v / 1000 : v, label: "igfbp3 ÷1000 (ng→µg)" },
+    igf1: { min: 20, max: 1000 },
+    // Andrógenos
+    dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 5 ? v * 10 : v, label: "DHT ×10" },
+    // Tireoide
     tsh: { min: 0.01, max: 100 },
     t4_livre: { min: 0.1, max: 5 },
-    t3_livre: { min: 0.1, max: 2, fix: (v) => v > 2 ? v / 10 : v },
+    t3_livre: { min: 0.05, max: 2, fix: (v) => v > 2 ? v / 10 : v },
+    t3_total: { min: 30, max: 300 },
+    // Lipídios
     colesterol_total: { min: 50, max: 500 },
     hdl: { min: 10, max: 150 },
     ldl: { min: 10, max: 400 },
     triglicerides: { min: 20, max: 2000 },
-    ferritina: { min: 1, max: 2000 },
+    // Ferro
+    ferritina: { min: 1, max: 2000, fix: (v) => v > 2000 ? v / 10 : v },
+    ferro_serico: { min: 10, max: 500 },
+    // Vitaminas
     vitamina_d: { min: 3, max: 200 },
     vitamina_b12: { min: 50, max: 3000 },
-    testosterona_total: { min: 1, max: 2000 },
-    estradiol: { min: 1, max: 5000 },
-    cortisol: { min: 0.5, max: 50 },
+    acido_folico: { min: 0.5, max: 50 },
+    homocisteina: { min: 1, max: 50 },
+    // Hepático
     albumina: { min: 1, max: 8 },
+    bilirrubina_total: { min: 0.01, max: 20 },
+    // Renal
+    creatinina: { min: 0.1, max: 15 },
     acido_urico: { min: 0.5, max: 15 },
+    ureia: { min: 5, max: 200 },
+    // Eletrólitos
     calcio_total: { min: 5, max: 15 },
+    calcio_ionico: { min: 0.5, max: 2.5 },
+    sodio: { min: 100, max: 180 },
+    potassio: { min: 2, max: 8 },
+    fosforo: { min: 1, max: 10 },
+    magnesio: { min: 0.5, max: 5 },
+    // Inflamação
+    pcr: { min: 0, max: 200 },
+    // Glicemia
+    glicose_jejum: { min: 40, max: 500 },
+    hba1c: { min: 3, max: 15 },
+    // Coagulação
+    fibrinogenio: { min: 50, max: 800 },
+    // Cortisol
+    cortisol: { min: 0.5, max: 50 },
   };
 
   for (const r of results) {
-    if (typeof r.value !== "number" || r.text_value) continue; // skip qualitative/operator
+    if (typeof r.value !== "number" || r.text_value) continue;
     const range = sanityRanges[r.marker_id];
     if (!range || !range.fix) continue;
     if (r.value < range.min || r.value > range.max) {
       const original = r.value;
       r.value = range.fix(r.value);
-      // Re-check if still out of range, revert if fix made it worse
-      if (r.value < range.min * 0.5 || r.value > range.max * 2) {
-        r.value = original; // revert
+      if (r.value < range.min * 0.3 || r.value > range.max * 3) {
+        r.value = original; // revert — fix didn't help
       } else {
         console.log(`Fixed ${r.marker_id}: ${original} → ${r.value} (${range.label || 'decimal fix'})`);
+      }
+    }
+  }
+
+  // Also strip text_value from numeric markers if AI incorrectly set it
+  // (except for operator values)
+  for (const r of results) {
+    if (r.text_value && typeof r.value === "number" && !QUALITATIVE_IDS.has(r.marker_id)) {
+      if (!/^[<>]=?\s*\d/.test(r.text_value.trim())) {
+        console.log(`Stripped non-operator text_value from ${r.marker_id}: "${r.text_value}"`);
+        delete r.text_value;
       }
     }
   }
