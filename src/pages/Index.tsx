@@ -44,9 +44,11 @@ export default function Index() {
   const [chartData, setChartData] = useState<{ date: string; alertas: number; normais: number; total: number }[]>([]);
 
   const fetchPatients = async () => {
+    if (!user) return;
     const { data, error } = await supabase
       .from("patients")
       .select("*")
+      .eq("practitioner_id", user.id)
       .order("created_at", { ascending: false });
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -154,9 +156,11 @@ export default function Index() {
   };
 
   useEffect(() => {
-    fetchPatients();
-    fetchDashboardData();
-  }, []);
+    if (user) {
+      fetchPatients();
+      fetchDashboardData();
+    }
+  }, [user]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
