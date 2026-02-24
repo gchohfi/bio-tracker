@@ -33,6 +33,7 @@ import {
   X,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
+import ImportVerification from "@/components/ImportVerification";
 import { generatePatientReport } from "@/lib/generateReport";
 import {
   CATEGORIES,
@@ -71,6 +72,8 @@ export default function PatientDetail() {
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState("");
+  const [verificationOpen, setVerificationOpen] = useState(false);
+  const [lastPdfText, setLastPdfText] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -420,6 +423,8 @@ export default function PatientDetail() {
         newValues[r.marker_id] = String(r.value);
       });
       setMarkerValues(newValues);
+      setLastPdfText(cleanedText);
+      setVerificationOpen(true);
 
       toast({ title: `${results.length} marcadores importados!`, description: "Revise os valores antes de salvar." });
     } catch (err: any) {
@@ -575,10 +580,17 @@ export default function PatientDetail() {
                 </Card>
               </TabsContent>
             ))}
-          </Tabs>
-        </div>
-      </AppLayout>
-    );
+        </Tabs>
+
+        <ImportVerification
+          open={verificationOpen}
+          onClose={() => setVerificationOpen(false)}
+          importedMarkers={markerValues}
+          pdfText={lastPdfText}
+        />
+      </div>
+    </AppLayout>
+  );
   }
 
   // Patient detail view
