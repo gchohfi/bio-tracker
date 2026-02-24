@@ -254,14 +254,14 @@ export const MARKERS: MarkerDef[] = [
  */
 export function getMarkerStatus(value: number, marker: MarkerDef, sex: "M" | "F", operator?: string): "normal" | "low" | "high" {
   const [min, max] = marker.refRange[sex];
-  if (operator === "<" || operator === "<=") {
+  if (operator === "<" || operator === "<=" || operator === "≤") {
     // Value is "< X" — the real value is somewhere between 0 and X
     // If X <= upper limit, it's within range (or below detection)
     if (value <= max) return "normal";
     // If X > upper limit, we can't determine — but the real value could still be in range
     return "normal"; // indeterminate, default to normal
   }
-  if (operator === ">" || operator === ">=") {
+  if (operator === ">" || operator === ">=" || operator === "≥") {
     if (value >= min) return "high";
     return "normal";
   }
@@ -279,7 +279,7 @@ export function getMarkersByCategory(category: string): MarkerDef[] {
  * Returns { operator, numericValue } or null if no operator found
  */
 export function parseOperatorValue(textValue: string): { operator: string; numericValue: number } | null {
-  const match = textValue.match(/^([<>]=?)\s*(\d+[.,]?\d*)/);
+  const match = textValue.match(/^([<>≤≥]=?)\s*(\d+[.,]?\d*)/);
   if (!match) return null;
   return {
     operator: match[1],

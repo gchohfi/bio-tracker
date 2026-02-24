@@ -642,7 +642,7 @@ function validateAndFixValues(results: any[]): any[] {
   // (except for operator values)
   for (const r of results) {
     if (r.text_value && typeof r.value === "number" && !QUALITATIVE_IDS.has(r.marker_id)) {
-      if (!/^[<>]=?\s*\d/.test(r.text_value.trim())) {
+      if (!/^[<>≤≥]=?\s*\d/.test(r.text_value.trim())) {
         console.log(`Stripped non-operator text_value from ${r.marker_id}: "${r.text_value}"`);
         delete r.text_value;
       }
@@ -763,7 +763,7 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
       cleaned = cleaned.replace(',', '.');
       return parseFloat(cleaned);
     }
-    if (/^\d+\.\d{3}$/.test(cleaned)) {
+    if (/^[1-9]\d{0,2}\.\d{3}$/.test(cleaned)) {
       cleaned = cleaned.replace('.', '');
       return parseFloat(cleaned);
     }
@@ -1294,7 +1294,12 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     validResults = postProcessResults(validResults);
     // Regex fallback for markers the AI frequently misses
     validResults = regexFallback(pdfText, validResults);
-    
+    // Run validation pipeline again on regex fallback results
+    // (these functions are idempotent — already-valid results are unchanged)
+    validResults = normalizeOperatorText(validResults);
+    validResults = validateAndFixValues(validResults);
+    validResults = postProcessResults(validResults);
+
     console.log(`Extracted ${validResults.length} valid markers:`, validResults.map((r: any) => r.marker_id).join(', '));
 
     return new Response(JSON.stringify({ results: validResults }), {

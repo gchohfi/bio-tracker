@@ -123,7 +123,7 @@ export default function PatientDetail() {
       const marker = MARKERS.find(m => m.id === r.marker_id);
       if (marker?.qualitative) {
         vals[r.marker_id] = r.text_value || "";
-      } else if (r.text_value && /^[<>]=?\s*\d/.test(r.text_value.trim())) {
+      } else if (r.text_value && /^[<>≤≥]=?\s*\d/.test(r.text_value.trim())) {
         vals[r.marker_id] = r.text_value.trim();
       } else {
         vals[r.marker_id] = String(r.value ?? "");
@@ -178,7 +178,7 @@ export default function PatientDetail() {
           });
         } else {
           // Numeric markers: check for operator prefix (e.g. "< 34", "> 90")
-          const operatorMatch = v.match(/^([<>]=?)\s*(\d+[.,]?\d*)$/);
+          const operatorMatch = v.match(/^([<>≤≥]=?)\s*(\d+[.,]?\d*)$/);
           if (operatorMatch) {
             const numericPart = Number(operatorMatch[2].replace(",", "."));
             if (!isNaN(numericPart)) {
@@ -495,7 +495,7 @@ export default function PatientDetail() {
         if (marker?.qualitative) {
           // Qualitative markers: always use text_value
           if (r.text_value) newValues[r.marker_id] = r.text_value;
-        } else if (r.text_value && /^[<>]=?\s*\d/.test(r.text_value.trim())) {
+        } else if (r.text_value && /^[<>≤≥]=?\s*\d/.test(r.text_value.trim())) {
           // Operator value (e.g. "< 34", "> 90"): keep as text for display
           newValues[r.marker_id] = r.text_value.trim();
         } else if (r.value !== undefined && r.value !== null) {
@@ -860,7 +860,7 @@ function MarkerInput({
   const [min, max] = marker.refRange[sex];
   
   // Detect operator values like "< 34", "> 90"
-  const operatorMatch = value.match(/^([<>]=?)\s*(\d+[.,]?\d*)$/);
+  const operatorMatch = value.match(/^([<>≤≥]=?)\s*(\d+[.,]?\d*)$/);
   const isOperatorValue = !!operatorMatch;
   const numVal = isOperatorValue ? parseFloat(operatorMatch![2].replace(",", ".")) : Number(value);
   const hasValue = value !== "" && !isNaN(numVal);
