@@ -129,6 +129,7 @@ export const MARKERS: MarkerDef[] = [
   { id: "aldosterona", name: "Aldosterona", unit: "ng/dL", category: "Eixo Adrenal", refRange: { M: [2.5, 39.2], F: [2.5, 39.2] } },
   // Andrógenos
   { id: "dihidrotestosterona", name: "Dihidrotestosterona", unit: "pg/mL", category: "Andrógenos", refRange: { M: [160, 790], F: [0, 460] } },
+  { id: "androstenediona", name: "Androstenediona", unit: "ng/dL", category: "Andrógenos", refRange: { M: [45, 157], F: [39, 165] } },
   // Vitaminas
   { id: "vitamina_d", name: "Vitamina D (25-OH)", unit: "ng/mL", category: "Vitaminas", refRange: { M: [50, 80], F: [50, 80] } },
   { id: "vitamina_d_125", name: "1,25-Dihidroxi Vitamina D", unit: "pg/mL", category: "Vitaminas", refRange: { M: [19.9, 79.3], F: [19.9, 79.3] } },
@@ -149,6 +150,9 @@ export const MARKERS: MarkerDef[] = [
   { id: "cromo", name: "Cromo", unit: "µg/L", category: "Minerais", refRange: { M: [0.5, 2.0], F: [0.5, 2.0] } },
   { id: "iodo_urinario", name: "Iodo Urinário", unit: "µg/L", category: "Minerais", refRange: { M: [100, 300], F: [100, 300] } },
   { id: "chumbo", name: "Chumbo", unit: "µg/dL", category: "Toxicologia", refRange: { M: [0, 5], F: [0, 5] } },
+  { id: "mercurio", name: "Mercúrio", unit: "µg/L", category: "Toxicologia", refRange: { M: [0, 5.9], F: [0, 5.9] } },
+  { id: "cadmio", name: "Cádmio", unit: "µg/L", category: "Toxicologia", refRange: { M: [0, 1.2], F: [0, 1.2] } },
+  { id: "aluminio", name: "Alumínio", unit: "µg/L", category: "Toxicologia", refRange: { M: [0, 10], F: [0, 10] } },
   // Hepático
   { id: "tgo_ast", name: "TGO (AST)", unit: "U/L", category: "Hepático", refRange: { M: [10, 26], F: [10, 25] } },
   { id: "tgp_alt", name: "TGP (ALT)", unit: "U/L", category: "Hepático", refRange: { M: [10, 26], F: [10, 25] } },
@@ -177,6 +181,7 @@ export const MARKERS: MarkerDef[] = [
   { id: "pth", name: "PTH", unit: "pg/mL", category: "Eletrólitos", refRange: { M: [15, 50], F: [15, 50] } },
   // Coagulação
   { id: "fibrinogenio", name: "Fibrinogênio", unit: "mg/dL", category: "Coagulação", refRange: { M: [200, 400], F: [200, 400] } },
+  { id: "dimeros_d", name: "Dímeros D", unit: "ng/mL", category: "Coagulação", refRange: { M: [0, 500], F: [0, 500] } },
   // Pancreático
   { id: "amilase", name: "Amilase", unit: "U/L", category: "Pancreático", refRange: { M: [28, 100], F: [28, 100] } },
   { id: "lipase", name: "Lipase", unit: "U/L", category: "Pancreático", refRange: { M: [13, 60], F: [13, 60] } },

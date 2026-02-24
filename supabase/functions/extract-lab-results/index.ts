@@ -111,9 +111,14 @@ const MARKER_LIST = [
   { id: "vhs", name: "VHS", unit: "mm/h" },
   { id: "homocisteina", name: "Homocisteína", unit: "µmol/L" },
   { id: "fibrinogenio", name: "Fibrinogênio", unit: "mg/dL" },
+  { id: "dimeros_d", name: "Dímeros D", unit: "ng/mL" },
   { id: "amilase", name: "Amilase", unit: "U/L" },
   { id: "lipase", name: "Lipase", unit: "U/L" },
-  { id: "fan", name: "FAN (Fator Anti-Núcleo)", unit: "" },
+  { id: "androstenediona", name: "Androstenediona", unit: "ng/dL" },
+  { id: "mercurio", name: "Mercúrio", unit: "µg/L" },
+  { id: "cadmio", name: "Cádmio", unit: "µg/L" },
+  { id: "aluminio", name: "Alumínio", unit: "µg/L" },
+  { id: "fan", name: "FAN (Fator Anti-Núcleo)", unit: "", qualitative: true },
   { id: "eletroforese_albumina", name: "Albumina (eletroforese)", unit: "%" },
   { id: "eletroforese_alfa1", name: "Alfa 1 (eletroforese)", unit: "%" },
   { id: "eletroforese_alfa2", name: "Alfa 2 (eletroforese)", unit: "%" },
@@ -257,7 +262,15 @@ Rules:
 - For FAN: use text_value. NÃO REAGENTE → text_value="Não Reagente", REAGENTE → text_value="Reagente". (It's now qualitative.)
 - For Cortisol: if from blood/morning → cortisol. If from "URINA 24 HORAS" with "mcg/24 HORAS" → cortisol_livre_urina.
 - For Vitamina A/Retinol: the PDF may show mg/L — use that value directly.
-- For Testosterona Livre: if the value unit is ng/dL, multiply by 10 to get pg/mL. Example: 0.67 ng/dL → 6.7 pg/mL.
+- For Testosterona Livre: convert to pg/mL. If ng/dL → multiply by 10. If pmol/L → multiply by 0.28842. Example: 19.9 pmol/L → 5.74 pg/mL.
+- For Estradiol: if in ng/dL, multiply by 10 to convert to pg/mL. Example: 39.6 ng/dL → 396 pg/mL.
+- For Progesterona: if in ng/dL, divide by 100 to convert to ng/mL. Example: 101 ng/dL → 1.01 ng/mL.
+- For DHT/Dihidrotestosterona: if in ng/dL, multiply by 10 to convert to pg/mL. Example: 13 ng/dL → 130 pg/mL.
+- For IGFBP-3: if in ng/mL, divide by 1000 to convert to µg/mL. Example: 6120 ng/mL → 6.12 µg/mL.
+- For PCR: if in mg/dL, multiply by 10 to convert to mg/L. Example: 0.07 mg/dL → 0.7 mg/L.
+- For Vitamina B12: ng/L = pg/mL (same unit). Example: 1028 ng/L → 1028 pg/mL.
+- For Ferritina: microg/L = ng/mL (same unit). Example: 392 microg/L → 392 ng/mL.
+- For Zinco: if in microgramas/mL, multiply by 1000 to get µg/L, then divide by 10 to get µg/dL. Or: microgramas/mL * 100 = µg/dL. Example: 0.8 µg/mL → 80 µg/dL.
 - For Eletroforese: look for a table with Albumina %, Alfa 1 %, Alfa 2 %, Beta 1 %, Beta 2 %, Gama %, Relação A/G, Proteínas Totais.
 - For PERFIL LIPÍDICO/LIPIDOGRAMA: extract Colesterol Total, HDL, LDL, VLDL, Triglicérides, NÃO-HDL from the results table.
 - mcg = µg (microgram). mcg/dL = µg/dL, mcg/L = µg/L, mcg/24 HORAS = µg/24h.
@@ -266,7 +279,13 @@ Rules:
 - For Fosfatase Alcalina: may appear as "FOSFATASE ALCALINA" or "FA".
 - For LDH: "Desidrogenase Láctica" or "LDH" or "DESIDROGENASE LÁTICA".
 - For Cistatina C: "CISTATINA C" or "Cistatina C sérica".
-- IMPORTANT: You must extract AT LEAST 80 markers if they are present. Count your results before returning.`;
+- For Androstenediona: "ANDROSTENEDIONA" or "Androstenediona". Keep value in ng/dL.
+- For Mercúrio: "MERCURIO" or "Mercúrio". Value in µg/L.
+- For Cádmio: "CADMIO" or "Cádmio". Value in µg/L (ug/L).
+- For Alumínio: "ALUMINIO" or "Alumínio". Value in µg/L (microgramas/L).
+- For Dímeros D: "DIMEROS D" or "D-Dímero". Value in ng/mL FEU.
+- IMPORTANT: Extract ALL markers present. Do NOT skip markers even if you're unsure. The "LAUDO EVOLUTIVO" section at the end has HISTORICAL data — do NOT extract from there. Only use the individual result pages.`;
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
