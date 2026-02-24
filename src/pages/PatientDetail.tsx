@@ -342,7 +342,9 @@ export default function PatientDetail() {
         if (/^Atenção para nov/i.test(normalized)) return false;
         if (/^Limite de detecção/i.test(normalized)) return false;
         // Skip verbose clinical descriptions
-        if (normalized.length > 120 && !/\d+[.,]\d+/.test(normalized)) return false;
+        if (normalized.length > 80 && !/\d+[.,]\d+/.test(normalized)) return false;
+        // Skip any line that is purely text description without numbers (>40 chars)
+        if (normalized.length > 40 && !/\d/.test(normalized)) return false;
         // Skip age/sex specific reference text
         if (/^Paciente de (baixo|risco|alto|muito)/i.test(normalized)) return false;
         if (/^(Desejável|Ótimo|Limítrofe|Alto|Muito alto)\s*:/i.test(normalized)) return false;
@@ -402,8 +404,22 @@ export default function PatientDetail() {
         if (/^O resultado obtido/i.test(normalized)) return false;
         if (/^IBE\/SC/i.test(normalized)) return false;
         if (/^CARACTERES MORFOLÓGICOS/i.test(normalized)) return false;
-        // Skip pure reference range lines
-        if (/^\d+,?\d* a \d+,?\d* (mg|g|microg|ng|pmol|nmol|mU|UI|U\/|fL|pg|%|mm|mcg)/i.test(normalized)) return false;
+        // Skip more boilerplate
+        if (/^Valores obtidos/i.test(normalized)) return false;
+        if (/^Este exame foi/i.test(normalized)) return false;
+        if (/^Equipamento:/i.test(normalized)) return false;
+        if (/^Ensaio:/i.test(normalized)) return false;
+        if (/^Amostra:/i.test(normalized)) return false;
+        if (/^Prazo de entrega/i.test(normalized)) return false;
+        if (/^Orientação de preparo/i.test(normalized)) return false;
+        if (/^Interferentes:/i.test(normalized)) return false;
+        if (/^Valores em/i.test(normalized)) return false;
+        if (/^IBMP\b/i.test(normalized)) return false;
+        if (/^VALOR DE REFERÊNCIA/i.test(normalized)) return false;
+        if (/^Valores? de referência/i.test(normalized)) return false;
+        if (/^mEq\/L|^mg\/dL|^ng\/mL|^pg\/mL|^µg\/dL|^U\/L|^mcg/i.test(normalized)) return false;
+        // Skip lines that are just units or reference ranges
+        if (/^\d+,?\d*\s*[-–a]\s*\d+,?\d*\s*(mg|g|microg|ng|pmol|nmol|mU|UI|U\/|fL|pg|%|mm|mcg|mEq)/i.test(normalized)) return false;
         if (/^\d+ a \d+$/i.test(normalized)) return false;
         if (normalized.length < 5 && !/\d/.test(normalized)) return false;
         return true;

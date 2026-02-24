@@ -235,6 +235,9 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    
+    const textToSend = pdfText.slice(0, 120000);
+    console.log(`PDF text received: ${pdfText.length} chars, sending: ${textToSend.length} chars to AI`);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -251,9 +254,25 @@ serve(async (req) => {
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `Extract ALL lab results from this Brazilian lab report. Be thorough and extract every single marker you can identify. Pay special attention to:
-- NEW markers: Fibrinogênio, Amilase, Lipase, Apo A-1, Apo B, Lipoproteína(a), Colesterol Não-HDL, IGF-1, IGFBP-3, ACTH, Cortisol Livre urina 24h, Aldosterona, Dihidrotestosterona, 1,25-Dihidroxi Vitamina D, FAN, Eletroforese de Proteínas frações, Chumbo, Bastonetes, Segmentados, VPM, Bilirrubina Indireta
-- Also all vitamins, hormones, thyroid, iron, minerals, electrolytes, and liver/kidney markers:\n\n${pdfText.slice(0, 80000)}`,
+            content: `Extract ALL lab results from this Brazilian lab report. Be thorough and extract every single marker you can identify. Pay special attention to these commonly missed markers:
+- VHS (Velocidade de Hemossedimentação)
+- Sódio, Potássio, Magnésio (eletrólitos)
+- Amilase, Lipase (pancreáticos)
+- Aldosterona (adrenal)
+- Selênio, Cobre, Zinco (minerais)
+- Cortisol Livre Urina 24h (NOT cortisol manhã)
+- FAN (NÃO REAGENTE = 0, REAGENTE = 1)
+- Bastonetes, Segmentados (hemograma diferencial)
+- 1,25-Dihidroxi Vitamina D (vitamina_d_125) — different from 25-OH Vitamina D
+- Eletroforese de Proteínas: Albumina %, Alfa 1 %, Alfa 2 %, Beta 1 %, Beta 2 %, Gama %, Relação A/G, Proteínas Totais
+- Fósforo
+- Relação CT/HDL, Relação TG/HDL (calculáveis se CT, HDL, TG estiverem presentes)
+- Fibrinogênio, Apo A-1, Apo B, Lipoproteína(a), Colesterol Não-HDL
+- IGF-1, IGFBP-3, ACTH, Dihidrotestosterona
+- Bilirrubina Indireta, VPM
+- Transferrina
+
+IMPORTANT: Search the ENTIRE text. Do NOT stop early. Markers can appear anywhere.\n\n${textToSend}`,
           },
         ],
         tools: [
@@ -320,6 +339,8 @@ serve(async (req) => {
     const validResults = (parsed.results || []).filter(
       (r: any) => validIds.has(r.marker_id) && typeof r.value === "number" && !isNaN(r.value)
     );
+    
+    console.log(`Extracted ${validResults.length} valid markers:`, validResults.map((r: any) => r.marker_id).join(', '));
 
     return new Response(JSON.stringify({ results: validResults }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
