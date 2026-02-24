@@ -435,12 +435,15 @@ ELETROFORESE DE PROTEÍNAS:
   Beta-1→eletroforese_beta1, Beta-2→eletroforese_beta2, Gamaglobulina→eletroforese_gama, A/G→relacao_ag
 
 URINA TIPO 1 / EAS:
-- "URINA TIPO 1" / "EAS" / "URINA ROTINA" / "PARCIAL DE URINA" / "URINÁLISE" / "URINA TIPO I" → extract ALL sub-items as qualitative
+- "URINA TIPO 1" / "EAS" / "URINA ROTINA" / "PARCIAL DE URINA" / "URINÁLISE" / "URINA TIPO I" / "URINA TIPO I - JATO MEDIO" / "URINA TIPO I - JATO MÉDIO" → extract ALL sub-items as qualitative
 - Sub-items: urina_cor, urina_aspecto, urina_densidade, urina_ph, urina_proteinas, urina_glicose, urina_hemoglobina, urina_leucocitos, urina_hemacias, urina_bacterias, urina_celulas, urina_cilindros, urina_cristais, urina_nitritos, urina_bilirrubina, urina_urobilinogenio, urina_cetona, urina_muco
 - "Muco" / "Filamentos de Muco" / "Filamentos Mucóides" (in urina context) → urina_muco
 - "Corpos Cetônicos" / "Cetonas" / "Acetona" → urina_cetona
 - "Leucócito Esterase" / "Esterase Leucocitária" → urina_leucocitos
 - "Sangue" / "Blood" (in urina fita context) → urina_hemoglobina
+- ⚠️ "ERITRÓCITOS" inside urina section = urina_hemacias (NOT eritrocitos from hemograma!)
+- ⚠️ "LEUCÓCITOS" inside urina section = urina_leucocitos (NOT leucocitos from hemograma!)
+- ⚠️ In Fleury PDFs, all urina sub-items are inside ONE block, not separate exams. Extract EACH line.
 
 COPROLÓGICO:
 - "COPROLÓGICO FUNCIONAL" / "COPROGRAMA" / "EXAME DE FEZES" / "PROVA FUNCIONAL DAS FEZES" / "PARASITOLÓGICO DE FEZES" / "EPF" → extract ALL sub-items as qualitative
@@ -486,11 +489,26 @@ Only set text_value for: qualitative markers OR operator values.
 - CRITICAL: For values with operators ("<", ">", "<=", ">="): set BOTH "value" (numeric part) AND "text_value" (full string with operator).
 - "Inferior a X" → value=X, text_value="< X"
 - "Superior a X" → value=X, text_value="> X"
+- "Inferior a X microgramas/L" → value=X, text_value="< X" (ignore the unit in text_value)
+- "Superior a X ng/mL" → value=X, text_value="> X"
 - For NUMERIC markers without operators: return number in 'value' ONLY. Do NOT set text_value.
 - For QUALITATIVE markers (fan, urina_*, copro_*): return text in 'text_value', set value=0.
 - If marker appears multiple times: use FIRST occurrence (actual result, not historical).
-- mcg = µg. mcg/dL = µg/dL, mcg/L = µg/L.
-- DO NOT filter by material type — extract from blood, urine, and stool sections.`;
+- mcg = µg = microg = microgramas. mcg/dL = µg/dL, mcg/L = µg/L = microg/L = microgramas/L. micromol/L = µmol/L.
+- DO NOT filter by material type — extract from blood, urine, and stool sections.
+
+=== DISAMBIGUATION RULES (Fleury-specific) ===
+
+8. T4 Total vs T4 Livre (Fleury uses "TIROXINA (T4)" format):
+   - "TIROXINA (T4) LIVRE" or "T4 LIVRE" or "T4L" or "FT4" → t4_livre
+   - "TIROXINA (T4)" WITHOUT the word "LIVRE" or "FREE" → t4_total
+   - Key rule: if name contains "LIVRE" or "FREE" → Livre; otherwise → Total
+
+9. T3 Total vs T3 Livre (same pattern):
+   - "TRIIODOTIRONINA (T3) LIVRE" or "T3 LIVRE" or "T3L" or "FT3" → t3_livre
+   - "TRIIODOTIRONINA (T3)" WITHOUT the word "LIVRE" or "FREE" → t3_total
+   - Key rule: if name contains "LIVRE" or "FREE" → Livre; otherwise → Total`;
+
 
 
 // Normalize Portuguese operator text to standard format
@@ -757,7 +775,30 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
     for (const pat of patterns) {
       const match = text.match(pat);
       if (match) {
-        const valStr = match[1];
+        const valStr = match[1].trim();
+        // "inferior a X" → "< X"
+        const inferiorMatch = valStr.match(/^inferior\s+a\s+([\d,\.]+)/i);
+        if (inferiorMatch) {
+          const num = parseBrNum(inferiorMatch[1]);
+          if (!isNaN(num)) {
+            additional.push({ marker_id: markerId, value: num, text_value: `< ${num}` });
+            found.add(markerId);
+            console.log(`Regex fallback found ${markerId}: < ${num}`);
+            return true;
+          }
+        }
+        // "superior a X" → "> X"
+        const superiorMatch = valStr.match(/^superior\s+a\s+([\d,\.]+)/i);
+        if (superiorMatch) {
+          const num = parseBrNum(superiorMatch[1]);
+          if (!isNaN(num)) {
+            additional.push({ marker_id: markerId, value: num, text_value: `> ${num}` });
+            found.add(markerId);
+            console.log(`Regex fallback found ${markerId}: > ${num}`);
+            return true;
+          }
+        }
+        // Operator < > ≤ ≥
         const opMatch = valStr.match(/^([<>≤≥]=?)\s*(.+)/);
         if (opMatch) {
           const num = parseBrNum(opMatch[2]);
@@ -767,14 +808,14 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
             console.log(`Regex fallback found ${markerId}: ${opMatch[1]} ${num}`);
             return true;
           }
-        } else {
-          const num = parseBrNum(valStr);
-          if (!isNaN(num)) {
-            additional.push({ marker_id: markerId, value: num });
-            found.add(markerId);
-            console.log(`Regex fallback found ${markerId}: ${num}`);
-            return true;
-          }
+        }
+        // Plain number
+        const num = parseBrNum(valStr);
+        if (!isNaN(num)) {
+          additional.push({ marker_id: markerId, value: num });
+          found.add(markerId);
+          console.log(`Regex fallback found ${markerId}: ${num}`);
+          return true;
         }
       }
     }
@@ -802,7 +843,8 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
 
   tryExtractNumeric('vhs', [
     /(?:V\.?H\.?S\.?|Velocidade\s+de?\s*Hemossedimenta[çc][ãa]o|VEL[.\s]*(?:DE\s*)?HEMOSSEDIMENTA)[\s:.\-]*?(\d+)/i,
-    /(?:Hemossedimenta[çc][ãa]o)[^0-9]*?(\d+)\s*(?:mm)/i,
+    /(?:Hemossedimenta[çc][ãa]o|HEMOSSEDIMENTACAO)[^0-9]*?(\d+)\s*(?:mm)/i,
+    /HEMOSSEDIMENTA[CÇ][AÃ]O[\s\S]*?PRIMEIRA\s+HORA\s*:\s*(\d+)/i,
   ]);
 
   tryExtractNumeric('fosfatase_alcalina', [
@@ -830,7 +872,7 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   ]);
 
   tryExtractNumeric('cromo', [
-    /(?:Cromo)[\s:.\-]*?([<>]?\s*\d+[.,]?\d*)/i,
+    /(?:Cromo)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|superior\s+a\s+[\d,\.]+|[<>]?\s*\d+[.,]?\d*)/i,
   ]);
 
   tryExtractNumeric('aldosterona', [
@@ -842,9 +884,19 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
     /(?:1[,.]25[- ]?(?:Di)?[Hh]idroxi)[^0-9]*?(\d+[.,]\d+)/i,
   ]);
 
+  // T4 Total — match "TIROXINA (T4)" WITHOUT "LIVRE", or explicit "T4 Total"
   tryExtractNumeric('t4_total', [
     /(?:T4\s+Total|Tiroxina\s+Total|Tiroxina\s*\(T4\)\s*-?\s*Total)[\s:.\-]*?(\d+[.,]?\d*)/i,
+    /TIROXINA\s*\(T4\)(?!\s*LIVRE)[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)/i,
   ]);
+
+  // T3 Total — match "TRIIODOTIRONINA (T3)" WITHOUT "LIVRE", or explicit "T3 Total"
+  if (!found.has('t3_total')) {
+    tryExtractNumeric('t3_total', [
+      /(?:T3\s+Total|Triiodotironina\s+Total|Triiodotironina\s*\(T3\)\s*-?\s*Total)[\s:.\-]*?(\d+[.,]?\d*)/i,
+      /TRIIODOTIRONINA\s*\(T3\)(?!\s*LIVRE)[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)/i,
+    ]);
+  }
 
   tryExtractNumeric('estrona', [
     /(?:Estrona|ESTRONA\s*\(E1\))[\s:.\-]*?(\d+[.,]?\d*)/i,
@@ -855,22 +907,22 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   ]);
 
   tryExtractNumeric('calcitonina', [
-    /(?:Calcitonina)[\s:.\-]*?([<>]\s*\d+[.,]?\d*)/i,
+    /(?:Calcitonina)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|superior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*)/i,
     /(?:Calcitonina)[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
 
   tryExtractNumeric('anti_tpo', [
-    /(?:Anti[- ]?TPO|ANTI[- ]?TPO|ANTICORPO\s+ANTI\s*TPO)[\s:.\-]*?([<>]\s*\d+[.,]?\d*)/i,
-    /(?:Anti[- ]?TPO|ANTI[- ]?TPO)[\s:.\-]*?(\d+[.,]?\d*)/i,
+    /(?:Anti[- ]?TPO|ANTI[- ]?TPO|ANTICORPO\s+ANTI\s*TPO|ANTI[- ]?PEROXIDASE\s+TIRO?IDIANA)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*)/i,
+    /(?:Anti[- ]?TPO|ANTI[- ]?TPO|ANTI[- ]?PEROXIDASE)[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
 
   tryExtractNumeric('anti_tg', [
-    /(?:Anti[- ]?TG|Anti[- ]?Tireoglobulina|ANTICORPOS?\s+ANTI\s*TIREOGLOBULINA)[\s:.\-]*?([<>]\s*\d+[.,]?\d*)/i,
-    /(?:Anti[- ]?TG|Anti[- ]?Tireoglobulina)[\s:.\-]*?(\d+[.,]?\d*)/i,
+    /(?:Anti[- ]?TG|Anti[- ]?Tireoglobulina|ANTICORPOS?\s+ANTI\s*TIREOGLOBULINA|ANTITIROGLOBULINA|ANTICORPOS?\s+ANTITIROGLOBULINA)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*)/i,
+    /(?:Anti[- ]?TG|Anti[- ]?Tireoglobulina|ANTITIROGLOBULINA)[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
 
   tryExtractNumeric('trab', [
-    /(?:TRAb|TRAB|Anti[- ]?[Rr]eceptor\s+(?:de\s+)?TSH)[\s:.\-]*?([<>]\s*\d+[.,]?\d*)/i,
+    /(?:TRAb|TRAB|Anti[- ]?[Rr]eceptor\s+(?:de\s+)?TSH)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*)/i,
     /(?:TRAb|TRAB)[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
 
@@ -896,7 +948,7 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
 
   // Additional commonly missed
   tryExtractNumeric('acido_folico', [
-    /(?:[ÁAáa]cido\s+F[óoÓO]lico|Folato)[\s:.\-]*?([<>]?\s*\d+[.,]?\d*)/i,
+    /(?:[ÁAáa]cido\s+F[óoÓO]lico|Folato)[\s:.\-]*?(superior\s+a\s+[\d,\.]+|inferior\s+a\s+[\d,\.]+|[<>]?\s*\d+[.,]?\d*)/i,
   ]);
   tryExtractNumeric('vitamina_a', [
     /(?:Vitamina\s+A|Retinol)[\s:.\-]*?(\d+[.,]?\d*)/i,
@@ -932,7 +984,7 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
     /(?:[ÁAáa]cido\s+[ÚUúu]rico)[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
   tryExtractNumeric('tfg', [
-    /(?:TFG|Taxa\s+de\s+Filtra[çc][ãa]o|CKD[- ]?EPI|eGFR|Filtra[çc][ãa]o\s+Glomerular)[\s:.\-]*?([<>≥≤]?\s*\d+)/i,
+    /(?:TFG|Taxa\s+de\s+Filtra[çc][ãa]o|CKD[- ]?EPI|eGFR|Filtra[çc][ãa]o\s+Glomerular|ESTIMATIVA\s+DA\s+FILTRA[ÇC][ÃA]O)[\s:.\-]*?([<>≥≤]?\s*\d+)/i,
   ]);
   tryExtractNumeric('dimeros_d', [
     /(?:D[íi]meros?\s*D|D[- ]?D[íi]mero)[\s:.\-]*?([<>]?\s*\d+)/i,
@@ -944,6 +996,52 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
     /(?:Bicarbonato|BICARBONATO|CO2\s*Total)[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
 
+  // ===== GLICEMIA — commonly missed by AI =====
+  tryExtractNumeric('hba1c', [
+    /(?:HEMOGLOBINA\s+GLICADA|HbA1c|HB\s+GLICADA|A1C)[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)\s*%/i,
+    /(?:HEMOGLOBINA\s+GLICADA|HbA1c)[\s:.\-]*?(\d+[.,]?\d*)/i,
+  ]);
+  tryExtractNumeric('glicose_jejum', [
+    /(?:GLICOSE|GLICEMIA)[\s,]*(?:plasma|soro|DE\s+JEJUM)?[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)\s*mg/i,
+    /(?:GLICOSE|GLICEMIA)[\s:.\-]*?(\d{2,3})\s*mg/i,
+  ]);
+  tryExtractNumeric('insulina_jejum', [
+    /(?:INSULINA)[\s,]*(?:soro|BASAL)?[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)/i,
+  ]);
+
+  // ===== PTH =====
+  tryExtractNumeric('pth', [
+    /(?:PARATORM[OÔ]NIO|PTH\s*(?:INTACTO|MOL[EÉ]CULA))[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)/i,
+    /(?:PTH|PARATORM[OÔ]NIO)[\s:.\-]*?(\d+[.,]?\d*)/i,
+  ]);
+
+  // ===== IGFBP-3 (Fleury reports in ng/mL, need ÷1000) =====
+  if (!found.has('igfbp3')) {
+    const igfPatterns = [
+      /IGFBP[- ]?3[\s\S]*?(?:RESULTADO|:)\s*([\d.,]+)\s*ng\/mL/i,
+      /PROTEINA\s+LIGADORA[- ]?3\s+DO\s+FATOR[\s\S]*?(?:RESULTADO|:)\s*([\d.,]+)/i,
+      /FATOR\s+DE\s+CRESCIMENTO\s+SIMILE[\s\S]*?(?:RESULTADO|:)\s*([\d.,]+)/i,
+    ];
+    for (const pat of igfPatterns) {
+      const m = text.match(pat);
+      if (m) {
+        const num = parseBrNum(m[1]);
+        if (!isNaN(num) && num > 100) {
+          // ng/mL → µg/mL
+          additional.push({ marker_id: 'igfbp3', value: num / 1000 });
+          found.add('igfbp3');
+          console.log(`Regex fallback found igfbp3: ${num} ng/mL → ${num / 1000} µg/mL`);
+          break;
+        } else if (!isNaN(num) && num > 0) {
+          additional.push({ marker_id: 'igfbp3', value: num });
+          found.add('igfbp3');
+          console.log(`Regex fallback found igfbp3: ${num}`);
+          break;
+        }
+      }
+    }
+  }
+
   // ===== QUALITATIVE + NUMERIC — URINA =====
   if (/(?:URINA\s+TIPO|EAS|URIN[ÁA]LISE|PARCIAL\s+DE\s+URINA|URINA\s+ROTINA|URINA\s+I\b)/i.test(text)) {
     tryExtractNumeric('urina_densidade', [
@@ -954,22 +1052,22 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
     ]);
 
     const urinaQualMap: [string, RegExp][] = [
-      ['urina_cor', /(?:Cor)\s*[:.]\s*(amarelo?\s*(?:claro|citrino|escuro)?|[âa]mbar)/i],
-      ['urina_aspecto', /(?:Aspecto)\s*[:.]\s*(l[íi]mpido|turvo|ligeiramente\s+turvo|levemente\s+turvo)/i],
-      ['urina_proteinas', /(?:Prote[íi]nas?)\s*[:.]\s*(negativ[oa]|inferior\s+a\s+[\d,]+|ausente|tra[çc]os)/i],
-      ['urina_glicose', /(?:Glicose)\s*[:.]\s*(negativ[oa]|inferior\s+a\s+[\d,]+|ausente|normal)/i],
-      ['urina_hemoglobina', /(?:Hemoglobina|Sangue)\s*[:.]\s*(negativ[oa]|positiv[oa]|ausente|tra[çc]os)/i],
-      ['urina_leucocitos', /(?:Leuc[óo]citos|Esterase)\s*[:.]\s*([^\n]{3,40})/i],
-      ['urina_hemacias', /(?:Hem[áa]cias)\s*[:.]\s*([^\n]{3,40})/i],
+      ['urina_cor', /(?:Cor)\s*[:.]\s*(amarelo?\s*(?:claro|citrino|escuro)?|[âa]mbar|[^\n]{3,30})/i],
+      ['urina_aspecto', /(?:Aspecto)\s*[:.]\s*(l[íi]mpido|turvo|ligeiramente\s+turvo|levemente\s+turvo|[^\n]{3,30})/i],
+      ['urina_proteinas', /(?:Prote[íi]nas?)\s*[:.]\s*(negativ[oa]|inferior\s+a\s+[\d,\.]+\s*[^\n]*|ausente|tra[çc]os|[^\n]{3,40})/i],
+      ['urina_glicose', /(?:Glicose)\s*[:.]\s*(negativ[oa]|inferior\s+a\s+[\d,\.]+\s*[^\n]*|ausente|normal|[^\n]{3,40})/i],
+      ['urina_hemoglobina', /(?:Hemoglobina|Sangue)\s*[:.]\s*(negativ[oa]|positiv[oa]|ausente|tra[çc]os|[^\n]{3,30})/i],
+      ['urina_leucocitos', /(?:Leuc[óo]citos|Esterase)\s*[:.]\s*([^\n]{3,50})/i],
+      ['urina_hemacias', /(?:Hem[áa]cias|Eritr[óo]citos)\s*[:.]\s*([^\n]{3,50})/i],
       ['urina_bacterias', /(?:Bact[ée]rias)\s*[:.]\s*(ausentes?|raras?|numerosas?|[^\n]{3,30})/i],
       ['urina_celulas', /(?:C[éeÉE]lulas?\s+Epiteliais?|Epiteliais?)\s*[:.]\s*(raras?|ausentes?|algumas|numerosas?|[^\n]{3,30})/i],
       ['urina_cilindros', /(?:Cilindros?)\s*[:.]\s*(ausentes?|raros?|presentes?|hialinos|[^\n]{3,30})/i],
       ['urina_cristais', /(?:Cristais?)\s*[:.]\s*(ausentes?|raros?|presentes?|[^\n]{3,30})/i],
-      ['urina_nitritos', /(?:Nitritos?|NITRITO)\s*[:.]\s*(negativ[oa]|positiv[oa])/i],
-      ['urina_bilirrubina', /(?:Bilirrubina)\s*[:.]\s*(negativ[oa]|positiv[oa]|ausente)/i],
-      ['urina_urobilinogenio', /(?:Urobilinog[êeÊE]nio)\s*[:.]\s*(normal|inferior\s+a\s+[\d,]+|negativ[oa]|[^\n]{3,30})/i],
-      ['urina_cetona', /(?:Ceton[ao]s?|Corpos?\s+Cet[ôo]nicos?)\s*[:.]\s*(negativ[oa]|positiv[oa]|ausente)/i],
-      ['urina_muco', /(?:Muco|Filamentos?\s+de\s+Muco)\s*[:.]\s*(ausente|presente|raros?|[^\n]{3,30})/i],
+      ['urina_nitritos', /(?:Nitritos?|NITRITO)\s*[:.]\s*(negativ[oa]|positiv[oa]|[^\n]{3,20})/i],
+      ['urina_bilirrubina', /(?:Bilirrubina)\s*[:.]\s*(negativ[oa]|positiv[oa]|ausente|[^\n]{3,20})/i],
+      ['urina_urobilinogenio', /(?:Urobilinog[êeÊE]nio)\s*[:.]\s*(normal|inferior\s+a\s+[\d,\.]+\s*[^\n]*|negativ[oa]|[^\n]{3,40})/i],
+      ['urina_cetona', /(?:Ceton[ao]s?|Corpos?\s+Cet[ôo]nicos?)\s*[:.]\s*(negativ[oa]|positiv[oa]|ausente|[^\n]{3,20})/i],
+      ['urina_muco', /(?:Muco|Filamentos?\s+(?:de\s+)?Muco|Filamentos?\s+Muc[oó]ides?)\s*[:.]\s*(ausente|presente|raros?|[^\n]{3,30})/i],
     ];
     for (const [id, regex] of urinaQualMap) {
       tryExtractQualitative(id, [regex]);
