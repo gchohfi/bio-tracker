@@ -144,16 +144,21 @@ const MARKER_LIST = [
   { id: "urina_bilirrubina", name: "Bilirrubina (urina)", unit: "", qualitative: true },
   { id: "urina_urobilinogenio", name: "Urobilinogênio (urina)", unit: "", qualitative: true },
   { id: "urina_cetona", name: "Cetonas (urina)", unit: "", qualitative: true },
+  { id: "urina_muco", name: "Muco/Filamentos (urina)", unit: "", qualitative: true },
   // Qualitative markers - Coprológico
   { id: "copro_cor", name: "Cor (fezes)", unit: "", qualitative: true },
   { id: "copro_consistencia", name: "Consistência (fezes)", unit: "", qualitative: true },
   { id: "copro_muco", name: "Muco (fezes)", unit: "", qualitative: true },
   { id: "copro_sangue", name: "Sangue Oculto (fezes)", unit: "", qualitative: true },
   { id: "copro_leucocitos", name: "Leucócitos (fezes)", unit: "", qualitative: true },
+  { id: "copro_hemacias", name: "Hemácias (fezes)", unit: "", qualitative: true },
   { id: "copro_parasitas", name: "Parasitas (fezes)", unit: "", qualitative: true },
   { id: "copro_gordura", name: "Gordura Fecal", unit: "", qualitative: true },
   { id: "copro_fibras", name: "Fibras Musculares (fezes)", unit: "", qualitative: true },
   { id: "copro_amido", name: "Amido (fezes)", unit: "", qualitative: true },
+  { id: "copro_residuos", name: "Resíduos Alimentares (fezes)", unit: "", qualitative: true },
+  { id: "copro_ac_graxos", name: "Ácidos Graxos (fezes)", unit: "", qualitative: true },
+  { id: "copro_flora", name: "Flora Bacteriana (fezes)", unit: "", qualitative: true },
   { id: "copro_ph", name: "pH Fecal", unit: "" },
 ];
 
@@ -360,10 +365,20 @@ ELETROFORESE DE PROTEÍNAS:
   Beta-1→eletroforese_beta1, Beta-2→eletroforese_beta2, Gamaglobulina→eletroforese_gama, A/G→relacao_ag
 
 URINA TIPO 1 / EAS:
-- "URINA TIPO 1" / "EAS" / "URINA ROTINA" / "PARCIAL DE URINA" / "URINÁLISE" → extract ALL sub-items as qualitative
+- "URINA TIPO 1" / "EAS" / "URINA ROTINA" / "PARCIAL DE URINA" / "URINÁLISE" / "URINA TIPO I" → extract ALL sub-items as qualitative
+- Sub-items: urina_cor, urina_aspecto, urina_densidade, urina_ph, urina_proteinas, urina_glicose, urina_hemoglobina, urina_leucocitos, urina_hemacias, urina_bacterias, urina_celulas, urina_cilindros, urina_cristais, urina_nitritos, urina_bilirrubina, urina_urobilinogenio, urina_cetona, urina_muco
+- "Muco" / "Filamentos de Muco" / "Filamentos Mucóides" (in urina context) → urina_muco
+- "Corpos Cetônicos" / "Cetonas" / "Acetona" → urina_cetona
+- "Leucócito Esterase" / "Esterase Leucocitária" → urina_leucocitos
+- "Sangue" / "Blood" (in urina fita context) → urina_hemoglobina
 
 COPROLÓGICO:
-- "COPROLÓGICO FUNCIONAL" / "COPROGRAMA" / "EXAME DE FEZES" → extract ALL sub-items as qualitative
+- "COPROLÓGICO FUNCIONAL" / "COPROGRAMA" / "EXAME DE FEZES" / "PROVA FUNCIONAL DAS FEZES" / "PARASITOLÓGICO DE FEZES" / "EPF" → extract ALL sub-items as qualitative
+- Sub-items: copro_cor, copro_consistencia, copro_muco, copro_sangue, copro_leucocitos, copro_hemacias, copro_parasitas, copro_gordura, copro_fibras, copro_amido, copro_residuos, copro_ac_graxos, copro_flora, copro_ph
+- "Resíduos Alimentares" / "Restos Alimentares" / "Resíduos Vegetais" → copro_residuos
+- "Ácidos Graxos" / "Ácidos Gordurosos" → copro_ac_graxos
+- "Flora Bacteriana" / "Flora Intestinal" → copro_flora
+- "Hemácias" (in fezes context) / "Eritrócitos" (fezes) → copro_hemacias
 
 === EXTRACTION RULES ===
 - Extract EVERY marker you can find. Be aggressive.

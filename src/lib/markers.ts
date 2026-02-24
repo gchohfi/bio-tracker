@@ -213,16 +213,21 @@ export const MARKERS: MarkerDef[] = [
   { id: "urina_bilirrubina", name: "Bilirrubina (urina)", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
   { id: "urina_urobilinogenio", name: "Urobilinogênio", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
   { id: "urina_cetona", name: "Cetonas", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "urina_muco", name: "Muco/Filamentos (urina)", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
   // Coprológico Funcional
   { id: "copro_cor", name: "Cor (fezes)", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
   { id: "copro_consistencia", name: "Consistência", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
   { id: "copro_muco", name: "Muco", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
   { id: "copro_sangue", name: "Sangue Oculto", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
   { id: "copro_leucocitos", name: "Leucócitos (fezes)", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "copro_hemacias", name: "Hemácias (fezes)", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
   { id: "copro_parasitas", name: "Parasitas", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
   { id: "copro_gordura", name: "Gordura Fecal", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
   { id: "copro_fibras", name: "Fibras Musculares", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
   { id: "copro_amido", name: "Amido", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "copro_residuos", name: "Resíduos Alimentares", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "copro_ac_graxos", name: "Ácidos Graxos", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
+  { id: "copro_flora", name: "Flora Bacteriana", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true },
   { id: "copro_ph", name: "pH Fecal", unit: "", category: "Fezes", refRange: { M: [6.0, 7.5], F: [6.0, 7.5] } },
 ];
 
