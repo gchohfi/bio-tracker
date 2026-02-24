@@ -362,7 +362,47 @@ export default function ImportVerification({
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-end pt-2 border-t">
+        <div className="flex justify-between pt-2 border-t">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const lines = [
+                "EXAMES NÃO ENCONTRADOS NO PDF",
+                `Total: ${notExtracted.length}`,
+                "",
+                ...catStats
+                  .map(({ cat, markers }) => {
+                    const missing = markers.filter(
+                      (m) =>
+                        (importedMarkers[m.id] === undefined || importedMarkers[m.id] === "") &&
+                        !notDone.has(m.id)
+                    );
+                    if (missing.length === 0) return null;
+                    return [
+                      `── ${cat} (${missing.length}) ──`,
+                      ...missing.map((m) => `  • ${m.name} (${m.unit})`),
+                      "",
+                    ].join("\n");
+                  })
+                  .filter(Boolean),
+                ...(notDone.size > 0
+                  ? [
+                      "── NÃO REALIZADOS PELO PACIENTE ──",
+                      ...MARKERS.filter((m) => notDone.has(m.id)).map((m) => `  • ${m.name}`),
+                    ]
+                  : []),
+              ];
+              const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+              const a = document.createElement("a");
+              a.href = URL.createObjectURL(blob);
+              a.download = "exames-nao-encontrados.txt";
+              a.click();
+              URL.revokeObjectURL(a.href);
+            }}
+          >
+            Exportar não encontrados
+          </Button>
           <Button onClick={onClose}>Fechar</Button>
         </div>
       </DialogContent>
