@@ -21,6 +21,7 @@ interface Result {
   marker_id: string;
   session_id: string;
   value: number;
+  text_value?: string;
 }
 
 /* ─── Color palette ─── */
@@ -260,9 +261,12 @@ export function generatePatientReport(
 
   // Build result map
   const resultMap: Record<string, Record<string, number>> = {};
+  const textResultMap: Record<string, Record<string, string>> = {};
   results.forEach((r) => {
     if (!resultMap[r.marker_id]) resultMap[r.marker_id] = {};
+    if (!textResultMap[r.marker_id]) textResultMap[r.marker_id] = {};
     resultMap[r.marker_id][r.session_id] = r.value;
+    if (r.text_value) textResultMap[r.marker_id][r.session_id] = r.text_value;
   });
 
   // Period string
@@ -279,7 +283,11 @@ export function generatePatientReport(
   CATEGORIES.forEach((cat) => {
     const markers = getMarkersByCategory(cat);
     const markersWithData = markers.filter(
-      (m) => resultMap[m.id] && Object.keys(resultMap[m.id]).length > 0
+      (m) => {
+        const hasNumeric = resultMap[m.id] && Object.keys(resultMap[m.id]).length > 0;
+        const hasText = textResultMap[m.id] && Object.keys(textResultMap[m.id]).length > 0;
+        return hasNumeric || hasText;
+      }
     );
     if (markersWithData.length === 0) return;
 
@@ -309,22 +317,29 @@ export function generatePatientReport(
     }[] = [];
 
     markersWithData.forEach((marker, idx) => {
+      const isQualitative = marker.qualitative === true;
       const [min, max] = marker.refRange[sex];
       const values = sorted.map((s) => resultMap[marker.id]?.[s.id]);
+      const textValues = sorted.map((s) => textResultMap[marker.id]?.[s.id]);
       const numericValues = values.filter((v) => v !== undefined) as number[];
-      const trend = getTrend(numericValues);
+      const trend = isQualitative ? null : getTrend(numericValues);
 
       const row: any[] = [
         marker.name,
-        marker.unit,
-        `${min} – ${max}`,
-        ...values.map((v) => (v !== undefined ? String(v) : "—")),
-        trendSymbol(trend),
+        isQualitative ? "—" : marker.unit,
+        isQualitative ? "Qualitativo" : `${min} – ${max}`,
+        ...sorted.map((s, i) => {
+          if (isQualitative) {
+            return textValues[i] || "—";
+          }
+          return values[i] !== undefined ? String(values[i]) : "—";
+        }),
+        isQualitative ? "" : trendSymbol(trend),
         "", // placeholder for sparkline
       ];
 
       body.push(row);
-      if (numericValues.length >= 2) {
+      if (!isQualitative && numericValues.length >= 2) {
         sparklineData.push({ marker, values: numericValues, rowIndex: idx });
       }
     });
@@ -432,9 +447,15 @@ export function generatePatientReport(
   // Count alerts
   let alertCount = 0;
   let normalCount = 0;
+  let qualitativeCount = 0;
   const latestSession = sorted[sorted.length - 1];
   if (latestSession) {
     MARKERS.forEach((m) => {
+      if (m.qualitative) {
+        const hasText = textResultMap[m.id]?.[latestSession.id];
+        if (hasText) qualitativeCount++;
+        return;
+      }
       const val = resultMap[m.id]?.[latestSession.id];
       if (val !== undefined) {
         if (getMarkerStatus(val, m, sex) !== "normal") alertCount++;
@@ -462,7 +483,8 @@ export function generatePatientReport(
   ];
   if (latestSession) {
     summaryParts.push(`${normalCount} dentro da faixa`);
-    summaryParts.push(`${alertCount} fora da faixa na última sessão`);
+    summaryParts.push(`${alertCount} fora da faixa`);
+    if (qualitativeCount > 0) summaryParts.push(`${qualitativeCount} qualitativos`);
   }
   doc.text(summaryParts.join("   •   "), 42, startY + 4);
 
