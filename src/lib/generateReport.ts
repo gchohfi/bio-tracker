@@ -42,11 +42,19 @@ function getCategoryRGB(cat: Category): { r: number; g: number; b: number } {
     Lipídios: { r: 200, g: 55, b: 100 },
     Tireoide: { r: 30, g: 150, b: 130 },
     Hormônios: { r: 165, g: 75, b: 165 },
+    "Eixo GH": { r: 120, g: 80, b: 200 },
+    "Eixo Adrenal": { r: 190, g: 110, b: 40 },
+    Andrógenos: { r: 170, g: 60, b: 140 },
     Vitaminas: { r: 190, g: 160, b: 20 },
     Minerais: { r: 40, g: 140, b: 170 },
     Hepático: { r: 55, g: 140, b: 70 },
     Renal: { r: 65, g: 130, b: 190 },
     Eletrólitos: { r: 210, g: 80, b: 60 },
+    Coagulação: { r: 190, g: 50, b: 50 },
+    Pancreático: { r: 160, g: 140, b: 30 },
+    Imunologia: { r: 110, g: 80, b: 190 },
+    Proteínas: { r: 40, g: 150, b: 140 },
+    Toxicologia: { r: 200, g: 100, b: 30 },
   };
   return map[cat] || BRAND;
 }
