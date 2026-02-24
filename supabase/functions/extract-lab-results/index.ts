@@ -841,123 +841,188 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
 
   // ===== NUMERIC MARKERS COMMONLY MISSED =====
 
+  // VHS / Hemossedimentação
   tryExtractNumeric('vhs', [
+    /HEMOSSEDIMENTA[CÇ][AÃ]O[\s\S]{0,200}?PRIMEIRA\s+HORA\s*[:\s]*(\d+)/i,
+    /V\.?H\.?S\.?[\s\S]{0,200}?RESULTADO[\s:]*(\d+)/i,
     /(?:V\.?H\.?S\.?|Velocidade\s+de?\s*Hemossedimenta[çc][ãa]o|VEL[.\s]*(?:DE\s*)?HEMOSSEDIMENTA)[\s:.\-]*?(\d+)/i,
     /(?:Hemossedimenta[çc][ãa]o|HEMOSSEDIMENTACAO)[^0-9]*?(\d+)\s*(?:mm)/i,
-    /HEMOSSEDIMENTA[CÇ][AÃ]O[\s\S]*?PRIMEIRA\s+HORA\s*:\s*(\d+)/i,
   ]);
 
-  tryExtractNumeric('fosfatase_alcalina', [
-    /(?:Fosfatase\s+Alcalina|FOSFATASE\s+ALCALINA)[\s:.\-]*?(\d+)/i,
+  // T4 Total — "TIROXINA (T4)" SEM "LIVRE"
+  if (!found.has('t4_total')) {
+    tryExtractNumeric('t4_total', [
+      /TIROXINA\s*\(T4\)(?!\s*LIVRE)[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
+      /(?:T4\s+Total|Tiroxina\s+Total|Tiroxina\s*\(T4\)\s*-?\s*Total)[\s:.\-]*?(\d+[.,]?\d*)/i,
+      /TIROXINA\s*\(T4\)(?!\s*LIVRE)[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)/i,
+    ]);
+  }
+
+  // T3 Total — "TRIIODOTIRONINA (T3)" SEM "LIVRE"
+  if (!found.has('t3_total')) {
+    tryExtractNumeric('t3_total', [
+      /TRIIODOTIRONINA\s*\(T3\)(?!\s*LIVRE)[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
+      /(?:T3\s+Total|Triiodotironina\s+Total|Triiodotironina\s*\(T3\)\s*-?\s*Total)[\s:.\-]*?(\d+[.,]?\d*)/i,
+    ]);
+  }
+
+  // Estrona
+  tryExtractNumeric('estrona', [
+    /ESTRONA\s*(?:\(E1\))?[\s,]{0,20}(?:soro)?[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
+    /(?:Estrona|ESTRONA\s*\(E1\))[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
 
-  tryExtractNumeric('sodio', [
-    /(?:S[óoÓO]dio)[\s:.\-]*?(1[0-9]{2})/i,
+  // AMH
+  tryExtractNumeric('amh', [
+    /(?:ANTI[- ]?M[UÜ]LLERIANO|AMH|HAM)[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
+    /(?:AMH|Anti[- ]?M[üuÜU]lleriano|HAM)[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
 
-  tryExtractNumeric('potassio', [
-    /(?:Pot[áaÁA]ssio)[\s:.\-]*?(\d[.,]\d)/i,
-  ]);
-
-  tryExtractNumeric('fosforo', [
-    /(?:F[óoÓO]sforo)[\s:.\-]*?(\d[.,]\d)/i,
-  ]);
-
-  tryExtractNumeric('magnesio', [
-    /(?:Magn[éeÉE]sio)[\s:.\-]*?(\d[.,]\d)/i,
-  ]);
-
-  tryExtractNumeric('selenio', [
-    /(?:Sel[êeÊE]nio)[\s:.\-]*?(\d{2,3})/i,
-  ]);
-
-  tryExtractNumeric('cromo', [
-    /(?:Cromo)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|superior\s+a\s+[\d,\.]+|[<>]?\s*\d+[.,]?\d*)/i,
-  ]);
-
+  // Aldosterona
   tryExtractNumeric('aldosterona', [
+    /ALDOSTERONA[\s,]{0,20}(?:soro)?[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
     /(?:Aldosterona)[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
 
+  // 1,25-Dihidroxivitamina D
   tryExtractNumeric('vitamina_d_125', [
+    /1[,.]25[- ]?DIHIDROXI\s*VITAMINA\s*D[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
+    /1[,.]25[- ]?DIHIDROXIVITAMINA\s*D[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
     /(?:1[,.]25[- ]?(?:Di)?[Hh]idroxi|CALCITRIOL)[\s\S]*?(?:Resultado|:)\s*(\d+[.,]?\d*)/i,
     /(?:1[,.]25[- ]?(?:Di)?[Hh]idroxi)[^0-9]*?(\d+[.,]\d+)/i,
   ]);
 
-  // T4 Total — match "TIROXINA (T4)" WITHOUT "LIVRE", or explicit "T4 Total"
-  tryExtractNumeric('t4_total', [
-    /(?:T4\s+Total|Tiroxina\s+Total|Tiroxina\s*\(T4\)\s*-?\s*Total)[\s:.\-]*?(\d+[.,]?\d*)/i,
-    /TIROXINA\s*\(T4\)(?!\s*LIVRE)[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)/i,
+  // Magnésio
+  tryExtractNumeric('magnesio', [
+    /MAGN[EÉ]SIO[\s,]{0,20}(?:soro)?[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
+    /(?:Magn[éeÉE]sio)[\s:.\-]*?(\d[.,]\d)/i,
   ]);
 
-  // T3 Total — match "TRIIODOTIRONINA (T3)" WITHOUT "LIVRE", or explicit "T3 Total"
-  if (!found.has('t3_total')) {
-    tryExtractNumeric('t3_total', [
-      /(?:T3\s+Total|Triiodotironina\s+Total|Triiodotironina\s*\(T3\)\s*-?\s*Total)[\s:.\-]*?(\d+[.,]?\d*)/i,
-      /TRIIODOTIRONINA\s*\(T3\)(?!\s*LIVRE)[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)/i,
-    ]);
-  }
-
-  tryExtractNumeric('estrona', [
-    /(?:Estrona|ESTRONA\s*\(E1\))[\s:.\-]*?(\d+[.,]?\d*)/i,
+  // Selênio
+  tryExtractNumeric('selenio', [
+    /SEL[EÊ]NIO[\s,]{0,20}(?:plasma|soro)?[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
+    /(?:Sel[êeÊE]nio)[\s:.\-]*?(\d{2,3})/i,
   ]);
 
-  tryExtractNumeric('amh', [
-    /(?:AMH|Anti[- ]?M[üuÜU]lleriano|HAM)[\s:.\-]*?(\d+[.,]?\d*)/i,
+  // Cromo (geralmente "inferior a 0,70")
+  tryExtractNumeric('cromo', [
+    /CROMO[\s,]{0,20}(?:plasma|soro)?[\s\S]{0,300}?RESULTADO\s*[:\s]*(inferior\s+a\s+[\d,\.]+|[\d,\.]+)/i,
+    /(?:Cromo)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|superior\s+a\s+[\d,\.]+|[<>]?\s*\d+[.,]?\d*)/i,
   ]);
 
+  // Fosfatase Alcalina
+  tryExtractNumeric('fosfatase_alcalina', [
+    /FOSFATASE\s+ALCALINA[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
+    /(?:Fosfatase\s+Alcalina|FOSFATASE\s+ALCALINA)[\s:.\-]*?(\d+)/i,
+  ]);
+
+  // Sódio
+  tryExtractNumeric('sodio', [
+    /S[OÓ]DIO[\s,]{0,20}(?:soro)?[\s\S]{0,300}?RESULTADO\s*[:\s]*(1\d{2}(?:[,\.]\d)?)/i,
+    /(?:S[óoÓO]dio)[\s:.\-]*?(1[0-9]{2})/i,
+  ]);
+
+  // Potássio
+  tryExtractNumeric('potassio', [
+    /POT[AÁ]SSIO[\s,]{0,20}(?:soro)?[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
+    /(?:Pot[áaÁA]ssio)[\s:.\-]*?(\d[.,]\d)/i,
+  ]);
+
+  // Fósforo
+  tryExtractNumeric('fosforo', [
+    /F[OÓ]SFORO\s*(?:INORG[AÂ]NICO)?[\s,]{0,20}(?:soro)?[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
+    /(?:F[óoÓO]sforo)[\s:.\-]*?(\d[.,]\d)/i,
+  ]);
+
+  // Calcitonina (geralmente "inferior a 1")
   tryExtractNumeric('calcitonina', [
+    /CALCITONINA[\s,]{0,20}(?:soro)?[\s\S]{0,300}?RESULTADO\s*[:\s]*(inferior\s+a\s+[\d,\.]+|[<>]\s*[\d,\.]+|[\d,\.]+)/i,
     /(?:Calcitonina)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|superior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*)/i,
     /(?:Calcitonina)[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
 
+  // Anti-TPO
   tryExtractNumeric('anti_tpo', [
-    /(?:Anti[- ]?TPO|ANTI[- ]?TPO|ANTICORPO\s+ANTI\s*TPO|ANTI[- ]?PEROXIDASE\s+TIRO?IDIANA)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*)/i,
+    /ANTI[- ]?PEROXIDASE\s+TIRO?IDIANA[\s\S]{0,300}?RESULTADO\s*[:\s]*(inferior\s+a\s+[\d,\.]+|[<>]\s*[\d,\.]+|[\d,\.]+)/i,
+    /(?:Anti[- ]?TPO|ANTI[- ]?TPO|ANTICORPO\s+ANTI\s*TPO)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*)/i,
     /(?:Anti[- ]?TPO|ANTI[- ]?TPO|ANTI[- ]?PEROXIDASE)[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
 
+  // Anti-TG
   tryExtractNumeric('anti_tg', [
+    /ANTI\s*TIRO?GLOBULINA[\s\S]{0,300}?RESULTADO\s*[:\s]*(inferior\s+a\s+[\d,\.]+|[<>]\s*[\d,\.]+|[\d,\.]+)/i,
     /(?:Anti[- ]?TG|Anti[- ]?Tireoglobulina|ANTICORPOS?\s+ANTI\s*TIREOGLOBULINA|ANTITIROGLOBULINA|ANTICORPOS?\s+ANTITIROGLOBULINA)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*)/i,
     /(?:Anti[- ]?TG|Anti[- ]?Tireoglobulina|ANTITIROGLOBULINA)[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
 
+  // TRAb
   tryExtractNumeric('trab', [
+    /ANTI[- ]?RECEPTOR\s+DE\s+TSH[\s\S]{0,300}?RESULTADO\s*[:\s]*(inferior\s+a\s+[\d,\.]+|[<>]\s*[\d,\.]+|[\d,\.]+)/i,
     /(?:TRAb|TRAB|Anti[- ]?[Rr]eceptor\s+(?:de\s+)?TSH)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*)/i,
     /(?:TRAb|TRAB)[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
 
-  // Marcadores Tumorais
+  // Hemoglobina Glicada
+  tryExtractNumeric('hba1c', [
+    /HEMOGLOBINA\s+GLICADA[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)\s*%/i,
+    /(?:HEMOGLOBINA\s+GLICADA|HbA1c|HB\s+GLICADA|A1C)[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)\s*%/i,
+    /(?:HEMOGLOBINA\s+GLICADA|HbA1c)[\s:.\-]*?(\d+[.,]?\d*)/i,
+  ]);
+
+  // Glicose
+  tryExtractNumeric('glicose_jejum', [
+    /GLICOSE[\s,]{0,20}(?:plasma|soro)?[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)\s*mg/i,
+    /(?:GLICOSE|GLICEMIA)[\s,]*(?:plasma|soro|DE\s+JEJUM)?[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)\s*mg/i,
+    /(?:GLICOSE|GLICEMIA)[\s:.\-]*?(\d{2,3})\s*mg/i,
+  ]);
+
+  // Insulina
+  tryExtractNumeric('insulina_jejum', [
+    /INSULINA[\s,]{0,20}(?:soro)?[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
+    /(?:INSULINA)[\s,]*(?:soro|BASAL)?[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)/i,
+  ]);
+
+  // ===== MARCADORES TUMORAIS =====
   tryExtractNumeric('ca_19_9', [
+    /CA\s*19[.-]9[\s,]{0,20}(?:soro)?[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
     /(?:CA\s*19[.\-]9)[\s:.\-]*?([<>]?\s*\d+[.,]?\d*)/i,
   ]);
   tryExtractNumeric('ca_125', [
+    /CA[- ]?125[\s,]{0,20}(?:soro)?[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
     /(?:CA[- ]?125)[\s:.\-]*?([<>]?\s*\d+[.,]?\d*)/i,
   ]);
   tryExtractNumeric('ca_72_4', [
+    /CA\s*72[.-]4[\s,]{0,20}(?:soro)?[\s\S]{0,300}?RESULTADO\s*[:\s]*(inferior\s+a\s+[\d,\.]+|[<>]\s*[\d,\.]+|[\d,\.]+)/i,
     /(?:CA\s*72[.\-]4)[\s:.\-]*?([<>]?\s*\d+[.,]?\d*)/i,
   ]);
   tryExtractNumeric('ca_15_3', [
+    /CA\s*15[.-]3[\s,]{0,20}(?:soro)?[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
     /(?:CA\s*15[.\-]3)[\s:.\-]*?([<>]?\s*\d+[.,]?\d*)/i,
   ]);
   tryExtractNumeric('afp', [
+    /ALFA[- ]?FETOPROTE[IÍ]NA[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
     /(?:AFP|Alfafetoprote[íi]na|Alfa[- ]?feto[- ]?prote[íi]na)[\s:.\-]*?([<>]?\s*\d+[.,]?\d*)/i,
   ]);
   tryExtractNumeric('cea', [
+    /(?:ANTIGENO\s+)?CARCINOEMBRION[AÁ]RIO[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
+    /\bCEA[\s,]{0,20}(?:soro)?[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
     /(?:CEA|Ant[íi]geno\s+Carcinoembrion[áa]rio)[\s:.\-]*?([<>]?\s*\d+[.,]?\d*)/i,
   ]);
 
   // Additional commonly missed
   tryExtractNumeric('acido_folico', [
+    /[AÁ]CIDO\s+F[OÓ]LICO[\s\S]{0,300}?RESULTADO\s*[:\s]*(superior\s+a\s+[\d,\.]+|inferior\s+a\s+[\d,\.]+|[\d,\.]+)/i,
     /(?:[ÁAáa]cido\s+F[óoÓO]lico|Folato)[\s:.\-]*?(superior\s+a\s+[\d,\.]+|inferior\s+a\s+[\d,\.]+|[<>]?\s*\d+[.,]?\d*)/i,
+  ]);
+  tryExtractNumeric('homocisteina', [
+    /HOMOCISTE[IÍ]NA[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
+    /(?:Homociste[íi]na)[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
   tryExtractNumeric('vitamina_a', [
     /(?:Vitamina\s+A|Retinol)[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
   tryExtractNumeric('vitamina_c', [
     /(?:Vitamina\s+C|[ÁAáa]cido\s+Asc[óo]rbico)[\s:.\-]*?(\d+[.,]?\d*)/i,
-  ]);
-  tryExtractNumeric('homocisteina', [
-    /(?:Homociste[íi]na)[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
   tryExtractNumeric('bilirrubina_total', [
     /(?:Bilirrubina\s+Total)[\s:.\-]*?(\d+[.,]?\d*)/i,
@@ -996,21 +1061,9 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
     /(?:Bicarbonato|BICARBONATO|CO2\s*Total)[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
 
-  // ===== GLICEMIA — commonly missed by AI =====
-  tryExtractNumeric('hba1c', [
-    /(?:HEMOGLOBINA\s+GLICADA|HbA1c|HB\s+GLICADA|A1C)[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)\s*%/i,
-    /(?:HEMOGLOBINA\s+GLICADA|HbA1c)[\s:.\-]*?(\d+[.,]?\d*)/i,
-  ]);
-  tryExtractNumeric('glicose_jejum', [
-    /(?:GLICOSE|GLICEMIA)[\s,]*(?:plasma|soro|DE\s+JEJUM)?[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)\s*mg/i,
-    /(?:GLICOSE|GLICEMIA)[\s:.\-]*?(\d{2,3})\s*mg/i,
-  ]);
-  tryExtractNumeric('insulina_jejum', [
-    /(?:INSULINA)[\s,]*(?:soro|BASAL)?[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)/i,
-  ]);
-
   // ===== PTH =====
   tryExtractNumeric('pth', [
+    /PARATORM[OÔ]NIO[\s\S]{0,300}?RESULTADO\s*[:\s]*([\d,\.]+)/i,
     /(?:PARATORM[OÔ]NIO|PTH\s*(?:INTACTO|MOL[EÉ]CULA))[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)/i,
     /(?:PTH|PARATORM[OÔ]NIO)[\s:.\-]*?(\d+[.,]?\d*)/i,
   ]);
@@ -1018,8 +1071,8 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   // ===== IGFBP-3 (Fleury reports in ng/mL, need ÷1000) =====
   if (!found.has('igfbp3')) {
     const igfPatterns = [
+      /(?:IGFBP[- ]?3|PROTEINA\s+LIGADORA[- ]?3\s+DO\s+FATOR)[\s\S]{0,500}?RESULTADO\s*[:\s]*([\d.,]+)/i,
       /IGFBP[- ]?3[\s\S]*?(?:RESULTADO|:)\s*([\d.,]+)\s*ng\/mL/i,
-      /PROTEINA\s+LIGADORA[- ]?3\s+DO\s+FATOR[\s\S]*?(?:RESULTADO|:)\s*([\d.,]+)/i,
       /FATOR\s+DE\s+CRESCIMENTO\s+SIMILE[\s\S]*?(?:RESULTADO|:)\s*([\d.,]+)/i,
     ];
     for (const pat of igfPatterns) {
