@@ -287,11 +287,10 @@ export default function PatientDetail() {
 
       // Clean up text: remove repetitive headers, footers, and boilerplate
       const cleanedLines = fullText.split("\n").filter((line) => {
-        // Normalize multiple spaces into single for matching
         const normalized = line.trim().replace(/\s+/g, " ");
         if (!normalized) return false;
         if (normalized.length < 3) return false;
-        // Skip repeated headers/footers/boilerplate from lab reports
+        // Skip repeated headers/footers/boilerplate
         if (/^Cliente:/i.test(normalized)) return false;
         if (/^Data de Nascimento:/i.test(normalized)) return false;
         if (/^Médico:.*CRM/i.test(normalized)) return false;
@@ -303,74 +302,54 @@ export default function PatientDetail() {
         if (/^CRM:.*RESPONSÁVEL/i.test(normalized)) return false;
         if (/^A interpretação do resultado/i.test(normalized)) return false;
         if (/^Avenida|^Rua |^Impresso em:/i.test(normalized)) return false;
-        if (/^Página:/i.test(normalized)) return false;
+        if (/^Página:|^Páginas:/i.test(normalized)) return false;
         if (/^-{3,}/.test(normalized)) return false;
         if (/^={3,}/.test(normalized)) return false;
-        // Skip verbose reference notes/descriptions
+        if (/^www\./i.test(normalized)) return false;
+        if (/confiance/i.test(normalized)) return false;
+        if (/^CAMPINAS|^INDAIATUBA/i.test(normalized)) return false;
+        if (/^0[A-F0-9]{30,}/i.test(normalized)) return false; // digital signatures
+        if (/^O valor preditivo/i.test(normalized)) return false;
+        // Skip patient/lab identifying info repeated per page
+        if (/^Nome:/i.test(normalized)) return false;
+        if (/^Código:/i.test(normalized)) return false;
+        if (/^Posto:/i.test(normalized)) return false;
+        if (/^CNES:/i.test(normalized)) return false;
+        if (/^Dr\.\(a\):/i.test(normalized)) return false;
+        if (/^Recepção:/i.test(normalized)) return false;
+        if (/^RG\/Passaporte:/i.test(normalized)) return false;
+        if (/^Entrega:/i.test(normalized)) return false;
+        if (/^PALC/i.test(normalized)) return false;
+        if (/^SBPC/i.test(normalized)) return false;
+        if (/^Laboratório\. CRM/i.test(normalized)) return false;
+        if (/^Medicina Diagnóstica/i.test(normalized)) return false;
+        // Skip "Resultados Anteriores" lines and their date-value pairs
+        if (/^Resultados? Anteriore?s?:/i.test(normalized)) return false;
+        if (/^\d{2}\/\d{2}\/\d{4}\s*-\s*[\d<>,. ]+$/i.test(normalized)) return false;
+        // Skip method/collection/release/review metadata
+        if (/^Material:/i.test(normalized)) return false;
+        if (/^Método:/i.test(normalized)) return false;
+        if (/^Coleta:/i.test(normalized)) return false;
+        if (/^Liberação:/i.test(normalized)) return false;
+        if (/^Revisão:/i.test(normalized)) return false;
+        if (/^Observações gerais:/i.test(normalized)) return false;
+        if (/^Exame realizado pelo/i.test(normalized)) return false;
+        // Skip reference notes/descriptions
         if (/^NOTA\s*\(?[0-9]*\)?:/i.test(normalized)) return false;
+        if (/^Notas?:/i.test(normalized)) return false;
         if (/^Referências?:/i.test(normalized)) return false;
-        if (/^Atualização da Diretriz/i.test(normalized)) return false;
+        if (/^Referência:/i.test(normalized)) return false;
+        if (/^Atenção para nov/i.test(normalized)) return false;
+        if (/^Limite de detecção/i.test(normalized)) return false;
+        // Skip verbose clinical descriptions
+        if (normalized.length > 120 && !/\d+[.,]\d+/.test(normalized)) return false;
+        // Skip age/sex specific reference text
         if (/^Paciente de (baixo|risco|alto|muito)/i.test(normalized)) return false;
         if (/^(Desejável|Ótimo|Limítrofe|Alto|Muito alto)\s*:/i.test(normalized)) return false;
         if (/^(Com|Sem) (ou sem )?jejum/i.test(normalized)) return false;
         if (/^Maior ou igual a \d+ anos/i.test(normalized)) return false;
         if (/^Fem:|^Masc:/i.test(normalized)) return false;
-        // Skip long descriptive lines (usually reference explanations)
-        if (normalized.length > 150 && !/\d+[.,]\d+/.test(normalized)) return false;
-        // Skip method descriptions
-        if (/^Método:/i.test(normalized)) return false;
-        // Skip "CARACTERES MORFOLÓGICOS" and related
-        if (/^CARACTERES MORFOLÓGICOS/i.test(normalized)) return false;
-        if (/^não foram observad/i.test(normalized)) return false;
-        if (/^normais$/i.test(normalized)) return false;
-        // Skip common boilerplate patterns from Brazilian labs
-        if (/^pode interferir no resultado/i.test(normalized)) return false;
-        if (/^suspensão da biotina/i.test(normalized)) return false;
-        if (/^incompatibilidade do resultado/i.test(normalized)) return false;
-        if (/^contatar o Laboratório/i.test(normalized)) return false;
-        if (/^interferir neste exame/i.test(normalized)) return false;
-        if (/^no resultado deste exame/i.test(normalized)) return false;
-        if (/^caso de incompatibilidade/i.test(normalized)) return false;
-        if (/^suspensão do uso/i.test(normalized)) return false;
-        if (/^concentrações séricas/i.test(normalized)) return false;
-        if (/^avaliado em conjunto/i.test(normalized)) return false;
-        if (/^deve ser preferencialmente/i.test(normalized)) return false;
-        if (/^Standards of Medical/i.test(normalized)) return false;
-        if (/^Diabetes Care/i.test(normalized)) return false;
-        if (/^Na ausência de hiperglicemia/i.test(normalized)) return false;
-        if (/^resistência à insulina/i.test(normalized)) return false;
-        if (/^Cálculo baseado nos/i.test(normalized)) return false;
-        if (/^Vermeulen/i.test(normalized)) return false;
-        if (/^estudo com \d+ mil amostras/i.test(normalized)) return false;
-        if (/^impedância, com confirmação/i.test(normalized)) return false;
-        if (/^morfológica realizad/i.test(normalized)) return false;
-        if (/^laudo foram estabelecidos/i.test(normalized)) return false;
-        if (/^definidos valores de metas/i.test(normalized)) return false;
-        if (/^da Aterosclerose/i.test(normalized)) return false;
-        if (/^Sociedade Brasileira/i.test(normalized)) return false;
-        if (/^Brasileira de Cardiologia/i.test(normalized)) return false;
-        if (/^condições de coleta/i.test(normalized)) return false;
-        if (/^critério médico/i.test(normalized)) return false;
-        if (/^abstinência de bebidas/i.test(normalized)) return false;
-        if (/^repetição após/i.test(normalized)) return false;
-        if (/^eventualidade de/i.test(normalized)) return false;
-        if (/^neste laudo/i.test(normalized)) return false;
-        if (/^para doença autoimune/i.test(normalized)) return false;
-        if (/^anticorpos anti/i.test(normalized)) return false;
-        if (/^variações entre valores/i.test(normalized)) return false;
-        if (/^resultado conflitante/i.test(normalized)) return false;
-        if (/^favor contatar/i.test(normalized)) return false;
-        if (/^assessoria médica/i.test(normalized)) return false;
-        if (/^massas em tandem/i.test(normalized)) return false;
-        if (/^de valores elevados/i.test(normalized)) return false;
-        if (/^como hormônios ester/i.test(normalized)) return false;
-        if (/^tais medicações/i.test(normalized)) return false;
-        if (/^Esse valor de hemoglobina/i.test(normalized)) return false;
-        if (/^Indivíduos (sem|com) diabetes/i.test(normalized)) return false;
-        if (/^A meta de A1C/i.test(normalized)) return false;
         if (/^Menor que \d|^Maior que \d|^Maior ou igual a \d/i.test(normalized)) return false;
-        if (/^\d+,?\d* a \d+,?\d* (mg|g|microg|ng|pmol|nmol|mU|UI|U\/|fL|pg|%|mm)/i.test(normalized)) return false;
-        // Skip lines that are purely age/sex reference ranges
         if (/^De \d+ a \d+ anos/i.test(normalized)) return false;
         if (/^Acima de \d+ anos/i.test(normalized)) return false;
         if (/^Até \d+ anos/i.test(normalized)) return false;
@@ -380,18 +359,55 @@ export default function PatientDetail() {
         if (/^Adultos:/i.test(normalized)) return false;
         if (/^Homens:|^Mulheres:/i.test(normalized)) return false;
         if (/^Fase Folicular|^Pico Ovulatório|^Fase Lútea|^Menopausa/i.test(normalized)) return false;
-        if (/^Colhido as \d/i.test(normalized)) return false;
-        if (/^Condições basais/i.test(normalized)) return false;
-        if (/^Para condições basais/i.test(normalized)) return false;
-        if (/^por \d+[.,]\d+/i.test(normalized)) return false;
-        if (/^de \d+ anos de idade/i.test(normalized)) return false;
-        // Skip lines with only reference range numbers
+        // Skip Tanner stages
+        if (/^Estágio de Tanner/i.test(normalized)) return false;
+        // Skip newborn reference values
+        if (/^Recém-nascido/i.test(normalized)) return false;
+        if (/^\d+ dias?:/i.test(normalized)) return false;
+        if (/^Sangue de cordão/i.test(normalized)) return false;
+        // Skip boilerplate clinical notes
+        if (/^pode interferir/i.test(normalized)) return false;
+        if (/^suspensão da biotina/i.test(normalized)) return false;
+        if (/^Pacientes em tratamento/i.test(normalized)) return false;
+        if (/^incompatibilidade do resultado/i.test(normalized)) return false;
+        if (/^Na ausência de hiperglicemia/i.test(normalized)) return false;
+        if (/^Standards of Medical/i.test(normalized)) return false;
+        if (/^Diabetes Care/i.test(normalized)) return false;
+        if (/^Cálculo baseado nos/i.test(normalized)) return false;
+        if (/^Vermeulen/i.test(normalized)) return false;
+        if (/^A estimativa da taxa/i.test(normalized)) return false;
+        if (/^O uso da estimativa/i.test(normalized)) return false;
+        if (/^Fonte da Fórmula/i.test(normalized)) return false;
+        if (/^Miller WG/i.test(normalized)) return false;
+        if (/^Imunoensaio para/i.test(normalized)) return false;
+        if (/^Um resultado normal/i.test(normalized)) return false;
+        if (/^No caso de obter/i.test(normalized)) return false;
+        if (/^Quando se determina/i.test(normalized)) return false;
+        if (/^Diferenças nos resultados/i.test(normalized)) return false;
+        if (/^A concentração de ferro/i.test(normalized)) return false;
+        if (/^LDL, VLDL/i.test(normalized)) return false;
+        if (/^Valores de Colesterol/i.test(normalized)) return false;
+        if (/^A interpretação clínica/i.test(normalized)) return false;
+        if (/^Para valores de triglicérides/i.test(normalized)) return false;
+        if (/^Consenso Brasileiro/i.test(normalized)) return false;
+        if (/^AC-##/i.test(normalized)) return false;
+        if (/^Diluição de triagem/i.test(normalized)) return false;
+        if (/^Para informações sobre/i.test(normalized)) return false;
+        if (/^Frequência de FAN/i.test(normalized)) return false;
+        if (/^Resultados reagentes/i.test(normalized)) return false;
+        if (/^A definição do Padrão/i.test(normalized)) return false;
+        if (/^Os padrões complexos/i.test(normalized)) return false;
+        if (/^Mulheres em idade fértil/i.test(normalized)) return false;
+        if (/^A NR-7/i.test(normalized)) return false;
+        if (/^O resultado obtido/i.test(normalized)) return false;
+        if (/^IBE\/SC/i.test(normalized)) return false;
+        if (/^CARACTERES MORFOLÓGICOS/i.test(normalized)) return false;
+        // Skip pure reference range lines
+        if (/^\d+,?\d* a \d+,?\d* (mg|g|microg|ng|pmol|nmol|mU|UI|U\/|fL|pg|%|mm|mcg)/i.test(normalized)) return false;
         if (/^\d+ a \d+$/i.test(normalized)) return false;
-        // Skip lines that are just units or short noise
         if (normalized.length < 5 && !/\d/.test(normalized)) return false;
         return true;
       });
-      // Also collapse "--- Página X ---" markers into minimal separators
       const cleanedText = cleanedLines
         .map((l) => l.trim().replace(/\s+/g, " "))
         .filter((l) => !/^--- Página \d+/.test(l))
