@@ -480,12 +480,23 @@ export default function PatientDetail() {
       }
 
       // Pre-fill marker values (numeric and qualitative)
+      // CRITICAL: For numeric markers, prefer `value` (already parsed by AI) over `text_value`
+      // Only use text_value for: qualitative markers OR operator values (< > <= >=)
       const newValues = { ...markerValues };
       results.forEach((r) => {
-        if (r.text_value) {
-          newValues[r.marker_id] = r.text_value;
-        } else if (r.value !== undefined) {
+        const marker = MARKERS.find(m => m.id === r.marker_id);
+        if (marker?.qualitative) {
+          // Qualitative markers: always use text_value
+          if (r.text_value) newValues[r.marker_id] = r.text_value;
+        } else if (r.text_value && /^[<>]=?\s*\d/.test(r.text_value.trim())) {
+          // Operator value (e.g. "< 34", "> 90"): keep as text for display
+          newValues[r.marker_id] = r.text_value.trim();
+        } else if (r.value !== undefined && r.value !== null) {
+          // Numeric marker: use the parsed numeric value (avoids Brazilian decimal issues)
           newValues[r.marker_id] = String(r.value);
+        } else if (r.text_value) {
+          // Fallback: use text_value if no numeric value
+          newValues[r.marker_id] = r.text_value;
         }
       });
       setMarkerValues(newValues);
