@@ -199,8 +199,14 @@ IMPORTANT — Common alternative names in Brazilian lab reports:
 
 Rules:
 - Extract EVERY marker you can find. Be aggressive — if a value looks like it matches a marker, include it.
-- The report may have multiple pages. Search ALL text thoroughly.
+- The report may have multiple pages. Search ALL text thoroughly from start to end.
 - Vitamins, hormones, thyroid, iron, and mineral markers are often at the end — don't stop early.
+- CRITICAL: Extract sub-items within grouped panels. For example:
+  - Hemograma: includes Bastonetes, Segmentados (within differential count), VPM (within platelet section)
+  - Lipidograma: includes Colesterol Não-HDL, VLDL, each listed as sub-items
+  - Bilirrubinas: Total, Direta, AND Indireta — all three
+  - Renal: Creatinina, Ureia, Ácido Úrico, TFG (sometimes listed as "Estimativa" or "Clearance")
+  - Ferro: Ferro Sérico, Ferritina, Transferrina, Sat. Transferrina, AND TIBC
 - Convert values to the expected unit if needed.
 - For Plaquetas, the value in the PDF is usually in thousands (e.g. "336 mil/mm3" → return 336).
 - For Leucócitos, if value is small like "3,9" in thousands/mm³, return 3900. If value is already large like "6500", return 6500.
@@ -220,7 +226,13 @@ Rules:
 - For Testosterona Livre: if the value unit is ng/dL, multiply by 10 to get pg/mL. Example: 0.67 ng/dL → 6.7 pg/mL.
 - For Eletroforese: look for a table with Albumina %, Alfa 1 %, Alfa 2 %, Beta 1 %, Beta 2 %, Gama %, Relação A/G, Proteínas Totais.
 - For PERFIL LIPÍDICO/LIPIDOGRAMA: extract Colesterol Total, HDL, LDL, VLDL, Triglicérides, NÃO-HDL from the results table.
-- mcg = µg (microgram). mcg/dL = µg/dL, mcg/L = µg/L, mcg/24 HORAS = µg/24h.`;
+- mcg = µg (microgram). mcg/dL = µg/dL, mcg/L = µg/L, mcg/24 HORAS = µg/24h.
+- For Aldosterona: may appear as "ALDOSTERONA" or "Aldosterona Sérica".
+- For Amilase and Lipase: pancreatic enzymes, often appear together.
+- For Fosfatase Alcalina: may appear as "FOSFATASE ALCALINA" or "FA".
+- For LDH: "Desidrogenase Láctica" or "LDH" or "DESIDROGENASE LÁTICA".
+- For Cistatina C: "CISTATINA C" or "Cistatina C sérica".
+- IMPORTANT: You must extract AT LEAST 80 markers if they are present. Count your results before returning.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -249,30 +261,32 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `Extract ALL lab results from this Brazilian lab report. Be thorough and extract every single marker you can identify. Pay special attention to these commonly missed markers:
-- VHS (Velocidade de Hemossedimentação)
-- Sódio, Potássio, Magnésio (eletrólitos)
-- Amilase, Lipase (pancreáticos)
-- Aldosterona (adrenal)
-- Selênio, Cobre, Zinco (minerais)
-- Cortisol Livre Urina 24h (NOT cortisol manhã)
-- FAN (NÃO REAGENTE = 0, REAGENTE = 1)
-- Bastonetes, Segmentados (hemograma diferencial)
-- 1,25-Dihidroxi Vitamina D (vitamina_d_125) — different from 25-OH Vitamina D
-- Eletroforese de Proteínas: Albumina %, Alfa 1 %, Alfa 2 %, Beta 1 %, Beta 2 %, Gama %, Relação A/G, Proteínas Totais
-- Fósforo
-- Relação CT/HDL, Relação TG/HDL (calculáveis se CT, HDL, TG estiverem presentes)
-- Fibrinogênio, Apo A-1, Apo B, Lipoproteína(a), Colesterol Não-HDL
-- IGF-1, IGFBP-3, ACTH, Dihidrotestosterona
-- Bilirrubina Indireta, VPM
-- Transferrina
+            content: `Extract ALL lab results from this Brazilian lab report. Target: ~85+ markers. Be exhaustive.
 
-IMPORTANT: Search the ENTIRE text. Do NOT stop early. Markers can appear anywhere.\n\n${textToSend}`,
+COMMONLY MISSED — search explicitly for each:
+- Hemograma diferencial: Bastonetes, Segmentados, VPM
+- Eletrólitos: Sódio, Potássio, Magnésio, Fósforo, Cloro, Bicarbonato
+- Pancreáticos: Amilase, Lipase
+- Adrenal: Aldosterona, ACTH, Cortisol Livre Urina 24h
+- Minerais: Selênio, Cobre, Zinco, Manganês, Cromo, Iodo Urinário
+- Lipídios avançados: Apo A-1, Apo B, Lipoproteína(a), Colesterol Não-HDL, CT/HDL, TG/HDL
+- Ferro completo: Transferrina, TIBC, Sat. Transferrina
+- Vitaminas: 25-OH Vitamina D (vitamina_d) AND 1,25-Dihidroxi Vitamina D (vitamina_d_125) — TWO SEPARATE markers
+- Vitaminas B1, B6, E
+- Hepático: Fosfatase Alcalina, LDH, Proteínas Totais, Bilirrubina Indireta
+- Renal: TFG/CKD-EPI, Cistatina C
+- Hormônios: Testosterona Livre, DHT/Dihidrotestosterona, IGF-1, IGFBP-3
+- Imunologia: FAN (0=NÃO REAGENTE, 1=REAGENTE)
+- Coagulação: Fibrinogênio
+- VHS (Velocidade de Hemossedimentação)
+- Eletroforese de Proteínas: Albumina %, Alfa 1 %, Alfa 2 %, Beta 1 %, Beta 2 %, Gama %, Relação A/G
+
+Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSend}`,
           },
         ],
         tools: [
