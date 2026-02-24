@@ -219,7 +219,7 @@ export default function PatientDetail() {
       patient.name,
       sex,
       sessions,
-      (data || []).map((r) => ({ marker_id: r.marker_id, session_id: r.session_id, value: r.value }))
+      (data || []).map((r) => ({ marker_id: r.marker_id, session_id: r.session_id, value: r.value ?? 0, text_value: r.text_value ?? undefined }))
     );
     toast({ title: "Relatório exportado!" });
   };
