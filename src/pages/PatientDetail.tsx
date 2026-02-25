@@ -74,6 +74,7 @@ export default function PatientDetail() {
   const [nameValue, setNameValue] = useState("");
   const [verificationOpen, setVerificationOpen] = useState(false);
   const [lastPdfText, setLastPdfText] = useState("");
+  const [lastRawPdfText, setLastRawPdfText] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -510,6 +511,7 @@ export default function PatientDetail() {
       });
       setMarkerValues(newValues);
       setLastPdfText(cleanedText);
+      setLastRawPdfText(fullText);
       setVerificationOpen(true);
 
       toast({ title: `${results.length} marcadores importados!`, description: "Revise os valores antes de salvar." });
@@ -673,6 +675,7 @@ export default function PatientDetail() {
           onClose={() => setVerificationOpen(false)}
           importedMarkers={markerValues}
           pdfText={lastPdfText}
+          rawPdfText={lastRawPdfText}
         />
       </div>
     </AppLayout>
