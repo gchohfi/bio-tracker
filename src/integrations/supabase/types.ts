@@ -18,6 +18,9 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          lab_ref_max: number | null
+          lab_ref_min: number | null
+          lab_ref_text: string | null
           marker_id: string
           session_id: string
           text_value: string | null
@@ -26,6 +29,9 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          lab_ref_max?: number | null
+          lab_ref_min?: number | null
+          lab_ref_text?: string | null
           marker_id: string
           session_id: string
           text_value?: string | null
@@ -34,6 +40,9 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          lab_ref_max?: number | null
+          lab_ref_min?: number | null
+          lab_ref_text?: string | null
           marker_id?: string
           session_id?: string
           text_value?: string | null
