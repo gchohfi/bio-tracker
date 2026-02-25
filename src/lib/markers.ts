@@ -86,7 +86,7 @@ export const MARKERS: MarkerDef[] = [
   { id: "trab", name: "TRAb", unit: "UI/L", category: "Tireoide", refRange: { M: [0, 1.75], F: [0, 1.75] } , panel: "Padrão" },
   // Hormônios
   { id: "testosterona_total", name: "Testosterona Total", unit: "ng/dL", category: "Hormônios", refRange: { M: [500, 900], F: [15, 70] } , panel: "Padrão" },
-  { id: "testosterona_livre", name: "Testosterona Livre", unit: "ng/dL", category: "Hormônios", refRange: { M: [1.5, 2.5], F: [0.10, 0.50] } , panel: "Padrão" },
+  { id: "testosterona_livre", name: "Testosterona Livre", unit: "ng/dL", category: "Hormônios", refRange: { M: [5.0, 21.0], F: [0.10, 0.50] } , panel: "Padrão" },
   { id: "testosterona_biodisponivel", name: "Testosterona Biodisponível", unit: "ng/dL", category: "Hormônios", refRange: { M: [70, 250], F: [0.5, 8.5] } , panel: "Padrão" },
   { id: "estradiol", name: "Estradiol", unit: "pg/mL", category: "Hormônios", refRange: { M: [20, 40], F: [12, 233] } , panel: "Padrão" },
   { id: "estrona", name: "Estrona (E1)", unit: "pg/mL", category: "Hormônios", refRange: { M: [10, 60], F: [17, 200] } , panel: "Padrão" },
@@ -224,6 +224,8 @@ export const MARKERS: MarkerDef[] = [
   { id: "urina_urobilinogenio", name: "Urobilinogênio", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Padrão" },
   { id: "urina_cetona", name: "Cetonas", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Padrão" },
   { id: "urina_muco", name: "Muco/Filamentos (urina)", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Adicional" },
+  { id: "urina_albumina", name: "Albumina (urina)", unit: "g/L", category: "Urina", refRange: { M: [0, 0.03], F: [0, 0.03] } , panel: "Padrão" },
+  { id: "urina_creatinina", name: "Creatinina (urina)", unit: "mg/dL", category: "Urina", refRange: { M: [50, 300], F: [50, 300] } , panel: "Padrão" },
   // Coprológico Funcional
   { id: "copro_cor", name: "Cor (fezes)", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Adicional" },
   { id: "copro_consistencia", name: "Consistência", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Adicional" },
@@ -240,6 +242,12 @@ export const MARKERS: MarkerDef[] = [
   { id: "copro_ac_graxos", name: "Ácidos Graxos", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Adicional" },
   { id: "copro_flora", name: "Flora Bacteriana", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Adicional" },
   { id: "copro_ph", name: "pH Fecal", unit: "", category: "Fezes", refRange: { M: [6.0, 7.5], F: [6.0, 7.5] } , panel: "Adicional" },
+  // PSA (Antígeno Prostático Específico) — masculino
+  { id: "psa_total", name: "PSA Total", unit: "ng/mL", category: "Hormônios", refRange: { M: [0, 2.5], F: [0, 0] } , panel: "Padrão" },
+  { id: "psa_livre", name: "PSA Livre", unit: "ng/mL", category: "Hormônios", refRange: { M: [0, 0.5], F: [0, 0] } , panel: "Adicional" },
+  { id: "psa_relacao", name: "PSA Livre/Total (%)", unit: "%", category: "Hormônios", refRange: { M: [25, 100], F: [0, 0] } , panel: "Adicional" },
+  // Glicemia Média Estimada (derivada do HbA1c)
+  { id: "glicemia_media_estimada", name: "Glicemia Média Estimada", unit: "mg/dL", category: "Glicemia", refRange: { M: [80, 115], F: [80, 115] } , panel: "Adicional" },
 ];
 
 /**

@@ -186,6 +186,8 @@ const MARKER_LIST = [
   { id: "urina_urobilinogenio", name: "Urobilinogênio (urina)", unit: "", qualitative: true },
   { id: "urina_cetona", name: "Cetonas (urina)", unit: "", qualitative: true },
   { id: "urina_muco", name: "Muco/Filamentos (urina)", unit: "", qualitative: true },
+  { id: "urina_albumina", name: "Albumina (urina)", unit: "g/L" },
+  { id: "urina_creatinina", name: "Creatinina (urina)", unit: "mg/dL" },
   // Qualitative markers - Coprológico
   { id: "copro_cor", name: "Cor (fezes)", unit: "", qualitative: true },
   { id: "copro_consistencia", name: "Consistência (fezes)", unit: "", qualitative: true },
@@ -202,6 +204,12 @@ const MARKER_LIST = [
   { id: "copro_ac_graxos", name: "Ácidos Graxos (fezes)", unit: "", qualitative: true },
   { id: "copro_flora", name: "Flora Bacteriana (fezes)", unit: "", qualitative: true },
   { id: "copro_ph", name: "pH Fecal", unit: "" },
+  // PSA
+  { id: "psa_total", name: "PSA Total", unit: "ng/mL" },
+  { id: "psa_livre", name: "PSA Livre", unit: "ng/mL" },
+  { id: "psa_relacao", name: "PSA Livre/Total", unit: "%" },
+  // Glicemia Média Estimada
+  { id: "glicemia_media_estimada", name: "Glicemia Média Estimada", unit: "mg/dL" },
 ];
 
 const QUALITATIVE_IDS = new Set(MARKER_LIST.filter(m => (m as any).qualitative).map(m => m.id));
@@ -484,7 +492,10 @@ ELETROFORESE DE PROTEÍNAS:
 
 URINA TIPO 1 / EAS:
 - "URINA TIPO 1" / "EAS" / "URINA ROTINA" / "PARCIAL DE URINA" / "URINÁLISE" / "URINA TIPO I" / "URINA TIPO I - JATO MEDIO" / "URINA TIPO I - JATO MÉDIO" → extract ALL sub-items as qualitative
-- Sub-items: urina_cor, urina_aspecto, urina_densidade, urina_ph, urina_proteinas, urina_glicose, urina_hemoglobina, urina_leucocitos, urina_hemacias, urina_bacterias, urina_celulas, urina_cilindros, urina_cristais, urina_nitritos, urina_bilirrubina, urina_urobilinogenio, urina_cetona, urina_muco
+- Sub-items: urina_cor, urina_aspecto, urina_densidade, urina_ph, urina_proteinas, urina_glicose, urina_hemoglobina, urina_leucocitos, urina_hemacias, urina_bacterias, urina_celulas, urina_cilindros, urina_cristais, urina_nitritos, urina_bilirrubina, urina_urobilinogenio, urina_cetona, urina_muco, urina_albumina, urina_creatinina
+- urina_albumina: numeric value in g/L (microalbuminuria section, e.g. 0.01 g/L). Do NOT confuse with serum albumin.
+- urina_creatinina: numeric value in mg/dL from urine creatinine (e.g. 200 mg/dL). Do NOT confuse with serum creatinine.
+- PSA: extract psa_total (ng/mL), psa_livre (ng/mL), and psa_relacao (% = PSA Livre/PSA Total × 100) when present.
 - SEDIMENTO QUANTITATIVO section (Fleury): extract numeric /mL values:
   - "Leucócitos" with value in /mL → urina_leucocitos_quant (numeric, NOT qualitative)
   - "Hemácias" / "Eritrócitos" with value in /mL → urina_hemacias_quant (numeric, NOT qualitative)
@@ -650,9 +661,12 @@ function validateAndFixValues(results: any[]): any[] {
     igf1: { min: 20, max: 1000 },
     // Andrógenos
     dihidrotestosterona: { min: 50, max: 2000, fix: (v) => v < 50 ? v * 10 : v, label: "DHT ×10" },
-    // Testosterona Livre: expected ng/dL (0.01–2.0). If AI returned pmol/L (~2–60) → ÷34.7 to get ng/dL.
-    // If AI returned pg/mL (~0.1–20) → ÷10 to get ng/dL.
-    testosterona_livre: { min: 0.01, max: 2.0, fix: (v) => v > 2.0 && v <= 70 ? v / 34.7 : v > 70 ? v / 1000 : v, label: "testosterona_livre pmol→ng/dL" },
+    // Testosterona Livre: expected ng/dL.
+    // Faixa funcional feminina: 0.10–0.50 ng/dL. Faixa funcional masculina: 5.0–21.0 ng/dL.
+    // Se AI retornar pmol/L (ex: 2–70 pmol/L para mulheres, 170–2400 pmol/L para homens) → ÷34.7.
+    // Se AI retornar pg/mL (ex: 1–20 pg/mL para mulheres, 50–700 pg/mL para homens) → ÷10.
+    // Não converter valores já em ng/dL (0.01–25 ng/dL cobre ambos os sexos).
+    testosterona_livre: { min: 0.01, max: 25.0, fix: (v) => v > 25.0 && v <= 700 ? v / 34.7 : v > 700 ? v / 1000 : v, label: "testosterona_livre pmol→ng/dL" },
     // Estrona: expected pg/mL (5–200). If AI returned ng/dL (~0.5–20) → ×10 to get pg/mL.
     estrona: { min: 5, max: 500, fix: (v) => v < 5 ? v * 10 : v, label: "estrona ng/dL→pg/mL" },
     // Tireoide
@@ -694,8 +708,12 @@ function validateAndFixValues(results: any[]): any[] {
     potassio: { min: 2, max: 8 },
     fosforo: { min: 1, max: 10 },
     magnesio: { min: 0.5, max: 5 },
-    // Inflamação
-    pcr: { min: 0, max: 200 },
+    // Inflação
+    // PCR: esperado em mg/L (faixa funcional 0–1.0 mg/L).
+    // Alguns labs reportam em mg/dL (ex: 0.12 mg/dL = 1.2 mg/L).
+    // Se valor < 2 e unidade parece mg/dL (valores típicos 0.01–1.5 mg/dL) → ×10 para mg/L.
+    // Limite: se valor < 2.0 → provavelmente mg/dL → ×10.
+    pcr: { min: 0, max: 200, fix: (v) => v < 2.0 ? v * 10 : v, label: "pcr mg/dL→mg/L" },
     // Glicemia
     glicose_jejum: { min: 40, max: 500 },
     hba1c: { min: 3, max: 15 },
@@ -712,6 +730,15 @@ function validateAndFixValues(results: any[]): any[] {
     eletroforese_beta2:    { min: 1, max: 10 },
     eletroforese_gama:     { min: 5, max: 30 },
     relacao_ag:            { min: 0.8, max: 4.0 },
+    // PSA
+    psa_total:             { min: 0, max: 100 },
+    psa_livre:             { min: 0, max: 20 },
+    psa_relacao:           { min: 0, max: 100 },
+    // Glicemia Média Estimada
+    glicemia_media_estimada: { min: 50, max: 400 },
+    // Urina quantitativos
+    urina_albumina:        { min: 0, max: 10 },
+    urina_creatinina:      { min: 10, max: 600 },
   };
 
   for (const r of results) {
