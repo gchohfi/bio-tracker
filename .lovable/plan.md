@@ -1,29 +1,17 @@
 
-# Padronizar cor de alerta: valores fora da referencia sempre em VERMELHO
+# Corrigir erro de build: categoria "Sorologia" faltando em generateReport.ts
 
 ## Problema
-Atualmente, valores **abaixo** da faixa de referencia ("low") aparecem em **azul** em varios locais, enquanto valores **acima** ("high") aparecem em **vermelho**. O usuario quer que ambos (baixo e alto) sejam exibidos em **vermelho**, pois ambos representam alerta.
+A categoria `Sorologia` existe em `CATEGORIES` (markers.ts, linha 29) mas nao foi adicionada ao mapa `getCategoryRGB` em `generateReport.ts`. O TypeScript exige que todas as categorias estejam presentes no `Record<Category, ...>`.
 
-A tabela de evolucao (`EvolutionTable.tsx`) ja esta correta -- ambos usam vermelho. Porem outros 2 arquivos usam azul para "low":
+## Correcao
+Adicionar uma unica linha no mapa de cores RGB em `generateReport.ts`, entre `Imunologia` e `Proteinas` (apos linha 57):
 
-## Locais a corrigir
+```
+Sorologia: { r: 130, g: 90, b: 180 },
+```
 
-### 1. `src/pages/PatientDetail.tsx` (formulario de edicao de marcadores)
-- **Linha 874**: `border-blue-400` -> `border-red-400` (borda do input quando baixo)
-- **Linha 883**: `bg-blue-50` -> `bg-red-50` (fundo do card quando baixo)
-- **Linha 912**: `border-blue-400 text-blue-700` -> `border-red-400 text-red-700` (badge "Baixo")
+Cor escolhida: roxo medio, consistente com a paleta existente e distinto das outras categorias.
 
-### 2. `src/lib/generateReport.ts` (relatorio PDF)
-- **Linha 105**: Sparkline dots -- `BLUE` -> `RED` para status "low"
-- **Linha 132**: Status dot -- `BLUE` -> `RED` para status "low"
-- **Linhas 232-234**: Legenda -- trocar dot azul e texto "Abaixo da faixa" para usar `RED`
-- **Linha 410**: Trend symbol -- `BLUE` -> `RED` para seta descendente
-
-### 3. Atualizar texto da legenda no PDF
-- Onde diz "Abaixo da faixa" com cor azul, mudar para cor vermelha (mantendo o texto)
-
-## Resumo das mudancas
-- 3 alteracoes em `PatientDetail.tsx` (blue -> red)
-- 4 alteracoes em `generateReport.ts` (BLUE -> RED)
-- Nenhum arquivo novo criado
-- `EvolutionTable.tsx` ja esta correto, nenhuma alteracao necessaria
+## Arquivos alterados
+- `src/lib/generateReport.ts`: adicionar entrada `Sorologia` no mapa `getCategoryRGB` (1 linha)
