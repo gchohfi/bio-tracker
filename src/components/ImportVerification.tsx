@@ -28,13 +28,43 @@ interface ImportVerificationProps {
   onClose: () => void;
   importedMarkers: Record<string, string>;
   pdfText: string;
+  rawPdfText?: string;
 }
+
+const DERIVED_MARKERS = new Set([
+  "homa_ir",
+  "colesterol_nao_hdl",
+  "bilirrubina_indireta",
+  "relacao_ct_hdl",
+  "relacao_tg_hdl",
+  "relacao_apob_apoa1",
+]);
+
+const MARKER_ALIASES: Record<string, string[]> = {
+  hba1c: ["hemoglobina glicada", "a1c"],
+  pcr: ["proteina c reativa"],
+  vhs: ["hemossedimentacao", "velocidade de hemossedimentacao"],
+  tgp: ["alt", "transaminase piruvica"],
+  tgo: ["ast", "transaminase oxalacetica"],
+  urina_ph: ["ph urinario", "ph urina"],
+  copro_ph: ["ph fecal"],
+};
+
+const normalize = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9%/().\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
 export default function ImportVerification({
   open,
   onClose,
   importedMarkers,
   pdfText,
+  rawPdfText,
 }: ImportVerificationProps) {
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
   // Markers manually marked as "not done" by the patient
@@ -90,26 +120,99 @@ export default function ImportVerification({
     });
   }, [importedMarkers, notDone]);
 
+  const sourcePdfText = rawPdfText || pdfText;
+
   const pdfLines = useMemo(() => {
-    return pdfText
+    return sourcePdfText
       .split("\n")
       .filter((l) => l.trim().length > 0)
-      .slice(0, 500);
-  }, [pdfText]);
+      .slice(0, 1200);
+  }, [sourcePdfText]);
+
+  const markerEvidence = useMemo(() => {
+    const lines = sourcePdfText.split("\n");
+    const normalizedLines = lines.map((line) => normalize(line));
+
+    const findEvidence = (markerId: string, markerName: string) => {
+      const terms = new Set<string>([
+        normalize(markerName),
+        normalize(markerId.replace(/_/g, " ")),
+        normalize(markerId),
+        ...(MARKER_ALIASES[markerId] || []).map((a) => normalize(a)),
+      ]);
+
+      const matchedIndexes: number[] = [];
+      normalizedLines.forEach((line, idx) => {
+        if (!line) return;
+        for (const term of terms) {
+          if (term.length < 3) continue;
+          if (line.includes(term)) {
+            matchedIndexes.push(idx);
+            break;
+          }
+        }
+      });
+
+      return {
+        hits: matchedIndexes.length,
+        lines: matchedIndexes.slice(0, 3).map((idx) => `${idx + 1}: ${lines[idx].trim()}`),
+      };
+    };
+
+    const byId: Record<string, { hits: number; lines: string[] }> = {};
+    MARKERS.forEach((marker) => {
+      byId[marker.id] = findEvidence(marker.id, marker.name);
+    });
+
+    return byId;
+  }, [sourcePdfText]);
+
+  const notExtractedButPresent = useMemo(() => {
+    return notExtracted
+      .map((m) => ({ marker: m, evidence: markerEvidence[m.id] }))
+      .filter((x) => (x.evidence?.hits || 0) > 0)
+      .sort((a, b) => (b.evidence?.hits || 0) - (a.evidence?.hits || 0));
+  }, [notExtracted, markerEvidence]);
+
+  const importedWithoutEvidence = useMemo(() => {
+    return found
+      .filter((m) => !DERIVED_MARKERS.has(m.id))
+      .map((m) => ({ marker: m, evidence: markerEvidence[m.id] }))
+      .filter((x) => (x.evidence?.hits || 0) === 0);
+  }, [found, markerEvidence]);
+
+  const evidenceLineSet = useMemo(() => {
+    const set = new Set<string>();
+    Object.values(markerEvidence).forEach((ev) => {
+      ev.lines.forEach((line) => {
+        const withoutPrefix = line.replace(/^\d+:\s*/, "");
+        set.add(normalize(withoutPrefix));
+      });
+    });
+    return set;
+  }, [markerEvidence]);
+
+  const partiallyExtractedCategories = useMemo(() => {
+    return catStats
+      .map((cat) => {
+        const missing = cat.markers.filter((m) => {
+          const hasValue = importedMarkers[m.id] !== undefined && importedMarkers[m.id] !== "";
+          return !hasValue && !notDone.has(m.id);
+        });
+        return {
+          name: cat.cat,
+          found: cat.found,
+          total: cat.total,
+          missing,
+        };
+      })
+      .filter((cat) => cat.found > 0 && cat.missing.length > 0)
+      .sort((a, b) => b.missing.length - a.missing.length);
+  }, [catStats, importedMarkers, notDone]);
 
   const highlightLine = (line: string) => {
-    const lower = line.toLowerCase();
-    const matchedMarker = found.find(
-      (m) =>
-        lower.includes(m.name.toLowerCase()) ||
-        lower.includes(m.id.replace(/_/g, " "))
-    );
-    if (matchedMarker) {
-      return (
-        <span className="bg-emerald-100 dark:bg-emerald-900/30 rounded px-1">
-          {line}
-        </span>
-      );
+    if (evidenceLineSet.has(normalize(line))) {
+      return <span className="bg-emerald-100 dark:bg-emerald-900/30 rounded px-1">{line}</span>;
     }
     return <span>{line}</span>;
   };
@@ -341,13 +444,78 @@ export default function ImportVerification({
                     * Estes marcadores estão no sistema mas não foram encontrados no PDF. Use o checklist para marcar os que o paciente não realizou.
                   </p>
                 </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-rose-700 dark:text-rose-400 mb-2">
+                    Itens críticos para revisão manual ({notExtractedButPresent.length})
+                  </h3>
+                  {notExtractedButPresent.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Nenhum exame "não extraído" teve evidência textual clara no PDF analisado.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {notExtractedButPresent.slice(0, 15).map(({ marker, evidence }) => (
+                        <div key={marker.id} className="rounded-md border border-rose-200/70 p-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-semibold text-rose-700 dark:text-rose-400">{marker.name}</span>
+                            <Badge variant="outline" className="text-[10px] border-rose-300 text-rose-700 dark:text-rose-400">
+                              {evidence.hits} ocorrência(s)
+                            </Badge>
+                          </div>
+                          <div className="mt-1 space-y-1">
+                            {evidence.lines.map((line) => (
+                              <p key={line} className="text-[11px] font-mono text-muted-foreground break-all">{line}</p>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {partiallyExtractedCategories.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-amber-700 dark:text-amber-400 mb-2">
+                      Painéis parcialmente extraídos ({partiallyExtractedCategories.length})
+                    </h3>
+                    <div className="space-y-1.5">
+                      {partiallyExtractedCategories.slice(0, 10).map((cat) => (
+                        <p key={cat.name} className="text-xs text-muted-foreground">
+                          <strong>{cat.name}</strong>: {cat.found}/{cat.total} encontrados • faltam {cat.missing.length}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {importedWithoutEvidence.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-2">
+                      Encontrados sem evidência textual ({importedWithoutEvidence.length})
+                    </h3>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Revise estes itens: podem ser mapeamentos ambíguos do modelo quando o PDF está muito ruidoso.
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {importedWithoutEvidence.map(({ marker }) => (
+                        <Badge key={marker.id} variant="outline" className="text-[10px] border-muted-foreground/30">
+                          {marker.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </ScrollArea>
           </TabsContent>
 
           {/* PDF text comparison */}
           <TabsContent value="pdf" className="flex-1 overflow-hidden mt-2">
-            <ScrollArea className="h-[400px]">
+            <p className="text-xs text-muted-foreground mb-2">
+              Visualizando {rawPdfText ? "texto bruto do PDF" : "texto processado"} com destaques de evidência para conferência.
+            </p>
+            <ScrollArea className="h-[380px]">
               <div className="space-y-0.5 font-mono text-xs leading-relaxed">
                 {pdfLines.map((line, i) => (
                   <div key={i} className="flex gap-2 py-0.5">
@@ -390,6 +558,15 @@ export default function ImportVerification({
                   ? [
                       "── NÃO REALIZADOS PELO PACIENTE ──",
                       ...MARKERS.filter((m) => notDone.has(m.id)).map((m) => `  • ${m.name}`),
+                      "",
+                    ]
+                  : []),
+                ...(notExtractedButPresent.length > 0
+                  ? [
+                      "── ITENS CRÍTICOS (PRESENTES NO PDF, MAS NÃO EXTRAÍDOS) ──",
+                      ...notExtractedButPresent.map(({ marker, evidence }) =>
+                        `  • ${marker.name} (${evidence.hits} ocorrência(s))`
+                      ),
                     ]
                   : []),
               ];
