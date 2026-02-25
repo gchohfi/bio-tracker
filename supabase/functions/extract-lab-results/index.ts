@@ -628,7 +628,9 @@ function validateAndFixValues(results: any[]): any[] {
     prolactina: { min: 0.5, max: 200, fix: (v) => v > 200 ? v / 100 : v },
     insulina_jejum: { min: 0.5, max: 100, fix: (v) => v > 100 ? v / 100 : v },
     // Eixo GH
-    igfbp3: { min: 0.5, max: 15, fix: (v) => v > 100 ? v / 1000 : v, label: "igfbp3 ÷1000 (ng→µg)" },
+    // IGFBP-3: expected µg/mL (0.5–15). Fleury reports in ng/mL (e.g. 6120 ng/mL = 6.12 µg/mL).
+    // If value > 100 → divide by 1000 (ng/mL → µg/mL). If value > 15 but ≤ 100 → divide by 10.
+    igfbp3: { min: 0.5, max: 15, fix: (v) => v > 100 ? v / 1000 : v > 15 ? v / 10 : v, label: "igfbp3 ng/mL→µg/mL" },
     igf1: { min: 20, max: 1000 },
     // Andrógenos
     dihidrotestosterona: { min: 50, max: 2000, fix: (v) => v < 50 ? v * 10 : v, label: "DHT ×10" },
@@ -640,7 +642,10 @@ function validateAndFixValues(results: any[]): any[] {
     // Tireoide
     tsh: { min: 0.01, max: 100 },
     t4_livre: { min: 0.1, max: 5 },
-    t3_livre: { min: 0.05, max: 2, fix: (v) => v > 2 ? v / 10 : v },
+    // T3 Livre: expected ng/dL (faixa funcional 0.27–0.42 ng/dL).
+    // Fleury reporta em pg/mL (~2.0–4.4 pg/mL). Conversão: 1 pg/mL = 0.1 ng/dL (pois 1 ng/dL = 10 pg/mL).
+    // Se AI retornar pg/mL (>1.5) → ÷10 para ng/dL. Se pmol/L (>5) → ÷15.36 para ng/dL.
+    t3_livre: { min: 0.15, max: 0.8, fix: (v) => v > 1.5 && v <= 10 ? v / 10 : v > 10 ? v / 15.36 : v, label: "t3_livre pg/mL→ng/dL" },
     t3_total: { min: 30, max: 300 },
     // Lipídios
     colesterol_total: { min: 50, max: 500 },
@@ -651,6 +656,9 @@ function validateAndFixValues(results: any[]): any[] {
     ferritina: { min: 1, max: 2000, fix: (v) => v > 2000 ? v / 10 : v },
     ferro_serico: { min: 10, max: 500 },
     ferro_metabolismo: { min: 10, max: 500 },
+    // Zinco: expected µg/dL (50–150). Fleury may report in µg/mL (0.8 µg/mL = 80 µg/dL) or mg/L (0.8 mg/L = 80 µg/dL).
+    // If value < 5 → likely µg/mL or mg/L → ×100 to get µg/dL.
+    zinco: { min: 40, max: 200, fix: (v) => v < 5 ? v * 100 : v, label: "zinco µg/mL→µg/dL" },
     // Vitaminas
     vitamina_d: { min: 3, max: 200 },
     vitamina_b12: { min: 50, max: 3000 },
