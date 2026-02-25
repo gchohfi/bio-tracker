@@ -247,11 +247,12 @@ export default function PatientDetail() {
       .from("lab_results")
       .select("*")
       .in("session_id", sessionIds);
+    const resultsAny = data as any[] || [];
     generatePatientReport(
       patient.name,
       sex,
       sessions,
-      (data || []).map((r) => ({
+      resultsAny.map((r: any) => ({
         marker_id: r.marker_id,
         session_id: r.session_id,
         value: r.value ?? 0,
