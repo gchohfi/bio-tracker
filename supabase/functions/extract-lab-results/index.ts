@@ -1370,7 +1370,10 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   }
   // === COPROLÓGICO: regex fallback for gordura fecal quantitativa (Sudam III) ===
   if (!found.has('copro_gordura_quant')) {
-    const gorduraMatch = pdfText.match(/Gorduras?\s*(?:\(Sudam\s*III\))?\s*[:\n]+\s*([\d,\.]+)\s*%/i);
+    // Fleury format: "Gorduras (Sudam III):\n7,0\n5% DE GORDURA FECAL"
+    // OR: "5% DE GORDURA FECAL" directly after Sudam III section
+    const gorduraMatch = pdfText.match(/(\d+(?:[,\.]\d+)?)\s*%\s*DE\s*GORDURA\s*FECAL/i)
+      || pdfText.match(/Gorduras?\s*(?:\(Sudam\s*III\))?\s*[:\n]+\s*([\d,\.]+)\s*%/i);
     if (gorduraMatch && gorduraMatch[1]) {
       const val = parseFloat(gorduraMatch[1].replace(',', '.'));
       if (!isNaN(val)) {
