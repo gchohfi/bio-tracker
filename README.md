@@ -1,73 +1,80 @@
-# Welcome to your Lovable project
+# Bio Tracker
 
-## Project info
+A web application for healthcare practitioners to manage patients and track lab results over time using functional medicine reference ranges.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Features
 
-## How can I edit this code?
+- **Patient management** — Create and manage a list of patients with sex-specific reference ranges
+- **Lab sessions** — Record lab exam sessions per patient with dates
+- **150+ lab markers** — Support for a comprehensive panel of biomarkers (blood count, hormones, vitamins, minerals, thyroid, lipids, and more)
+- **PDF import** — Automatically extract lab results from PDF exam files via AI-powered edge function
+- **Evolution table** — Compare results across sessions with color-coded alerts (normal / low / high)
+- **Dashboard** — Overview of patients, sessions, and pending alerts with trend charts
+- **PDF report** — Generate a detailed evolution report as a PDF with sparklines for each marker
+- **Authentication** — Secure practitioner login via Supabase Auth
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- **Backend**: Supabase (PostgreSQL, Auth, Edge Functions)
+- **Charts**: Recharts
+- **PDF generation**: jsPDF + jspdf-autotable
+- **PDF parsing**: pdfjs-dist
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js (install with [nvm](https://github.com/nvm-sh/nvm#installing-and-updating))
+- A [Supabase](https://supabase.com) project
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+### Local development
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# 1. Clone the repository
+git clone https://github.com/gchohfi/bio-tracker.git
+cd bio-tracker
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# 2. Install dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
+# 3. Configure environment variables
+cp .env.example .env
+# Edit .env and fill in your Supabase URL and anon key
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 4. Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Environment variables
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+| Variable | Description |
+|---|---|
+| `VITE_SUPABASE_URL` | Your Supabase project URL |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Your Supabase anon/public key |
 
-**Use GitHub Codespaces**
+### Available scripts
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+| Command | Description |
+|---|---|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build locally |
+| `npm run lint` | Run ESLint |
+| `npm test` | Run unit tests |
 
-## What technologies are used for this project?
+## Project Structure
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+```
+src/
+├── components/       # Reusable UI components
+├── contexts/         # React context providers (Auth)
+├── hooks/            # Custom React hooks
+├── integrations/     # Supabase client and generated types
+├── lib/              # Core logic: markers, report generation, utilities
+├── pages/            # Route-level page components
+└── test/             # Unit tests
+supabase/
+├── functions/        # Edge functions (PDF extraction)
+└── migrations/       # Database migrations
+```
