@@ -282,7 +282,7 @@ export default function PatientDetail() {
         const marker = MARKERS.find((m) => m.id === r.marker_id);
         const session = sessions.find((s) => s.id === r.session_id);
         const status = marker
-          ? getMarkerStatus(r.value ?? 0, r.marker_id, sex, r.text_value ?? undefined)
+          ? getMarkerStatus(r.value ?? 0, marker, sex, r.text_value ?? undefined)
           : "normal";
         return {
           marker_id: r.marker_id,
