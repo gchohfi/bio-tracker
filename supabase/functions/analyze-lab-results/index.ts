@@ -98,12 +98,13 @@ MARCADORES FORA DA FAIXA FUNCIONAL (${abnormal.length} marcadores):
     const refStr = r.functional_min !== undefined && r.functional_max !== undefined
       ? `(ref funcional: ${r.functional_min}–${r.functional_max} ${r.unit})`
       : "";
-    const statusLabel = {
+    const statusLabels: Record<string, string> = {
       low: "↓ BAIXO",
       high: "↑ ALTO",
       critical_low: "⬇ CRÍTICO BAIXO",
       critical_high: "⬆ CRÍTICO ALTO",
-    }[r.status] ?? r.status;
+    };
+    const statusLabel = statusLabels[r.status] ?? r.status;
     prompt += `- ${r.marker_name}: ${valueStr} ${statusLabel} ${refStr} [${r.session_date}]\n`;
   }
 
