@@ -789,6 +789,59 @@ function validateAndFixValues(results: any[]): any[] {
   }
    return results.filter((r: any) => !r._remove);
 }
+
+/**
+ * Converte a referência do laboratório (lab_ref_min/max) para a mesma unidade do valor armazenado.
+ * Quando o valor foi convertido (ex: testosterona_livre de pmol/L para ng/dL),
+ * a referência também precisa ser convertida para ser consistente.
+ */
+function convertLabRefUnits(results: any[]): any[] {
+  // Mapeamento: marker_id → função de conversão da referência (mesma lógica do valor)
+  const refConverters: Record<string, (min: number, max: number) => { min: number; max: number }> = {
+    // Testosterona Livre: se referência está em pmol/L (> 2.0) → ÷ 34.7 para ng/dL
+    testosterona_livre: (min, max) => ({
+      min: min > 2.0 ? parseFloat((min / 34.7).toFixed(4)) : min,
+      max: max > 2.0 ? parseFloat((max / 34.7).toFixed(4)) : max,
+    }),
+    // IGFBP-3: se referência está em ng/mL (> 100) → ÷ 1000 para µg/mL
+    igfbp3: (min, max) => ({
+      min: min > 100 ? parseFloat((min / 1000).toFixed(3)) : min > 15 ? parseFloat((min / 10).toFixed(3)) : min,
+      max: max > 100 ? parseFloat((max / 1000).toFixed(3)) : max > 15 ? parseFloat((max / 10).toFixed(3)) : max,
+    }),
+    // Zinco: se referência está em µg/mL (< 5) → × 100 para µg/dL
+    zinco: (min, max) => ({
+      min: min < 5 ? parseFloat((min * 100).toFixed(1)) : min,
+      max: max < 5 ? parseFloat((max * 100).toFixed(1)) : max,
+    }),
+    // T3 Livre: se referência está em pg/mL (> 1.5) → ÷ 10 para ng/dL
+    t3_livre: (min, max) => ({
+      min: min > 1.5 ? parseFloat((min / 10).toFixed(3)) : min,
+      max: max > 1.5 ? parseFloat((max / 10).toFixed(3)) : max,
+    }),
+  };
+
+  for (const r of results) {
+    const converter = refConverters[r.marker_id];
+    if (!converter) continue;
+    if (typeof r.lab_ref_min !== 'number' && typeof r.lab_ref_max !== 'number') continue;
+    const origMin = r.lab_ref_min ?? 0;
+    const origMax = r.lab_ref_max ?? 0;
+    const converted = converter(
+      typeof r.lab_ref_min === 'number' ? r.lab_ref_min : 0,
+      typeof r.lab_ref_max === 'number' ? r.lab_ref_max : 0
+    );
+    if (typeof r.lab_ref_min === 'number') r.lab_ref_min = converted.min;
+    if (typeof r.lab_ref_max === 'number') r.lab_ref_max = converted.max;
+    // Atualizar o texto de exibição se foi alterado
+    if (converted.min !== origMin || converted.max !== origMax) {
+      if (typeof r.lab_ref_min === 'number' && typeof r.lab_ref_max === 'number') {
+        r.lab_ref_text = `${r.lab_ref_min} a ${r.lab_ref_max}`;
+      }
+      console.log(`Converted lab_ref for ${r.marker_id}: ${origMin}-${origMax} → ${converted.min}-${converted.max}`);
+    }
+  }
+  return results;
+}
 // Post-processing: calculate derived values if missing
 function postProcessResults(results: any[]): any[] {
   const resultMap = new Map<string, any>();
@@ -883,51 +936,68 @@ function postProcessResults(results: any[]): any[] {
 /**
  * Parseia o lab_ref_text retornado pelo Gemini em campos numéricos lab_ref_min e lab_ref_max.
  * Suporta formatos comuns de laudos brasileiros:
- *   "12.0 a 16.0"  → min=12.0, max=16.0
- *   "70 a 99"       → min=70, max=99
- *   "0.27 a 4.20"   → min=0.27, max=4.20
- *   "< 34"          → max=34 (sem min)
- *   "> 60"          → min=60 (sem max)
- *   "Nao reagente"  → mantém apenas lab_ref_text (qualitativo)
+ *   "12.0 a 16.0"                    → min=12.0, max=16.0, text="12.0 a 16.0"
+ *   "70 a 99 mg/dL"                  → min=70, max=99, text="70 a 99"
+ *   "Acima de 20 anos: 0,23 a 0,42"  → min=0.23, max=0.42, text="0,23 a 0,42"
+ *   "< 34"                            → max=34
+ *   "> 60"                            → min=60
+ *   "Nao reagente"                    → mantém apenas lab_ref_text (qualitativo)
+ *   Textos muito longos (>80 chars)   → tenta extrair o primeiro intervalo numérico
  */
 function parseLabRefRanges(results: any[]): any[] {
+  const parseNum = (s: string) => parseFloat(s.replace(',', '.').replace('.', '').replace(',', '.'));
+  const parseNumSimple = (s: string) => parseFloat(s.replace(',', '.'));
+
   for (const r of results) {
     const refText: string | undefined = r.lab_ref_text;
     if (!refText || typeof refText !== 'string' || refText.trim() === '') {
       delete r.lab_ref_text;
       continue;
     }
-    const t = refText.trim();
+    let t = refText.trim();
 
-    // Formato "X a Y" ou "X - Y" ou "X–Y" (range numérico)
-    const rangeMatch = t.match(/^([\d.,]+)\s*(?:a|\-|\u2013|\u2014|até)\s*([\d.,]+)/i);
-    if (rangeMatch) {
-      const parseNum = (s: string) => parseFloat(s.replace(',', '.'));
-      const min = parseNum(rangeMatch[1]);
-      const max = parseNum(rangeMatch[2]);
-      if (!isNaN(min) && !isNaN(max)) {
+    // Normalizar: remover "Inferior a" / "Superior a" para < / >
+    t = t.replace(/^Inferior\s+a\s+/i, '< ').replace(/^Superior\s+a\s+/i, '> ');
+
+    // Extrair primeiro intervalo numérico de textos longos (ex: "Acima de 20 anos: 0,23 a 0,42 ng/dL")
+    // Busca padrão "N,N a N,N" ou "N.N a N.N" ou "N a N" em qualquer posição do texto
+    const embeddedRange = t.match(/([\d]+[.,][\d]+|[\d]+)\s*(?:a|\u2013|\u2014)\s*([\d]+[.,][\d]+|[\d]+)/);
+    if (embeddedRange) {
+      const min = parseNumSimple(embeddedRange[1]);
+      const max = parseNumSimple(embeddedRange[2]);
+      if (!isNaN(min) && !isNaN(max) && min < max) {
         r.lab_ref_min = min;
         r.lab_ref_max = max;
-        // Keep lab_ref_text for display
+        // Simplificar o texto exibido: usar apenas o intervalo numérico
+        r.lab_ref_text = `${embeddedRange[1]} a ${embeddedRange[2]}`;
         continue;
       }
     }
 
-    // Formato "< X" ou "<= X" (apenas máximo)
+    // Formato "< X" ou "<= X" ou "Inferior a X" (apenas máximo)
     const ltMatch = t.match(/^[<≤]=?\s*([\d.,]+)/);
     if (ltMatch) {
-      r.lab_ref_max = parseFloat(ltMatch[1].replace(',', '.'));
+      r.lab_ref_max = parseNumSimple(ltMatch[1]);
+      r.lab_ref_text = `< ${ltMatch[1]}`;
       continue;
     }
 
     // Formato "> X" ou ">= X" (apenas mínimo)
     const gtMatch = t.match(/^[>≥]=?\s*([\d.,]+)/);
     if (gtMatch) {
-      r.lab_ref_min = parseFloat(gtMatch[1].replace(',', '.'));
+      r.lab_ref_min = parseNumSimple(gtMatch[1]);
+      r.lab_ref_text = `> ${gtMatch[1]}`;
       continue;
     }
 
-    // Texto qualitativo ("Nao reagente", "Negativo", etc.) — mantém apenas lab_ref_text
+    // Texto muito longo sem intervalo numérico extraível (ex: HOMA-IR, Progesterona com interpretação)
+    // Truncar para não poluir o relatório
+    if (t.length > 60) {
+      delete r.lab_ref_text;
+      continue;
+    }
+
+    // Texto qualitativo curto ("Nao reagente", "Negativo", "Normal", etc.) — mantém apenas lab_ref_text
     // Não define min/max
   }
   return results;
@@ -1720,7 +1790,9 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     // Regex fallback for markers the AI frequently misses
     validResults = regexFallback(pdfText, validResults);
     // Parse lab_ref_text into numeric min/max fields
-    validResults = parseLabRefRanges(validResults);    
+    validResults = parseLabRefRanges(validResults);
+    // Convert lab_ref units to match the stored value units (e.g. pmol/L → ng/dL for testosterona_livre)
+    validResults = convertLabRefUnits(validResults);
     console.log(`Extracted ${validResults.length} valid markers:`, validResults.map((r: any) => r.marker_id).join(', '));
 
     return new Response(JSON.stringify({ results: validResults }), {
