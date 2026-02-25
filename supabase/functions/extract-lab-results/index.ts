@@ -30,6 +30,7 @@ const MARKER_LIST = [
   { id: "transferrina", name: "Transferrina", unit: "mg/dL" },
   { id: "sat_transferrina", name: "Sat. Transferrina", unit: "%" },
   { id: "tibc", name: "TIBC", unit: "µg/dL" },
+  { id: "ferro_metabolismo", name: "Ferro (painel Metabolismo do Ferro)", unit: "µg/dL" },
   { id: "fixacao_latente_ferro", name: "Capacidade de Fixação Latente do Ferro", unit: "µg/dL" },
   { id: "glicose_jejum", name: "Glicose Jejum", unit: "mg/dL" },
   { id: "hba1c", name: "HbA1c", unit: "%" },
@@ -229,7 +230,11 @@ HEMOGRAMA panel → extract ALL: hemoglobina, hematocrito, eritrocitos, vcm, hcm
 
 PERFIL LIPÍDICO panel → extract ALL: colesterol_total, hdl, ldl, vldl, triglicerides, colesterol_nao_hdl
 BILIRRUBINAS panel → extract ALL THREE: bilirrubina_total, bilirrubina_direta, bilirrubina_indireta
-PERFIL DE FERRO panel → extract ALL: ferro_serico, ferritina, transferrina, sat_transferrina, tibc
+PERFIL DE FERRO panel → extract ALL: ferro_serico, ferritina, transferrina, sat_transferrina, tibc, fixacao_latente_ferro
+METABOLISMO DO FERRO panel (Fleury) → CRITICAL DISAMBIGUATION:
+   - When "Ferro" appears INSIDE a section titled "Metabolismo do Ferro" → ferro_metabolismo (NOT ferro_serico)
+   - When "Ferro" appears as a standalone exam (outside Metabolismo do Ferro section) → ferro_serico
+   - Both can exist in the same PDF with DIFFERENT values — extract BOTH
 ELETROFORESE DE PROTEÍNAS panel → extract ALL fractions: eletroforese_albumina, eletroforese_alfa1, eletroforese_alfa2, eletroforese_beta1, eletroforese_beta2, eletroforese_gama, relacao_ag
 URINA TIPO 1 / EAS panel → extract ALL sub-items as qualitative
 COPROLÓGICO / COPROGRAMA panel → extract ALL sub-items as qualitative
@@ -337,7 +342,8 @@ TIREOIDE:
 
 HORMÔNIOS:
 - "Testosterona Total" / "TESTOSTERONA, SORO" / "TESTOSTERONA SÉRICA" → testosterona_total
-- "Testosterona Livre" / "TESTOSTERONA LIVRE CALCULADA" / "TESTOSTERONA LIVRE, SORO" / "FTE" → testosterona_livre. If pmol/L → ×0.28842 to get pg/mL. If ng/dL → ×10.
+- "Testosterona Livre" / "TESTOSTERONA LIVRE CALCULADA" / "TESTOSTERONA LIVRE, SORO" / "Testosterona Livre Calculada" / "FTE" → testosterona_livre (unit: ng/dL). If pmol/L → ×0.000288 to get ng/dL.
+- "Testosterona Biodisponível" / "TESTOSTERONA BIODISPONIVEL" / "Testosterona Biodisponível Calculada" → testosterona_biodisponivel (unit: ng/dL)
 - "Estradiol" / "ESTRADIOL (E2)" / "17-BETA-ESTRADIOL" / "17β-ESTRADIOL" / "E2" → estradiol. If ng/dL → ×10 to get pg/mL.
 - "Estrona" / "E1" / "Estrona (E1)" / "Estrona, soro" / "ESTRONA (E1)" → estrona
 - "Progesterona" / "PROGESTERONA, SORO" / "P4" → progesterona. If ng/dL → ÷100 to get ng/mL.
@@ -392,9 +398,9 @@ TOXICOLOGIA:
 - "MERCURIO" / "Mercúrio" / "MERCÚRIO, SANGUE" / "MERCÚRIO TOTAL" / "Hg" → mercurio
 - "CADMIO" / "Cádmio" / "CÁDMIO, SANGUE" / "Cd" → cadmio
 - "ALUMINIO" / "Alumínio" / "ALUMÍNIO, SORO" / "Al" → aluminio
-- "COBALTO" / "Cobalto" / "COBALTO, SORO" / "Co" → cobalto
-- "ARSENICO" / "Arsênico" / "ARSÊNICO" / "ARSÊNICO, URINA" / "As" → arsenico
-- "NIQUEL" / "Níquel" / "NÍQUEL" / "NÍQUEL, SORO" / "Ni" → niquel
+- "COBALTO" / "Cobalto" / "COBALTO, SORO" / "Co" → cobalto (unit: µg/L)
+- "ARSENICO" / "Arsênico" / "ARSÊNICO" / "Dosagem de Arsênico" / "ARSÊNICO, URINA" / "As" → arsenico (unit: mcg/L). Use operator if "Inferior a X"
+- "NIQUEL" / "Níquel" / "NÍQUEL" / "Dosagem de Níquel" / "NÍQUEL, SORO" / "Ni" → niquel (unit: µg/L)
 
 HEPÁTICO:
 - "AST" / "TGO" / "GOT" / "GOT/AST" / "TRANSAMINASE GLUTÂMICO OXALACÉTICA" / "ASPARTATO AMINOTRANSFERASE" / "AST/TGO" / "SGOT" → tgo_ast
@@ -428,13 +434,15 @@ ELETRÓLITOS:
 - "Calcitonina" / "Calcitonina, soro" / "TIREOCALCITONINA" → calcitonina
 
 FERRO:
-- "Ferro Sérico" / "FERRO, SORO" / "Ferro (Fe)" / "FE SÉRICO" / "SIDEREMIA" → ferro_serico
+- "Ferro Sérico" / "FERRO, SORO" / "Ferro (Fe)" / "FE SÉRICO" / "SIDEREMIA" (standalone exam) → ferro_serico
+- "Ferro" INSIDE "Metabolismo do Ferro" panel section → ferro_metabolismo (DIFFERENT from ferro_serico!)
+  ⚠️ CRITICAL: In Fleury PDFs, "Ferro" appears TWICE: once standalone (ferro_serico) and once inside the "Metabolismo do Ferro" panel (ferro_metabolismo). They can have DIFFERENT values. Extract BOTH.
 - "Ferritina" / "FERRITINA SÉRICA" / "FERRITINA, SORO" → ferritina. microg/L = ng/mL.
 - "Transferrina" / "TRANSFERRINA SÉRICA" / "TRANSFERRINA, SORO" → transferrina
 - "Saturação de Transferrina" / "Índice de Saturação" / "ÍNDICE DE SATURAÇÃO DA TRANSFERRINA" / "IST" / "SATURAÇÃO DA TRANSFERRINA" → sat_transferrina
 - "TIBC" / "Capacidade Total de Fixação do Ferro" / "CTFF" / "Capacidade Total de Ligação do Ferro" / "Capacidade Ferropéxica Total" / "CTLF" → tibc
   If µmol/L → ÷0.179.
-- "UIBC" / "Capacidade livre de fixação" / "CLFF" → IGNORE (NOT TIBC)
+- "Capacidade de Fixação Latente do Ferro" / "UIBC" / "Capacidade livre de fixação" / "CLFF" → fixacao_latente_ferro (NOT tibc)
 
 GLICEMIA:
 - "Glicose Jejum" / "GLICEMIA DE JEJUM" / "GLICEMIA" / "GLICOSE, PLASMA" / "GLICOSE, SORO" / "GLICOSE PLASMÁTICA" / "GLUCOSE" → glicose_jejum
@@ -466,6 +474,10 @@ ELETROFORESE DE PROTEÍNAS:
 URINA TIPO 1 / EAS:
 - "URINA TIPO 1" / "EAS" / "URINA ROTINA" / "PARCIAL DE URINA" / "URINÁLISE" / "URINA TIPO I" / "URINA TIPO I - JATO MEDIO" / "URINA TIPO I - JATO MÉDIO" → extract ALL sub-items as qualitative
 - Sub-items: urina_cor, urina_aspecto, urina_densidade, urina_ph, urina_proteinas, urina_glicose, urina_hemoglobina, urina_leucocitos, urina_hemacias, urina_bacterias, urina_celulas, urina_cilindros, urina_cristais, urina_nitritos, urina_bilirrubina, urina_urobilinogenio, urina_cetona, urina_muco
+- SEDIMENTO QUANTITATIVO section (Fleury): extract numeric /mL values:
+  - "Leucócitos" with value in /mL → urina_leucocitos_quant (numeric, NOT qualitative)
+  - "Hemácias" / "Eritrócitos" with value in /mL → urina_hemacias_quant (numeric, NOT qualitative)
+  - These are DIFFERENT from the dipstick qualitative fields (urina_leucocitos, urina_hemacias)
 - "Muco" / "Filamentos de Muco" / "Filamentos Mucóides" (in urina context) → urina_muco
 - "Corpos Cetônicos" / "Cetonas" / "Acetona" → urina_cetona
 - "Leucócito Esterase" / "Esterase Leucocitária" → urina_leucocitos
@@ -620,6 +632,7 @@ function validateAndFixValues(results: any[]): any[] {
     // Ferro
     ferritina: { min: 1, max: 2000, fix: (v) => v > 2000 ? v / 10 : v },
     ferro_serico: { min: 10, max: 500 },
+    ferro_metabolismo: { min: 10, max: 500 },
     // Vitaminas
     vitamina_d: { min: 3, max: 200 },
     vitamina_b12: { min: 50, max: 3000 },
@@ -903,6 +916,79 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   tryFleury('homocisteina', 'HOMOCISTE[IÍ]NA', NUM);
 
   // Marcadores tumorais
+  // Ferro do painel Metabolismo do Ferro (Fleury) — contexto específico
+  if (!found.has('ferro_metabolismo')) {
+    const m = pdfText.match(/METABOLISMO\s+DO\s+FERRO[\s\S]{0,500}?VALOR(?:ES)?\s+DE\s+REFER[EÊ]NCIA\s*\n\s*\n\s*([\d,\.]+)/i);
+    if (m && m[1]) {
+      const num = parseFloat(m[1].replace(',', '.'));
+      if (!isNaN(num) && num >= 10 && num <= 500) {
+        additional.push({ marker_id: 'ferro_metabolismo', value: num });
+        found.add('ferro_metabolismo');
+        console.log(`Regex fallback ferro_metabolismo: ${num}`);
+      }
+    }
+  }
+  // Capacidade de Fixação Latente do Ferro (UIBC)
+  if (!found.has('fixacao_latente_ferro')) {
+    const m = pdfText.match(/CAPACIDADE\s+DE\s+FIXA[CÇ][AÃ]O\s+LATENTE[\s\S]{0,300}?([\d,\.]+)\s*µg\/dL/i);
+    if (m && m[1]) {
+      const num = parseFloat(m[1].replace(',', '.'));
+      if (!isNaN(num) && num >= 10 && num <= 600) {
+        additional.push({ marker_id: 'fixacao_latente_ferro', value: num });
+        found.add('fixacao_latente_ferro');
+        console.log(`Regex fallback fixacao_latente_ferro: ${num}`);
+      }
+    }
+  }
+  // Testosterona Biodisponível
+  if (!found.has('testosterona_biodisponivel')) {
+    const m = pdfText.match(/TESTOSTERONA\s+BIODISPON[IÍ]VEL[\s\S]{0,300}?([\d,\.]+)\s*ng\/dL/i);
+    if (m && m[1]) {
+      const num = parseFloat(m[1].replace(',', '.'));
+      if (!isNaN(num) && num >= 0 && num <= 500) {
+        additional.push({ marker_id: 'testosterona_biodisponivel', value: num });
+        found.add('testosterona_biodisponivel');
+        console.log(`Regex fallback testosterona_biodisponivel: ${num}`);
+      }
+    }
+  }
+  // Cobalto
+  tryFleury('cobalto', 'COBALTO', OP_NUM);
+  // Arsênico
+  if (!found.has('arsenico')) {
+    const m = pdfText.match(/(?:DOSAGEM\s+DE\s+)?ARS[EÊ]NICO[\s\S]{0,300}?(Inferior\s+a\s+[\d,\.]+|[<>]?\s*[\d,\.]+)\s*mcg\/L/i);
+    if (m && m[1]) {
+      processValue('arsenico', m[1].trim());
+    }
+  }
+  // Níquel
+  tryFleury('niquel', 'N[IÍ]QUEL', OP_NUM);
+  // Urina quantitativa — Sedimento Quantitativo (Fleury)
+  if (!found.has('urina_leucocitos_quant') || !found.has('urina_hemacias_quant')) {
+    const sedMatch = pdfText.match(/SEDIMENTO\s+QUANTITATIVO[\s\S]{0,500}/i);
+    if (sedMatch) {
+      const seg = sedMatch[0];
+      // Padrão Fleury: valores em /mL aparecem após os labels em sequência
+      const numPattern = /([\d.,]+)\s*\/mL/gi;
+      const nums: number[] = [];
+      let nm: RegExpExecArray | null;
+      while ((nm = numPattern.exec(seg)) !== null) {
+        const v = parseFloat(nm[1].replace('.', '').replace(',', '.'));
+        if (!isNaN(v)) nums.push(v);
+      }
+      // Fleury order: Leucócitos /mL, Hemácias /mL
+      if (nums.length >= 1 && !found.has('urina_leucocitos_quant')) {
+        additional.push({ marker_id: 'urina_leucocitos_quant', value: nums[0] });
+        found.add('urina_leucocitos_quant');
+        console.log('Regex fallback urina_leucocitos_quant: ' + nums[0]);
+      }
+      if (nums.length >= 2 && !found.has('urina_hemacias_quant')) {
+        additional.push({ marker_id: 'urina_hemacias_quant', value: nums[1] });
+        found.add('urina_hemacias_quant');
+        console.log('Regex fallback urina_hemacias_quant: ' + nums[1]);
+      }
+    }
+  }
   tryFleury('ca_19_9', 'CA\\s*19[.-]9', NUM);
   tryFleury('ca_125', 'CA[- ]?125', NUM);
   tryFleury('ca_72_4', 'CA\\s*72[.-]4', OP_NUM);
@@ -1166,6 +1252,7 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
 
   // === DIAGNOSTIC: log missing markers and check if exam names exist in PDF text ===
   const criticalMarkers: [string, string[]][] = [
+    ['ferro_metabolismo', ['METABOLISMO DO FERRO', 'METABOLISMO DE FERRO']],
     ['vhs', ['HEMOSSEDIMENTA', 'VHS', 'V.H.S']],
     ['t4_total', ['TIROXINA (T4)', 'T4 TOTAL', 'T4, SORO']],
     ['amh', ['MULLERIANO', 'MÜLLERIANO', 'AMH', 'HAM']],

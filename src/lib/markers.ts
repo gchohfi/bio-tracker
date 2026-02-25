@@ -90,6 +90,7 @@ export const MARKERS: MarkerDef[] = [
   { id: "transferrina", name: "Transferrina", unit: "mg/dL", category: "Ferro", refRange: { M: [200, 360], F: [200, 360] } , panel: "Adicional" },
   { id: "sat_transferrina", name: "Sat. Transferrina", unit: "%", category: "Ferro", refRange: { M: [25, 45], F: [25, 45] } , panel: "Padrão" },
   { id: "tibc", name: "TIBC", unit: "µg/dL", category: "Ferro", refRange: { M: [250, 370], F: [250, 370] } , panel: "Adicional" },
+  { id: "ferro_metabolismo", name: "Ferro (painel Metabolismo do Ferro)", unit: "µg/dL", category: "Ferro", refRange: { M: [50, 170], F: [50, 170] }, panel: "Padrão" },
   { id: "fixacao_latente_ferro", name: "Capacidade de Fixação Latente do Ferro", unit: "µg/dL", category: "Ferro", refRange: { M: [130, 280], F: [130, 280] } , panel: "Adicional" },
   // Glicemia
   { id: "glicose_jejum", name: "Glicose Jejum", unit: "mg/dL", category: "Glicemia", refRange: { M: [75, 86], F: [75, 86] } , panel: "Padrão" },
