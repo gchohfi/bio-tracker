@@ -697,19 +697,51 @@ function validateAndFixValues(results: any[]): any[] {
   }
   // === ANTI-ALUCINAÇÃO: urina_hemoglobina e urina_hemacias ===
   // Gemini sometimes copies hemoglobina/eritrocitos from hemograma into urina fields.
-  // Urina hemoglobina is QUALITATIVE (negativo/positivo) — never a numeric like 13.4.
+  // Urina hemoglobina is QUALITATIVE (negativo/positivo/traços) — never a numeric like 13.4.
   // Urina hemacias qualitative is /campo (0-50), quantitative is /mL (0-50000).
   for (const r of results) {
-    if (r.marker_id === 'urina_hemoglobina' && typeof r.value === 'number' && r.value > 5) {
-      // Likely a hallucination from hemograma hemoglobina (normal range 10-18 g/dL)
-      console.log(`ANTI-HALLUCINATION: removed urina_hemoglobina value ${r.value} (likely from hemograma)`);
-      r._remove = true;
+    // --- urina_hemoglobina ---
+    if (r.marker_id === 'urina_hemoglobina') {
+      // Case 1: numeric value > 5 → hemograma hallucination
+      if (typeof r.value === 'number' && r.value > 5) {
+        console.log(`ANTI-HALLUCINATION: removed urina_hemoglobina numeric ${r.value} (likely from hemograma)`);
+        r._remove = true;
+      }
+      // Case 2: string containing 'g/dL' or 'milhões' or a reference range like '11,7 a 14,9'
+      // These are hallucinations where Gemini returned the hemograma value as a string
+      if (typeof r.value === 'string') {
+        const v = r.value as string;
+        if (
+          /g\/dL/i.test(v) ||
+          /milh[õo]es/i.test(v) ||
+          /\d+[,.]\d+\s+a\s+\d+[,.]\d+/.test(v) ||
+          /\d{2,}[,.]\d+/.test(v) // e.g. "13,4" — hemograma-like numeric string
+        ) {
+          console.log(`ANTI-HALLUCINATION: removed urina_hemoglobina string "${v}" (likely from hemograma)`);
+          r._remove = true;
+        }
+      }
     }
-    if (r.marker_id === 'urina_hemacias' && typeof r.value === 'number' && r.value > 100) {
-      // Likely a hallucination from eritrocitos (normal range 3.5-6.0 milhões/µL → stored as 3.5-6.0)
-      // but if value is > 100, it's almost certainly from hemograma (millions/µL × some factor)
-      console.log(`ANTI-HALLUCINATION: removed urina_hemacias value ${r.value} (likely from hemograma)`);
-      r._remove = true;
+    // --- urina_hemacias ---
+    if (r.marker_id === 'urina_hemacias') {
+      // Case 1: numeric value > 100 → hemograma hallucination
+      if (typeof r.value === 'number' && r.value > 100) {
+        console.log(`ANTI-HALLUCINATION: removed urina_hemacias numeric ${r.value} (likely from hemograma)`);
+        r._remove = true;
+      }
+      // Case 2: string containing 'milhões/mm³' or 'milhões/µL' or reference range
+      if (typeof r.value === 'string') {
+        const v = r.value as string;
+        if (
+          /milh[õo]es/i.test(v) ||
+          /mm[³3]/i.test(v) ||
+          /µL/i.test(v) ||
+          /\d+[,.]\d+\s+a\s+\d+[,.]\d+/.test(v)
+        ) {
+          console.log(`ANTI-HALLUCINATION: removed urina_hemacias string "${v}" (likely from hemograma)`);
+          r._remove = true;
+        }
+      }
     }
   }
    return results.filter((r: any) => !r._remove);
