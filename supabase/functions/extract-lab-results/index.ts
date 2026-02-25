@@ -918,7 +918,9 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   // Marcadores tumorais
   // Ferro do painel Metabolismo do Ferro (Fleury) — contexto específico
   if (!found.has('ferro_metabolismo')) {
-    const m = pdfText.match(/METABOLISMO\s+DO\s+FERRO[\s\S]{0,500}?VALOR(?:ES)?\s+DE\s+REFER[EÊ]NCIA\s*\n\s*\n\s*([\d,\.]+)/i);
+    // Padrão Fleury: "Metabolismo do Ferro\n(Material: Soro)\nFerro\n50 a 170\n57 µg/dL"
+    // Valor vem APÓS a faixa de referência (ex: "50 a 170"), não após "VALORES DE REFERÊNCIA"
+    const m = pdfText.match(/Metabolismo\s+do\s+Ferro[\s\S]{0,200}?\nFerro\s*\n[\s\S]{0,50}?\n(\d[\d,\.]*)/i);
     if (m && m[1]) {
       const num = parseFloat(m[1].replace(',', '.'));
       if (!isNaN(num) && num >= 10 && num <= 500) {
@@ -930,7 +932,9 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   }
   // Capacidade de Fixação Latente do Ferro (UIBC)
   if (!found.has('fixacao_latente_ferro')) {
-    const m = pdfText.match(/CAPACIDADE\s+DE\s+FIXA[CÇ][AÃ]O\s+LATENTE[\s\S]{0,300}?([\d,\.]+)\s*µg\/dL/i);
+    // Padrão Fleury: "Capacidade de Fixação Latente do\nFerro\n225,0 µg/dL\n140,0 - 280,0"
+    // Valor vem logo após o nome (antes da faixa de referência)
+    const m = pdfText.match(/Capacidade\s+de\s+Fixa[cç][aã]o\s+Latente(?:\s+do)?\s*\nFerro\s*\n([\d,\.]+)/i);
     if (m && m[1]) {
       const num = parseFloat(m[1].replace(',', '.'));
       if (!isNaN(num) && num >= 10 && num <= 600) {
@@ -938,11 +942,24 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
         found.add('fixacao_latente_ferro');
         console.log(`Regex fallback fixacao_latente_ferro: ${num}`);
       }
+    } else {
+      // Fallback: qualquer número seguido de µg/dL próximo ao nome
+      const m2 = pdfText.match(/Capacidade\s+de\s+Fixa[cç][aã]o\s+Latente[\s\S]{0,100}?([\d,\.]+)\s*µg\/dL/i);
+      if (m2 && m2[1]) {
+        const num = parseFloat(m2[1].replace(',', '.'));
+        if (!isNaN(num) && num >= 10 && num <= 600) {
+          additional.push({ marker_id: 'fixacao_latente_ferro', value: num });
+          found.add('fixacao_latente_ferro');
+          console.log(`Regex fallback2 fixacao_latente_ferro: ${num}`);
+        }
+      }
     }
   }
   // Testosterona Biodisponível
   if (!found.has('testosterona_biodisponivel')) {
-    const m = pdfText.match(/TESTOSTERONA\s+BIODISPON[IÍ]VEL[\s\S]{0,300}?([\d,\.]+)\s*ng\/dL/i);
+    // Padrão Fleury: "Testosterona Biodisponível\n4,40 ng/dL"
+    // Valor vem logo após o nome
+    const m = pdfText.match(/Testosterona\s+Biodispon[ií]vel[\s\S]{0,50}?\n([\d,\.]+)\s*ng\/dL/i);
     if (m && m[1]) {
       const num = parseFloat(m[1].replace(',', '.'));
       if (!isNaN(num) && num >= 0 && num <= 500) {
@@ -950,42 +967,97 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
         found.add('testosterona_biodisponivel');
         console.log(`Regex fallback testosterona_biodisponivel: ${num}`);
       }
+    } else {
+      // Fallback: qualquer número em ng/dL próximo ao nome
+      const m2 = pdfText.match(/Testosterona\s+Biodispon[ií]vel[\s\S]{0,300}?([\d,\.]+)\s*ng\/dL/i);
+      if (m2 && m2[1]) {
+        const num = parseFloat(m2[1].replace(',', '.'));
+        if (!isNaN(num) && num >= 0 && num <= 500) {
+          additional.push({ marker_id: 'testosterona_biodisponivel', value: num });
+          found.add('testosterona_biodisponivel');
+          console.log(`Regex fallback2 testosterona_biodisponivel: ${num}`);
+        }
+      }
     }
   }
   // Cobalto
-  tryFleury('cobalto', 'COBALTO', OP_NUM);
+  // Cobalto — padrão Fleury: "Cobalto\nAté 1,00 µg/L\n0,13 µg/L"
+  if (!found.has('cobalto')) {
+    // Valor vem APÓS a referência "Até X µg/L"
+    const m = pdfText.match(/Cobalto[\s\S]{0,100}?[Aa]t[eé]\s+[\d,\.]+\s*µg\/L\s*\n([\d,\.]+)/i);
+    if (m && m[1]) {
+      const num = parseFloat(m[1].replace(',', '.'));
+      if (!isNaN(num) && num >= 0 && num <= 100) {
+        additional.push({ marker_id: 'cobalto', value: num });
+        found.add('cobalto');
+        console.log(`Regex cobalto: ${num}`);
+      }
+    } else {
+      // Fallback genérico
+      tryFleury('cobalto', 'COBALTO', OP_NUM);
+    }
+  }
   // Arsênico
   if (!found.has('arsenico')) {
-    const m = pdfText.match(/(?:DOSAGEM\s+DE\s+)?ARS[EÊ]NICO[\s\S]{0,300}?(Inferior\s+a\s+[\d,\.]+|[<>]?\s*[\d,\.]+)\s*mcg\/L/i);
+    // Padrão Fleury: "Dosagem de Arsênico\nAté 23,0 mcg/L\nInferior a 1,0 mcg/L"
+    // Valor vem APÓS a referência "Até X mcg/L"
+    const m = pdfText.match(/(?:Dosagem\s+de\s+)?Ars[eê]nico[\s\S]{0,200}?[Aa]t[eé]\s+[\d,\.]+\s*mcg\/L\s*\n(Inferior\s+a\s+[\d,\.]+|[<>]?\s*[\d,\.]+)/i);
     if (m && m[1]) {
       processValue('arsenico', m[1].trim());
+      console.log(`Regex arsenico: ${m[1].trim()}`);
+    } else {
+      // Fallback: qualquer valor próximo ao nome
+      const m2 = pdfText.match(/(?:Dosagem\s+de\s+)?Ars[eê]nico[\s\S]{0,300}?(Inferior\s+a\s+[\d,\.]+|[<>]?\s*[\d,\.]+)\s*mcg\/L/i);
+      if (m2 && m2[1]) {
+        processValue('arsenico', m2[1].trim());
+        console.log(`Regex fallback arsenico: ${m2[1].trim()}`);
+      }
     }
   }
   // Níquel
-  tryFleury('niquel', 'N[IÍ]QUEL', OP_NUM);
+  // Níquel — padrão Fleury: "Dosagem de Níquel\n0,7 µg/L"
+  if (!found.has('niquel')) {
+    // Valor vem logo após o nome
+    const m = pdfText.match(/(?:Dosagem\s+de\s+)?N[ií]quel[\s\S]{0,50}?\n([\d,\.]+)\s*µg\/L/i);
+    if (m && m[1]) {
+      const num = parseFloat(m[1].replace(',', '.'));
+      if (!isNaN(num) && num >= 0 && num <= 100) {
+        additional.push({ marker_id: 'niquel', value: num });
+        found.add('niquel');
+        console.log(`Regex niquel: ${num}`);
+      }
+    } else {
+      tryFleury('niquel', 'N[IÍ]QUEL', OP_NUM);
+    }
+  }
   // Urina quantitativa — Sedimento Quantitativo (Fleury)
   if (!found.has('urina_leucocitos_quant') || !found.has('urina_hemacias_quant')) {
-    const sedMatch = pdfText.match(/SEDIMENTO\s+QUANTITATIVO[\s\S]{0,500}/i);
+    // Padrão Fleury: "Sedimento Quantitativo\nLeucócitos\nHemácias\nCélulas Epiteliais...\n5.900 /mL\n2.600 /mL"
+    // Os valores em /mL aparecem APÓS todos os labels, não intercalados
+    const sedMatch = pdfText.match(/Sedimento\s+Quantitativo[\s\S]{0,800}/i);
     if (sedMatch) {
       const seg = sedMatch[0];
-      // Padrão Fleury: valores em /mL aparecem após os labels em sequência
-      const numPattern = /([\d.,]+)\s*\/mL/gi;
+      // Extrair todos os valores em /mL do segmento
+      const numPattern = /([\d.]+(?:[.,]\d+)?)\s*\/mL/gi;
       const nums: number[] = [];
       let nm: RegExpExecArray | null;
       while ((nm = numPattern.exec(seg)) !== null) {
-        const v = parseFloat(nm[1].replace('.', '').replace(',', '.'));
-        if (!isNaN(v)) nums.push(v);
+        // Remover separador de milhar (ponto) e converter vírgula decimal
+        const cleaned = nm[1].replace(/\.(\d{3})/g, '$1').replace(',', '.');
+        const v = parseFloat(cleaned);
+        if (!isNaN(v) && v >= 0) nums.push(v);
       }
-      // Fleury order: Leucócitos /mL, Hemácias /mL
+      console.log('Sedimento Quantitativo nums:', nums);
+      // Fleury order: Leucócitos /mL, Hemácias /mL (1ª e 2ª ocorrências)
       if (nums.length >= 1 && !found.has('urina_leucocitos_quant')) {
         additional.push({ marker_id: 'urina_leucocitos_quant', value: nums[0] });
         found.add('urina_leucocitos_quant');
-        console.log('Regex fallback urina_leucocitos_quant: ' + nums[0]);
+        console.log('Regex urina_leucocitos_quant: ' + nums[0]);
       }
       if (nums.length >= 2 && !found.has('urina_hemacias_quant')) {
         additional.push({ marker_id: 'urina_hemacias_quant', value: nums[1] });
         found.add('urina_hemacias_quant');
-        console.log('Regex fallback urina_hemacias_quant: ' + nums[1]);
+        console.log('Regex urina_hemacias_quant: ' + nums[1]);
       }
     }
   }
