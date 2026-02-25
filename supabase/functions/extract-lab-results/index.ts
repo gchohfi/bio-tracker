@@ -619,6 +619,11 @@ function validateAndFixValues(results: any[]): any[] {
     igf1: { min: 20, max: 1000 },
     // Andrógenos
     dihidrotestosterona: { min: 50, max: 2000, fix: (v) => v < 50 ? v * 10 : v, label: "DHT ×10" },
+    // Testosterona Livre: expected ng/dL (0.01–2.0). If AI returned pmol/L (~2–60) → ÷34.7 to get ng/dL.
+    // If AI returned pg/mL (~0.1–20) → ÷10 to get ng/dL.
+    testosterona_livre: { min: 0.01, max: 2.0, fix: (v) => v > 2.0 && v <= 70 ? v / 34.7 : v > 70 ? v / 1000 : v, label: "testosterona_livre pmol→ng/dL" },
+    // Estrona: expected pg/mL (5–200). If AI returned ng/dL (~0.5–20) → ×10 to get pg/mL.
+    estrona: { min: 5, max: 500, fix: (v) => v < 5 ? v * 10 : v, label: "estrona ng/dL→pg/mL" },
     // Tireoide
     tsh: { min: 0.01, max: 100 },
     t4_livre: { min: 0.1, max: 5 },
@@ -690,10 +695,25 @@ function validateAndFixValues(results: any[]): any[] {
       }
     }
   }
-
-  return results;
+  // === ANTI-ALUCINAÇÃO: urina_hemoglobina e urina_hemacias ===
+  // Gemini sometimes copies hemoglobina/eritrocitos from hemograma into urina fields.
+  // Urina hemoglobina is QUALITATIVE (negativo/positivo) — never a numeric like 13.4.
+  // Urina hemacias qualitative is /campo (0-50), quantitative is /mL (0-50000).
+  for (const r of results) {
+    if (r.marker_id === 'urina_hemoglobina' && typeof r.value === 'number' && r.value > 5) {
+      // Likely a hallucination from hemograma hemoglobina (normal range 10-18 g/dL)
+      console.log(`ANTI-HALLUCINATION: removed urina_hemoglobina value ${r.value} (likely from hemograma)`);
+      r._remove = true;
+    }
+    if (r.marker_id === 'urina_hemacias' && typeof r.value === 'number' && r.value > 100) {
+      // Likely a hallucination from eritrocitos (normal range 3.5-6.0 milhões/µL → stored as 3.5-6.0)
+      // but if value is > 100, it's almost certainly from hemograma (millions/µL × some factor)
+      console.log(`ANTI-HALLUCINATION: removed urina_hemacias value ${r.value} (likely from hemograma)`);
+      r._remove = true;
+    }
+  }
+   return results.filter((r: any) => !r._remove);
 }
-
 // Post-processing: calculate derived values if missing
 function postProcessResults(results: any[]): any[] {
   const resultMap = new Map<string, any>();
@@ -1318,10 +1338,51 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
     }
   }
 
+   // === ELETROFORESE DE PROTEÍNAS: regex fallback for Fleury format ===
+  // Fleury reports fractions in two columns (% and g/dL). PDF.js extracts them interleaved.
+  // Pattern: "FractionName:\n%\nVALUE_PERCENT\n" — we capture the % value.
+  if (!found.has('eletroforese_albumina') || !found.has('eletroforese_alfa1')) {
+    const eletSection = pdfText.match(/ELETROFORESE DE PROTE[ÍI]NAS[\s\S]{0,3000}?(?=\n{4,}|LIPASE|COPROL[ÓO]GICO|COPROGRAMA|PARASITOL[ÓO]GICO|$)/i)?.[0];
+    if (eletSection) {
+      const eletMap: [string, RegExp][] = [
+        ['eletroforese_albumina', /Albumina\s*:\s*\n\s*%\s*\n\s*([\d,\.]+)/],
+        ['eletroforese_alfa1',    /Alfa\s*1\s*:\s*\n\s*([\d,\.]+)/],
+        ['eletroforese_alfa2',    /Alfa\s*2\s*:\s*\n\s*([\d,\.]+)/],
+        ['eletroforese_beta1',    /Beta\s*1\s*:\s*\n\s*([\d,\.]+)/],
+        ['eletroforese_beta2',    /Beta\s*2\s*:\s*\n\s*([\d,\.]+)/],
+        ['eletroforese_gama',     /Gama\s*:\s*\n\s*([\d,\.]+)/],
+        ['proteinas_totais',      /Prote[íi]nas\s+Totais\s*:\s*\n\s*([\d,\.]+)/],
+      ];
+      for (const [id, regex] of eletMap) {
+        if (!found.has(id)) {
+          const m = eletSection.match(regex);
+          if (m && m[1]) {
+            const val = parseFloat(m[1].replace(',', '.'));
+            if (!isNaN(val)) {
+              additional.push({ marker_id: id, value: val });
+              found.add(id);
+              console.log(`Eletroforese regex fallback ${id}: ${val}`);
+            }
+          }
+        }
+      }
+    }
+  }
+  // === COPROLÓGICO: regex fallback for gordura fecal quantitativa (Sudam III) ===
+  if (!found.has('copro_gordura_quant')) {
+    const gorduraMatch = pdfText.match(/Gorduras?\s*(?:\(Sudam\s*III\))?\s*[:\n]+\s*([\d,\.]+)\s*%/i);
+    if (gorduraMatch && gorduraMatch[1]) {
+      const val = parseFloat(gorduraMatch[1].replace(',', '.'));
+      if (!isNaN(val)) {
+        additional.push({ marker_id: 'copro_gordura_quant', value: val });
+        found.add('copro_gordura_quant');
+        console.log(`Gordura fecal quantitativa regex fallback: ${val}%`);
+      }
+    }
+  }
   if (additional.length > 0) {
     console.log(`Regex fallback added ${additional.length} markers: ${additional.map(r => r.marker_id).join(', ')}`);
   }
-
   // === DIAGNOSTIC: log missing markers and check if exam names exist in PDF text ===
   const criticalMarkers: [string, string[]][] = [
     ['ferro_metabolismo', ['METABOLISMO DO FERRO', 'METABOLISMO DE FERRO']],
