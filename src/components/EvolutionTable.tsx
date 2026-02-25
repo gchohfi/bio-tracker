@@ -25,6 +25,7 @@ type LabSession = Tables<"lab_sessions">;
 type LabResult = Tables<"lab_results">;
 
 type StatusFilter = "all" | "with_data" | "alerts" | "normal" | "low" | "high";
+type PanelFilter = "all" | "Padrão" | "Adicional";
 
 interface EvolutionTableProps {
   patientId: string;
@@ -37,6 +38,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | "Todos">("Todos");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [panelFilter, setPanelFilter] = useState<PanelFilter>("Padrão");
 
   useEffect(() => {
     if (sessions.length === 0) {
@@ -102,6 +104,11 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
   const filteredMarkers = useMemo(() => {
     let markers = activeCategory === "Todos" ? MARKERS : getMarkersByCategory(activeCategory);
 
+    // Filter by panel
+    if (panelFilter !== "all") {
+      markers = markers.filter((m) => (m as any).panel === panelFilter);
+    }
+
     if (statusFilter === "with_data") {
       markers = markers.filter((m) => {
         if (m.qualitative) {
@@ -128,7 +135,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
     }
 
     return markers;
-  }, [activeCategory, statusFilter, resultMap, textMap, sex, sortedSessions]);
+  }, [activeCategory, statusFilter, panelFilter, resultMap, textMap, sex, sortedSessions]);
 
   // Summary stats for the latest session
   const summaryStats = useMemo(() => {
@@ -237,6 +244,39 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
           </CardContent>
         </Card>
       )}
+
+      {/* Panel Filter */}
+      <div className="flex items-center gap-2 border rounded-lg px-3 py-2 bg-muted/30">
+        <span className="text-xs font-semibold text-muted-foreground shrink-0">Painel:</span>
+        <div className="flex gap-1.5">
+          {([
+            ["all", "Todos os painéis", "outline"],
+            ["Padrão", "⭐ Padrão", "blue"],
+            ["Adicional", "➕ Adicional", "violet"],
+          ] as [PanelFilter, string, string][]).map(([key, label, color]) => (
+            <Button
+              key={key}
+              variant={panelFilter === key ? "default" : "outline"}
+              size="sm"
+              className={cn(
+                "text-xs rounded-full h-7 px-3",
+                panelFilter === key && key === "Padrão" && "bg-blue-600 hover:bg-blue-700 border-blue-600 text-white",
+                panelFilter === key && key === "Adicional" && "bg-violet-600 hover:bg-violet-700 border-violet-600 text-white",
+                panelFilter !== key && key === "Padrão" && "border-blue-300 text-blue-700 hover:bg-blue-50",
+                panelFilter !== key && key === "Adicional" && "border-violet-300 text-violet-700 hover:bg-violet-50",
+              )}
+              onClick={() => setPanelFilter(key)}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+        <span className="ml-auto text-[10px] text-muted-foreground">
+          {panelFilter === "Padrão" && "Exames solicitados rotineiramente"}
+          {panelFilter === "Adicional" && "Exames complementares e especializados"}
+          {panelFilter === "all" && "Todos os marcadores disponíveis"}
+        </span>
+      </div>
 
       {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -359,13 +399,24 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                       {group.markers.map((marker) => {
                         const [min, max] = marker.refRange[sex];
                         const isQualitative = marker.qualitative;
+                        const markerPanel = (marker as any).panel as string | undefined;
                         return (
                           <tr
                             key={marker.id}
                             className="border-b last:border-0 hover:bg-muted/20 transition-colors"
                           >
                             <td className="sticky left-0 z-10 bg-card px-3 py-1.5">
-                              <div className="text-xs font-medium">{marker.name}</div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-medium">{marker.name}</span>
+                                {panelFilter === "all" && markerPanel && (
+                                  <span className={cn(
+                                    "inline-flex items-center rounded-full px-1.5 py-0 text-[9px] font-semibold",
+                                    markerPanel === "Padrão" ? "bg-blue-100 text-blue-700" : "bg-violet-100 text-violet-700"
+                                  )}>
+                                    {markerPanel === "Padrão" ? "⭐" : "➕"}
+                                  </span>
+                                )}
+                              </div>
                               <div className="text-[10px] text-muted-foreground">
                                 {isQualitative ? "qualitativo" : marker.unit}
                               </div>
@@ -396,30 +447,22 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                                   </td>
                                 );
                               }
-
-                              // Check for operator in text_value (e.g. "< 34")
+                              const status = getStatusWithOperator(val, marker, s.id);
                               const textVal = textMap[marker.id]?.[s.id];
-                              const operatorParsed = textVal ? parseOperatorValue(textVal) : null;
-                              const status = operatorParsed
-                                ? getMarkerStatus(operatorParsed.numericValue, marker, sex, operatorParsed.operator)
-                                : getMarkerStatus(val, marker, sex);
-                              const displayValue = operatorParsed ? textVal : String(val);
-
+                              const displayVal = textVal || val.toString();
                               return (
                                 <td key={s.id} className="px-2 py-1.5 text-center">
                                   <span
                                     className={cn(
-                                      "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-xs font-bold",
+                                      "inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-bold",
                                       status === "normal" && "bg-emerald-50 text-emerald-700",
                                       status === "low" && "bg-red-50 text-red-700",
-                                      status === "high" && "bg-red-50 text-red-700"
+                                      status === "high" && "bg-red-50 text-red-800",
                                     )}
                                   >
-                                    {!operatorParsed && status === "low" && "↓"}
-                                    {!operatorParsed && status === "high" && "↑"}
-                                    {displayValue}
-                                    {status === "normal" && !operatorParsed && " ✓"}
-                                    {status === "normal" && operatorParsed && " ✓"}
+                                    {status === "low" && "↓ "}
+                                    {status === "high" && "↑ "}
+                                    {displayVal}
                                   </span>
                                 </td>
                               );
