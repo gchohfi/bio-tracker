@@ -225,12 +225,23 @@ function drawLegend(doc: jsPDF, x: number, y: number) {
   return y + 3;
 }
 
+/* ─── AI Analysis types ─── */
+export interface AiAnalysis {
+  summary: string;
+  alerts: string[];
+  patterns: string[];
+  trends: string[];
+  suggestions: string[];
+  full_text: string;
+}
+
 /* ─── Main export ─── */
 export function generatePatientReport(
   patientName: string,
   sex: "M" | "F",
   sessions: Session[],
-  results: Result[]
+  results: Result[],
+  aiAnalysis?: AiAnalysis
 ) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -515,7 +526,161 @@ export function generatePatientReport(
     doc.addPage();
     startY = 16;
   }
-  drawLegend(doc, 14, startY);
+    drawLegend(doc, 14, startY);
+
+  // ── AI Analysis section ──
+  if (aiAnalysis) {
+    doc.addPage();
+    let aiY = 16;
+
+    // Section header
+    doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
+    doc.roundedRect(14, aiY - 4, pageW - 28, 12, 2, 2, "F");
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.text("ANÁLISE CLÍNICA — INTELIGÊNCIA ARTIFICIAL", 20, aiY + 3);
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(180, 200, 220);
+    doc.text("Gerada por GPT-4.1 • Uso exclusivo para profissionais de saúde • Não substitui avaliação clínica", pageW - 16, aiY + 3, { align: "right" });
+    aiY += 14;
+
+    // Summary
+    if (aiAnalysis.summary) {
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(BRAND.r, BRAND.g, BRAND.b);
+      doc.text("VISÃO GERAL", 14, aiY);
+      aiY += 5;
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(40, 40, 40);
+      doc.setFontSize(8);
+      const summaryLines = doc.splitTextToSize(aiAnalysis.summary, pageW - 28);
+      doc.text(summaryLines, 14, aiY);
+      aiY += summaryLines.length * 4.5 + 4;
+    }
+
+    // Alerts
+    if (aiAnalysis.alerts && aiAnalysis.alerts.length > 0) {
+      if (aiY > pageH - 40) { doc.addPage(); aiY = 16; }
+      doc.setFillColor(255, 245, 245);
+      doc.roundedRect(14, aiY - 3, pageW - 28, 7 + aiAnalysis.alerts.length * 6, 2, 2, "F");
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(RED.r, RED.g, RED.b);
+      doc.text("⚠ ALERTAS E ACHADOS PRIORITÁRIOS", 18, aiY + 2);
+      aiY += 7;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(80, 20, 20);
+      for (const alert of aiAnalysis.alerts) {
+        const lines = doc.splitTextToSize(`• ${alert}`, pageW - 36);
+        doc.text(lines, 20, aiY);
+        aiY += lines.length * 4.5;
+      }
+      aiY += 5;
+    }
+
+    // Patterns
+    if (aiAnalysis.patterns && aiAnalysis.patterns.length > 0) {
+      if (aiY > pageH - 40) { doc.addPage(); aiY = 16; }
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(BRAND.r, BRAND.g, BRAND.b);
+      doc.text("PADRÕES CLÍNICOS IDENTIFICADOS", 14, aiY);
+      aiY += 5;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(40, 40, 40);
+      for (const pattern of aiAnalysis.patterns) {
+        const lines = doc.splitTextToSize(`• ${pattern}`, pageW - 28);
+        doc.text(lines, 14, aiY);
+        aiY += lines.length * 4.5;
+      }
+      aiY += 5;
+    }
+
+    // Trends
+    if (aiAnalysis.trends && aiAnalysis.trends.length > 0) {
+      if (aiY > pageH - 40) { doc.addPage(); aiY = 16; }
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(ACCENT.r, ACCENT.g, ACCENT.b);
+      doc.text("TENDÊNCIAS ENTRE SESSÕES", 14, aiY);
+      aiY += 5;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(40, 40, 40);
+      for (const trend of aiAnalysis.trends) {
+        const lines = doc.splitTextToSize(`• ${trend}`, pageW - 28);
+        doc.text(lines, 14, aiY);
+        aiY += lines.length * 4.5;
+      }
+      aiY += 5;
+    }
+
+    // Suggestions
+    if (aiAnalysis.suggestions && aiAnalysis.suggestions.length > 0) {
+      if (aiY > pageH - 40) { doc.addPage(); aiY = 16; }
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(BLUE.r, BLUE.g, BLUE.b);
+      doc.text("SUGESTÕES DE INVESTIGAÇÃO", 14, aiY);
+      aiY += 5;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(40, 40, 40);
+      for (const suggestion of aiAnalysis.suggestions) {
+        const lines = doc.splitTextToSize(`• ${suggestion}`, pageW - 28);
+        doc.text(lines, 14, aiY);
+        aiY += lines.length * 4.5;
+      }
+      aiY += 5;
+    }
+
+    // Full narrative text
+    if (aiAnalysis.full_text) {
+      if (aiY > pageH - 50) { doc.addPage(); aiY = 16; }
+      doc.setDrawColor(200, 210, 220);
+      doc.setLineWidth(0.3);
+      doc.line(14, aiY, pageW - 14, aiY);
+      aiY += 6;
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(BRAND.r, BRAND.g, BRAND.b);
+      doc.text("ANÁLISE NARRATIVA COMPLETA", 14, aiY);
+      aiY += 5;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(40, 40, 40);
+      const fullLines = doc.splitTextToSize(aiAnalysis.full_text, pageW - 28);
+      // Handle page breaks within full text
+      for (const line of fullLines) {
+        if (aiY > pageH - 20) {
+          doc.addPage();
+          aiY = 16;
+        }
+        doc.text(line, 14, aiY);
+        aiY += 4.5;
+      }
+    }
+
+    // Disclaimer box at bottom
+    const disclaimerY = pageH - 22;
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(14, disclaimerY, pageW - 28, 10, 1.5, 1.5, "F");
+    doc.setFontSize(6.5);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(GRAY.r, GRAY.g, GRAY.b);
+    doc.text(
+      "Esta análise foi gerada por inteligência artificial (GPT-4.1) com base nos dados inseridos no sistema LabTrack. Não constitui diagnóstico médico, prescrição ou laudo clínico. "
+      + "Deve ser interpretada exclusivamente por profissional de saúde habilitado, em conjunto com a avaliação clínica completa do paciente.",
+      pageW / 2,
+      disclaimerY + 4,
+      { align: "center", maxWidth: pageW - 36 }
+    );
+  }
 
   // ── Page numbers & footer ──
   const totalPages = doc.getNumberOfPages();
@@ -523,6 +688,5 @@ export function generatePatientReport(
     doc.setPage(i);
     drawFooter(doc, pageW, pageH, i, totalPages);
   }
-
   doc.save(`Relatorio_${patientName.replace(/\s+/g, "_")}_${format(new Date(), "yyyyMMdd")}.pdf`);
 }

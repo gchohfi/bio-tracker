@@ -32,6 +32,7 @@ import {
   Pencil,
   Check,
   X,
+  Sparkles,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
 import ImportVerification from "@/components/ImportVerification";
@@ -77,7 +78,8 @@ export default function PatientDetail() {
   const [lastPdfText, setLastPdfText] = useState("");
   const [lastRawPdfText, setLastRawPdfText] = useState("");
   // Lab reference ranges extracted from the PDF (keyed by marker_id)
-  const [labRefRanges, setLabRefRanges] = useState<Record<string, { min?: number; max?: number; text?: string }>>({});
+  const [labRefRanges, setLabRefRanges] = useState<Record<string, { min?: number; max?: number; text?: string }>>({})
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -215,7 +217,7 @@ export default function PatientDetail() {
       });
 
       if (allResults.length > 0) {
-        const { error } = await supabase.from("lab_results").insert(allResults);
+        const { error } = await supabase.from("lab_results").insert(allResults as any);
         if (error) throw error;
       }
 
@@ -247,22 +249,93 @@ export default function PatientDetail() {
       .from("lab_results")
       .select("*")
       .in("session_id", sessionIds);
-    const results = data || [];
     generatePatientReport(
       patient.name,
       sex,
       sessions,
-      results.map((r) => ({
+      (data || []).map((r) => ({
         marker_id: r.marker_id,
         session_id: r.session_id,
         value: r.value ?? 0,
         text_value: r.text_value ?? undefined,
-        lab_ref_min: r.lab_ref_min,
-        lab_ref_max: r.lab_ref_max,
-        lab_ref_text: r.lab_ref_text,
+        lab_ref_min: r.lab_ref_min ?? undefined,
+        lab_ref_max: r.lab_ref_max ?? undefined,
+        lab_ref_text: r.lab_ref_text ?? undefined,
       }))
     );
     toast({ title: "Relatório exportado!" });
+  };
+
+  const handleExportPdfWithAI = async () => {
+    if (!patient || isAnalyzing) return;
+    setIsAnalyzing(true);
+    toast({ title: "Gerando análise de IA...", description: "Isso pode levar alguns segundos." });
+    try {
+      const sessionIds = sessions.map((s) => s.id);
+      const { data: results } = await supabase
+        .from("lab_results")
+        .select("*")
+        .in("session_id", sessionIds);
+
+      // Build enriched results with marker metadata for the AI
+      const enrichedResults = (results || []).map((r) => {
+        const marker = MARKERS.find((m) => m.id === r.marker_id);
+        const session = sessions.find((s) => s.id === r.session_id);
+        const status = marker
+          ? getMarkerStatus(r.value ?? 0, r.marker_id, sex, r.text_value ?? undefined)
+          : "normal";
+        return {
+          marker_id: r.marker_id,
+          marker_name: marker?.name ?? r.marker_id,
+          value: r.value,
+          text_value: r.text_value,
+          unit: marker?.unit ?? "",
+          functional_min: marker?.refRange?.[sex]?.[0] ?? marker?.refRange?.M?.[0],
+          functional_max: marker?.refRange?.[sex]?.[1] ?? marker?.refRange?.M?.[1],
+          status,
+          session_date: session?.session_date ?? "",
+        };
+      });
+
+      // Call the analyze-lab-results edge function
+      const { data: analysisData, error: analysisError } = await supabase.functions.invoke(
+        "analyze-lab-results",
+        {
+          body: {
+            patient_name: patient.name,
+            sex: patient.sex,
+            birth_date: patient.birth_date,
+            sessions: sessions.map((s) => ({ id: s.id, session_date: s.session_date })),
+            results: enrichedResults,
+          },
+        }
+      );
+
+      if (analysisError) throw analysisError;
+
+      const aiAnalysis = analysisData?.analysis;
+
+      generatePatientReport(
+        patient.name,
+        sex,
+        sessions,
+        (results || []).map((r) => ({
+          marker_id: r.marker_id,
+          session_id: r.session_id,
+          value: r.value ?? 0,
+          text_value: r.text_value ?? undefined,
+          lab_ref_min: r.lab_ref_min ?? undefined,
+          lab_ref_max: r.lab_ref_max ?? undefined,
+          lab_ref_text: r.lab_ref_text ?? undefined,
+        })),
+        aiAnalysis
+      );
+      toast({ title: "Relatório com análise IA exportado!" });
+    } catch (err: any) {
+      toast({ title: "Erro na análise de IA", description: err.message, variant: "destructive" });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleEditName = () => {
@@ -781,10 +854,25 @@ export default function PatientDetail() {
           </div>
           <div className="flex gap-2">
             {sessions.length > 0 && (
-              <Button variant="outline" onClick={handleExportPdf}>
-                <FileDown className="mr-2 h-4 w-4" />
-                Exportar PDF
-              </Button>
+              <>
+                <Button variant="outline" onClick={handleExportPdf}>
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Exportar PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleExportPdfWithAI}
+                  disabled={isAnalyzing}
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                >
+                  {isAnalyzing ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-2 h-4 w-4" />
+                  )}
+                  {isAnalyzing ? "Analisando..." : "Exportar com IA"}
+                </Button>
+              </>
             )}
             <Button onClick={openNewSession}>
               <Plus className="mr-2 h-4 w-4" />

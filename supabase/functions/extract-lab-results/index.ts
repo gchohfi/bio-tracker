@@ -739,6 +739,11 @@ function validateAndFixValues(results: any[]): any[] {
     // Urina quantitativos
     urina_albumina:        { min: 0, max: 10 },
     urina_creatinina:      { min: 10, max: 600 },
+    // Densidade urinária: faixa normal 1.001–1.040
+    // Nota: 1.02 e 1.020 são numericamente idênticos — nenhuma conversão necessária
+    urina_densidade:       { min: 1.001, max: 1.040 },
+    // pH urinário: faixa normal 4.5–8.5
+    urina_ph:              { min: 4, max: 9 },
   };
 
   for (const r of results) {
