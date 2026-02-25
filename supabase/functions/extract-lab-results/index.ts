@@ -527,6 +527,18 @@ RULE 5: Context-aware validation — check if value makes sense for the marker:
 CRITICAL: Do NOT set text_value for numeric markers unless they have an operator (< > <= >=). 
 Only set text_value for: qualitative markers OR operator values.
 
+=== LAB REFERENCE RANGE (lab_ref_text) ===
+For EVERY marker you extract, also capture the reference range printed in the lab report.
+Set lab_ref_text to the EXACT text shown in the report for that marker's reference range.
+Examples:
+- Hemoglobina feminino: lab_ref_text = "12.0 a 16.0"
+- TSH: lab_ref_text = "0.27 a 4.20"
+- Anti-TPO: lab_ref_text = "< 34"
+- FAN: lab_ref_text = "Nao reagente"
+- Glicose: lab_ref_text = "70 a 99"
+If the lab shows sex-specific ranges, use the one matching the patient (or the female range if unknown).
+If no reference range is found for a marker, leave lab_ref_text empty (do not include the field).
+
 - For T3 Livre: the standard unit is ng/dL. Do NOT convert. Most Brazilian labs report in ng/dL.
 - CRITICAL: For values with operators ("<", ">", "<=", ">="): set BOTH "value" (numeric part) AND "text_value" (full string with operator).
 - "Inferior a X" → value=X, text_value="< X"
@@ -851,6 +863,59 @@ function postProcessResults(results: any[]): any[] {
     }
   }
 
+  return results;
+}
+
+/**
+ * Parseia o lab_ref_text retornado pelo Gemini em campos numéricos lab_ref_min e lab_ref_max.
+ * Suporta formatos comuns de laudos brasileiros:
+ *   "12.0 a 16.0"  → min=12.0, max=16.0
+ *   "70 a 99"       → min=70, max=99
+ *   "0.27 a 4.20"   → min=0.27, max=4.20
+ *   "< 34"          → max=34 (sem min)
+ *   "> 60"          → min=60 (sem max)
+ *   "Nao reagente"  → mantém apenas lab_ref_text (qualitativo)
+ */
+function parseLabRefRanges(results: any[]): any[] {
+  for (const r of results) {
+    const refText: string | undefined = r.lab_ref_text;
+    if (!refText || typeof refText !== 'string' || refText.trim() === '') {
+      delete r.lab_ref_text;
+      continue;
+    }
+    const t = refText.trim();
+
+    // Formato "X a Y" ou "X - Y" ou "X–Y" (range numérico)
+    const rangeMatch = t.match(/^([\d.,]+)\s*(?:a|\-|\u2013|\u2014|até)\s*([\d.,]+)/i);
+    if (rangeMatch) {
+      const parseNum = (s: string) => parseFloat(s.replace(',', '.'));
+      const min = parseNum(rangeMatch[1]);
+      const max = parseNum(rangeMatch[2]);
+      if (!isNaN(min) && !isNaN(max)) {
+        r.lab_ref_min = min;
+        r.lab_ref_max = max;
+        // Keep lab_ref_text for display
+        continue;
+      }
+    }
+
+    // Formato "< X" ou "<= X" (apenas máximo)
+    const ltMatch = t.match(/^[<≤]=?\s*([\d.,]+)/);
+    if (ltMatch) {
+      r.lab_ref_max = parseFloat(ltMatch[1].replace(',', '.'));
+      continue;
+    }
+
+    // Formato "> X" ou ">= X" (apenas mínimo)
+    const gtMatch = t.match(/^[>≥]=?\s*([\d.,]+)/);
+    if (gtMatch) {
+      r.lab_ref_min = parseFloat(gtMatch[1].replace(',', '.'));
+      continue;
+    }
+
+    // Texto qualitativo ("Nao reagente", "Negativo", etc.) — mantém apenas lab_ref_text
+    // Não define min/max
+  }
   return results;
 }
 
@@ -1552,7 +1617,7 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
             type: "function",
             function: {
               name: "extract_results",
-              description: "Return extracted lab marker values mapped to their IDs. Use 'value' for numeric results and 'text_value' for qualitative/text results. IMPORTANT: For values with operators like '<' or '>', set BOTH value (numeric part) AND text_value (full string with operator).",
+              description: "Return extracted lab marker values mapped to their IDs. Use 'value' for numeric results and 'text_value' for qualitative/text results. IMPORTANT: For values with operators like '<' or '>', set BOTH value (numeric part) AND text_value (full string with operator). Also capture the lab reference range from the report in lab_ref_text.",
               parameters: {
                 type: "object",
                 properties: {
@@ -1562,8 +1627,9 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
                       type: "object",
                       properties: {
                         marker_id: { type: "string", description: "The marker ID from the known list" },
-                        value: { type: "number", description: "The numeric value extracted (use 0 for qualitative markers, use the numeric part for operator values like '< 34' → 34)" },
+                        value: { type: "number", description: "The numeric value extracted (use 0 for qualitative markers, use the numeric part for operator values like '< 34' \u2192 34)" },
                         text_value: { type: "string", description: "The text result for qualitative markers (e.g. 'Negativo', 'Ausente') OR for operator values (e.g. '< 34', '< 1.0', '> 90')" },
+                        lab_ref_text: { type: "string", description: "The reference range as printed in the lab report (e.g. '13.5 a 17.5', '70 a 99', '< 34', 'Nao reagente'). Copy EXACTLY as shown in the report. Leave empty if not found." },
                       },
                       required: ["marker_id"],
                       additionalProperties: false,
@@ -1618,8 +1684,7 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
       // Numeric markers: need valid number (may also have text_value for operator values)
       return typeof r.value === "number" && !isNaN(r.value);
     });
-    
-    // Normalize Portuguese operator text ("inferior a" → "<")
+     // Normalize Portuguese operator text ("inferior a" \u2192 "<")
     validResults = normalizeOperatorText(validResults);
     // Deduplicate (prefer calculated values over operator values for same marker)
     validResults = deduplicateResults(validResults);
@@ -1629,7 +1694,8 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     validResults = postProcessResults(validResults);
     // Regex fallback for markers the AI frequently misses
     validResults = regexFallback(pdfText, validResults);
-    
+    // Parse lab_ref_text into numeric min/max fields
+    validResults = parseLabRefRanges(validResults);    
     console.log(`Extracted ${validResults.length} valid markers:`, validResults.map((r: any) => r.marker_id).join(', '));
 
     return new Response(JSON.stringify({ results: validResults }), {

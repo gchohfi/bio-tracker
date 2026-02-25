@@ -82,6 +82,28 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
     return map;
   }, [results]);
 
+  // Build lab reference lookup: labRefMap[markerId][sessionId] = { text, min, max }
+  // Uses the most recent session that has a lab reference for each marker
+  const labRefMap = useMemo(() => {
+    const map: Record<string, { text?: string; min?: number; max?: number }> = {};
+    // Sort results by session date (newest first) to prefer most recent reference
+    const sortedResults = [...results].sort((a, b) => {
+      const sA = sessions.find(s => s.id === a.session_id);
+      const sB = sessions.find(s => s.id === b.session_id);
+      if (!sA || !sB) return 0;
+      return sB.session_date.localeCompare(sA.session_date);
+    });
+    sortedResults.forEach((r) => {
+      const refText = (r as any).lab_ref_text;
+      const refMin = (r as any).lab_ref_min;
+      const refMax = (r as any).lab_ref_max;
+      if ((refText || refMin !== undefined || refMax !== undefined) && !map[r.marker_id]) {
+        map[r.marker_id] = { text: refText, min: refMin, max: refMax };
+      }
+    });
+    return map;
+  }, [results, sessions]);
+
   // Sorted sessions oldest → newest (left to right)
   const sortedSessions = useMemo(
     () => [...sessions].sort((a, b) => a.session_date.localeCompare(b.session_date)),
@@ -422,7 +444,27 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                               </div>
                             </td>
                             <td className="px-2 py-1.5 text-[10px] text-muted-foreground whitespace-nowrap">
-                              {isQualitative ? "—" : `${min}–${max}`}
+                              {isQualitative ? (
+                                "—"
+                              ) : (
+                                <div className="space-y-0.5">
+                                  {/* Faixa funcional LabTrack */}
+                                  <div className="text-[10px] text-muted-foreground" title="Faixa funcional LabTrack">
+                                    {min}–{max}
+                                  </div>
+                                  {/* Faixa do laboratório (se disponível) */}
+                                  {labRefMap[marker.id] && (
+                                    <div
+                                      className="text-[9px] text-blue-500/70 font-medium"
+                                      title={`Ref. laboratório: ${labRefMap[marker.id].text || `${labRefMap[marker.id].min ?? '?'}–${labRefMap[marker.id].max ?? '?'}`}`}
+                                    >
+                                      Lab: {labRefMap[marker.id].text
+                                        ? labRefMap[marker.id].text
+                                        : `${labRefMap[marker.id].min ?? '?'}–${labRefMap[marker.id].max ?? '?'}`}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </td>
                             {sortedSessions.map((s) => {
                               if (isQualitative) {

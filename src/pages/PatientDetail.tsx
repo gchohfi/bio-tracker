@@ -76,6 +76,8 @@ export default function PatientDetail() {
   const [verificationOpen, setVerificationOpen] = useState(false);
   const [lastPdfText, setLastPdfText] = useState("");
   const [lastRawPdfText, setLastRawPdfText] = useState("");
+  // Lab reference ranges extracted from the PDF (keyed by marker_id)
+  const [labRefRanges, setLabRefRanges] = useState<Record<string, { min?: number; max?: number; text?: string }>>({});
 
   useEffect(() => {
     if (!id) return;
@@ -164,12 +166,20 @@ export default function PatientDetail() {
       }
 
       // Insert results for filled markers
-      const allResults: { session_id: string; marker_id: string; value: number; text_value?: string }[] = [];
+      const allResults: { session_id: string; marker_id: string; value: number; text_value?: string; lab_ref_text?: string; lab_ref_min?: number; lab_ref_max?: number }[] = [];
       
       Object.entries(markerValues).forEach(([markerId, v]) => {
         if (v === "") return;
         const marker = MARKERS.find(m => m.id === markerId);
         
+        // Get lab reference range for this marker (if available from PDF import)
+        const labRef = labRefRanges[markerId];
+        const labRefFields = labRef ? {
+          lab_ref_text: labRef.text,
+          lab_ref_min: labRef.min,
+          lab_ref_max: labRef.max,
+        } : {};
+
         if (marker?.qualitative) {
           // Qualitative markers: store text_value
           allResults.push({
@@ -177,6 +187,7 @@ export default function PatientDetail() {
             marker_id: markerId,
             value: 0,
             text_value: v,
+            ...labRefFields,
           });
         } else {
           // Numeric markers: check for operator prefix (e.g. "< 34", "> 90")
@@ -189,6 +200,7 @@ export default function PatientDetail() {
                 marker_id: markerId,
                 value: numericPart,
                 text_value: v, // preserve operator string
+                ...labRefFields,
               });
             }
           } else if (!isNaN(Number(v))) {
@@ -196,6 +208,7 @@ export default function PatientDetail() {
               session_id: sessionId!,
               marker_id: markerId,
               value: Number(v),
+              ...labRefFields,
             });
           }
         }
@@ -238,7 +251,15 @@ export default function PatientDetail() {
       patient.name,
       sex,
       sessions,
-      (data || []).map((r) => ({ marker_id: r.marker_id, session_id: r.session_id, value: r.value ?? 0, text_value: r.text_value ?? undefined }))
+      (data || []).map((r) => ({
+        marker_id: r.marker_id,
+        session_id: r.session_id,
+        value: r.value ?? 0,
+        text_value: r.text_value ?? undefined,
+        lab_ref_min: r.lab_ref_min ?? undefined,
+        lab_ref_max: r.lab_ref_max ?? undefined,
+        lab_ref_text: r.lab_ref_text ?? undefined,
+      }))
     );
     toast({ title: "Relatório exportado!" });
   };
@@ -480,7 +501,7 @@ export default function PatientDetail() {
 
       if (error) throw error;
 
-      const results = data?.results as { marker_id: string; value?: number; text_value?: string }[] | undefined;
+      const results = data?.results as { marker_id: string; value?: number; text_value?: string; lab_ref_text?: string; lab_ref_min?: number; lab_ref_max?: number }[] | undefined;
       if (!results || results.length === 0) {
         toast({ title: "Nenhum marcador encontrado", description: "A IA não conseguiu identificar resultados no PDF.", variant: "destructive" });
         return;
@@ -509,6 +530,20 @@ export default function PatientDetail() {
       setMarkerValues(newValues);
       setLastPdfText(cleanedText);
       setLastRawPdfText(fullText);
+
+      // Store lab reference ranges for saving to database
+      const newLabRefs: Record<string, { min?: number; max?: number; text?: string }> = {};
+      results.forEach((r) => {
+        if (r.lab_ref_text || r.lab_ref_min !== undefined || r.lab_ref_max !== undefined) {
+          newLabRefs[r.marker_id] = {
+            text: r.lab_ref_text,
+            min: r.lab_ref_min,
+            max: r.lab_ref_max,
+          };
+        }
+      });
+      setLabRefRanges(newLabRefs);
+
       setVerificationOpen(true);
 
       toast({ title: `${results.length} marcadores importados!`, description: "Revise os valores antes de salvar." });
@@ -721,10 +756,21 @@ export default function PatientDetail() {
                     </Button>
                   </div>
                 )}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="secondary">
                     {sex === "M" ? "Masculino" : "Feminino"}
                   </Badge>
+                  {patient.birth_date && (() => {
+                    const today = new Date();
+                    const birth = new Date(patient.birth_date);
+                    const age = today.getFullYear() - birth.getFullYear() -
+                      (today < new Date(today.getFullYear(), birth.getMonth(), birth.getDate()) ? 1 : 0);
+                    return (
+                      <Badge variant="outline" className="text-xs">
+                        {age} anos
+                      </Badge>
+                    );
+                  })()}
                   <span className="text-xs text-muted-foreground">
                     {sessions.length} sessão(ões)
                   </span>

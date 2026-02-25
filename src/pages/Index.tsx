@@ -35,6 +35,7 @@ export default function Index() {
   const [search, setSearch] = useState("");
   const [newName, setNewName] = useState("");
   const [newSex, setNewSex] = useState<"M" | "F">("F");
+  const [newBirthDate, setNewBirthDate] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -168,12 +169,14 @@ export default function Index() {
     const { error } = await supabase.from("patients").insert({
       name: newName.trim(),
       sex: newSex,
+      birth_date: newBirthDate || null,
       practitioner_id: user.id,
     });
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
       setNewName("");
+      setNewBirthDate("");
       setDialogOpen(false);
       fetchPatients();
       fetchDashboardData();
@@ -228,6 +231,15 @@ export default function Index() {
                       <SelectItem value="M">Masculino</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Data de Nascimento <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                  <Input
+                    type="date"
+                    value={newBirthDate}
+                    onChange={(e) => setNewBirthDate(e.target.value)}
+                    max={new Date().toISOString().split("T")[0]}
+                  />
                 </div>
                 <Button type="submit" className="w-full">Criar</Button>
               </form>

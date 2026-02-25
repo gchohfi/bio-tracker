@@ -24,6 +24,9 @@ interface Result {
   session_id: string;
   value: number;
   text_value?: string;
+  lab_ref_min?: number | null;
+  lab_ref_max?: number | null;
+  lab_ref_text?: string | null;
 }
 
 /* ─── Color palette ─── */
@@ -241,11 +244,21 @@ export function generatePatientReport(
   // Build result map
   const resultMap: Record<string, Record<string, number>> = {};
   const textResultMap: Record<string, Record<string, string>> = {};
+  // Lab reference map: most recent reference per marker
+  const labRefByMarker: Record<string, { min?: number; max?: number; text?: string }> = {};
   results.forEach((r) => {
     if (!resultMap[r.marker_id]) resultMap[r.marker_id] = {};
     if (!textResultMap[r.marker_id]) textResultMap[r.marker_id] = {};
     resultMap[r.marker_id][r.session_id] = r.value;
     if (r.text_value) textResultMap[r.marker_id][r.session_id] = r.text_value;
+    // Capture lab reference (last write wins — results are sorted oldest→newest so newest is kept)
+    if (r.lab_ref_text || r.lab_ref_min != null || r.lab_ref_max != null) {
+      labRefByMarker[r.marker_id] = {
+        text: r.lab_ref_text ?? undefined,
+        min: r.lab_ref_min ?? undefined,
+        max: r.lab_ref_max ?? undefined,
+      };
+    }
   });
 
   // Period string
@@ -285,7 +298,7 @@ export function generatePatientReport(
     );
 
     const head = [
-      ["Marcador", "Un.", "Ref. Funcional", ...sessionDateHeaders, "Tend.", "Evolução"],
+      ["Marcador", "Un.", "Ref. Funcional", "Ref. Lab.", ...sessionDateHeaders, "Tend.", "Evolução"],
     ];
 
     const body: any[][] = [];
@@ -303,10 +316,17 @@ export function generatePatientReport(
       const numericValues = values.filter((v) => v !== undefined) as number[];
       const trend = isQualitative ? null : getTrend(numericValues);
 
+      const labRef = labRefByMarker[marker.id];
+      const labRefStr = isQualitative ? "—" :
+        labRef
+          ? (labRef.text || `${labRef.min ?? '?'} – ${labRef.max ?? '?'}`)
+          : "—";
+
       const row: any[] = [
         marker.name,
         isQualitative ? "—" : marker.unit,
         isQualitative ? "Qualitativo" : `${min} – ${max}`,
+        labRefStr,
         ...sorted.map((s, i) => {
           if (isQualitative) {
             return textValues[i] || "—";
@@ -329,6 +349,8 @@ export function generatePatientReport(
 
     const sparkColIdx = head[0].length - 1;
     const trendColIdx = head[0].length - 2;
+    // With the new "Ref. Lab." column, data columns start at index 4 (was 3)
+    const dataColStart = 4;
     const catColor = getCategoryRGB(cat);
 
     autoTable(doc, {
@@ -354,15 +376,16 @@ export function generatePatientReport(
         fillColor: [LIGHT_BG.r, LIGHT_BG.g, LIGHT_BG.b],
       },
       columnStyles: {
-        0: { cellWidth: 32, fontStyle: "bold", textColor: [BRAND.r, BRAND.g, BRAND.b] },
-        1: { cellWidth: 14, textColor: [GRAY.r, GRAY.g, GRAY.b] },
-        2: { cellWidth: 18, textColor: [GRAY.r, GRAY.g, GRAY.b], fontStyle: "italic" },
+        0: { cellWidth: 30, fontStyle: "bold", textColor: [BRAND.r, BRAND.g, BRAND.b] },
+        1: { cellWidth: 12, textColor: [GRAY.r, GRAY.g, GRAY.b] },
+        2: { cellWidth: 16, textColor: [GRAY.r, GRAY.g, GRAY.b], fontStyle: "italic" },
+        3: { cellWidth: 16, textColor: [37, 99, 235], fontStyle: "italic", fontSize: 6.5 },
         [trendColIdx]: { cellWidth: 8, halign: "center", fontSize: 8 },
-        [sparkColIdx]: { cellWidth: 28 },
+        [sparkColIdx]: { cellWidth: 26 },
       },
       didParseCell(data) {
-        // Color code result values
-        if (data.section === "body" && data.column.index >= 3 && data.column.index < trendColIdx) {
+        // Color code result values (data columns start at index 4 now, after Ref. Lab. column)
+        if (data.section === "body" && data.column.index >= dataColStart && data.column.index < trendColIdx) {
           const rawStr = String(data.cell.raw || "");
           // Check for operator values like "< 34"
           const operatorParsed = parseOperatorValue(rawStr);
