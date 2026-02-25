@@ -455,12 +455,9 @@ export default function PatientDetail() {
         if (/^Interferentes:/i.test(normalized)) return false;
         if (/^Valores em/i.test(normalized)) return false;
         if (/^IBMP\b/i.test(normalized)) return false;
-        if (/^VALOR DE REFERÊNCIA/i.test(normalized)) return false;
-        if (/^Valores? de referência/i.test(normalized)) return false;
+        // NOTE: Do NOT remove reference range lines (e.g. "50 a 170", "Até X µg/L", "VALORES DE REFERÊNCIA")
+        // as they are used as anchors by the regex extraction engine in the edge function.
         if (/^(?:mEq\/L|mg\/dL|ng\/mL|pg\/mL|µg\/dL|U\/L|mcg)\s*$/i.test(normalized)) return false;
-        // Skip lines that are just units or reference ranges
-        if (/^\d+,?\d*\s*[-–a]\s*\d+,?\d*\s*(mg|g|microg|ng|pmol|nmol|mU|UI|U\/|fL|pg|%|mm|mcg|mEq)/i.test(normalized)) return false;
-        if (/^\d+ a \d+$/i.test(normalized)) return false;
         if (normalized.length < 3 && !/\d/.test(normalized)) return false;
         return true;
       });
