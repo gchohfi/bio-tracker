@@ -9,6 +9,7 @@ import {
   getMarkersByCategory,
   getMarkerStatus,
   parseOperatorValue,
+  getCategoryRgb,
   type Category,
   type MarkerDef,
 } from "@/lib/markers";
@@ -35,35 +36,10 @@ const RED = { r: 210, g: 45, b: 45 };
 const GRAY = { r: 120, g: 130, b: 140 };
 const LIGHT_BG = { r: 248, g: 250, b: 252 };
 
-/* ─── Category colors (RGB) mapped from HSL ─── */
-function getCategoryRGB(cat: Category): { r: number; g: number; b: number } {
-  const map: Record<Category, { r: number; g: number; b: number }> = {
-    Hemograma: { r: 55, g: 115, b: 210 },
-    Ferro: { r: 204, g: 120, b: 25 },
-    Glicemia: { r: 140, g: 70, b: 190 },
-    Lipídios: { r: 200, g: 55, b: 100 },
-    Tireoide: { r: 30, g: 150, b: 130 },
-    Hormônios: { r: 165, g: 75, b: 165 },
-    "Eixo GH": { r: 120, g: 80, b: 200 },
-    "Eixo Adrenal": { r: 190, g: 110, b: 40 },
-    Andrógenos: { r: 170, g: 60, b: 140 },
-    Vitaminas: { r: 190, g: 160, b: 20 },
-    Minerais: { r: 40, g: 140, b: 170 },
-    Hepático: { r: 55, g: 140, b: 70 },
-    Renal: { r: 65, g: 130, b: 190 },
-    Eletrólitos: { r: 210, g: 80, b: 60 },
-    Coagulação: { r: 190, g: 50, b: 50 },
-    Pancreático: { r: 160, g: 140, b: 30 },
-    Imunologia: { r: 110, g: 80, b: 190 },
-    Sorologia: { r: 130, g: 90, b: 180 },
-    Proteínas: { r: 40, g: 150, b: 140 },
-    "Marcadores Tumorais": { r: 180, g: 50, b: 80 },
-    Toxicologia: { r: 200, g: 100, b: 30 },
-    Urina: { r: 140, g: 160, b: 40 },
-    Fezes: { r: 170, g: 130, b: 50 },
-  };
-  return map[cat] || BRAND;
-}
+/* ─── Category colors (RGB) — derivados automaticamente do categoryConfig.ts ─── */
+// getCategoryRGB agora é um alias de getCategoryRgb (importado de markers.ts → categoryConfig.ts).
+// Não é mais necessário manter um mapa manual aqui.
+const getCategoryRGB = (cat: Category) => getCategoryRgb(cat);
 
 /* ─── Sparkline drawing ─── */
 function drawSparkline(

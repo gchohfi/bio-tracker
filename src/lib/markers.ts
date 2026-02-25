@@ -1,3 +1,21 @@
+// Re-export from categoryConfig.ts — fonte única de verdade para categorias e cores.
+// Não edite as categorias ou cores aqui; edite em src/lib/categoryConfig.ts.
+export {
+  CATEGORIES,
+  CATEGORY_CONFIG,
+  type Category,
+  getCategoryHsl as CATEGORY_COLORS_FN,
+  getCategoryHsl,
+  getCategoryRgb,
+} from "@/lib/categoryConfig";
+import { CATEGORY_CONFIG, type Category } from "@/lib/categoryConfig";
+
+// CATEGORY_COLORS mantido para compatibilidade retroativa com componentes existentes.
+// Derivado automaticamente do CATEGORY_CONFIG — não precisa ser mantido manualmente.
+export const CATEGORY_COLORS: Record<Category, string> = Object.fromEntries(
+  Object.entries(CATEGORY_CONFIG).map(([k, v]) => [k, v.hsl])
+) as Record<Category, string>;
+
 export interface MarkerDef {
   id: string;
   name: string;
@@ -7,60 +25,6 @@ export interface MarkerDef {
   qualitative?: boolean; // true for text-only results (FAN, Urina, Coprológico)
   panel?: "Padrão" | "Adicional"; // Padrão = painel rotineiro da médica
 }
-
-export const CATEGORIES = [
-  "Hemograma",
-  "Ferro",
-  "Glicemia",
-  "Lipídios",
-  "Tireoide",
-  "Hormônios",
-  "Eixo GH",
-  "Eixo Adrenal",
-  "Andrógenos",
-  "Vitaminas",
-  "Minerais",
-  "Hepático",
-  "Renal",
-  "Eletrólitos",
-  "Coagulação",
-  "Pancreático",
-  "Imunologia",
-  "Sorologia",
-  "Proteínas",
-  "Marcadores Tumorais",
-  "Toxicologia",
-  "Urina",
-  "Fezes",
-] as const;
-
-export type Category = (typeof CATEGORIES)[number];
-
-export const CATEGORY_COLORS: Record<Category, string> = {
-  Hemograma: "220 70% 55%",
-  Ferro: "30 80% 50%",
-  Glicemia: "280 60% 55%",
-  Lipídios: "340 70% 55%",
-  Tireoide: "170 60% 40%",
-  Hormônios: "300 50% 50%",
-  "Eixo GH": "260 55% 55%",
-  "Eixo Adrenal": "25 65% 50%",
-  Andrógenos: "320 55% 50%",
-  Vitaminas: "45 90% 50%",
-  Minerais: "190 60% 45%",
-  Hepático: "140 50% 40%",
-  Renal: "200 50% 50%",
-  Eletrólitos: "10 70% 55%",
-  Coagulação: "0 60% 50%",
-  Pancreático: "50 70% 45%",
-  Imunologia: "270 50% 55%",
-  Sorologia: "200 65% 45%",
-  Proteínas: "180 50% 45%",
-  "Marcadores Tumorais": "350 65% 50%",
-  Toxicologia: "15 80% 45%",
-  Urina: "55 70% 50%",
-  Fezes: "35 60% 45%",
-};
 
 // Functional medicine reference ranges (sex-specific)
 export const MARKERS: MarkerDef[] = [

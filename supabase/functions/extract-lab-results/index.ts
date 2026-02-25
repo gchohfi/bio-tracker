@@ -195,6 +195,7 @@ const MARKER_LIST = [
   { id: "copro_hemacias", name: "Hemácias (fezes)", unit: "", qualitative: true },
   { id: "copro_parasitas", name: "Parasitas (fezes)", unit: "", qualitative: true },
   { id: "copro_gordura", name: "Gordura Fecal", unit: "", qualitative: true },
+  { id: "copro_gordura_quant", name: "Gordura Fecal (%)", unit: "%" },
   { id: "copro_fibras", name: "Fibras Musculares (fezes)", unit: "", qualitative: true },
   { id: "copro_amido", name: "Amido (fezes)", unit: "", qualitative: true },
   { id: "copro_residuos", name: "Resíduos Alimentares (fezes)", unit: "", qualitative: true },
@@ -682,6 +683,22 @@ function validateAndFixValues(results: any[]): any[] {
       } else {
         console.log(`Fixed ${r.marker_id}: ${original} → ${r.value} (${range.label || 'decimal fix'})`);
       }
+    }
+  }
+
+  // Round all numeric values to avoid floating point artifacts (e.g. 0.1270893371757925 → 0.1271)
+  for (const r of results) {
+    if (typeof r.value === 'number' && !QUALITATIVE_IDS.has(r.marker_id)) {
+      // Determine appropriate decimal places based on magnitude
+      if (r.value === 0) continue;
+      const abs = Math.abs(r.value);
+      let decimals: number;
+      if (abs >= 100) decimals = 0;
+      else if (abs >= 10) decimals = 1;
+      else if (abs >= 1) decimals = 2;
+      else if (abs >= 0.1) decimals = 3;
+      else decimals = 4;
+      r.value = parseFloat(r.value.toFixed(decimals));
     }
   }
 
