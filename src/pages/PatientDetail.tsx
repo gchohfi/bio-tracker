@@ -376,12 +376,14 @@ export default function PatientDetail() {
         if (/^Referência:/i.test(normalized)) return false;
         if (/^Atenção para nov/i.test(normalized)) return false;
         if (/^Limite de detecção/i.test(normalized)) return false;
-        // Skip verbose clinical descriptions (but keep lines with qualitative results)
-        // Allow lines containing known qualitative keywords
+        // Skip verbose clinical descriptions (but keep lines with possible exam names/abbreviations)
         const hasQualitative = /reagente|negativo|positivo|normal|ausente|presente|pastosa|líquida|amarelo|marrom|verde|turva|límpida/i.test(normalized);
-        if (normalized.length > 120 && !/\d+[.,]\d+/.test(normalized) && !hasQualitative) return false;
-        // Skip any line that is purely text description without numbers (>60 chars) — but keep qualitative results
-        if (normalized.length > 60 && !/\d/.test(normalized) && !hasQualitative) return false;
+        const looksLikeExamLabel = /\b(?:TSH|T3|T4|TGO|TGP|VHS|VPM|HOMA|HDL|LDL|VLDL|PCR|FAN|EAS|ACTH|FSH|LH|DHEA|SHBG|IGF|IGFBP|HbA1c|Apo|B12)\b/i.test(normalized)
+          || /\b(?:hemoglobina|hematocrito|eritrocitos|leucocitos|plaquetas|glicose|insulina|colesterol|triglicerides|ferritina|transferrina|creatinina|ureia|albumina|globulina|bilirrubina|fosfatase|amilase|lipase|estradiol|progesterona|prolactina|testosterona|cortisol|vitamina|zinco|magnesio|selenio|cobre|copro|urina)\b/i.test(normalized);
+
+        if (normalized.length > 120 && !/\d+[.,]\d+/.test(normalized) && !hasQualitative && !looksLikeExamLabel) return false;
+        // Skip long narrative blocks sem números, mas preserve possíveis nomes de exames
+        if (normalized.length > 80 && !/\d/.test(normalized) && !hasQualitative && !looksLikeExamLabel) return false;
         // Skip age/sex specific reference text
         if (/^Paciente de (baixo|risco|alto|muito)/i.test(normalized)) return false;
         if (/^(Desejável|Ótimo|Limítrofe|Alto|Muito alto)\s*:/i.test(normalized)) return false;
@@ -454,11 +456,11 @@ export default function PatientDetail() {
         if (/^IBMP\b/i.test(normalized)) return false;
         if (/^VALOR DE REFERÊNCIA/i.test(normalized)) return false;
         if (/^Valores? de referência/i.test(normalized)) return false;
-        if (/^mEq\/L|^mg\/dL|^ng\/mL|^pg\/mL|^µg\/dL|^U\/L|^mcg/i.test(normalized)) return false;
+        if (/^(?:mEq\/L|mg\/dL|ng\/mL|pg\/mL|µg\/dL|U\/L|mcg)\s*$/i.test(normalized)) return false;
         // Skip lines that are just units or reference ranges
         if (/^\d+,?\d*\s*[-–a]\s*\d+,?\d*\s*(mg|g|microg|ng|pmol|nmol|mU|UI|U\/|fL|pg|%|mm|mcg|mEq)/i.test(normalized)) return false;
         if (/^\d+ a \d+$/i.test(normalized)) return false;
-        if (normalized.length < 5 && !/\d/.test(normalized)) return false;
+        if (normalized.length < 3 && !/\d/.test(normalized)) return false;
         return true;
       });
       const cleanedText = cleanedLines
