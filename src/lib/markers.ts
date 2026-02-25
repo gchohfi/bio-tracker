@@ -90,6 +90,7 @@ export const MARKERS: MarkerDef[] = [
   { id: "transferrina", name: "Transferrina", unit: "mg/dL", category: "Ferro", refRange: { M: [200, 360], F: [200, 360] } , panel: "Adicional" },
   { id: "sat_transferrina", name: "Sat. Transferrina", unit: "%", category: "Ferro", refRange: { M: [25, 45], F: [25, 45] } , panel: "Padrão" },
   { id: "tibc", name: "TIBC", unit: "µg/dL", category: "Ferro", refRange: { M: [250, 370], F: [250, 370] } , panel: "Adicional" },
+  { id: "fixacao_latente_ferro", name: "Capacidade de Fixação Latente do Ferro", unit: "µg/dL", category: "Ferro", refRange: { M: [130, 280], F: [130, 280] } , panel: "Adicional" },
   // Glicemia
   { id: "glicose_jejum", name: "Glicose Jejum", unit: "mg/dL", category: "Glicemia", refRange: { M: [75, 86], F: [75, 86] } , panel: "Padrão" },
   { id: "hba1c", name: "HbA1c", unit: "%", category: "Glicemia", refRange: { M: [4.5, 5.3], F: [4.5, 5.3] } , panel: "Padrão" },
@@ -120,7 +121,8 @@ export const MARKERS: MarkerDef[] = [
   { id: "trab", name: "TRAb", unit: "UI/L", category: "Tireoide", refRange: { M: [0, 1.75], F: [0, 1.75] } , panel: "Padrão" },
   // Hormônios
   { id: "testosterona_total", name: "Testosterona Total", unit: "ng/dL", category: "Hormônios", refRange: { M: [500, 900], F: [15, 70] } , panel: "Padrão" },
-  { id: "testosterona_livre", name: "Testosterona Livre", unit: "pg/mL", category: "Hormônios", refRange: { M: [15, 25], F: [1.0, 5.0] } , panel: "Padrão" },
+  { id: "testosterona_livre", name: "Testosterona Livre", unit: "ng/dL", category: "Hormônios", refRange: { M: [1.5, 2.5], F: [0.10, 0.50] } , panel: "Padrão" },
+  { id: "testosterona_biodisponivel", name: "Testosterona Biodisponível", unit: "ng/dL", category: "Hormônios", refRange: { M: [70, 250], F: [0.5, 8.5] } , panel: "Padrão" },
   { id: "estradiol", name: "Estradiol", unit: "pg/mL", category: "Hormônios", refRange: { M: [20, 40], F: [50, 200] } , panel: "Padrão" },
   { id: "estrona", name: "Estrona (E1)", unit: "pg/mL", category: "Hormônios", refRange: { M: [10, 60], F: [17, 200] } , panel: "Padrão" },
   { id: "progesterona", name: "Progesterona", unit: "ng/mL", category: "Hormônios", refRange: { M: [0.2, 1.4], F: [5.0, 20.0] } , panel: "Padrão" },
@@ -164,6 +166,9 @@ export const MARKERS: MarkerDef[] = [
   { id: "mercurio", name: "Mercúrio", unit: "µg/L", category: "Toxicologia", refRange: { M: [0, 5.9], F: [0, 5.9] } , panel: "Padrão" },
   { id: "cadmio", name: "Cádmio", unit: "µg/L", category: "Toxicologia", refRange: { M: [0, 1.2], F: [0, 1.2] } , panel: "Adicional" },
   { id: "aluminio", name: "Alumínio", unit: "µg/L", category: "Toxicologia", refRange: { M: [0, 10], F: [0, 10] } , panel: "Padrão" },
+  { id: "cobalto", name: "Cobalto", unit: "µg/L", category: "Toxicologia", refRange: { M: [0, 0.9], F: [0, 0.9] } , panel: "Adicional" },
+  { id: "arsenico", name: "Arsênico", unit: "mcg/L", category: "Toxicologia", refRange: { M: [0, 10], F: [0, 10] } , panel: "Adicional" },
+  { id: "niquel", name: "Níquel", unit: "µg/L", category: "Toxicologia", refRange: { M: [0, 2.5], F: [0, 2.5] } , panel: "Adicional" },
   // Hepático
   { id: "tgo_ast", name: "TGO (AST)", unit: "U/L", category: "Hepático", refRange: { M: [10, 26], F: [10, 25] } , panel: "Padrão" },
   { id: "tgp_alt", name: "TGP (ALT)", unit: "U/L", category: "Hepático", refRange: { M: [10, 26], F: [10, 25] } , panel: "Padrão" },
@@ -242,7 +247,9 @@ export const MARKERS: MarkerDef[] = [
   { id: "urina_glicose", name: "Glicose (urina)", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Padrão" },
   { id: "urina_hemoglobina", name: "Hemoglobina (urina)", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Adicional" },
   { id: "urina_leucocitos", name: "Leucócitos (urina)", unit: "/campo", category: "Urina", refRange: { M: [0, 5], F: [0, 5] }, qualitative: true , panel: "Padrão" },
+  { id: "urina_leucocitos_quant", name: "Leucócitos (urina quantitativo)", unit: "/mL", category: "Urina", refRange: { M: [0, 10000], F: [0, 10000] } , panel: "Padrão" },
   { id: "urina_hemacias", name: "Hemácias (urina)", unit: "/campo", category: "Urina", refRange: { M: [0, 3], F: [0, 3] }, qualitative: true , panel: "Padrão" },
+  { id: "urina_hemacias_quant", name: "Hemácias (urina quantitativo)", unit: "/mL", category: "Urina", refRange: { M: [0, 10000], F: [0, 10000] } , panel: "Padrão" },
   { id: "urina_bacterias", name: "Bactérias (urina)", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Adicional" },
   { id: "urina_celulas", name: "Células Epiteliais", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Padrão" },
   { id: "urina_cilindros", name: "Cilindros", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Padrão" },

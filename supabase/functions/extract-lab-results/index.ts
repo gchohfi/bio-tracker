@@ -30,6 +30,7 @@ const MARKER_LIST = [
   { id: "transferrina", name: "Transferrina", unit: "mg/dL" },
   { id: "sat_transferrina", name: "Sat. Transferrina", unit: "%" },
   { id: "tibc", name: "TIBC", unit: "µg/dL" },
+  { id: "fixacao_latente_ferro", name: "Capacidade de Fixação Latente do Ferro", unit: "µg/dL" },
   { id: "glicose_jejum", name: "Glicose Jejum", unit: "mg/dL" },
   { id: "hba1c", name: "HbA1c", unit: "%" },
   { id: "insulina_jejum", name: "Insulina Jejum", unit: "µU/mL" },
@@ -56,7 +57,8 @@ const MARKER_LIST = [
   { id: "anti_tg", name: "Anti-TG", unit: "UI/mL" },
   { id: "trab", name: "TRAb", unit: "UI/L" },
   { id: "testosterona_total", name: "Testosterona Total", unit: "ng/dL" },
-  { id: "testosterona_livre", name: "Testosterona Livre", unit: "pg/mL" },
+  { id: "testosterona_livre", name: "Testosterona Livre", unit: "ng/dL" },
+  { id: "testosterona_biodisponivel", name: "Testosterona Biodisponível", unit: "ng/dL" },
   { id: "estradiol", name: "Estradiol", unit: "pg/mL" },
   { id: "estrona", name: "Estrona (E1)", unit: "pg/mL" },
   { id: "progesterona", name: "Progesterona", unit: "ng/mL" },
@@ -125,6 +127,9 @@ const MARKER_LIST = [
   { id: "mercurio", name: "Mercúrio", unit: "µg/L" },
   { id: "cadmio", name: "Cádmio", unit: "µg/L" },
   { id: "aluminio", name: "Alumínio", unit: "µg/L" },
+  { id: "cobalto", name: "Cobalto", unit: "µg/L" },
+  { id: "arsenico", name: "Arsênico", unit: "mcg/L" },
+  { id: "niquel", name: "Níquel", unit: "µg/L" },
   { id: "fan", name: "FAN (Fator Anti-Núcleo)", unit: "", qualitative: true },
   { id: "fator_reumatoide", name: "Fator Reumatoide", unit: "UI/mL" },
   { id: "anti_endomisio_iga", name: "Anti-Endomísio IgA", unit: "", qualitative: true },
@@ -168,7 +173,9 @@ const MARKER_LIST = [
   { id: "urina_glicose", name: "Glicose (urina)", unit: "", qualitative: true },
   { id: "urina_hemoglobina", name: "Hemoglobina (urina)", unit: "", qualitative: true },
   { id: "urina_leucocitos", name: "Leucócitos (urina)", unit: "/campo", qualitative: true },
+  { id: "urina_leucocitos_quant", name: "Leucócitos (urina quantitativo)", unit: "/mL" },
   { id: "urina_hemacias", name: "Hemácias (urina)", unit: "/campo", qualitative: true },
+  { id: "urina_hemacias_quant", name: "Hemácias (urina quantitativo)", unit: "/mL" },
   { id: "urina_bacterias", name: "Bactérias (urina)", unit: "", qualitative: true },
   { id: "urina_celulas", name: "Células Epiteliais (urina)", unit: "", qualitative: true },
   { id: "urina_cilindros", name: "Cilindros (urina)", unit: "", qualitative: true },
@@ -385,6 +392,9 @@ TOXICOLOGIA:
 - "MERCURIO" / "Mercúrio" / "MERCÚRIO, SANGUE" / "MERCÚRIO TOTAL" / "Hg" → mercurio
 - "CADMIO" / "Cádmio" / "CÁDMIO, SANGUE" / "Cd" → cadmio
 - "ALUMINIO" / "Alumínio" / "ALUMÍNIO, SORO" / "Al" → aluminio
+- "COBALTO" / "Cobalto" / "COBALTO, SORO" / "Co" → cobalto
+- "ARSENICO" / "Arsênico" / "ARSÊNICO" / "ARSÊNICO, URINA" / "As" → arsenico
+- "NIQUEL" / "Níquel" / "NÍQUEL" / "NÍQUEL, SORO" / "Ni" → niquel
 
 HEPÁTICO:
 - "AST" / "TGO" / "GOT" / "GOT/AST" / "TRANSAMINASE GLUTÂMICO OXALACÉTICA" / "ASPARTATO AMINOTRANSFERASE" / "AST/TGO" / "SGOT" → tgo_ast
