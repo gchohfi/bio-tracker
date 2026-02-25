@@ -471,6 +471,16 @@ ELETROFORESE DE PROTEÍNAS:
 - Within the electrophoresis section, extract each fraction using % values:
   Albumina→eletroforese_albumina, Alfa-1→eletroforese_alfa1, Alfa-2→eletroforese_alfa2,
   Beta-1→eletroforese_beta1, Beta-2→eletroforese_beta2, Gamaglobulina→eletroforese_gama, A/G→relacao_ag
+- CRITICAL: Expected % ranges for each fraction (use these to validate your extraction):
+  eletroforese_albumina: 50–70% (ALWAYS the LARGEST value in the table)
+  eletroforese_alfa1: 2–6%
+  eletroforese_alfa2: 6–15%
+  eletroforese_beta1: 3–9%
+  eletroforese_beta2: 2–7%
+  eletroforese_gama: 8–22%
+  relacao_ag: 1.0–3.5 (ratio, not %)
+- If the value you extracted for eletroforese_albumina is below 30%, you have the WRONG fraction. Re-read the table.
+- Fleury format: two columns (% and g/dL) interleaved. The % column is the first numeric after the fraction name.
 
 URINA TIPO 1 / EAS:
 - "URINA TIPO 1" / "EAS" / "URINA ROTINA" / "PARCIAL DE URINA" / "URINÁLISE" / "URINA TIPO I" / "URINA TIPO I - JATO MEDIO" / "URINA TIPO I - JATO MÉDIO" → extract ALL sub-items as qualitative
@@ -693,6 +703,15 @@ function validateAndFixValues(results: any[]): any[] {
     fibrinogenio: { min: 50, max: 800 },
     // Cortisol
     cortisol: { min: 0.5, max: 50 },
+    // Eletroforese de Proteínas: frações em % (valores fisiológicos)
+    // Albumina: 50–70% — se < 30, provavelmente é outra fração (remover para evitar erro)
+    eletroforese_albumina: { min: 30, max: 80 },
+    eletroforese_alfa1:    { min: 1, max: 10 },
+    eletroforese_alfa2:    { min: 4, max: 20 },
+    eletroforese_beta1:    { min: 2, max: 12 },
+    eletroforese_beta2:    { min: 1, max: 10 },
+    eletroforese_gama:     { min: 5, max: 30 },
+    relacao_ag:            { min: 0.8, max: 4.0 },
   };
 
   for (const r of results) {
@@ -787,6 +806,28 @@ function validateAndFixValues(results: any[]): any[] {
       }
     }
   }
+
+  // === LIMPEZA: urina_leucocitos e urina_hemacias qualitativo ===
+  // Fleury imprime valor + referência na mesma linha: "15.900 /mL Até 25.000 /mL"
+  // Gemini captura o texto completo. Precisamos extrair apenas o valor inicial.
+  for (const r of results) {
+    if (r.marker_id !== 'urina_leucocitos' && r.marker_id !== 'urina_hemacias') continue;
+    const tv: string | undefined = r.text_value;
+    if (!tv || typeof tv !== 'string') continue;
+    // Se o text_value contém "Até", "até", "Ref", "ref" ou dois números grandes separados por espaço,
+    // extrai apenas a primeira parte (até o primeiro espaço seguido de "/mL" ou "Até" ou número grande)
+    const cleanMatch = tv.match(/^(\d[\d.,]*)\s*(?:\/mL)?\s*(?:Até|até|Ref|ref|<|>|\d{4,})/i);
+    if (cleanMatch) {
+      const cleanVal = cleanMatch[1].replace(/[.,](\d{3})$/g, '$1').replace(',', '.'); // remover separador de milhar
+      const num = parseFloat(cleanVal);
+      if (!isNaN(num) && num > 0) {
+        r.text_value = `${Math.round(num)} /mL`;
+        // Também atualizar o value numérico para o marcador quantitativo correspondente
+        console.log(`Cleaned urina qualitative text_value for ${r.marker_id}: "${tv}" → "${r.text_value}"`);
+      }
+    }
+  }
+
    return results.filter((r: any) => !r._remove);
 }
 
@@ -1539,27 +1580,48 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
    // === ELETROFORESE DE PROTEÍNAS: regex fallback for Fleury format ===
   // Fleury reports fractions in two columns (% and g/dL). PDF.js extracts them interleaved.
   // Pattern: "FractionName:\n%\nVALUE_PERCENT\n" — we capture the % value.
+  // Sanity ranges for eletroforese fractions (to reject wrong values from regex)
+  const eletSanity: Record<string, { min: number; max: number }> = {
+    eletroforese_albumina: { min: 30, max: 80 },  // always the largest fraction
+    eletroforese_alfa1:    { min: 1, max: 10 },
+    eletroforese_alfa2:    { min: 4, max: 20 },
+    eletroforese_beta1:    { min: 2, max: 12 },
+    eletroforese_beta2:    { min: 1, max: 10 },
+    eletroforese_gama:     { min: 5, max: 30 },
+    proteinas_totais:      { min: 3, max: 12 },   // g/dL
+  };
   if (!found.has('eletroforese_albumina') || !found.has('eletroforese_alfa1')) {
     const eletSection = pdfText.match(/ELETROFORESE DE PROTE[ÍI]NAS[\s\S]{0,3000}?(?=\n{4,}|LIPASE|COPROL[ÓO]GICO|COPROGRAMA|PARASITOL[ÓO]GICO|$)/i)?.[0];
     if (eletSection) {
-      const eletMap: [string, RegExp][] = [
-        ['eletroforese_albumina', /Albumina\s*:\s*\n\s*%\s*\n\s*([\d,\.]+)/],
-        ['eletroforese_alfa1',    /Alfa\s*1\s*:\s*\n\s*([\d,\.]+)/],
-        ['eletroforese_alfa2',    /Alfa\s*2\s*:\s*\n\s*([\d,\.]+)/],
-        ['eletroforese_beta1',    /Beta\s*1\s*:\s*\n\s*([\d,\.]+)/],
-        ['eletroforese_beta2',    /Beta\s*2\s*:\s*\n\s*([\d,\.]+)/],
-        ['eletroforese_gama',     /Gama\s*:\s*\n\s*([\d,\.]+)/],
-        ['proteinas_totais',      /Prote[íi]nas\s+Totais\s*:\s*\n\s*([\d,\.]+)/],
+      const eletMap: [string, RegExp[]][] = [
+        // Multiple regex patterns per fraction to handle different Fleury PDF layouts
+        ['eletroforese_albumina', [
+          /Albumina\s*:\s*\n\s*%\s*\n\s*([\d,\.]+)/,       // standard: name \n % \n value
+          /Albumina\s*:\s*\n\s*([5-9]\d[,\.]\d+)/,          // value starting with 5x-9x (50-79%)
+          /Albumina\s*[:\s]+([5-9]\d[,\.]\d+)\s*%/,         // inline: "Albumina: 62.5%"
+        ]],
+        ['eletroforese_alfa1',    [/Alfa\s*1\s*:\s*\n\s*([\d,\.]+)/, /Alfa\s*1\s*[:\s]+([\d,\.]+)\s*%/]],
+        ['eletroforese_alfa2',    [/Alfa\s*2\s*:\s*\n\s*([\d,\.]+)/, /Alfa\s*2\s*[:\s]+([\d,\.]+)\s*%/]],
+        ['eletroforese_beta1',    [/Beta\s*1\s*:\s*\n\s*([\d,\.]+)/, /Beta\s*1\s*[:\s]+([\d,\.]+)\s*%/]],
+        ['eletroforese_beta2',    [/Beta\s*2\s*:\s*\n\s*([\d,\.]+)/, /Beta\s*2\s*[:\s]+([\d,\.]+)\s*%/]],
+        ['eletroforese_gama',     [/Gama\s*:\s*\n\s*([\d,\.]+)/, /Gama\s*[:\s]+([\d,\.]+)\s*%/]],
+        ['proteinas_totais',      [/Prote[íi]nas\s+Totais\s*:\s*\n\s*([\d,\.]+)/, /Prote[íi]nas\s+Totais\s*[:\s]+([\d,\.]+)/]],
       ];
-      for (const [id, regex] of eletMap) {
+      for (const [id, regexList] of eletMap) {
         if (!found.has(id)) {
-          const m = eletSection.match(regex);
-          if (m && m[1]) {
-            const val = parseFloat(m[1].replace(',', '.'));
-            if (!isNaN(val)) {
-              additional.push({ marker_id: id, value: val });
-              found.add(id);
-              console.log(`Eletroforese regex fallback ${id}: ${val}`);
+          for (const regex of regexList) {
+            const m = eletSection.match(regex);
+            if (m && m[1]) {
+              const val = parseFloat(m[1].replace(',', '.'));
+              const sanity = eletSanity[id];
+              if (!isNaN(val) && (!sanity || (val >= sanity.min && val <= sanity.max))) {
+                additional.push({ marker_id: id, value: val });
+                found.add(id);
+                console.log(`Eletroforese regex fallback ${id}: ${val}`);
+                break; // first valid match wins
+              } else if (!isNaN(val) && sanity) {
+                console.log(`Eletroforese regex fallback ${id}: rejected ${val} (out of range ${sanity.min}–${sanity.max})`);
+              }
             }
           }
         }
