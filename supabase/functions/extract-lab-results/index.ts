@@ -527,17 +527,23 @@ RULE 5: Context-aware validation — check if value makes sense for the marker:
 CRITICAL: Do NOT set text_value for numeric markers unless they have an operator (< > <= >=). 
 Only set text_value for: qualitative markers OR operator values.
 
-=== LAB REFERENCE RANGE (lab_ref_text) ===
-For EVERY marker you extract, also capture the reference range printed in the lab report.
+=== LAB REFERENCE RANGE (lab_ref_text) — MANDATORY! ===
+⚠️ THIS IS CRITICAL AND NON-OPTIONAL: For EVERY SINGLE marker you extract, you MUST ALSO capture the reference range printed in the lab report.
 Set lab_ref_text to the EXACT text shown in the report for that marker's reference range.
+You MUST set lab_ref_text for EVERY marker — DO NOT skip this field!
 Examples:
-- Hemoglobina feminino: lab_ref_text = "12.0 a 16.0"
+- Hemoglobina feminino: lab_ref_text = "11.7 a 14.9"
 - TSH: lab_ref_text = "0.27 a 4.20"
-- Anti-TPO: lab_ref_text = "< 34"
+- Anti-TPO: lab_ref_text = "Inferior a 34"
 - FAN: lab_ref_text = "Nao reagente"
 - Glicose: lab_ref_text = "70 a 99"
-If the lab shows sex-specific ranges, use the one matching the patient (or the female range if unknown).
-If no reference range is found for a marker, leave lab_ref_text empty (do not include the field).
+- Leucócitos: lab_ref_text = "3.470 a 8.290"
+- Eritrócitos feminino: lab_ref_text = "3,83 a 4,99"
+- VPM: lab_ref_text = "9,2 a 12,6"
+- Ferritina feminino: lab_ref_text = "15 a 149"
+- Vitamina D: lab_ref_text = "Acima de 20"
+If the lab shows sex-specific or age-specific ranges, use the one matching the patient (or the female range if unknown).
+If no reference range is found for a marker, set lab_ref_text to "" (empty string) — but TRY HARD to find it.
 
 - For T3 Livre: the standard unit is ng/dL. Do NOT convert. Most Brazilian labs report in ng/dL.
 - CRITICAL: For values with operators ("<", ">", "<=", ">="): set BOTH "value" (numeric part) AND "text_value" (full string with operator).
@@ -1578,6 +1584,9 @@ serve(async (req) => {
             role: "user",
             content: `Extract ALL lab results from this Brazilian lab report. Target: 95+ markers. Be EXHAUSTIVE — do not skip ANY marker.
 
+⚠️ MANDATORY: For EVERY marker, you MUST include lab_ref_text with the reference range from the report!
+Example: hemoglobina value=13.4, lab_ref_text="11.7 a 14.9"
+
 STEP-BY-STEP APPROACH:
 1. First, normalize the text: remove accents, dots from abbreviations, replace Greek letters
 2. Identify all panels/sections (Hemograma, Lipídios, Bilirrubinas, Ferro, Eletroforese, Urina, Fezes, Marcadores Tumorais, etc.)
@@ -1586,6 +1595,7 @@ STEP-BY-STEP APPROACH:
 5. Apply unit conversions where needed
 6. For material = urine/stool, still extract (cortisol_livre_urina, urina_*, copro_*)
 7. CRITICAL: For values with "<" or ">" operators, set BOTH value AND text_value
+8. CRITICAL: For EVERY marker, capture the lab reference range in lab_ref_text!
 
 COMMONLY MISSED — search EXPLICITLY for each of these:
 - Hemograma: Bastonetes/Bastões, Segmentados, VPM/V.P.M./MPV
@@ -1616,6 +1626,13 @@ OPERATOR VALUES (CRITICAL):
 - Calcitonina often comes as "< 1.0" → value=1.0, text_value="< 1.0"
 - CA 72-4 often comes as "< 2.5" → value=2.5, text_value="< 2.5"
 - AFP often comes as "< 1.0" → value=1.0, text_value="< 1.0"
+
+REFERENCE RANGES (MANDATORY FOR EVERY MARKER):
+For EVERY marker, include lab_ref_text. Examples:
+- eritrocitos: lab_ref_text = "3,83 a 4,99"
+- hemoglobina: lab_ref_text = "11,7 a 14,9"
+- leucocitos: lab_ref_text = "3.470 a 8.290"
+- anti_tpo: lab_ref_text = "Inferior a 34"
 
 Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSend}`,
           },
