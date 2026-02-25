@@ -55,6 +55,7 @@ function getCategoryRGB(cat: Category): { r: number; g: number; b: number } {
     Coagulação: { r: 190, g: 50, b: 50 },
     Pancreático: { r: 160, g: 140, b: 30 },
     Imunologia: { r: 110, g: 80, b: 190 },
+    Sorologia: { r: 130, g: 90, b: 180 },
     Proteínas: { r: 40, g: 150, b: 140 },
     "Marcadores Tumorais": { r: 180, g: 50, b: 80 },
     Toxicologia: { r: 200, g: 100, b: 30 },
