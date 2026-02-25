@@ -215,7 +215,7 @@ export default function PatientDetail() {
       });
 
       if (allResults.length > 0) {
-        const { error } = await supabase.from("lab_results").insert(allResults as any);
+        const { error } = await supabase.from("lab_results").insert(allResults);
         if (error) throw error;
       }
 
@@ -247,19 +247,19 @@ export default function PatientDetail() {
       .from("lab_results")
       .select("*")
       .in("session_id", sessionIds);
-    const resultsAny = data as any[] || [];
+    const results = data || [];
     generatePatientReport(
       patient.name,
       sex,
       sessions,
-      resultsAny.map((r: any) => ({
+      results.map((r) => ({
         marker_id: r.marker_id,
         session_id: r.session_id,
         value: r.value ?? 0,
         text_value: r.text_value ?? undefined,
-        lab_ref_min: r.lab_ref_min ?? undefined,
-        lab_ref_max: r.lab_ref_max ?? undefined,
-        lab_ref_text: r.lab_ref_text ?? undefined,
+        lab_ref_min: r.lab_ref_min,
+        lab_ref_max: r.lab_ref_max,
+        lab_ref_text: r.lab_ref_text,
       }))
     );
     toast({ title: "Relatório exportado!" });
