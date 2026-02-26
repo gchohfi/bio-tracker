@@ -789,14 +789,6 @@ export default function PatientDetail() {
             onClose={() => setAliasConfigOpen(false)}
           />
 
-          {/* Edit report dialog (before PDF export) */}
-          <EditReportDialog
-            open={reportEditOpen}
-            onClose={() => setReportEditOpen(false)}
-            results={reportResults}
-            sex={sex}
-            onConfirm={handleReportConfirm}
-          />
         </div>
       </AppLayout>
     );
@@ -971,6 +963,14 @@ export default function PatientDetail() {
           </TabsContent>
         </Tabs>
       </div>
+      {/* Edit report dialog (before PDF export) */}
+      <EditReportDialog
+        open={reportEditOpen}
+        onClose={() => setReportEditOpen(false)}
+        results={reportResults}
+        sex={sex}
+        onConfirm={handleReportConfirm}
+      />
     </AppLayout>
   );
 }
