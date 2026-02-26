@@ -61,6 +61,7 @@ export const MARKERS: MarkerDef[] = [
   { id: "hba1c", name: "HbA1c", unit: "%", category: "Glicemia", refRange: { M: [4.5, 5.3], F: [4.5, 5.3] } , panel: "Padrão" },
   { id: "insulina_jejum", name: "Insulina Jejum", unit: "µU/mL", category: "Glicemia", refRange: { M: [2.0, 5.0], F: [2.0, 5.0] } , panel: "Padrão" },
   { id: "homa_ir", name: "HOMA-IR", unit: "", category: "Glicemia", refRange: { M: [0.5, 1.5], F: [0.5, 1.5] } , panel: "Padrão" },
+  { id: "glicemia_media_estimada", name: "Glicemia Média Estimada", unit: "mg/dL", category: "Glicemia", refRange: { M: [70, 100], F: [70, 100] } , panel: "Padrão" },
   // Lipídios
   { id: "colesterol_total", name: "Colesterol Total", unit: "mg/dL", category: "Lipídios", refRange: { M: [150, 200], F: [150, 200] } , panel: "Adicional" },
   { id: "hdl", name: "HDL", unit: "mg/dL", category: "Lipídios", refRange: { M: [55, 100], F: [60, 100] } , panel: "Padrão" },
@@ -224,8 +225,9 @@ export const MARKERS: MarkerDef[] = [
   { id: "urina_urobilinogenio", name: "Urobilinogênio", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Padrão" },
   { id: "urina_cetona", name: "Cetonas", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Padrão" },
   { id: "urina_muco", name: "Muco/Filamentos (urina)", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Adicional" },
-  { id: "urina_albumina", name: "Albumina (urina)", unit: "g/L", category: "Urina", refRange: { M: [0, 0.03], F: [0, 0.03] } , panel: "Padrão" },
+  { id: "urina_albumina", name: "Albumina (urina)", unit: "mg/L", category: "Urina", refRange: { M: [0, 20], F: [0, 20] } , panel: "Padrão" },
   { id: "urina_creatinina", name: "Creatinina (urina)", unit: "mg/dL", category: "Urina", refRange: { M: [50, 300], F: [50, 300] } , panel: "Padrão" },
+  { id: "urina_acr", name: "Razão Albumina/Creatinina", unit: "mg/g", category: "Urina", refRange: { M: [0, 30], F: [0, 30] } , panel: "Padrão" },
   // Coprológico Funcional
   { id: "copro_cor", name: "Cor (fezes)", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Adicional" },
   { id: "copro_consistencia", name: "Consistência", unit: "", category: "Fezes", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Adicional" },

@@ -186,8 +186,9 @@ const MARKER_LIST = [
   { id: "urina_urobilinogenio", name: "Urobilinogênio (urina)", unit: "", qualitative: true },
   { id: "urina_cetona", name: "Cetonas (urina)", unit: "", qualitative: true },
   { id: "urina_muco", name: "Muco/Filamentos (urina)", unit: "", qualitative: true },
-  { id: "urina_albumina", name: "Albumina (urina)", unit: "g/L" },
+  { id: "urina_albumina", name: "Albumina (urina)", unit: "mg/L" },
   { id: "urina_creatinina", name: "Creatinina (urina)", unit: "mg/dL" },
+  { id: "urina_acr", name: "Razão Albumina/Creatinina", unit: "mg/g" },
   // Qualitative markers - Coprológico
   { id: "copro_cor", name: "Cor (fezes)", unit: "", qualitative: true },
   { id: "copro_consistencia", name: "Consistência (fezes)", unit: "", qualitative: true },
@@ -456,6 +457,7 @@ FERRO:
 GLICEMIA:
 - "Glicose Jejum" / "GLICEMIA DE JEJUM" / "GLICEMIA" / "GLICOSE, PLASMA" / "GLICOSE, SORO" / "GLICOSE PLASMÁTICA" / "GLUCOSE" → glicose_jejum
 - "HbA1c" / "HEMOGLOBINA GLICADA" / "HEMOGLOBINA GLICOSILADA" / "A1C" / "HB GLICADA" / "HEMOGLOBINA A1C" / "HEMOGLOBINA GLICOSILADA (HbA1c)" → hba1c
+- "GLICEMIA MÉDIA ESTIMADA" / "Glicemia Média Estimada" / "eAG" / "Estimated Average Glucose" / "Glicose Média Estimada" / "GLICEMIA MEDIA ESTIMADA" → glicemia_media_estimada (unit: mg/dL). Often appears right below HbA1c in the same panel.
 - "Insulina Jejum" / "INSULINA BASAL" / "INSULINA, SORO" / "INSULINA SÉRICA" / "INSULINEMIA" → insulina_jejum
 - "HOMA-IR" / "ÍNDICE HOMA" / "HOMA" / "HOMA IR" / "HOMEOSTASIS MODEL ASSESSMENT" → homa_ir
 
@@ -493,7 +495,7 @@ ELETROFORESE DE PROTEÍNAS:
 URINA TIPO 1 / EAS:
 - "URINA TIPO 1" / "EAS" / "URINA ROTINA" / "PARCIAL DE URINA" / "URINÁLISE" / "URINA TIPO I" / "URINA TIPO I - JATO MEDIO" / "URINA TIPO I - JATO MÉDIO" → extract ALL sub-items as qualitative
 - Sub-items: urina_cor, urina_aspecto, urina_densidade, urina_ph, urina_proteinas, urina_glicose, urina_hemoglobina, urina_leucocitos, urina_hemacias, urina_bacterias, urina_celulas, urina_cilindros, urina_cristais, urina_nitritos, urina_bilirrubina, urina_urobilinogenio, urina_cetona, urina_muco, urina_albumina, urina_creatinina
-- urina_albumina: numeric value in g/L (microalbuminuria section, e.g. 0.01 g/L). Do NOT confuse with serum albumin.
+- urina_albumina: numeric value in mg/L (microalbuminuria section, e.g. 10 mg/L or 0.01 g/L → store as 10). If the value is in g/L (e.g. 0.01), multiply by 1000 to get mg/L. Do NOT confuse with serum albumin.
 - urina_creatinina: numeric value in mg/dL from urine creatinine (e.g. 200 mg/dL). Do NOT confuse with serum creatinine.
 - PSA: extract psa_total (ng/mL), psa_livre (ng/mL), and psa_relacao (% = PSA Livre/PSA Total × 100) when present.
 - SEDIMENTO QUANTITATIVO section (Fleury): extract numeric /mL values:
@@ -638,7 +640,27 @@ function deduplicateResults(results: any[]): any[] {
       // Otherwise keep first occurrence
     }
   }
-  return Array.from(seen.values());
+  const deduped = Array.from(seen.values());
+
+  // Cross-deduplication: if both qualitative (urina_leucocitos) and quantitative (urina_leucocitos_quant)
+  // exist with the same numeric value, remove the qualitative one to avoid showing duplicates.
+  // The quantitative (/mL) is more precise and should take precedence.
+  const crossPairs: [string, string][] = [
+    ['urina_leucocitos', 'urina_leucocitos_quant'],
+    ['urina_hemacias', 'urina_hemacias_quant'],
+  ];
+  const seenIds = new Set(deduped.map((r: any) => r.marker_id));
+  for (const [qualId, quantId] of crossPairs) {
+    if (seenIds.has(qualId) && seenIds.has(quantId)) {
+      // Both exist — remove the qualitative one
+      const idx = deduped.findIndex((r: any) => r.marker_id === qualId);
+      if (idx !== -1) {
+        console.log(`Cross-dedup: removed ${qualId} (duplicate of ${quantId})`);
+        deduped.splice(idx, 1);
+      }
+    }
+  }
+  return deduped;
 }
 
 // Post-processing: validate values and fix common decimal/unit errors
@@ -737,7 +759,9 @@ function validateAndFixValues(results: any[]): any[] {
     // Glicemia Média Estimada
     glicemia_media_estimada: { min: 50, max: 400 },
     // Urina quantitativos
-    urina_albumina:        { min: 0, max: 10 },
+    // urina_albumina: armazenado em mg/L (microalbuminúria). Fleury reporta em mg/L (0–300 mg/L).
+    // Se AI retornar g/L (< 0.3) → ×1000 para mg/L.
+    urina_albumina:        { min: 0, max: 300, fix: (v) => v < 1 ? v * 1000 : v, label: 'urina_albumina g/L→mg/L' },
     urina_creatinina:      { min: 10, max: 600 },
     // Densidade urinária: faixa normal 1.001–1.040
     // Nota: 1.02 e 1.020 são numericamente idênticos — nenhuma conversão necessária
@@ -891,6 +915,8 @@ function convertLabRefUnits(results: any[]): any[] {
       min: min > 1.5 ? parseFloat((min / 10).toFixed(3)) : min,
       max: max > 1.5 ? parseFloat((max / 10).toFixed(3)) : max,
     }),
+    // Glicemia Média Estimada: sem conversão necessária, mas garantir que lab_ref_text seja atualizado
+    glicemia_media_estimada: (min, max) => ({ min, max }),
   };
 
   for (const r of results) {
@@ -908,7 +934,11 @@ function convertLabRefUnits(results: any[]): any[] {
     // Atualizar o texto de exibição se foi alterado
     if (converted.min !== origMin || converted.max !== origMax) {
       if (typeof r.lab_ref_min === 'number' && typeof r.lab_ref_max === 'number') {
-        r.lab_ref_text = `${r.lab_ref_min} a ${r.lab_ref_max}`;
+        // Formatar com a unidade correta do marcador
+        const unitSuffix = r.marker_id === 't3_livre' ? ' ng/dL'
+          : r.marker_id === 'urina_albumina' ? ' mg/L'
+          : '';
+        r.lab_ref_text = `${r.lab_ref_min} a ${r.lab_ref_max}${unitSuffix}`;
       }
       console.log(`Converted lab_ref for ${r.marker_id}: ${origMin}-${origMax} → ${converted.min}-${converted.max}`);
     }
@@ -1002,7 +1032,20 @@ function postProcessResults(results: any[]): any[] {
       console.log(`Calculated neutrofilos: ${bast} + ${seg} = ${neutro}`);
     }
   }
-
+  // Calculate Razão Albumina/Creatinina urinária (ACR)
+  // urina_albumina em mg/L, urina_creatinina em mg/dL (= mg/100mL)
+  // ACR (mg/g) = albumina(mg/L) / creatinina(mg/dL) × 10
+  // (porque 1 mg/dL creatinina = 0.1 g/L = 100 mg/L → ACR = albumina_mgL / (creatinina_mgdL / 100) = albumina × 100 / creatinina)
+  if (!resultMap.has("urina_acr") && resultMap.has("urina_albumina") && resultMap.has("urina_creatinina")) {
+    const alb = resultMap.get("urina_albumina").value;
+    const crea = resultMap.get("urina_creatinina").value;
+    if (typeof alb === "number" && typeof crea === "number" && crea > 0) {
+      // ACR em mg/g: albumina(mg/L) × 100 / creatinina(mg/dL)
+      const acr = Math.round((alb * 100 / crea) * 10) / 10;
+      results.push({ marker_id: "urina_acr", value: acr });
+      console.log(`Calculated urina_acr: ${alb} mg/L ÷ ${crea} mg/dL × 100 = ${acr} mg/g`);
+    }
+  }
   return results;
 }
 
@@ -1198,10 +1241,11 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   tryFleury('potassio', 'POT[AÁ]SSIO', NUM);
   tryFleury('fosforo', 'F[OÓ]SFORO', NUM);
   tryFleury('calcitonina', 'CALCITONINA', OP_NUM);
-  tryFleury('anti_tpo', 'ANTI[- ]?PEROXIDASE', OP_NUM);
-  tryFleury('anti_tg', 'ANTITIROGLOBULINA', OP_NUM);
+  tryFleury('anti_tpo', 'ANTICORPOS?\\s+ANTI[- ]?PEROXIDASE(?:\\s+TI(?:R|REOI)DIANA)?|ANTI[- ]?PEROXIDASE', OP_NUM);
+  tryFleury('anti_tg', 'ANTICORPOS?\\s+ANTI[- ]?TIREOGLOBULINA|ANTICORPOS?\\s+ANTITIROGLOBULINA|ANTITIROGLOBULINA', OP_NUM);
   tryFleury('trab', 'ANTI[- ]?RECEPTOR\\s+DE\\s+TSH', OP_NUM);
   tryFleury('glicose_jejum', 'GLICOSE[\\s,]{0,20}(?:plasma|soro)', NUM);
+  tryFleury('glicemia_media_estimada', 'GLICEMIA\\s+M[EÉ]DIA\\s+ESTIMADA|eAG', NUM);
   tryFleury('insulina_jejum', 'INSULINA[\\s,]{0,20}soro', NUM);
   tryFleury('acido_folico', '[AÁ]CIDO\\s+F[OÓ]LICO', OP_NUM);
   tryFleury('homocisteina', 'HOMOCISTE[IÍ]NA', NUM);
@@ -1430,10 +1474,15 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   tryGeneric('potassio', [/(?:Pot[áaÁA]ssio)[\s:.\-]*?(\d[.,]\d)/i]);
   tryGeneric('fosforo', [/(?:F[óoÓO]sforo)[\s:.\-]*?(\d[.,]\d)/i]);
   tryGeneric('calcitonina', [/(?:Calcitonina)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i]);
-  tryGeneric('anti_tpo', [/(?:Anti[- ]?TPO|ANTI[- ]?PEROXIDASE)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i]);
-  tryGeneric('anti_tg', [/(?:Anti[- ]?TG|ANTITIROGLOBULINA)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i]);
+  tryGeneric('anti_tpo', [
+    /(?:Anti[- ]?TPO|ANTI[- ]?PEROXIDASE(?:\s+TI(?:R|REOI)DIANA)?|ANTICORPOS?\s+ANTI[- ]?PEROXIDASE|ATPO|TPO[- ]?Ab)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i,
+  ]);
+  tryGeneric('anti_tg', [
+    /(?:Anti[- ]?TG|ANTICORPOS?\s+ANTI[- ]?TIREOGLOBULINA|ANTICORPOS?\s+ANTITIROGLOBULINA|ANTITIROGLOBULINA|ATG|TgAb)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i,
+  ]);
   tryGeneric('trab', [/(?:TRAb|TRAB)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i]);
   tryGeneric('hba1c', [/(?:HEMOGLOBINA\s+GLICADA|HbA1c)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('glicemia_media_estimada', [/(?:GLICEMIA\s+M[EÉ]DIA\s+ESTIMADA|eAG|Estimated\s+Average\s+Glucose)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('glicose_jejum', [/(?:GLICOSE|GLICEMIA)[\s:.\-]*?(\d{2,3})\s*mg/i]);
   tryGeneric('insulina_jejum', [/(?:INSULINA)[\s,]*(?:soro|BASAL)?[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)/i]);
   tryGeneric('acido_folico', [/(?:[ÁAáa]cido\s+F[óoÓO]lico|Folato)[\s:.\-]*?(superior\s+a\s+[\d,\.]+|inferior\s+a\s+[\d,\.]+|[<>]?\s*\d+[.,]?\d*)/i]);
