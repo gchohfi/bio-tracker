@@ -242,30 +242,6 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
         </div>
       )}
 
-      {/* Alert banner */}
-      {alertCount > 0 && (
-        <Card className="border-destructive/50 bg-destructive/5">
-          <CardContent className="flex items-center gap-3 p-4">
-            <AlertTriangle className="h-5 w-5 text-destructive" />
-            <div>
-              <p className="text-sm font-medium text-destructive">
-                {alertCount} marcador{alertCount > 1 ? "es" : ""} fora da faixa funcional
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Na sessão mais recente
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-auto text-xs"
-              onClick={() => { setActiveCategory("Todos"); setStatusFilter("alerts"); }}
-            >
-              Ver alertas
-            </Button>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Panel Filter */}
       <div className="flex items-center gap-2 border rounded-lg px-3 py-2 bg-muted/30">
