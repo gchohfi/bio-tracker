@@ -561,27 +561,6 @@ export function generatePatientReport(
       aiY += summaryLines.length * 4.5 + 4;
     }
 
-    // Alerts
-    if (aiAnalysis.alerts && aiAnalysis.alerts.length > 0) {
-      if (aiY > pageH - 40) { doc.addPage(); aiY = 16; }
-      doc.setFillColor(255, 245, 245);
-      doc.roundedRect(14, aiY - 3, pageW - 28, 7 + aiAnalysis.alerts.length * 6, 2, 2, "F");
-      doc.setFontSize(8.5);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(RED.r, RED.g, RED.b);
-      doc.text("⚠ ALERTAS E ACHADOS PRIORITÁRIOS", 18, aiY + 2);
-      aiY += 7;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(80, 20, 20);
-      for (const alert of aiAnalysis.alerts) {
-        const lines = doc.splitTextToSize(`• ${alert}`, pageW - 36);
-        doc.text(lines, 20, aiY);
-        aiY += lines.length * 4.5;
-      }
-      aiY += 5;
-    }
-
     // Patterns
     if (aiAnalysis.patterns && aiAnalysis.patterns.length > 0) {
       if (aiY > pageH - 40) { doc.addPage(); aiY = 16; }
