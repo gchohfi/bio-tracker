@@ -28,7 +28,7 @@ interface AnalysisRequest {
 
 interface AnalysisResponse {
   summary: string;
-  alerts: string[];
+  
   patterns: string[];
   trends: string[];
   suggestions: string[];
@@ -55,7 +55,6 @@ REGRAS IMPORTANTES:
 FORMATO DE SAÍDA (JSON estrito):
 {
   "summary": "Parágrafo de 2-3 frases com visão equilibrada: primeiro os pontos positivos, depois os que merecem atenção",
-  "alerts": ["Apenas achados realmente significativos que requerem investigação — NÃO inclua variações discretas aqui"],
   "patterns": ["Padrões clínicos identificados pela correlação entre marcadores — incluir padrões positivos também"],
   "trends": ["Tendências observadas entre sessões — destacar melhorias quando houver"],
   "suggestions": ["Sugestões de exames complementares ou ajustes — apenas quando clinicamente justificado"],
@@ -202,7 +201,7 @@ serve(async (req) => {
       // If JSON parsing fails, wrap the text in the expected structure
       analysis = {
         summary: content.slice(0, 300),
-        alerts: [],
+        
         patterns: [],
         trends: [],
         suggestions: [],
