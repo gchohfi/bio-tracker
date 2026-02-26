@@ -381,7 +381,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/30">
-                    <th className="sticky left-0 z-10 min-w-[180px] bg-muted/30 px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                    <th className="sticky left-0 z-10 min-w-[140px] bg-muted/30 px-2 py-2 text-left text-xs font-medium text-muted-foreground">
                       Marcador
                     </th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground">
@@ -390,7 +390,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                     {sortedSessions.map((s) => (
                       <th
                         key={s.id}
-                        className="min-w-[90px] px-2 py-2 text-center text-xs font-medium text-muted-foreground"
+                        className="min-w-[70px] px-1 py-2 text-center text-xs font-medium text-muted-foreground"
                       >
                         {format(parseISO(s.session_date), "dd/MM/yy")}
                       </th>
@@ -427,7 +427,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                             key={marker.id}
                             className="border-b last:border-0 hover:bg-muted/20 transition-colors"
                           >
-                            <td className="sticky left-0 z-10 bg-card px-3 py-1.5">
+                            <td className="sticky left-0 z-10 bg-card px-2 py-1.5">
                               <div className="flex items-center gap-1.5">
                                 <span className="text-xs font-medium">{marker.name}</span>
                                 {panelFilter === "all" && markerPanel && (
@@ -443,7 +443,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                                 {isQualitative ? "qualitativo" : marker.unit}
                               </div>
                             </td>
-                            <td className="px-2 py-1.5 text-[10px] text-muted-foreground whitespace-nowrap">
+                            <td className="px-1 py-1.5 text-[10px] text-muted-foreground whitespace-nowrap">
                               {isQualitative ? (
                                 "—"
                               ) : (
