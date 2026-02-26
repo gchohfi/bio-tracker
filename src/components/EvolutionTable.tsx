@@ -217,30 +217,6 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
 
   return (
     <div className="space-y-4">
-      {/* Summary Bar */}
-      {summaryStats.total > 0 && (
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-3 rounded-full overflow-hidden flex bg-muted">
-            <div
-              className="bg-emerald-400 transition-all duration-500"
-              style={{ width: `${(summaryStats.normal / summaryStats.total) * 100}%` }}
-            />
-            <div
-              className="bg-red-400 transition-all duration-500"
-              style={{ width: `${(summaryStats.low / summaryStats.total) * 100}%` }}
-            />
-            <div
-              className="bg-red-500 transition-all duration-500"
-              style={{ width: `${(summaryStats.high / summaryStats.total) * 100}%` }}
-            />
-          </div>
-          <div className="flex items-center gap-2 text-xs font-medium shrink-0">
-            <span className="text-emerald-600">{summaryStats.normal} ✓</span>
-            {summaryStats.low > 0 && <span className="text-red-600">{summaryStats.low} ↓</span>}
-            {summaryStats.high > 0 && <span className="text-red-600">{summaryStats.high} ↑</span>}
-          </div>
-        </div>
-      )}
 
 
       {/* Panel Filter */}
