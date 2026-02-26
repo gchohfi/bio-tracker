@@ -38,6 +38,7 @@ import {
 import EvolutionTable from "@/components/EvolutionTable";
 import ImportVerification from "@/components/ImportVerification";
 import EditExtractionDialog from "@/components/EditExtractionDialog";
+import EditReportDialog from "@/components/EditReportDialog";
 import AliasConfigDialog, { loadCustomAliases } from "@/components/AliasConfigDialog";
 import { generatePatientReport } from "@/lib/generateReport";
 import {
@@ -245,6 +246,9 @@ export default function PatientDetail() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   // Track how many PDFs were imported in the current session
   const [importedPdfCount, setImportedPdfCount] = useState(0);
+  const [reportEditOpen, setReportEditOpen] = useState(false);
+  const [reportResults, setReportResults] = useState<any[]>([]);
+  const [reportWithAI, setReportWithAI] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -380,36 +384,36 @@ export default function PatientDetail() {
     }
   };
 
-  const handleExportPdf = async () => {
+  const openReportEdit = async (withAI: boolean) => {
     if (!patient) return;
     const sessionIds = sessions.map((s) => s.id);
     const { data } = await supabase.from("lab_results").select("*").in("session_id", sessionIds);
-    generatePatientReport(
-      patient.name,
-      sex,
-      sessions,
-      (data || []).map((r) => ({
-        marker_id: r.marker_id,
-        session_id: r.session_id,
-        value: r.value ?? 0,
-        text_value: r.text_value ?? undefined,
-        lab_ref_min: r.lab_ref_min ?? undefined,
-        lab_ref_max: r.lab_ref_max ?? undefined,
-        lab_ref_text: r.lab_ref_text ?? undefined,
-      }))
-    );
-    toast({ title: "Relatório exportado!" });
+    const mapped = (data || []).map((r) => ({
+      marker_id: r.marker_id,
+      session_id: r.session_id,
+      value: r.value ?? 0,
+      text_value: r.text_value ?? undefined,
+      lab_ref_min: r.lab_ref_min ?? undefined,
+      lab_ref_max: r.lab_ref_max ?? undefined,
+      lab_ref_text: r.lab_ref_text ?? undefined,
+    }));
+    setReportResults(mapped);
+    setReportWithAI(withAI);
+    setReportEditOpen(true);
   };
 
-  const handleExportPdfWithAI = async () => {
-    if (!patient || isAnalyzing) return;
+  const handleReportConfirm = async (updatedResults: any[]) => {
+    if (!patient) return;
+    if (!reportWithAI) {
+      generatePatientReport(patient.name, sex, sessions, updatedResults);
+      toast({ title: "Relatório exportado!" });
+      return;
+    }
+    // With AI
     setIsAnalyzing(true);
     toast({ title: "Gerando análise de IA...", description: "Isso pode levar alguns segundos." });
     try {
-      const sessionIds = sessions.map((s) => s.id);
-      const { data: results } = await supabase.from("lab_results").select("*").in("session_id", sessionIds);
-
-      const enrichedResults = (results || []).map((r) => {
+      const enrichedResults = updatedResults.map((r) => {
         const marker = MARKERS.find((m) => m.id === r.marker_id);
         const session = sessions.find((s) => s.id === r.session_id);
         const status = marker ? getMarkerStatus(r.value ?? 0, marker, sex, r.text_value ?? undefined) : "normal";
@@ -438,21 +442,7 @@ export default function PatientDetail() {
 
       if (analysisError) throw analysisError;
 
-      generatePatientReport(
-        patient.name,
-        sex,
-        sessions,
-        (results || []).map((r) => ({
-          marker_id: r.marker_id,
-          session_id: r.session_id,
-          value: r.value ?? 0,
-          text_value: r.text_value ?? undefined,
-          lab_ref_min: r.lab_ref_min ?? undefined,
-          lab_ref_max: r.lab_ref_max ?? undefined,
-          lab_ref_text: r.lab_ref_text ?? undefined,
-        })),
-        analysisData?.analysis
-      );
+      generatePatientReport(patient.name, sex, sessions, updatedResults, analysisData?.analysis);
       toast({ title: "Relatório com análise IA exportado!" });
     } catch (err: any) {
       toast({ title: "Erro na análise de IA", description: err.message, variant: "destructive" });
@@ -798,6 +788,15 @@ export default function PatientDetail() {
             open={aliasConfigOpen}
             onClose={() => setAliasConfigOpen(false)}
           />
+
+          {/* Edit report dialog (before PDF export) */}
+          <EditReportDialog
+            open={reportEditOpen}
+            onClose={() => setReportEditOpen(false)}
+            results={reportResults}
+            sex={sex}
+            onConfirm={handleReportConfirm}
+          />
         </div>
       </AppLayout>
     );
@@ -870,13 +869,13 @@ export default function PatientDetail() {
           <div className="flex gap-2 flex-wrap">
             {sessions.length > 0 && (
               <>
-                <Button variant="outline" onClick={handleExportPdf}>
+                <Button variant="outline" onClick={() => openReportEdit(false)}>
                   <FileDown className="mr-2 h-4 w-4" />
                   Exportar PDF
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={handleExportPdfWithAI}
+                  onClick={() => openReportEdit(true)}
                   disabled={isAnalyzing}
                   className="border-purple-300 text-purple-700 hover:bg-purple-50"
                 >
