@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -45,13 +45,13 @@ export default function EditReportDialog({
   const [search, setSearch] = useState("");
 
   // Reset when dialog opens with new data
-  useMemo(() => {
+  useEffect(() => {
     if (open) {
       setLocalResults(results.map(r => ({ ...r })));
       setEditingKey(null);
       setSearch("");
     }
-  }, [open, results]);
+  }, [open]);
 
   // Group by marker, show latest value per marker
   const markerLatestMap = useMemo(() => {
