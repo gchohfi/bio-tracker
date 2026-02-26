@@ -1,46 +1,28 @@
 
 
-# Correcao dos Erros de Build e Runtime
+# Correcao do Build Error e Remocao dos Alertas
 
-## Problemas Identificados
+## Problema 1: Erro de Build (TS2345)
+Na linha 415 de `PatientDetail.tsx`, `getMarkerStatus` ainda recebe `r.marker_id` (string) em vez do objeto `marker` (MarkerDef). Essa correcao ja foi feita na outra chamada (linha ~285), mas esta segunda chamada (usada na funcao de analise com IA) nao foi atualizada.
 
-### 1. PatientDetail.tsx (linha 285) - Erro de tipo
-`getMarkerStatus` espera um `MarkerDef` como segundo parametro, mas recebe `r.marker_id` (string). Isso tambem causa o erro de runtime "Cannot read properties of undefined (reading 'M')" porque a funcao tenta acessar `marker.refRange[sex]` em uma string.
-
-**Correcao**: Passar o objeto `marker` (ja resolvido na linha 282) em vez de `r.marker_id`. Adicionar guard para quando `marker` for undefined.
-
-### 2. analyze-lab-results/index.ts (linha 101) - Erro de tipo no statusLabel
-O objeto `statusLabel` so tem chaves `low`, `high`, `critical_low`, `critical_high`, mas `r.status` pode ser `"normal"` ou `"qualitative"`. O TypeScript nao aceita indexar com valores que nao existem no objeto.
-
-**Correcao**: Adicionar as chaves `normal` e `qualitative` ao objeto, ou usar um `Record<string, string>` com type assertion.
-
-## Plano de Correcoes
-
-### Arquivo 1: `src/pages/PatientDetail.tsx`
-- Linha 285: Trocar `r.marker_id` por `marker` (o objeto MarkerDef)
-- Ajustar a logica para so chamar `getMarkerStatus` quando `marker` existir
-
+### Correcao
+Trocar `r.marker_id` por `marker` na linha 415:
 ```typescript
-const status = marker
-  ? getMarkerStatus(r.value ?? 0, marker, sex, r.text_value ?? undefined)
-  : "normal";
+const status = marker ? getMarkerStatus(r.value ?? 0, marker, sex, r.text_value ?? undefined) : "normal";
 ```
 
-### Arquivo 2: `supabase/functions/analyze-lab-results/index.ts`
-- Linha 101-106: Tipar o objeto como `Record<string, string>` para aceitar qualquer valor de status
+## Problema 2: Remover secao de Alertas do relatorio PDF
+O usuario pediu para remover os avisos de alerta. Isso envolve:
 
-```typescript
-const statusLabel: Record<string, string> = {
-  low: "BAIXO",
-  high: "ALTO",
-  critical_low: "CRITICO BAIXO",
-  critical_high: "CRITICO ALTO",
-};
-const label = statusLabel[r.status] ?? r.status;
-```
+### Arquivo: `supabase/functions/analyze-lab-results/index.ts`
+- Remover `alerts` da interface `AnalysisResponse`
+- Remover a referencia a `alerts` no `SYSTEM_PROMPT` (JSON de saida)
+- No fallback de parse, remover `alerts: []`
 
-## Resultado
-- Corrige os 2 erros de build (TS2345 e TS2339)
-- Corrige o erro de runtime "Cannot read properties of undefined (reading 'M')"
-- A analise com IA voltara a funcionar
+### Arquivo: `src/lib/generateReport.ts`
+- Remover o bloco que renderiza a secao "Alertas" no PDF (linhas ~564-580)
+
+### Resultado
+- Corrige o erro de build TS2345
+- Remove a secao de alertas vermelhos do relatorio, mantendo o tom equilibrado e analitico
 
