@@ -33,9 +33,12 @@ import {
   Check,
   X,
   Sparkles,
+  Settings2,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
 import ImportVerification from "@/components/ImportVerification";
+import EditExtractionDialog from "@/components/EditExtractionDialog";
+import AliasConfigDialog, { loadCustomAliases } from "@/components/AliasConfigDialog";
 import { generatePatientReport } from "@/lib/generateReport";
 import {
   CATEGORIES,
@@ -51,6 +54,165 @@ import type { Tables } from "@/integrations/supabase/types";
 type Patient = Tables<"patients">;
 type LabSession = Tables<"lab_sessions">;
 type LabResult = Tables<"lab_results">;
+
+// ── PDF text extraction helper ──────────────────────────────────────────
+async function extractPdfText(file: File): Promise<{ fullText: string; cleanedText: string }> {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = "";
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const items = content.items as any[];
+    if (items.length === 0) continue;
+    const lines: { y: number; items: { x: number; str: string }[] }[] = [];
+    items.forEach((item) => {
+      if (!item.str) return;
+      const y = Math.round(item.transform[5]);
+      const x = item.transform[4];
+      let line = lines.find((l) => Math.abs(l.y - y) < 3);
+      if (!line) { line = { y, items: [] }; lines.push(line); }
+      line.items.push({ x, str: item.str });
+    });
+    lines.sort((a, b) => b.y - a.y);
+    lines.forEach((line) => {
+      line.items.sort((a, b) => a.x - b.x);
+      fullText += line.items.map((it) => it.str).join("  ") + "\n";
+    });
+    fullText += "\n--- Página " + i + " ---\n\n";
+  }
+
+  const cleanedLines = fullText.split("\n").filter((line) => {
+    const normalized = line.trim().replace(/\s+/g, " ");
+    if (!normalized || normalized.length < 3) return false;
+    if (/^Cliente:/i.test(normalized)) return false;
+    if (/^Data de Nascimento:/i.test(normalized)) return false;
+    if (/^Médico:.*CRM/i.test(normalized)) return false;
+    if (/^Data da Ficha:/i.test(normalized)) return false;
+    if (/^Ficha:/i.test(normalized)) return false;
+    if (/^RECEBIDO.COLETADO/i.test(normalized)) return false;
+    if (/^Exame liberado/i.test(normalized)) return false;
+    if (/^Assinatura digital/i.test(normalized)) return false;
+    if (/^CRM:.*RESPONSÁVEL/i.test(normalized)) return false;
+    if (/^A interpretação do resultado/i.test(normalized)) return false;
+    if (/^Avenida|^Rua |^Impresso em:/i.test(normalized)) return false;
+    if (/^Página:|^Páginas:/i.test(normalized)) return false;
+    if (/^-{3,}/.test(normalized)) return false;
+    if (/^={3,}/.test(normalized)) return false;
+    if (/^www\./i.test(normalized)) return false;
+    if (/confiance/i.test(normalized)) return false;
+    if (/^CAMPINAS|^INDAIATUBA/i.test(normalized)) return false;
+    if (/^0[A-F0-9]{30,}/i.test(normalized)) return false;
+    if (/^O valor preditivo/i.test(normalized)) return false;
+    if (/^Nome:/i.test(normalized)) return false;
+    if (/^Código:/i.test(normalized)) return false;
+    if (/^Posto:/i.test(normalized)) return false;
+    if (/^CNES:/i.test(normalized)) return false;
+    if (/^Dr\.\(a\):/i.test(normalized)) return false;
+    if (/^Recepção:/i.test(normalized)) return false;
+    if (/^RG\/Passaporte:/i.test(normalized)) return false;
+    if (/^Entrega:/i.test(normalized)) return false;
+    if (/^PALC/i.test(normalized)) return false;
+    if (/^SBPC/i.test(normalized)) return false;
+    if (/^Laboratório\. CRM/i.test(normalized)) return false;
+    if (/^Medicina Diagnóstica/i.test(normalized)) return false;
+    if (/^Resultados? Anteriore?s?:/i.test(normalized)) return false;
+    if (/^\d{2}\/\d{2}\/\d{4}\s*-\s*[\d<>,. ]+$/i.test(normalized)) return false;
+    if (/^Método:/i.test(normalized)) return false;
+    if (/^Coleta:/i.test(normalized)) return false;
+    if (/^Liberação:/i.test(normalized)) return false;
+    if (/^Revisão:/i.test(normalized)) return false;
+    if (/^Observações gerais:/i.test(normalized)) return false;
+    if (/^Exame realizado pelo/i.test(normalized)) return false;
+    if (/^NOTA\s*\(?[0-9]*\)?:/i.test(normalized)) return false;
+    if (/^Notas?:/i.test(normalized)) return false;
+    if (/^Referências?:/i.test(normalized)) return false;
+    if (/^Referência:/i.test(normalized)) return false;
+    if (/^Atenção para nov/i.test(normalized)) return false;
+    if (/^Limite de detecção/i.test(normalized)) return false;
+    const hasQualitative = /reagente|negativo|positivo|normal|ausente|presente|pastosa|líquida|amarelo|marrom|verde|turva|límpida/i.test(normalized);
+    const looksLikeExamLabel = /\b(?:TSH|T3|T4|TGO|TGP|VHS|VPM|HOMA|HDL|LDL|VLDL|PCR|FAN|EAS|ACTH|FSH|LH|DHEA|SHBG|IGF|IGFBP|HbA1c|Apo|B12)\b/i.test(normalized)
+      || /\b(?:hemoglobina|hematocrito|eritrocitos|leucocitos|plaquetas|glicose|insulina|colesterol|triglicerides|ferritina|transferrina|creatinina|ureia|albumina|globulina|bilirrubina|fosfatase|amilase|lipase|estradiol|progesterona|prolactina|testosterona|cortisol|vitamina|zinco|magnesio|selenio|cobre|copro|urina)\b/i.test(normalized);
+    if (normalized.length > 120 && !/\d+[.,]\d+/.test(normalized) && !hasQualitative && !looksLikeExamLabel) return false;
+    if (normalized.length > 80 && !/\d/.test(normalized) && !hasQualitative && !looksLikeExamLabel) return false;
+    if (/^Paciente de (baixo|risco|alto|muito)/i.test(normalized)) return false;
+    if (/^(Desejável|Ótimo|Limítrofe|Alto|Muito alto)\s*:/i.test(normalized)) return false;
+    if (/^(Com|Sem) (ou sem )?jejum/i.test(normalized)) return false;
+    if (/^Maior ou igual a \d+ anos/i.test(normalized)) return false;
+    if (/^Fem:|^Masc:/i.test(normalized)) return false;
+    if (/^Menor que \d|^Maior que \d|^Maior ou igual a \d/i.test(normalized)) return false;
+    if (/^De \d+ a \d+ anos/i.test(normalized)) return false;
+    if (/^Acima de \d+ anos/i.test(normalized)) return false;
+    if (/^Até \d+ anos/i.test(normalized)) return false;
+    if (/^Crianças/i.test(normalized)) return false;
+    if (/^Gestantes/i.test(normalized)) return false;
+    if (/^1\.o trimestre|^2\.o trimestre|^3\.o trimestre/i.test(normalized)) return false;
+    if (/^Adultos:/i.test(normalized)) return false;
+    if (/^Homens:|^Mulheres:/i.test(normalized)) return false;
+    if (/^Fase Folicular|^Pico Ovulatório|^Fase Lútea|^Menopausa/i.test(normalized)) return false;
+    if (/^Estágio de Tanner/i.test(normalized)) return false;
+    if (/^Recém-nascido/i.test(normalized)) return false;
+    if (/^\d+ dias?:/i.test(normalized)) return false;
+    if (/^Sangue de cordão/i.test(normalized)) return false;
+    if (/^pode interferir/i.test(normalized)) return false;
+    if (/^suspensão da biotina/i.test(normalized)) return false;
+    if (/^Pacientes em tratamento/i.test(normalized)) return false;
+    if (/^incompatibilidade do resultado/i.test(normalized)) return false;
+    if (/^Na ausência de hiperglicemia/i.test(normalized)) return false;
+    if (/^Standards of Medical/i.test(normalized)) return false;
+    if (/^Diabetes Care/i.test(normalized)) return false;
+    if (/^Cálculo baseado nos/i.test(normalized)) return false;
+    if (/^Vermeulen/i.test(normalized)) return false;
+    if (/^A estimativa da taxa/i.test(normalized)) return false;
+    if (/^O uso da estimativa/i.test(normalized)) return false;
+    if (/^Fonte da Fórmula/i.test(normalized)) return false;
+    if (/^Miller WG/i.test(normalized)) return false;
+    if (/^Imunoensaio para/i.test(normalized)) return false;
+    if (/^Um resultado normal/i.test(normalized)) return false;
+    if (/^No caso de obter/i.test(normalized)) return false;
+    if (/^Quando se determina/i.test(normalized)) return false;
+    if (/^Diferenças nos resultados/i.test(normalized)) return false;
+    if (/^A concentração de ferro/i.test(normalized)) return false;
+    if (/^LDL, VLDL e Colesterol não-HDL são calculados/i.test(normalized)) return false;
+    if (/^Valores de Colesterol/i.test(normalized)) return false;
+    if (/^A interpretação clínica/i.test(normalized)) return false;
+    if (/^Para valores de triglicérides/i.test(normalized)) return false;
+    if (/^Consenso Brasileiro/i.test(normalized)) return false;
+    if (/^AC-##/i.test(normalized)) return false;
+    if (/^Diluição de triagem/i.test(normalized)) return false;
+    if (/^Para informações sobre/i.test(normalized)) return false;
+    if (/^Frequência de FAN/i.test(normalized)) return false;
+    if (/^Resultados reagentes/i.test(normalized)) return false;
+    if (/^A definição do Padrão/i.test(normalized)) return false;
+    if (/^Os padrões complexos/i.test(normalized)) return false;
+    if (/^Mulheres em idade fértil/i.test(normalized)) return false;
+    if (/^A NR-7/i.test(normalized)) return false;
+    if (/^O resultado obtido/i.test(normalized)) return false;
+    if (/^IBE\/SC/i.test(normalized)) return false;
+    if (/^CARACTERES MORFOLÓGICOS/i.test(normalized)) return false;
+    if (/^Valores obtidos/i.test(normalized)) return false;
+    if (/^Este exame foi/i.test(normalized)) return false;
+    if (/^Equipamento:/i.test(normalized)) return false;
+    if (/^Ensaio:/i.test(normalized)) return false;
+    if (/^Amostra:/i.test(normalized)) return false;
+    if (/^Prazo de entrega/i.test(normalized)) return false;
+    if (/^Orientação de preparo/i.test(normalized)) return false;
+    if (/^Interferentes:/i.test(normalized)) return false;
+    if (/^Valores em/i.test(normalized)) return false;
+    if (/^IBMP\b/i.test(normalized)) return false;
+    if (/^(?:mEq\/L|mg\/dL|ng\/mL|pg\/mL|µg\/dL|U\/L|mcg)\s*$/i.test(normalized)) return false;
+    if (normalized.length < 3 && !/\d/.test(normalized)) return false;
+    return true;
+  });
+
+  const cleanedText = cleanedLines
+    .map((l) => l.trim().replace(/\s+/g, " "))
+    .filter((l) => !/^--- Página \d+/.test(l))
+    .join("\n");
+
+  return { fullText, cleanedText };
+}
 
 export default function PatientDetail() {
   const { id } = useParams<{ id: string }>();
@@ -75,11 +237,14 @@ export default function PatientDetail() {
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState("");
   const [verificationOpen, setVerificationOpen] = useState(false);
+  const [editExtractionOpen, setEditExtractionOpen] = useState(false);
+  const [aliasConfigOpen, setAliasConfigOpen] = useState(false);
   const [lastPdfText, setLastPdfText] = useState("");
   const [lastRawPdfText, setLastRawPdfText] = useState("");
-  // Lab reference ranges extracted from the PDF (keyed by marker_id)
-  const [labRefRanges, setLabRefRanges] = useState<Record<string, { min?: number; max?: number; text?: string }>>({})
+  const [labRefRanges, setLabRefRanges] = useState<Record<string, { min?: number; max?: number; text?: string }>>({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  // Track how many PDFs were imported in the current session
+  const [importedPdfCount, setImportedPdfCount] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -111,14 +276,14 @@ export default function PatientDetail() {
     setEditingSessionId(null);
     setSessionDate(new Date());
     setMarkerValues({});
+    setImportedPdfCount(0);
     setFormOpen(true);
   };
 
   const openEditSession = async (session: LabSession) => {
     setEditingSessionId(session.id);
     setSessionDate(parseISO(session.session_date));
-
-    // Load existing results
+    setImportedPdfCount(0);
     const { data } = await supabase
       .from("lab_results")
       .select("*")
@@ -147,34 +312,26 @@ export default function PatientDetail() {
       let sessionId = editingSessionId;
 
       if (editingSessionId) {
-        // Update date
         await supabase
           .from("lab_sessions")
           .update({ session_date: format(sessionDate, "yyyy-MM-dd") })
           .eq("id", editingSessionId);
-
-        // Delete old results to replace
         await supabase.from("lab_results").delete().eq("session_id", editingSessionId);
       } else {
-        // Create new session
         const { data, error } = await supabase
           .from("lab_sessions")
           .insert({ patient_id: patient.id, session_date: format(sessionDate, "yyyy-MM-dd") })
           .select()
           .single();
-
         if (error) throw error;
         sessionId = data.id;
       }
 
-      // Insert results for filled markers
       const allResults: { session_id: string; marker_id: string; value: number; text_value?: string; lab_ref_text?: string; lab_ref_min?: number; lab_ref_max?: number }[] = [];
-      
+
       Object.entries(markerValues).forEach(([markerId, v]) => {
         if (v === "") return;
         const marker = MARKERS.find(m => m.id === markerId);
-        
-        // Get lab reference range for this marker (if available from PDF import)
         const labRef = labRefRanges[markerId];
         const labRefFields = labRef ? {
           lab_ref_text: labRef.text,
@@ -183,35 +340,16 @@ export default function PatientDetail() {
         } : {};
 
         if (marker?.qualitative) {
-          // Qualitative markers: store text_value
-          allResults.push({
-            session_id: sessionId!,
-            marker_id: markerId,
-            value: 0,
-            text_value: v,
-            ...labRefFields,
-          });
+          allResults.push({ session_id: sessionId!, marker_id: markerId, value: 0, text_value: v, ...labRefFields });
         } else {
-          // Numeric markers: check for operator prefix (e.g. "< 34", "> 90")
           const operatorMatch = v.match(/^([<>]=?)\s*(\d+[.,]?\d*)$/);
           if (operatorMatch) {
             const numericPart = Number(operatorMatch[2].replace(",", "."));
             if (!isNaN(numericPart)) {
-              allResults.push({
-                session_id: sessionId!,
-                marker_id: markerId,
-                value: numericPart,
-                text_value: v, // preserve operator string
-                ...labRefFields,
-              });
+              allResults.push({ session_id: sessionId!, marker_id: markerId, value: numericPart, text_value: v, ...labRefFields });
             }
           } else if (!isNaN(Number(v))) {
-            allResults.push({
-              session_id: sessionId!,
-              marker_id: markerId,
-              value: Number(v),
-              ...labRefFields,
-            });
+            allResults.push({ session_id: sessionId!, marker_id: markerId, value: Number(v), ...labRefFields });
           }
         }
       });
@@ -245,10 +383,7 @@ export default function PatientDetail() {
   const handleExportPdf = async () => {
     if (!patient) return;
     const sessionIds = sessions.map((s) => s.id);
-    const { data } = await supabase
-      .from("lab_results")
-      .select("*")
-      .in("session_id", sessionIds);
+    const { data } = await supabase.from("lab_results").select("*").in("session_id", sessionIds);
     generatePatientReport(
       patient.name,
       sex,
@@ -272,18 +407,12 @@ export default function PatientDetail() {
     toast({ title: "Gerando análise de IA...", description: "Isso pode levar alguns segundos." });
     try {
       const sessionIds = sessions.map((s) => s.id);
-      const { data: results } = await supabase
-        .from("lab_results")
-        .select("*")
-        .in("session_id", sessionIds);
+      const { data: results } = await supabase.from("lab_results").select("*").in("session_id", sessionIds);
 
-      // Build enriched results with marker metadata for the AI
       const enrichedResults = (results || []).map((r) => {
         const marker = MARKERS.find((m) => m.id === r.marker_id);
         const session = sessions.find((s) => s.id === r.session_id);
-        const status = marker
-          ? getMarkerStatus(r.value ?? 0, marker, sex, r.text_value ?? undefined)
-          : "normal";
+        const status = marker ? getMarkerStatus(r.value ?? 0, r.marker_id, sex, r.text_value ?? undefined) : "normal";
         return {
           marker_id: r.marker_id,
           marker_name: marker?.name ?? r.marker_id,
@@ -297,23 +426,17 @@ export default function PatientDetail() {
         };
       });
 
-      // Call the analyze-lab-results edge function
-      const { data: analysisData, error: analysisError } = await supabase.functions.invoke(
-        "analyze-lab-results",
-        {
-          body: {
-            patient_name: patient.name,
-            sex: patient.sex,
-            birth_date: patient.birth_date,
-            sessions: sessions.map((s) => ({ id: s.id, session_date: s.session_date })),
-            results: enrichedResults,
-          },
-        }
-      );
+      const { data: analysisData, error: analysisError } = await supabase.functions.invoke("analyze-lab-results", {
+        body: {
+          patient_name: patient.name,
+          sex: patient.sex,
+          birth_date: patient.birth_date,
+          sessions: sessions.map((s) => ({ id: s.id, session_date: s.session_date })),
+          results: enrichedResults,
+        },
+      });
 
       if (analysisError) throw analysisError;
-
-      const aiAnalysis = analysisData?.analysis;
 
       generatePatientReport(
         patient.name,
@@ -328,7 +451,7 @@ export default function PatientDetail() {
           lab_ref_max: r.lab_ref_max ?? undefined,
           lab_ref_text: r.lab_ref_text ?? undefined,
         })),
-        aiAnalysis
+        analysisData?.analysis
       );
       toast({ title: "Relatório com análise IA exportado!" });
     } catch (err: any) {
@@ -346,10 +469,7 @@ export default function PatientDetail() {
 
   const handleSaveName = async () => {
     if (!patient || !nameValue.trim()) return;
-    const { error } = await supabase
-      .from("patients")
-      .update({ name: nameValue.trim() })
-      .eq("id", patient.id);
+    const { error } = await supabase.from("patients").update({ name: nameValue.trim() }).eq("id", patient.id);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
@@ -376,251 +496,102 @@ export default function PatientDetail() {
     [markerValues]
   );
 
+  // ── Core PDF import logic (shared between single and multi-PDF) ──────
+  const processPdfFile = async (
+    file: File,
+    existingValues: Record<string, string>,
+    existingLabRefs: Record<string, { min?: number; max?: number; text?: string }>
+  ): Promise<{
+    newValues: Record<string, string>;
+    newLabRefs: Record<string, { min?: number; max?: number; text?: string }>;
+    fullText: string;
+    cleanedText: string;
+    count: number;
+  }> => {
+    const { fullText, cleanedText } = await extractPdfText(file);
+
+    if (!cleanedText.trim()) {
+      throw new Error("Não foi possível extrair texto do PDF.");
+    }
+
+    // Build custom aliases hint for the prompt
+    const customAliases = loadCustomAliases();
+    const aliasHint = customAliases.length > 0
+      ? "\n\nCUSTOM ALIASES (user-defined):\n" + customAliases.map(a => `${a.alias} → ${a.markerId}`).join("\n")
+      : "";
+
+    const { data, error } = await supabase.functions.invoke("extract-lab-results", {
+      body: { pdfText: cleanedText + aliasHint },
+    });
+
+    if (error) throw error;
+
+    const results = data?.results as { marker_id: string; value?: number; text_value?: string; lab_ref_text?: string; lab_ref_min?: number; lab_ref_max?: number }[] | undefined;
+    if (!results || results.length === 0) {
+      throw new Error("A IA não conseguiu identificar resultados no PDF.");
+    }
+
+    // Merge with existing values (new PDF values take precedence for same marker)
+    const newValues = { ...existingValues };
+    results.forEach((r) => {
+      const marker = MARKERS.find(m => m.id === r.marker_id);
+      if (marker?.qualitative) {
+        if (r.text_value) newValues[r.marker_id] = r.text_value;
+      } else if (r.text_value && /^[<>]=?\s*\d/.test(r.text_value.trim())) {
+        newValues[r.marker_id] = r.text_value.trim();
+      } else if (r.value !== undefined && r.value !== null) {
+        newValues[r.marker_id] = String(r.value);
+      } else if (r.text_value) {
+        newValues[r.marker_id] = r.text_value;
+      }
+    });
+
+    const newLabRefs = { ...existingLabRefs };
+    results.forEach((r) => {
+      if (r.lab_ref_text || r.lab_ref_min !== undefined || r.lab_ref_max !== undefined) {
+        newLabRefs[r.marker_id] = { text: r.lab_ref_text, min: r.lab_ref_min, max: r.lab_ref_max };
+      }
+    });
+
+    return { newValues, newLabRefs, fullText, cleanedText, count: results.length };
+  };
+
   const handlePdfImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    // Reset input so same file can be re-selected
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
     e.target.value = "";
 
     setExtracting(true);
     try {
-      // Extract text from PDF using PDF.js
-      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
+      let currentValues = { ...markerValues };
+      let currentLabRefs = { ...labRefRanges };
+      let lastFullText = "";
+      let lastCleanedText = "";
+      let totalCount = 0;
 
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      let fullText = "";
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        // Preserve line structure by grouping items by Y position
-        const items = content.items as any[];
-        if (items.length === 0) continue;
-        const lines: { y: number; items: { x: number; str: string }[] }[] = [];
-        items.forEach((item) => {
-          if (!item.str) return;
-          const y = Math.round(item.transform[5]);
-          const x = item.transform[4];
-          let line = lines.find((l) => Math.abs(l.y - y) < 3);
-          if (!line) {
-            line = { y, items: [] };
-            lines.push(line);
-          }
-          line.items.push({ x, str: item.str });
-        });
-        // Sort lines top to bottom (higher Y = higher on page)
-        lines.sort((a, b) => b.y - a.y);
-        lines.forEach((line) => {
-          line.items.sort((a, b) => a.x - b.x);
-          fullText += line.items.map((it) => it.str).join("  ") + "\n";
-        });
-        fullText += "\n--- Página " + i + " ---\n\n";
+      for (const file of files) {
+        toast({ title: `Processando ${file.name}...`, description: `${files.indexOf(file) + 1} de ${files.length}` });
+        const result = await processPdfFile(file, currentValues, currentLabRefs);
+        currentValues = result.newValues;
+        currentLabRefs = result.newLabRefs;
+        lastFullText = result.fullText;
+        lastCleanedText = result.cleanedText;
+        totalCount += result.count;
       }
 
-      // Clean up text: remove repetitive headers, footers, and boilerplate
-      const cleanedLines = fullText.split("\n").filter((line) => {
-        const normalized = line.trim().replace(/\s+/g, " ");
-        if (!normalized) return false;
-        if (normalized.length < 3) return false;
-        // Skip repeated headers/footers/boilerplate
-        if (/^Cliente:/i.test(normalized)) return false;
-        if (/^Data de Nascimento:/i.test(normalized)) return false;
-        if (/^Médico:.*CRM/i.test(normalized)) return false;
-        if (/^Data da Ficha:/i.test(normalized)) return false;
-        if (/^Ficha:/i.test(normalized)) return false;
-        if (/^RECEBIDO.COLETADO/i.test(normalized)) return false;
-        if (/^Exame liberado/i.test(normalized)) return false;
-        if (/^Assinatura digital/i.test(normalized)) return false;
-        if (/^CRM:.*RESPONSÁVEL/i.test(normalized)) return false;
-        if (/^A interpretação do resultado/i.test(normalized)) return false;
-        if (/^Avenida|^Rua |^Impresso em:/i.test(normalized)) return false;
-        if (/^Página:|^Páginas:/i.test(normalized)) return false;
-        if (/^-{3,}/.test(normalized)) return false;
-        if (/^={3,}/.test(normalized)) return false;
-        if (/^www\./i.test(normalized)) return false;
-        if (/confiance/i.test(normalized)) return false;
-        if (/^CAMPINAS|^INDAIATUBA/i.test(normalized)) return false;
-        if (/^0[A-F0-9]{30,}/i.test(normalized)) return false; // digital signatures
-        if (/^O valor preditivo/i.test(normalized)) return false;
-        // Skip patient/lab identifying info repeated per page
-        if (/^Nome:/i.test(normalized)) return false;
-        if (/^Código:/i.test(normalized)) return false;
-        if (/^Posto:/i.test(normalized)) return false;
-        if (/^CNES:/i.test(normalized)) return false;
-        if (/^Dr\.\(a\):/i.test(normalized)) return false;
-        if (/^Recepção:/i.test(normalized)) return false;
-        if (/^RG\/Passaporte:/i.test(normalized)) return false;
-        if (/^Entrega:/i.test(normalized)) return false;
-        if (/^PALC/i.test(normalized)) return false;
-        if (/^SBPC/i.test(normalized)) return false;
-        if (/^Laboratório\. CRM/i.test(normalized)) return false;
-        if (/^Medicina Diagnóstica/i.test(normalized)) return false;
-        // Skip "Resultados Anteriores" lines and their date-value pairs
-        if (/^Resultados? Anteriore?s?:/i.test(normalized)) return false;
-        if (/^\d{2}\/\d{2}\/\d{4}\s*-\s*[\d<>,. ]+$/i.test(normalized)) return false;
-        // Skip method/collection/release/review metadata (but keep "Material:" for context like "Urina 24h")
-        if (/^Método:/i.test(normalized)) return false;
-        if (/^Coleta:/i.test(normalized)) return false;
-        if (/^Liberação:/i.test(normalized)) return false;
-        if (/^Revisão:/i.test(normalized)) return false;
-        if (/^Observações gerais:/i.test(normalized)) return false;
-        if (/^Exame realizado pelo/i.test(normalized)) return false;
-        // Skip reference notes/descriptions
-        if (/^NOTA\s*\(?[0-9]*\)?:/i.test(normalized)) return false;
-        if (/^Notas?:/i.test(normalized)) return false;
-        if (/^Referências?:/i.test(normalized)) return false;
-        if (/^Referência:/i.test(normalized)) return false;
-        if (/^Atenção para nov/i.test(normalized)) return false;
-        if (/^Limite de detecção/i.test(normalized)) return false;
-        // Skip verbose clinical descriptions (but keep lines with possible exam names/abbreviations)
-        const hasQualitative = /reagente|negativo|positivo|normal|ausente|presente|pastosa|líquida|amarelo|marrom|verde|turva|límpida/i.test(normalized);
-        const looksLikeExamLabel = /\b(?:TSH|T3|T4|TGO|TGP|VHS|VPM|HOMA|HDL|LDL|VLDL|PCR|FAN|EAS|ACTH|FSH|LH|DHEA|SHBG|IGF|IGFBP|HbA1c|Apo|B12)\b/i.test(normalized)
-          || /\b(?:hemoglobina|hematocrito|eritrocitos|leucocitos|plaquetas|glicose|insulina|colesterol|triglicerides|ferritina|transferrina|creatinina|ureia|albumina|globulina|bilirrubina|fosfatase|amilase|lipase|estradiol|progesterona|prolactina|testosterona|cortisol|vitamina|zinco|magnesio|selenio|cobre|copro|urina)\b/i.test(normalized);
+      setMarkerValues(currentValues);
+      setLabRefRanges(currentLabRefs);
+      setLastPdfText(lastCleanedText);
+      setLastRawPdfText(lastFullText);
+      setImportedPdfCount((prev) => prev + files.length);
 
-        if (normalized.length > 120 && !/\d+[.,]\d+/.test(normalized) && !hasQualitative && !looksLikeExamLabel) return false;
-        // Skip long narrative blocks sem números, mas preserve possíveis nomes de exames
-        if (normalized.length > 80 && !/\d/.test(normalized) && !hasQualitative && !looksLikeExamLabel) return false;
-        // Skip age/sex specific reference text
-        if (/^Paciente de (baixo|risco|alto|muito)/i.test(normalized)) return false;
-        if (/^(Desejável|Ótimo|Limítrofe|Alto|Muito alto)\s*:/i.test(normalized)) return false;
-        if (/^(Com|Sem) (ou sem )?jejum/i.test(normalized)) return false;
-        if (/^Maior ou igual a \d+ anos/i.test(normalized)) return false;
-        if (/^Fem:|^Masc:/i.test(normalized)) return false;
-        if (/^Menor que \d|^Maior que \d|^Maior ou igual a \d/i.test(normalized)) return false;
-        if (/^De \d+ a \d+ anos/i.test(normalized)) return false;
-        if (/^Acima de \d+ anos/i.test(normalized)) return false;
-        if (/^Até \d+ anos/i.test(normalized)) return false;
-        if (/^Crianças/i.test(normalized)) return false;
-        if (/^Gestantes/i.test(normalized)) return false;
-        if (/^1\.o trimestre|^2\.o trimestre|^3\.o trimestre/i.test(normalized)) return false;
-        if (/^Adultos:/i.test(normalized)) return false;
-        if (/^Homens:|^Mulheres:/i.test(normalized)) return false;
-        if (/^Fase Folicular|^Pico Ovulatório|^Fase Lútea|^Menopausa/i.test(normalized)) return false;
-        // Skip Tanner stages
-        if (/^Estágio de Tanner/i.test(normalized)) return false;
-        // Skip newborn reference values
-        if (/^Recém-nascido/i.test(normalized)) return false;
-        if (/^\d+ dias?:/i.test(normalized)) return false;
-        if (/^Sangue de cordão/i.test(normalized)) return false;
-        // Skip boilerplate clinical notes
-        if (/^pode interferir/i.test(normalized)) return false;
-        if (/^suspensão da biotina/i.test(normalized)) return false;
-        if (/^Pacientes em tratamento/i.test(normalized)) return false;
-        if (/^incompatibilidade do resultado/i.test(normalized)) return false;
-        if (/^Na ausência de hiperglicemia/i.test(normalized)) return false;
-        if (/^Standards of Medical/i.test(normalized)) return false;
-        if (/^Diabetes Care/i.test(normalized)) return false;
-        if (/^Cálculo baseado nos/i.test(normalized)) return false;
-        if (/^Vermeulen/i.test(normalized)) return false;
-        if (/^A estimativa da taxa/i.test(normalized)) return false;
-        if (/^O uso da estimativa/i.test(normalized)) return false;
-        if (/^Fonte da Fórmula/i.test(normalized)) return false;
-        if (/^Miller WG/i.test(normalized)) return false;
-        if (/^Imunoensaio para/i.test(normalized)) return false;
-        if (/^Um resultado normal/i.test(normalized)) return false;
-        if (/^No caso de obter/i.test(normalized)) return false;
-        if (/^Quando se determina/i.test(normalized)) return false;
-        if (/^Diferenças nos resultados/i.test(normalized)) return false;
-        if (/^A concentração de ferro/i.test(normalized)) return false;
-        if (/^LDL, VLDL e Colesterol não-HDL são calculados/i.test(normalized)) return false;
-        if (/^Valores de Colesterol/i.test(normalized)) return false;
-        if (/^A interpretação clínica/i.test(normalized)) return false;
-        if (/^Para valores de triglicérides/i.test(normalized)) return false;
-        if (/^Consenso Brasileiro/i.test(normalized)) return false;
-        if (/^AC-##/i.test(normalized)) return false;
-        if (/^Diluição de triagem/i.test(normalized)) return false;
-        if (/^Para informações sobre/i.test(normalized)) return false;
-        if (/^Frequência de FAN/i.test(normalized)) return false;
-        if (/^Resultados reagentes/i.test(normalized)) return false;
-        if (/^A definição do Padrão/i.test(normalized)) return false;
-        if (/^Os padrões complexos/i.test(normalized)) return false;
-        if (/^Mulheres em idade fértil/i.test(normalized)) return false;
-        if (/^A NR-7/i.test(normalized)) return false;
-        if (/^O resultado obtido/i.test(normalized)) return false;
-        if (/^IBE\/SC/i.test(normalized)) return false;
-        if (/^CARACTERES MORFOLÓGICOS/i.test(normalized)) return false;
-        // Skip more boilerplate
-        if (/^Valores obtidos/i.test(normalized)) return false;
-        if (/^Este exame foi/i.test(normalized)) return false;
-        if (/^Equipamento:/i.test(normalized)) return false;
-        if (/^Ensaio:/i.test(normalized)) return false;
-        if (/^Amostra:/i.test(normalized)) return false;
-        if (/^Prazo de entrega/i.test(normalized)) return false;
-        if (/^Orientação de preparo/i.test(normalized)) return false;
-        if (/^Interferentes:/i.test(normalized)) return false;
-        if (/^Valores em/i.test(normalized)) return false;
-        if (/^IBMP\b/i.test(normalized)) return false;
-        // NOTE: Do NOT remove reference range lines (e.g. "50 a 170", "Até X µg/L", "VALORES DE REFERÊNCIA")
-        // as they are used as anchors by the regex extraction engine in the edge function.
-        if (/^(?:mEq\/L|mg\/dL|ng\/mL|pg\/mL|µg\/dL|U\/L|mcg)\s*$/i.test(normalized)) return false;
-        if (normalized.length < 3 && !/\d/.test(normalized)) return false;
-        return true;
+      // Open edit dialog first, then verification
+      setEditExtractionOpen(true);
+
+      toast({
+        title: `${totalCount} marcadores importados de ${files.length} PDF(s)!`,
+        description: "Revise os valores antes de salvar.",
       });
-      const cleanedText = cleanedLines
-        .map((l) => l.trim().replace(/\s+/g, " "))
-        .filter((l) => !/^--- Página \d+/.test(l))
-        .join("\n");
-
-      if (!cleanedText.trim()) {
-        toast({ title: "PDF vazio", description: "Não foi possível extrair texto do PDF.", variant: "destructive" });
-        return;
-      }
-
-      console.log("PDF text length:", fullText.length, "-> cleaned:", cleanedText.length);
-
-      // Send to AI edge function
-      const { data, error } = await supabase.functions.invoke("extract-lab-results", {
-        body: { pdfText: cleanedText },
-      });
-
-      if (error) throw error;
-
-      const results = data?.results as { marker_id: string; value?: number; text_value?: string; lab_ref_text?: string; lab_ref_min?: number; lab_ref_max?: number }[] | undefined;
-      if (!results || results.length === 0) {
-        toast({ title: "Nenhum marcador encontrado", description: "A IA não conseguiu identificar resultados no PDF.", variant: "destructive" });
-        return;
-      }
-
-      // Pre-fill marker values (numeric and qualitative)
-      // CRITICAL: For numeric markers, prefer `value` (already parsed by AI) over `text_value`
-      // Only use text_value for: qualitative markers OR operator values (< > <= >=)
-      const newValues = { ...markerValues };
-      results.forEach((r) => {
-        const marker = MARKERS.find(m => m.id === r.marker_id);
-        if (marker?.qualitative) {
-          // Qualitative markers: always use text_value
-          if (r.text_value) newValues[r.marker_id] = r.text_value;
-        } else if (r.text_value && /^[<>]=?\s*\d/.test(r.text_value.trim())) {
-          // Operator value (e.g. "< 34", "> 90"): keep as text for display
-          newValues[r.marker_id] = r.text_value.trim();
-        } else if (r.value !== undefined && r.value !== null) {
-          // Numeric marker: use the parsed numeric value (avoids Brazilian decimal issues)
-          newValues[r.marker_id] = String(r.value);
-        } else if (r.text_value) {
-          // Fallback: use text_value if no numeric value
-          newValues[r.marker_id] = r.text_value;
-        }
-      });
-      setMarkerValues(newValues);
-      setLastPdfText(cleanedText);
-      setLastRawPdfText(fullText);
-
-      // Store lab reference ranges for saving to database
-      const newLabRefs: Record<string, { min?: number; max?: number; text?: string }> = {};
-      results.forEach((r) => {
-        if (r.lab_ref_text || r.lab_ref_min !== undefined || r.lab_ref_max !== undefined) {
-          newLabRefs[r.marker_id] = {
-            text: r.lab_ref_text,
-            min: r.lab_ref_min,
-            max: r.lab_ref_max,
-          };
-        }
-      });
-      setLabRefRanges(newLabRefs);
-
-      setVerificationOpen(true);
-
-      toast({ title: `${results.length} marcadores importados!`, description: "Revise os valores antes de salvar." });
     } catch (err: any) {
       console.error("PDF import error:", err);
       toast({ title: "Erro na importação", description: err.message || "Erro ao processar PDF", variant: "destructive" });
@@ -649,7 +620,7 @@ export default function PatientDetail() {
       <AppLayout>
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" onClick={() => setFormOpen(false)}>
                 <ArrowLeft className="h-4 w-4" />
@@ -661,15 +632,30 @@ export default function PatientDetail() {
                 <p className="text-sm text-muted-foreground">{patient.name}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline">{filledCount} marcadores</Badge>
+              {importedPdfCount > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {importedPdfCount} PDF(s) importado(s)
+                </Badge>
+              )}
+              {/* Hidden file input — accepts multiple files */}
               <input
                 ref={pdfInputRef}
                 type="file"
                 accept=".pdf"
+                multiple
                 className="hidden"
                 onChange={handlePdfImport}
               />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAliasConfigOpen(true)}
+                title="Configurar aliases"
+              >
+                <Settings2 className="h-4 w-4" />
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => pdfInputRef.current?.click()}
@@ -680,8 +666,19 @@ export default function PatientDetail() {
                 ) : (
                   <FileUp className="mr-2 h-4 w-4" />
                 )}
-                {extracting ? "Extraindo..." : "Importar PDF"}
+                {extracting ? "Extraindo..." : importedPdfCount > 0 ? "Adicionar PDF" : "Importar PDF"}
               </Button>
+              {filledCount > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditExtractionOpen(true)}
+                  title="Revisar exames extraídos"
+                >
+                  <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                  Revisar
+                </Button>
+              )}
               <Button onClick={handleSaveSession} disabled={saving}>
                 <Save className="mr-2 h-4 w-4" />
                 {saving ? "Salvando..." : "Salvar"}
@@ -711,7 +708,7 @@ export default function PatientDetail() {
             </Popover>
           </div>
 
-          {/* Category tabs */}
+          {/* Category tabs — simplified: only show categories with filled markers OR all */}
           <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v as Category)}>
             <div className="overflow-x-auto">
               <TabsList className="inline-flex h-auto flex-wrap gap-1 bg-transparent p-0">
@@ -774,18 +771,36 @@ export default function PatientDetail() {
                 </Card>
               </TabsContent>
             ))}
-        </Tabs>
+          </Tabs>
 
-        <ImportVerification
-          open={verificationOpen}
-          onClose={() => setVerificationOpen(false)}
-          importedMarkers={markerValues}
-          pdfText={lastPdfText}
-          rawPdfText={lastRawPdfText}
-        />
-      </div>
-    </AppLayout>
-  );
+          {/* Edit extraction dialog */}
+          <EditExtractionDialog
+            open={editExtractionOpen}
+            onClose={() => setEditExtractionOpen(false)}
+            markerValues={markerValues}
+            onConfirm={(updated) => {
+              setMarkerValues(updated);
+              setVerificationOpen(true);
+            }}
+          />
+
+          {/* Verification dialog */}
+          <ImportVerification
+            open={verificationOpen}
+            onClose={() => setVerificationOpen(false)}
+            importedMarkers={markerValues}
+            pdfText={lastPdfText}
+            rawPdfText={lastRawPdfText}
+          />
+
+          {/* Alias config dialog */}
+          <AliasConfigDialog
+            open={aliasConfigOpen}
+            onClose={() => setAliasConfigOpen(false)}
+          />
+        </div>
+      </AppLayout>
+    );
   }
 
   // Patient detail view
@@ -852,7 +867,7 @@ export default function PatientDetail() {
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {sessions.length > 0 && (
               <>
                 <Button variant="outline" onClick={handleExportPdf}>
@@ -919,9 +934,7 @@ export default function PatientDetail() {
                         </div>
                         <div>
                           <p className="font-medium">
-                            {format(parseISO(session.session_date), "dd 'de' MMMM 'de' yyyy", {
-                              locale: ptBR,
-                            })}
+                            {format(parseISO(session.session_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             Criado em {format(parseISO(session.created_at), "dd/MM/yyyy HH:mm")}
@@ -995,8 +1008,6 @@ function MarkerInput({
   }
 
   const [min, max] = marker.refRange[sex];
-  
-  // Detect operator values like "< 34", "> 90"
   const operatorMatch = value.match(/^([<>]=?)\s*(\d+[.,]?\d*)$/);
   const isOperatorValue = !!operatorMatch;
   const numVal = isOperatorValue ? parseFloat(operatorMatch![2].replace(",", ".")) : Number(value);
@@ -1007,18 +1018,14 @@ function MarkerInput({
   const borderColor =
     status === "normal"
       ? "border-emerald-400 focus-visible:ring-emerald-400"
-      : status === "low"
-      ? "border-red-400 focus-visible:ring-red-400"
-      : status === "high"
+      : status === "low" || status === "high"
       ? "border-red-400 focus-visible:ring-red-400"
       : "";
 
   const bgColor =
     status === "normal"
       ? "bg-emerald-50"
-      : status === "low"
-      ? "bg-red-50"
-      : status === "high"
+      : status === "low" || status === "high"
       ? "bg-red-50"
       : "";
 
@@ -1037,17 +1044,14 @@ function MarkerInput({
         className={cn("h-8 text-sm", borderColor)}
       />
       <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-        <span>
-          Ref: {min} – {max}
-        </span>
+        <span>Ref: {min} – {max}</span>
         {status && (
           <Badge
             variant="outline"
             className={cn(
               "h-4 px-1 text-[10px]",
               status === "normal" && "border-emerald-400 text-emerald-700",
-              status === "low" && "border-red-400 text-red-700",
-              status === "high" && "border-red-400 text-red-700"
+              (status === "low" || status === "high") && "border-red-400 text-red-700"
             )}
           >
             {status === "normal" ? "✓" : status === "low" ? "↓ Baixo" : "↑ Alto"}
