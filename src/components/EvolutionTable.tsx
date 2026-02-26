@@ -336,7 +336,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
           {(
             [
               ["all", "Todos"],
-              ["with_data", "Com dados"],
+              
               ["alerts", "Alertas"],
               ["normal", "Normal"],
               ["low", "Baixo"],
