@@ -332,36 +332,6 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
 
-        <div className="flex gap-1 flex-wrap">
-          {(
-            [
-              ["all", "Todos"],
-              
-              ["alerts", "Alertas"],
-              ["normal", "Normal"],
-              ["low", "Baixo"],
-              ["high", "Alto"],
-            ] as [StatusFilter, string][]
-          ).map(([key, label]) => (
-            <Button
-              key={key}
-              variant={statusFilter === key ? "secondary" : "ghost"}
-              size="sm"
-              className={cn(
-                "text-xs",
-                statusFilter === key && key === "normal" && "bg-emerald-100 text-emerald-700 hover:bg-emerald-100",
-                statusFilter === key && key === "low" && "bg-red-100 text-red-700 hover:bg-red-100",
-                statusFilter === key && key === "high" && "bg-red-100 text-red-700 hover:bg-red-100",
-              )}
-              onClick={() => setStatusFilter(key)}
-            >
-              {label}
-              {key === "normal" && summaryStats.normal > 0 && ` (${summaryStats.normal})`}
-              {key === "low" && summaryStats.low > 0 && ` (${summaryStats.low})`}
-              {key === "high" && summaryStats.high > 0 && ` (${summaryStats.high})`}
-            </Button>
-          ))}
-        </div>
       </div>
 
       {/* Evolution table */}
