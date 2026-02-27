@@ -18,12 +18,22 @@ interface MarkerResult {
   session_date: string;
 }
 
+interface PatientProfile {
+  objectives?: string[];
+  activity_level?: string | null;
+  sport_modality?: string | null;
+  main_complaints?: string | null;
+  restrictions?: string | null;
+}
+
 interface AnalysisRequest {
   patient_name: string;
   sex: "M" | "F";
   birth_date?: string;
   sessions: Array<{ id: string; session_date: string }>;
   results: MarkerResult[];
+  mode?: "full" | "analysis_only" | "protocols_only";
+  patient_profile?: PatientProfile | null;
 }
 
 interface ProtocolRecommendation {
@@ -678,6 +688,39 @@ MARCADORES FORA DA FAIXA FUNCIONAL (${abnormal.length} marcadores):
     prompt += `Para cada protocolo acima, inclua no campo "protocol_recommendations" do JSON: protocol_id, protocol_name, category, via, composition, uma justificativa clínica de 1-2 frases baseada nos marcadores alterados deste paciente, e a prioridade ("alta", "media" ou "baixa"). Omita protocolos que não sejam clinicamente justificados para este caso.\n`;
   } else {
     prompt += `\nNenhum protocolo específico foi pré-selecionado para este paciente. Retorne "protocol_recommendations" como array vazio.\n`;
+  }
+
+  // Add patient profile / objectives if provided
+  if (req.patient_profile) {
+    const p = req.patient_profile;
+    const hasProfile = (p.objectives && p.objectives.length > 0) || p.activity_level || p.sport_modality || p.main_complaints || p.restrictions;
+    if (hasProfile) {
+      prompt += `\nPERFIL E OBJETIVOS DO PACIENTE (use para personalizar a prioridade dos protocolos):\n`;
+      if (p.objectives && p.objectives.length > 0) {
+        prompt += `- Objetivos principais: ${p.objectives.join(", ")}\n`;
+      }
+      if (p.activity_level) {
+        prompt += `- Nível de atividade física: ${p.activity_level}\n`;
+      }
+      if (p.sport_modality) {
+        prompt += `- Modalidade esportiva: ${p.sport_modality}\n`;
+      }
+      if (p.main_complaints) {
+        prompt += `- Queixas principais: ${p.main_complaints}\n`;
+      }
+      if (p.restrictions) {
+        prompt += `- Restrições / alergias: ${p.restrictions}\n`;
+      }
+      prompt += `\nIMPORTANTE: Ao recomendar protocolos, priorize aqueles alinhados com os objetivos e queixas do paciente acima, mesmo que os marcadores laboratoriais não estejam alterados. Um paciente atleta com objetivo de performance deve receber protocolos de performance mesmo com exames normais, se clinicamente justificável.\n`;
+    }
+  }
+
+  // Mode-specific instructions
+  const mode = req.mode ?? "full";
+  if (mode === "analysis_only") {
+    prompt += `\nMODO: Gere APENAS a análise clínica (summary, patterns, trends, suggestions, full_text). Retorne "protocol_recommendations" como array vazio.\n`;
+  } else if (mode === "protocols_only") {
+    prompt += `\nMODO: Gere APENAS as recomendações de protocolos Essentia. Retorne summary, patterns, trends, suggestions e full_text como strings vazias. Foque toda a análise em selecionar e justificar os protocolos mais relevantes para este paciente, considerando seus objetivos e marcadores alterados.\n`;
   }
 
   prompt += `\nPor favor, analise esses resultados e retorne um JSON com a análise clínica estruturada conforme o formato especificado.`;

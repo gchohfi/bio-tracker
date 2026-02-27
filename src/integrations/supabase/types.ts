@@ -95,6 +95,11 @@ export type Database = {
           name: string
           practitioner_id: string
           sex: string
+          objectives: string[] | null
+          activity_level: string | null
+          sport_modality: string | null
+          main_complaints: string | null
+          restrictions: string | null
         }
         Insert: {
           birth_date?: string | null
@@ -103,6 +108,11 @@ export type Database = {
           name: string
           practitioner_id: string
           sex: string
+          objectives?: string[] | null
+          activity_level?: string | null
+          sport_modality?: string | null
+          main_complaints?: string | null
+          restrictions?: string | null
         }
         Update: {
           birth_date?: string | null
@@ -111,6 +121,11 @@ export type Database = {
           name?: string
           practitioner_id?: string
           sex?: string
+          objectives?: string[] | null
+          activity_level?: string | null
+          sport_modality?: string | null
+          main_complaints?: string | null
+          restrictions?: string | null
         }
         Relationships: [
           {

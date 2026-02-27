@@ -34,12 +34,16 @@ import {
   X,
   Sparkles,
   Settings2,
+  UserCircle2,
+  Brain,
+  Syringe,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
 import ImportVerification from "@/components/ImportVerification";
 import EditExtractionDialog from "@/components/EditExtractionDialog";
 import EditReportDialog from "@/components/EditReportDialog";
 import AliasConfigDialog, { loadCustomAliases } from "@/components/AliasConfigDialog";
+import { PatientProfileDialog } from "@/components/PatientProfileDialog";
 import { generatePatientReport } from "@/lib/generateReport";
 import {
   CATEGORIES,
@@ -244,6 +248,10 @@ export default function PatientDetail() {
   const [lastRawPdfText, setLastRawPdfText] = useState("");
   const [labRefRanges, setLabRefRanges] = useState<Record<string, { min?: number; max?: number; text?: string }>>({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGeneratingProtocols, setIsGeneratingProtocols] = useState(false);
+  const [cachedAiAnalysis, setCachedAiAnalysis] = useState<any>(null);
+  const [cachedProtocols, setCachedProtocols] = useState<any[]>([]);
+  const [profileOpen, setProfileOpen] = useState(false);
   // Track how many PDFs were imported in the current session
   const [importedPdfCount, setImportedPdfCount] = useState(0);
   // Date extracted automatically from the PDF
@@ -404,6 +412,139 @@ export default function PatientDetail() {
     setReportEditOpen(true);
   };
 
+  // ── Helper: build enriched results for AI ─────────────────────────────
+  const buildEnrichedResults = (results: any[]) =>
+    results.map((r) => {
+      const marker = MARKERS.find((m) => m.id === r.marker_id);
+      const session = sessions.find((s) => s.id === r.session_id);
+      const status = marker ? getMarkerStatus(r.value ?? 0, marker, sex, r.text_value ?? undefined) : "normal";
+      return {
+        marker_id: r.marker_id,
+        marker_name: marker?.name ?? r.marker_id,
+        value: r.value,
+        text_value: r.text_value,
+        unit: marker?.unit ?? "",
+        functional_min: marker?.refRange?.[sex]?.[0] ?? marker?.refRange?.M?.[0],
+        functional_max: marker?.refRange?.[sex]?.[1] ?? marker?.refRange?.M?.[1],
+        status,
+        session_date: session?.session_date ?? "",
+      };
+    });
+
+  // ── Helper: build patient profile context for AI ───────────────────────
+  const buildPatientProfile = () => {
+    if (!patient) return null;
+    const OBJECTIVE_LABELS: Record<string, string> = {
+      performance_esportiva: "Performance esportiva",
+      ganho_massa: "Ganho de massa muscular",
+      emagrecimento: "Emagrecimento",
+      desinflamacao: "Desinflamação / dor crônica",
+      energia_disposicao: "Energia e disposição",
+      longevidade: "Longevidade / anti-aging",
+      saude_hormonal: "Saúde hormonal",
+      imunidade: "Imunidade",
+      cognicao_foco: "Cognição / foco",
+      saude_pele: "Saúde da pele / estética",
+      sono: "Sono",
+      libido: "Libido",
+      recuperacao_muscular: "Recuperação muscular",
+      saude_intestinal: "Saúde intestinal",
+    };
+    const ACTIVITY_LABELS: Record<string, string> = {
+      sedentario: "Sedentário",
+      ativo_leve: "Ativo (1–2x/semana)",
+      ativo: "Ativo (3–4x/semana)",
+      muito_ativo: "Muito ativo (5+x/semana)",
+      atleta_amador: "Atleta amador",
+      atleta_alto_rendimento: "Atleta de alto rendimento",
+    };
+    return {
+      objectives: (patient.objectives ?? []).map((id) => OBJECTIVE_LABELS[id] ?? id),
+      activity_level: patient.activity_level ? ACTIVITY_LABELS[patient.activity_level] ?? patient.activity_level : null,
+      sport_modality: patient.sport_modality ?? null,
+      main_complaints: patient.main_complaints ?? null,
+      restrictions: patient.restrictions ?? null,
+    };
+  };
+
+  // ── Gerar Análise de Exames (somente análise clínica, sem protocolos) ──
+  const handleGenerateAnalysis = async () => {
+    if (!patient) return;
+    const sessionIds = sessions.map((s) => s.id);
+    const { data } = await supabase.from("lab_results").select("*").in("session_id", sessionIds);
+    const results = (data || []).map((r) => ({
+      marker_id: r.marker_id, session_id: r.session_id,
+      value: r.value ?? 0, text_value: r.text_value ?? undefined,
+      lab_ref_min: r.lab_ref_min ?? undefined, lab_ref_max: r.lab_ref_max ?? undefined, lab_ref_text: r.lab_ref_text ?? undefined,
+    }));
+    setIsAnalyzing(true);
+    toast({ title: "Gerando análise de exames...", description: "Aguarde alguns segundos." });
+    try {
+      const enriched = buildEnrichedResults(results);
+      const { data: analysisData, error } = await supabase.functions.invoke("analyze-lab-results", {
+        body: {
+          patient_name: patient.name, sex: patient.sex, birth_date: patient.birth_date,
+          sessions: sessions.map((s) => ({ id: s.id, session_date: s.session_date })),
+          results: enriched,
+          mode: "analysis_only",
+          patient_profile: buildPatientProfile(),
+        },
+      });
+      if (error) throw error;
+      const analysis = analysisData?.analysis;
+      // Merge with existing cached protocols if any
+      const merged = cachedProtocols.length > 0
+        ? { ...analysis, protocol_recommendations: cachedProtocols }
+        : analysis;
+      setCachedAiAnalysis(merged);
+      generatePatientReport(patient.name, sex, sessions, results, merged);
+      toast({ title: "Análise de exames exportada!" });
+    } catch (err: any) {
+      toast({ title: "Erro na análise", description: err.message, variant: "destructive" });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // ── Gerar Protocolos Sugeridos (somente protocolos) ────────────────────
+  const handleGenerateProtocols = async () => {
+    if (!patient) return;
+    const sessionIds = sessions.map((s) => s.id);
+    const { data } = await supabase.from("lab_results").select("*").in("session_id", sessionIds);
+    const results = (data || []).map((r) => ({
+      marker_id: r.marker_id, session_id: r.session_id,
+      value: r.value ?? 0, text_value: r.text_value ?? undefined,
+      lab_ref_min: r.lab_ref_min ?? undefined, lab_ref_max: r.lab_ref_max ?? undefined, lab_ref_text: r.lab_ref_text ?? undefined,
+    }));
+    setIsGeneratingProtocols(true);
+    toast({ title: "Gerando recomendações de protocolos...", description: "Aguarde alguns segundos." });
+    try {
+      const enriched = buildEnrichedResults(results);
+      const { data: analysisData, error } = await supabase.functions.invoke("analyze-lab-results", {
+        body: {
+          patient_name: patient.name, sex: patient.sex, birth_date: patient.birth_date,
+          sessions: sessions.map((s) => ({ id: s.id, session_date: s.session_date })),
+          results: enriched,
+          mode: "protocols_only",
+          patient_profile: buildPatientProfile(),
+        },
+      });
+      if (error) throw error;
+      const protocols = analysisData?.analysis?.protocol_recommendations ?? [];
+      setCachedProtocols(protocols);
+      // Merge with existing cached analysis if any
+      const merged = cachedAiAnalysis
+        ? { ...cachedAiAnalysis, protocol_recommendations: protocols }
+        : { protocol_recommendations: protocols };
+      generatePatientReport(patient.name, sex, sessions, results, merged);
+      toast({ title: `${protocols.length} protocolo(s) sugerido(s) exportado(s)!` });
+    } catch (err: any) {
+      toast({ title: "Erro nos protocolos", description: err.message, variant: "destructive" });
+    } finally {
+      setIsGeneratingProtocols(false);
+    }
+  };
+
   const handleReportConfirm = async (updatedResults: any[]) => {
     if (!patient) return;
     if (!reportWithAI) {
@@ -411,27 +552,11 @@ export default function PatientDetail() {
       toast({ title: "Relatório exportado!" });
       return;
     }
-    // With AI
+    // With AI (full: analysis + protocols)
     setIsAnalyzing(true);
-    toast({ title: "Gerando análise de IA...", description: "Isso pode levar alguns segundos." });
+    toast({ title: "Gerando análise completa com IA...", description: "Isso pode levar alguns segundos." });
     try {
-      const enrichedResults = updatedResults.map((r) => {
-        const marker = MARKERS.find((m) => m.id === r.marker_id);
-        const session = sessions.find((s) => s.id === r.session_id);
-        const status = marker ? getMarkerStatus(r.value ?? 0, marker, sex, r.text_value ?? undefined) : "normal";
-        return {
-          marker_id: r.marker_id,
-          marker_name: marker?.name ?? r.marker_id,
-          value: r.value,
-          text_value: r.text_value,
-          unit: marker?.unit ?? "",
-          functional_min: marker?.refRange?.[sex]?.[0] ?? marker?.refRange?.M?.[0],
-          functional_max: marker?.refRange?.[sex]?.[1] ?? marker?.refRange?.M?.[1],
-          status,
-          session_date: session?.session_date ?? "",
-        };
-      });
-
+      const enrichedResults = buildEnrichedResults(updatedResults);
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke("analyze-lab-results", {
         body: {
           patient_name: patient.name,
@@ -439,17 +564,37 @@ export default function PatientDetail() {
           birth_date: patient.birth_date,
           sessions: sessions.map((s) => ({ id: s.id, session_date: s.session_date })),
           results: enrichedResults,
+          mode: "full",
+          patient_profile: buildPatientProfile(),
         },
       });
-
       if (analysisError) throw analysisError;
-
+      setCachedAiAnalysis(analysisData?.analysis);
+      setCachedProtocols(analysisData?.analysis?.protocol_recommendations ?? []);
       generatePatientReport(patient.name, sex, sessions, updatedResults, analysisData?.analysis);
-      toast({ title: "Relatório com análise IA exportado!" });
+      toast({ title: "Relatório completo com IA exportado!" });
     } catch (err: any) {
       toast({ title: "Erro na análise de IA", description: err.message, variant: "destructive" });
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  // ── Salvar perfil do paciente ──────────────────────────────────────────
+  const handleSaveProfile = async (profile: {
+    objectives: string[] | null;
+    activity_level: string | null;
+    sport_modality: string | null;
+    main_complaints: string | null;
+    restrictions: string | null;
+  }) => {
+    if (!patient) return;
+    const { error } = await supabase.from("patients").update(profile).eq("id", patient.id);
+    if (error) {
+      toast({ title: "Erro ao salvar perfil", description: error.message, variant: "destructive" });
+    } else {
+      setPatient({ ...patient, ...profile });
+      toast({ title: "Perfil salvo!", description: "As recomendações de protocolos usarão este perfil." });
     }
   };
 
@@ -911,30 +1056,65 @@ export default function PatientDetail() {
               </div>
             </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
+            {/* Perfil do paciente */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setProfileOpen(true)}
+              className="border-blue-200 text-blue-700 hover:bg-blue-50"
+              title="Editar perfil e objetivos do paciente"
+            >
+              <UserCircle2 className="mr-1.5 h-4 w-4" />
+              {(patient?.objectives?.length ?? 0) > 0 ? `Perfil (${patient!.objectives!.length})` : "Perfil"}
+            </Button>
+
             {sessions.length > 0 && (
               <>
-                <Button variant="outline" onClick={() => openReportEdit(false)}>
-                  <FileDown className="mr-2 h-4 w-4" />
+                {/* Exportar PDF simples */}
+                <Button variant="outline" size="sm" onClick={() => openReportEdit(false)}>
+                  <FileDown className="mr-1.5 h-4 w-4" />
                   Exportar PDF
                 </Button>
+
+                {/* Análise de Exames com IA */}
                 <Button
                   variant="outline"
-                  onClick={() => openReportEdit(true)}
-                  disabled={isAnalyzing}
-                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                  size="sm"
+                  onClick={handleGenerateAnalysis}
+                  disabled={isAnalyzing || isGeneratingProtocols}
+                  className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                  title="Gera análise clínica dos exames com IA"
                 >
                   {isAnalyzing ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
                   ) : (
-                    <Sparkles className="mr-2 h-4 w-4" />
+                    <Brain className="mr-1.5 h-4 w-4" />
                   )}
-                  {isAnalyzing ? "Analisando..." : "Exportar com IA"}
+                  {isAnalyzing ? "Analisando..." : "Análise IA"}
+                </Button>
+
+                {/* Protocolos Sugeridos com IA */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateProtocols}
+                  disabled={isAnalyzing || isGeneratingProtocols}
+                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  title="Gera recomendações de protocolos Essentia com IA"
+                >
+                  {isGeneratingProtocols ? (
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Syringe className="mr-1.5 h-4 w-4" />
+                  )}
+                  {isGeneratingProtocols ? "Gerando..." : "Protocolos IA"}
                 </Button>
               </>
             )}
-            <Button onClick={openNewSession}>
-              <Plus className="mr-2 h-4 w-4" />
+
+            <Button size="sm" onClick={openNewSession}>
+              <Plus className="mr-1.5 h-4 w-4" />
               Nova Sessão
             </Button>
             <Button variant="destructive" size="icon" onClick={handleDeletePatient} title="Excluir paciente">
@@ -1024,6 +1204,22 @@ export default function PatientDetail() {
         sex={sex}
         onConfirm={handleReportConfirm}
       />
+
+      {/* Patient profile / objectives dialog */}
+      {patient && (
+        <PatientProfileDialog
+          open={profileOpen}
+          onClose={() => setProfileOpen(false)}
+          profile={{
+            objectives: patient.objectives ?? [],
+            activity_level: patient.activity_level ?? null,
+            sport_modality: patient.sport_modality ?? null,
+            main_complaints: patient.main_complaints ?? null,
+            restrictions: patient.restrictions ?? null,
+          }}
+          onSave={handleSaveProfile}
+        />
+      )}
     </AppLayout>
   );
 }
