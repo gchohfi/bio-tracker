@@ -668,7 +668,7 @@ export function generatePatientReport(
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(255, 255, 255);
-      doc.text("PROTOCOLOS ESSENTIA PHARMA SUGERIDOS", 20, aiY + 3);
+      doc.text("PROTOCOLOS ESSENTIAL PHARMA SUGERIDOS", 20, aiY + 3);
       doc.setFontSize(7);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(180, 200, 220);
@@ -774,7 +774,7 @@ export function generatePatientReport(
         doc.setFontSize(7);
         doc.setFont("helvetica", "italic");
         doc.setTextColor(GRAY.r, GRAY.g, GRAY.b);
-        doc.text("Protocolos Essentia Pharma • consultoriainjetaveis@essentia.com.br • (48) 9 8859.0356 • essentia.com.br", pageW / 2, aiY, { align: "center" });
+        doc.text("Protocolos Essential Pharma • consultoriainjetaveis@essentia.com.br • (48) 9 8859.0356 • essentia.com.br", pageW / 2, aiY, { align: "center" });
       }
     }
 
