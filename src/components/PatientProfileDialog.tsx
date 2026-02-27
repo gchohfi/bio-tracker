@@ -105,7 +105,7 @@ export function PatientProfileDialog({
             Perfil e Objetivos do Paciente
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Essas informações são usadas pela IA para personalizar a recomendação de protocolos Essentia.
+            Essas informações são usadas pela IA para personalizar a recomendação de protocolos Essential.
           </p>
         </DialogHeader>
 

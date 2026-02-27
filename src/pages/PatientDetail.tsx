@@ -1101,7 +1101,7 @@ export default function PatientDetail() {
                   onClick={handleGenerateProtocols}
                   disabled={isAnalyzing || isGeneratingProtocols}
                   className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                  title="Gera recomendações de protocolos Essentia com IA"
+                  title="Gera recomendações de protocolos Essential com IA"
                 >
                   {isGeneratingProtocols ? (
                     <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
