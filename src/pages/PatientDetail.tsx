@@ -547,9 +547,34 @@ export default function PatientDetail() {
     });
 
     // Capture exam_date if returned by the edge function
-    const examDate: string | null = (typeof data?.exam_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(data.exam_date))
+    let examDate: string | null = (typeof data?.exam_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(data.exam_date))
       ? data.exam_date
       : null;
+
+    // Regex fallback: extract date from the FULL (unfiltered) PDF text
+    if (!examDate) {
+      // Try patterns: "Data de Coleta: DD/MM/YYYY", "Coleta: DD/MM/YYYY", "Data da coleta: DD/MM/YYYY",
+      // "Realizado em: DD/MM/YYYY", "Data do exame: DD/MM/YYYY", "COLETADO: DD/MM/YYYY HH:MM"
+      const datePatterns = [
+        /(?:Data\s+d[aeo]\s+[Cc]olet[ao]|Colet(?:a|ado)|Realizado\s+em|Data\s+d[oe]\s+[Ee]xame|Data\s+da\s+[Ff]icha|RECEBIDO.*?COLETADO)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i,
+        /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})(?=\s+\d{1,2}:\d{2})/,
+      ];
+      for (const pattern of datePatterns) {
+        const match = fullText.match(pattern);
+        if (match) {
+          const [, dd, mm, yyyy] = match;
+          const year = yyyy.length === 2 ? `20${yyyy}` : yyyy;
+          const candidate = `${year}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+          if (/^\d{4}-\d{2}-\d{2}$/.test(candidate)) {
+            const d = new Date(candidate + "T12:00:00");
+            if (!isNaN(d.getTime()) && d.getFullYear() >= 2000 && d.getFullYear() <= 2100) {
+              examDate = candidate;
+              break;
+            }
+          }
+        }
+      }
+    }
 
     return { newValues, newLabRefs, fullText, cleanedText, count: results.length, examDate };
   };
