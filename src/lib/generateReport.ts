@@ -687,11 +687,21 @@ export function generatePatientReport(
       };
 
       for (const proto of aiAnalysis.protocol_recommendations) {
-        if (aiY > pageH - 50) { doc.addPage(); aiY = 16; }
+        // Pre-calculate text to determine dynamic card height
+        const contentWidth = pageW - 44; // 14 margin + 3 accent + 7 pad + 14 margin + 6 pad
+        doc.setFontSize(7.5);
+        const justLines = doc.splitTextToSize(`"${proto.justification}"`, contentWidth);
+        doc.setFontSize(6.5);
+        const compLines = doc.splitTextToSize(`Composição: ${proto.composition}`, contentWidth);
 
-        // Protocol card background
+        // Dynamic card height: header row (14) + just lines + comp lines + padding
+        const lineH = 4;
+        const cardH = 14 + justLines.length * lineH + compLines.length * lineH + 6;
+
+        if (aiY + cardH > pageH - 20) { doc.addPage(); aiY = 16; }
+
+        // Card background
         doc.setFillColor(248, 250, 252);
-        const cardH = 32;
         doc.roundedRect(14, aiY, pageW - 28, cardH, 2, 2, "F");
 
         // Left accent bar by priority
@@ -699,51 +709,62 @@ export function generatePatientReport(
         doc.setFillColor(pColor.r, pColor.g, pColor.b);
         doc.roundedRect(14, aiY, 3, cardH, 1, 1, "F");
 
+        // ── Row 1: ID badge + Protocol name (left) | Via badge + Priority badge (right) ──
+        const row1Y = aiY + 8;
+
         // Protocol ID badge
         doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
-        doc.roundedRect(20, aiY + 3, 18, 6, 1, 1, "F");
+        doc.roundedRect(20, aiY + 3, 18, 7, 1, 1, "F");
         doc.setFontSize(7);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(255, 255, 255);
-        doc.text(proto.protocol_id, 29, aiY + 7.5, { align: "center" });
+        doc.text(proto.protocol_id, 29, row1Y, { align: "center" });
 
-        // Protocol name
-        doc.setFontSize(9);
+        // Protocol name — limited width to leave room for badges on right
+        const nameMaxW = pageW - 28 - 18 - 30 - 20; // leave 68pt for badges
+        doc.setFontSize(8.5);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(BRAND.r, BRAND.g, BRAND.b);
-        doc.text(proto.protocol_name, 42, aiY + 7.5);
+        const nameText = doc.splitTextToSize(proto.protocol_name, nameMaxW)[0]; // single line
+        doc.text(nameText, 42, row1Y);
 
-        // Via badge
+        // Via badge (right side, before priority)
         const viaColor = proto.via === "Endovenoso" ? ACCENT : { r: 100, g: 80, b: 160 };
-        doc.setFillColor(viaColor.r, viaColor.g, viaColor.b);
         const viaText = proto.via === "Endovenoso" ? "EV" : "IM";
-        doc.roundedRect(pageW - 40, aiY + 3, 12, 6, 1, 1, "F");
+        const viaBadgeW = 14;
+        const prioBadgeW = 32;
+        const badgeGap = 3;
+        const prioBadgeX = pageW - 14 - prioBadgeW;
+        const viaBadgeX = prioBadgeX - badgeGap - viaBadgeW;
+
+        doc.setFillColor(viaColor.r, viaColor.g, viaColor.b);
+        doc.roundedRect(viaBadgeX, aiY + 3, viaBadgeW, 7, 1, 1, "F");
         doc.setFontSize(7);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(255, 255, 255);
-        doc.text(viaText, pageW - 34, aiY + 7.5, { align: "center" });
+        doc.text(viaText, viaBadgeX + viaBadgeW / 2, row1Y, { align: "center" });
 
         // Priority badge
         doc.setFillColor(pColor.r, pColor.g, pColor.b);
-        doc.roundedRect(pageW - 26, aiY + 3, 24, 6, 1, 1, "F");
+        doc.roundedRect(prioBadgeX, aiY + 3, prioBadgeW, 7, 1, 1, "F");
         doc.setFontSize(6);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(255, 255, 255);
-        doc.text(priorityLabels[proto.priority] ?? proto.priority.toUpperCase(), pageW - 14, aiY + 7.5, { align: "right" });
+        doc.text(priorityLabels[proto.priority] ?? proto.priority.toUpperCase(), prioBadgeX + prioBadgeW / 2, row1Y, { align: "center" });
 
-        // Justification
+        // ── Row 2: Justification ──
+        const row2Y = aiY + 14;
         doc.setFontSize(7.5);
         doc.setFont("helvetica", "italic");
         doc.setTextColor(60, 60, 60);
-        const justLines = doc.splitTextToSize(`“${proto.justification}”`, pageW - 60);
-        doc.text(justLines, 20, aiY + 15);
+        doc.text(justLines, 22, row2Y);
 
-        // Composition
+        // ── Row 3: Composition ──
+        const row3Y = row2Y + justLines.length * lineH + 1;
         doc.setFontSize(6.5);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(GRAY.r, GRAY.g, GRAY.b);
-        const compLines = doc.splitTextToSize(`Composição: ${proto.composition}`, pageW - 36);
-        doc.text(compLines, 20, aiY + 15 + justLines.length * 4 + 2);
+        doc.text(compLines, 22, row3Y);
 
         aiY += cardH + 5;
       }
