@@ -1942,9 +1942,30 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     // Convert lab_ref units to match the stored value units (e.g. pmol/L → ng/dL for testosterona_livre)
     validResults = convertLabRefUnits(validResults);
     // Extract exam_date from parsed response
-    const examDate: string | null = (typeof parsed.exam_date === "string" && parsed.exam_date.match(/^\d{4}-\d{2}-\d{2}$/))
+    let examDate: string | null = (typeof parsed.exam_date === "string" && parsed.exam_date.match(/^\d{4}-\d{2}-\d{2}$/))
       ? parsed.exam_date
       : null;
+
+    // Regex fallback for exam date from raw PDF text
+    if (!examDate) {
+      const datePatterns = [
+        /(?:Data\s+d[aeo]\s+[Cc]olet[ao]|Colet(?:a|ado)|Realizado\s+em|Data\s+d[oe]\s+[Ee]xame|Data\s+da\s+[Ff]icha|RECEBIDO.*?COLETADO)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i,
+        /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})(?=\s+\d{1,2}:\d{2})/,
+      ];
+      for (const pattern of datePatterns) {
+        const match = pdfText.match(pattern);
+        if (match) {
+          const [, dd, mm, yyyy] = match;
+          const year = yyyy.length === 2 ? `20${yyyy}` : yyyy;
+          const candidate = `${year}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+          if (/^\d{4}-\d{2}-\d{2}$/.test(candidate)) {
+            examDate = candidate;
+            break;
+          }
+        }
+      }
+    }
+
     console.log(`Extracted ${validResults.length} valid markers:`, validResults.map((r: any) => r.marker_id).join(', '));
     if (examDate) console.log(`Exam date extracted: ${examDate}`);
     return new Response(JSON.stringify({ results: validResults, exam_date: examDate }), {
