@@ -195,12 +195,272 @@ const ESSENTIA_PROTOCOLS = [
     markers_indicated: ["cortisol", "magnesio", "vitamina_d", "tsh"],
   },
 
+  // ── ENDOVENOSOS: Dores Crônicas ──
+  {
+    id: "EV 1.6", name: "Protocolo adjuvante para Dores Crônicas", category: "Suporte para imunidade, inflamação e antioxidante",
+    via: "Endovenoso",
+    composition: "SAME 200mg/2mL, MSM 1,5g/10mL, L-Carnitina 600mg/2mL, ATP 20mg/2mL, Complexo B com Metil B12 /2mL, DL-Fenilalanina 125mg/10mL",
+    markers_indicated: ["pcr", "vhs", "vitamina_d", "magnesio", "cortisol", "ferritina"],
+  },
+  {
+    id: "EV 1.5", name: "Protocolo adjuvante Anti-inflamatório e Antioxidante", category: "Suporte para imunidade, inflamação e antioxidante",
+    via: "Endovenoso",
+    composition: "MSM 1,5g/10mL, NAC 300mg/2mL, L-Carnitina 600mg/2mL, Complexo B sem B1 /2mL, SAME 200mg/2mL, Aminoácidos (3,8%) /10mL, L-Glutathion 600mg/5mL",
+    markers_indicated: ["pcr", "vhs", "homocisteina", "tgo", "tgp", "acido_urico"],
+  },
+  {
+    id: "EV 1.8", name: "Protocolo adjuvante para Herpes", category: "Suporte para imunidade, inflamação e antioxidante",
+    via: "Endovenoso",
+    composition: "L-Lisina 300mg/2mL, Sulfato de Zinco 20mg/2mL, L-Glutathion 100mg/2mL, Complexo B com B1 /1mL, NMN 100mg/1mL",
+    markers_indicated: ["zinco", "vitamina_b12", "linfocitos", "ige_total"],
+  },
+
+  // ── ENDOVENOSOS: Energia e Disposição (adicionais) ──
+  {
+    id: "EV 2.3", name: "Protocolo adjuvante Energia Celular", category: "Aumento de energia e disposição",
+    via: "Endovenoso",
+    composition: "ATP 20mg/2mL, D-Ribose 500mg/2mL, L-Carnitina 600mg/2mL, Sulfato de Magnésio 200mg/2mL, L-Citrulina 200mg + Vit C 75mg/10mL, Ácido Lipoico 600mg/24mL",
+    markers_indicated: ["magnesio", "ferritina", "glicose_jejum", "insulina_jejum", "vitamina_b12"],
+  },
+  {
+    id: "EV 2.5", name: "Protocolo adjuvante Aumento de Vitalidade", category: "Aumento de energia e disposição",
+    via: "Endovenoso",
+    composition: "Sulfato de Magnésio 1g/10mL, Complexo B sem B1 /2mL, Taurina 500mg/5mL, NAC 300mg/2mL, Vit C 1g/5mL, L-Fenilalanina 50mg/5mL",
+    markers_indicated: ["magnesio", "vitamina_b12", "cortisol", "ferritina", "vitamina_c"],
+  },
+  {
+    id: "EV 2.7_nmn", name: "Protocolo adjuvante Longevidade e Anti-Aging (NMN)", category: "Aumento de energia e disposição",
+    via: "Endovenoso",
+    composition: "NMN 100mg/1mL, Nanomicelas de Resveratrol 10mg/1mL, L-Carnitina 600mg/2mL, Ácido Lipoico 10mg/2mL, Coenzima Q10 100mg/2mL",
+    markers_indicated: ["glicose_jejum", "insulina_jejum", "hba1c", "igf1", "testosterona_total"],
+  },
+
+  // ── ENDOVENOSOS: Quelação de Metais ──
+  {
+    id: "EV 5.1", name: "Protocolo adjuvante Quelação de Metais Tóxicos", category: "Quelação de metais tóxicos",
+    via: "Endovenoso",
+    composition: "EDTA Dissódico, Vit C 444mg/2mL, Complexo B sem B1 /2mL, Minerais /2mL",
+    markers_indicated: ["chumbo", "mercurio", "arsenio", "cadmio", "aluminio", "zinco", "selenio"],
+  },
+
+  // ── ENDOVENOSOS: Emagrecimento e Ganho de Massa ──
+  {
+    id: "EV 6.2", name: "Protocolo adjuvante para Emagrecimento", category: "Suporte ao emagrecimento e ganho de massa muscular",
+    via: "Endovenoso",
+    composition: "L-Carnitina 600mg/2mL, Cloreto de Cromo 100mcg/2mL, Inositol 1g/10mL, Taurina 500mg/10mL, Complexo B sem B1 /2mL, Ácido Lipoico 600mg/24mL",
+    markers_indicated: ["glicose_jejum", "insulina_jejum", "hba1c", "glicemia_media_estimada", "triglicerides", "colesterol_total", "tsh"],
+  },
+  {
+    id: "EV 6.3", name: "Protocolo adjuvante para Ganho de Massa Muscular", category: "Suporte ao emagrecimento e ganho de massa muscular",
+    via: "Endovenoso",
+    composition: "L-Arginina HCl 400mg, HMB 50mg/2mL, Complexo B com Metil B12 /2mL, Aminoácidos (3,8%) /10mL, Sulfato de Magnésio 200mg/2mL",
+    markers_indicated: ["testosterona_total", "igf1", "proteina_total", "albumina", "vitamina_d", "magnesio"],
+  },
+
+  // ── ENDOVENOSOS: Pele, Cabelo e Unhas ──
+  {
+    id: "EV 7.1", name: "Protocolo adjuvante Saúde e Beleza da Pele, Cabelo e Unhas", category: "Saúde e beleza da pele, do cabelo e das unhas",
+    via: "Endovenoso",
+    composition: "Biotina 10mg/2mL, Vit C 444mg/2mL, Zinco 20mg/2mL, Silício Orgânico, Complexo B com Metil B12 /2mL",
+    markers_indicated: ["ferritina", "zinco", "vitamina_c", "vitamina_d", "biotina", "tsh"],
+  },
+
+  // ── ENDOVENOSOS: Metabolismo (adicionais) ──
+  {
+    id: "EV 8.2", name: "Protocolo adjuvante Síndrome Metabólica", category: "Condições e patologias relacionadas a distúrbios de metabolismo",
+    via: "Endovenoso",
+    composition: "L-Carnitina 600mg/2mL, Cloreto de Cromo 100mcg/2mL, Ácido Lipoico 600mg/24mL, Inositol 1g/10mL, Taurina 500mg/10mL, Complexo B sem B1 /2mL",
+    markers_indicated: ["glicose_jejum", "insulina_jejum", "hba1c", "triglicerides", "hdl", "pcr"],
+  },
+  {
+    id: "EV 8.3", name: "Protocolo adjuvante Hipotireoidismo Funcional", category: "Condições e patologias relacionadas a distúrbios de metabolismo",
+    via: "Endovenoso",
+    composition: "Selênio 200mcg, Zinco 20mg/2mL, Complexo B com Metil B12 /2mL, L-Tirosina 500mg",
+    markers_indicated: ["tsh", "t3_livre", "t4_livre", "anti_tpo", "anti_tg", "selenio", "zinco"],
+  },
+  {
+    id: "EV 8.4", name: "Protocolo adjuvante Diabetes Tipo 2", category: "Condições e patologias relacionadas a distúrbios de metabolismo",
+    via: "Endovenoso",
+    composition: "Ácido Lipoico 600mg/24mL, Cloreto de Cromo 100mcg/2mL, Inositol 1g/10mL, Vit B12 (Metilcobalamina) 500mcg/1mL, Complexo B sem B1 /2mL",
+    markers_indicated: ["glicose_jejum", "hba1c", "insulina_jejum", "glicemia_media_estimada", "vitamina_b12"],
+  },
+
+  // ── ENDOVENOSOS: SNC ──
+  {
+    id: "EV 9.1_snc", name: "Protocolo adjuvante Ansiedade e Estresse", category: "Condições e patologias relacionadas ao SNC",
+    via: "Endovenoso",
+    composition: "L-Triptofano 100mg/10mL, L-Theanina 50mg/2mL, Magnésio 1g/10mL, Inositol 1g/10mL, Complexo B com Metil B12 /2mL",
+    markers_indicated: ["cortisol", "dhea_s", "magnesio", "vitamina_b12", "tsh"],
+  },
+  {
+    id: "EV 9.2", name: "Protocolo adjuvante Depressão", category: "Condições e patologias relacionadas ao SNC",
+    via: "Endovenoso",
+    composition: "L-Triptofano 100mg/10mL, SAMe 200mg/2mL, Complexo B com Metil B12 /2mL, Ácido Fólico, Zinco 20mg/2mL",
+    markers_indicated: ["vitamina_b12", "acido_folico", "tsh", "cortisol", "ferritina", "zinco"],
+  },
+  {
+    id: "EV 9.3", name: "Protocolo adjuvante Fibromialgia", category: "Condições e patologias relacionadas ao SNC",
+    via: "Endovenoso",
+    composition: "SAME 200mg/2mL, MSM 1,5g/10mL, L-Carnitina 600mg/2mL, Magnésio 1g/10mL, Complexo B com Metil B12 /2mL, DL-Fenilalanina 125mg/10mL",
+    markers_indicated: ["vitamina_d", "magnesio", "cortisol", "pcr", "ferritina"],
+  },
+
+  // ── ENDOVENOSOS: Autoimune ──
+  {
+    id: "EV 11.2", name: "Protocolo adjuvante Condições Autoimunes", category: "Condições e patologias autoimunes",
+    via: "Endovenoso",
+    composition: "L-Glutathion 600mg/5mL, NAC 300mg/2mL, Vit D3 50.000 UI/1mL, Ácido Lipoico 600mg/24mL",
+    markers_indicated: ["vitamina_d", "pcr", "vhs", "anti_tpo", "fator_reumatoide", "ana"],
+  },
+
+  // ── ENDOVENOSOS: Pós-Cirúrgico ──
+  {
+    id: "EV 12.1", name: "Protocolo adjuvante Recuperação Pós-Cirúrgica", category: "Recuperação pós-cirúrgica",
+    via: "Endovenoso",
+    composition: "Vit C 444mg/2mL, Zinco 20mg/2mL, L-Glutamina, Complexo B sem B1 /2mL, Aminoácidos (3,8%) /10mL",
+    markers_indicated: ["albumina", "proteina_total", "vitamina_c", "zinco", "ferritina", "leucocitos"],
+  },
+
+  // ── ENDOVENOSOS: Hidratação ──
+  {
+    id: "EV 13.2", name: "Protocolo adjuvante Hidratação e Reposição de Minerais", category: "Hidratação e reposição de minerais",
+    via: "Endovenoso",
+    composition: "Soro Fisiológico 0,9%, Eletrólitos, Magnésio 1g/10mL, Complexo B sem B1 /2mL",
+    markers_indicated: ["sodio", "potassio", "calcio_total", "magnesio", "cloreto"],
+  },
+
+  // ── ENDOVENOSOS: Performance Esportiva ──
+  {
+    id: "EV 14.1", name: "Protocolo adjuvante Performance Esportiva", category: "Performance esportiva",
+    via: "Endovenoso",
+    composition: "L-Arginina HCl 400mg, L-Citrulina 200mg + Vit C 75mg/10mL, L-Carnitina 600mg/2mL, Complexo B com Metil B12 /2mL, Sulfato de Magnésio 200mg/2mL",
+    markers_indicated: ["testosterona_total", "igf1", "vitamina_d", "magnesio", "ferritina", "hemoglobina", "cortisol"],
+  },
+  {
+    id: "EV 14.2", name: "Protocolo adjuvante Recuperação Muscular Esportiva", category: "Performance esportiva",
+    via: "Endovenoso",
+    composition: "Aminoácidos (3,8%) /10mL, L-Glutamina, Magnésio 1g/10mL, Zinco 20mg/2mL, Vit C 444mg/2mL",
+    markers_indicated: ["cpk", "ldh", "acido_urico", "magnesio", "zinco", "vitamina_d"],
+  },
+
+  // ── ENDOVENOSOS: Saúde Gastrointestinal ──
+  {
+    id: "EV 15.1", name: "Protocolo adjuvante Saúde Intestinal", category: "Saúde gastrointestinal",
+    via: "Endovenoso",
+    composition: "L-Glutamina, Zinco 20mg/2mL, Vit D3 50.000 UI/1mL, Complexo B com Metil B12 /2mL",
+    markers_indicated: ["vitamina_d", "zinco", "albumina", "proteina_total", "vitamina_b12", "acido_folico"],
+  },
+
+  // ── ENDOVENOSOS: Saúde Feminina (adicionais) ──
+  {
+    id: "EV 16.2", name: "Protocolo adjuvante TPM e Menopausa", category: "Saúde feminina",
+    via: "Endovenoso",
+    composition: "Magnésio 1g/10mL, Vit B6 (Piridoxina) 100mg/2mL, Inositol 1g/10mL, L-Triptofano 100mg/10mL, Complexo B com Metil B12 /2mL",
+    markers_indicated: ["estradiol", "progesterona", "fsh", "lh", "magnesio", "vitamina_b12", "cortisol"],
+  },
+
+  // ── ENDOVENOSOS: Reposição de Ferro ──
+  {
+    id: "EV 2.8_ferro", name: "Protocolo adjuvante Reposição de Ferro (Ferro Carboximaltose)", category: "Aumento de energia e disposição",
+    via: "Endovenoso",
+    composition: "Ferro Carboximaltose — tecnologia de liberação gradual e controlada do ferro",
+    markers_indicated: ["ferritina", "hemoglobina", "hematocrito", "vcm", "hcm", "ferro_serico", "transferrina"],
+  },
+
+  // ── ENDOVENOSOS: Oncológico ──
+  {
+    id: "EV 18.1", name: "Protocolo adjuvante Suporte ao Tratamento Oncológico", category: "Suporte ao tratamento oncológico",
+    via: "Endovenoso",
+    composition: "L-Glutathion 600mg/5mL, Vit C 444mg/2mL, NAC 300mg/2mL, Selênio, Zinco 20mg/2mL, Complexo B sem B1 /2mL",
+    markers_indicated: ["albumina", "proteina_total", "vitamina_c", "selenio", "zinco", "leucocitos", "hemoglobina"],
+  },
+
+  // ── ENDOVENOSOS: Ocular ──
+  {
+    id: "EV 20.1", name: "Protocolo adjuvante Saúde Ocular", category: "Saúde ocular",
+    via: "Endovenoso",
+    composition: "Luteína, Zeaxantina, Vit C 444mg/2mL, Zinco 20mg/2mL",
+    markers_indicated: ["vitamina_c", "zinco", "glicose_jejum", "hba1c"],
+  },
+
+  // ── ENDOVENOSOS: Renal ──
+  {
+    id: "EV 22.1", name: "Protocolo adjuvante Saúde Renal", category: "Saúde renal",
+    via: "Endovenoso",
+    composition: "NAC 300mg/2mL, L-Glutathion 600mg/5mL, Vit C 444mg/2mL, Complexo B sem B1 /2mL, Magnésio 1g/10mL",
+    markers_indicated: ["creatinina", "ureia", "acido_urico", "tfg", "sodio", "potassio"],
+  },
+
+  // ── ENDOVENOSOS: Otológico ──
+  {
+    id: "EV 23.1", name: "Protocolo adjuvante Saúde Otológica", category: "Saúde otológica",
+    via: "Endovenoso",
+    composition: "Vit B12 (Metilcobalamina) 2500mcg/1mL, Magnésio 1g/10mL, Zinco 20mg/2mL, Ácido Lipoico 600mg/24mL",
+    markers_indicated: ["vitamina_b12", "magnesio", "zinco", "colesterol_total"],
+  },
+
+  // ── ENDOVENOSOS: Respiratório ──
+  {
+    id: "EV 24.1", name: "Protocolo adjuvante Saúde do Sistema Respiratório", category: "Saúde do sistema respiratório",
+    via: "Endovenoso",
+    composition: "NAC 300mg/2mL, Vit C 444mg/2mL, Zinco 20mg/2mL, Nanomicelas de Quercetina 15mg/2mL, Complexo B sem B1 /2mL",
+    markers_indicated: ["vitamina_c", "zinco", "vitamina_d", "ige_total", "eosinofilos"],
+  },
+
   // ── INTRAMUSCULARES: Energia ──
   {
     id: "IM 2.1", name: "Protocolo IM adjuvante para Fadiga/Indisposição", category: "Aumento de energia e disposição",
     via: "Intramuscular",
     composition: "Vit B12 (Metilcobalamina) 2500mcg/1mL, Complexo B com Metil B12 /2mL, Coenzima Q10 50mg/1mL",
     markers_indicated: ["vitamina_b12", "ferritina", "tsh", "cortisol"],
+  },
+
+  // ── INTRAMUSCULARES: Cognição ──
+  {
+    id: "IM 3.1", name: "Protocolo IM adjuvante Cognição e Memória", category: "Cognição e memória",
+    via: "Intramuscular",
+    composition: "Complexo B com Metil B12 /2mL, Citicolina, Fosfatidilserina",
+    markers_indicated: ["vitamina_b12", "homocisteina", "cortisol", "tsh"],
+  },
+
+  // ── INTRAMUSCULARES: Hepático ──
+  {
+    id: "IM 4.1", name: "Protocolo IM adjuvante Saúde e Desintoxicação Hepática", category: "Saúde e desintoxicação hepática",
+    via: "Intramuscular",
+    composition: "NAC 300mg/2mL, L-Glutathion 100mg/2mL, Silimarina",
+    markers_indicated: ["tgp", "tgo", "ggt", "albumina", "bilirrubina_total"],
+  },
+
+  // ── INTRAMUSCULARES: Emagrecimento/Massa ──
+  {
+    id: "IM 5.1", name: "Protocolo IM adjuvante Emagrecimento e Ganho de Massa Muscular", category: "Suporte ao emagrecimento e ganho de massa muscular",
+    via: "Intramuscular",
+    composition: "L-Carnitina 600mg/2mL, Cloreto de Cromo 100mcg/2mL, HMB 50mg/2mL",
+    markers_indicated: ["glicose_jejum", "insulina_jejum", "triglicerides", "testosterona_total", "hba1c"],
+  },
+
+  // ── INTRAMUSCULARES: Pele, Cabelo e Unhas ──
+  {
+    id: "IM 6.1", name: "Protocolo IM adjuvante Pele, Cabelo e Unhas", category: "Saúde e beleza da pele, do cabelo e das unhas",
+    via: "Intramuscular",
+    composition: "Biotina 10mg/2mL, Vit C (Ácido Ascórbico) 400mg/2mL, Zinco 20mg/2mL, Complexo B com Metil B12 /2mL",
+    markers_indicated: ["ferritina", "zinco", "biotina", "vitamina_c", "tsh"],
+  },
+
+  // ── INTRAMUSCULARES: Metabolismo ──
+  {
+    id: "IM 7.1", name: "Protocolo IM adjuvante Distúrbios do Metabolismo", category: "Condições e patologias relacionadas a distúrbios de metabolismo",
+    via: "Intramuscular",
+    composition: "Ácido Lipoico 10mg/2mL, Cloreto de Cromo 100mcg/2mL, Inositol 100mg + Taurina 100mg/2mL",
+    markers_indicated: ["glicose_jejum", "insulina_jejum", "hba1c", "triglicerides", "colesterol_total"],
+  },
+
+  // ── INTRAMUSCULARES: SNC ──
+  {
+    id: "IM 8.1", name: "Protocolo IM adjuvante SNC", category: "Condições e patologias relacionadas ao SNC",
+    via: "Intramuscular",
+    composition: "L-Triptofano 100mg/10mL, Magnésio 500mg/2mL, Complexo B com Metil B12 /2mL",
+    markers_indicated: ["cortisol", "magnesio", "vitamina_b12", "tsh"],
   },
 
   // ── INTRAMUSCULARES: Imunidade ──
@@ -211,12 +471,65 @@ const ESSENTIA_PROTOCOLS = [
     markers_indicated: ["vitamina_d", "pcr", "vhs", "linfocitos"],
   },
 
+  // ── INTRAMUSCULARES: Saúde Óssea ──
+  {
+    id: "IM 9.2", name: "Protocolo IM adjuvante Saúde Óssea, Muscular e Articular", category: "Saúde óssea, muscular e articular",
+    via: "Intramuscular",
+    composition: "Vit D3 (Colecalciferol) 50.000–600.000 UI/1mL, Vit K2, Magnésio 500mg/2mL",
+    markers_indicated: ["vitamina_d", "calcio_total", "magnesio", "pth"],
+  },
+
   // ── INTRAMUSCULARES: Saúde Feminina ──
   {
     id: "IM 9.1", name: "Protocolo IM adjuvante Saúde Feminina", category: "Saúde feminina",
     via: "Intramuscular",
     composition: "Vit D3 50.000 UI/1mL, Vit B12 (Metilcobalamina) 2500mcg/1mL, Coenzima Q10 50mg/1mL",
     markers_indicated: ["vitamina_d", "vitamina_b12", "estradiol", "fsh", "lh"],
+  },
+  // ── INTRAMUSCULARES: Masculino ──
+  {
+    id: "IM 11.1", name: "Protocolo IM adjuvante Saúde Masculina", category: "Saúde masculina",
+    via: "Intramuscular",
+    composition: "Zinco 20mg/2mL, Selênio 200mcg, L-Arginina HCl 400mg, Vit D3 50.000 UI/1mL",
+    markers_indicated: ["testosterona_total", "testosterona_livre", "zinco", "selenio", "vitamina_d", "psa"],
+  },
+
+  // ── INTRAMUSCULARES: Cardiovascular ──
+  {
+    id: "IM 12.1", name: "Protocolo IM adjuvante Saúde do Coração", category: "Saúde cardiovascular",
+    via: "Intramuscular",
+    composition: "Complexo B com Metil B12 /2mL, L-Carnitina 600mg/2mL, D-Ribose 500mg/2mL, Taurina 100mg/2mL, NMN 100mg/1mL",
+    markers_indicated: ["colesterol_total", "ldl", "homocisteina", "vitamina_b12", "magnesio", "triglicerides"],
+  },
+
+  // ── INTRAMUSCULARES: Gastrointestinal ──
+  {
+    id: "IM 13.1", name: "Protocolo IM adjuvante Hipocloridria", category: "Saúde gastrointestinal",
+    via: "Intramuscular",
+    composition: "Glicina 75mg/2mL, L-Lisina 300mg/2mL, Complexo B com Metil B12 /2mL",
+    markers_indicated: ["vitamina_b12", "albumina", "ferritina", "zinco"],
+  },
+  {
+    id: "IM 13.2", name: "Protocolo IM adjuvante Disbiose", category: "Saúde gastrointestinal",
+    via: "Intramuscular",
+    composition: "MSM 750mg/5mL, Vit C (Ácido Ascórbico) 400mg/2mL, Glicina 75mg/2mL",
+    markers_indicated: ["vitamina_c", "albumina", "proteina_total", "zinco"],
+  },
+
+  // ── INTRAMUSCULARES: Sono ──
+  {
+    id: "IM 14.1", name: "Protocolo IM adjuvante Regulação do Sono", category: "Saúde do sono",
+    via: "Intramuscular",
+    composition: "Melatonina 3mg/2mL, Hidroxitriptofano 4mg/2mL, L-Theanina 50mg/2mL",
+    markers_indicated: ["cortisol", "melatonina", "magnesio", "tsh"],
+  },
+
+  // ── INTRAMUSCULARES: Respiratório ──
+  {
+    id: "IM 15.1", name: "Protocolo IM adjuvante Saúde do Sistema Respiratório", category: "Saúde do sistema respiratório",
+    via: "Intramuscular",
+    composition: "Nanomicelas de Quercetina 15mg/2mL, NAC 300mg/2mL",
+    markers_indicated: ["vitamina_d", "zinco", "ige_total", "eosinofilos"],
   },
 ];
 
