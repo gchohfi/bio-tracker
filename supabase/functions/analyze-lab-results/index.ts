@@ -387,8 +387,8 @@ serve(async (req) => {
       );
     }
 
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     // Identify abnormal marker IDs for protocol matching
     const abnormalIds = body.results
@@ -400,14 +400,14 @@ serve(async (req) => {
 
     console.log(`Analyzing ${body.results.length} markers for ${body.patient_name} | ${abnormalIds.length} abnormal | ${matchedProtocols.length} protocols matched`);
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4.1",
+        model: "google/gemini-2.5-pro",
         temperature: 0.3,
         response_format: { type: "json_object" },
         messages: [
@@ -419,8 +419,8 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("OpenAI API error:", errText);
-      throw new Error(`OpenAI API returned ${response.status}: ${errText}`);
+      console.error("AI gateway error:", errText);
+      throw new Error(`AI gateway returned ${response.status}: ${errText}`);
     }
 
     const aiResponse = await response.json();
