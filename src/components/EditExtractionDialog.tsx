@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +37,16 @@ export default function EditExtractionDialog({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editBuffer, setEditBuffer] = useState("");
   const [search, setSearch] = useState("");
+
+  // Sync localValues whenever the dialog opens with new data
+  useEffect(() => {
+    if (open) {
+      setLocalValues({ ...markerValues });
+      setEditingId(null);
+      setEditBuffer("");
+      setSearch("");
+    }
+  }, [open, markerValues]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
