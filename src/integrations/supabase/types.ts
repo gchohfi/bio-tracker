@@ -89,28 +89,43 @@ export type Database = {
       }
       patients: {
         Row: {
+          activity_level: string | null
           birth_date: string | null
           created_at: string
           id: string
+          main_complaints: string | null
           name: string
+          objectives: string[] | null
           practitioner_id: string
+          restrictions: string | null
           sex: string
+          sport_modality: string | null
         }
         Insert: {
+          activity_level?: string | null
           birth_date?: string | null
           created_at?: string
           id?: string
+          main_complaints?: string | null
           name: string
+          objectives?: string[] | null
           practitioner_id: string
+          restrictions?: string | null
           sex: string
+          sport_modality?: string | null
         }
         Update: {
+          activity_level?: string | null
           birth_date?: string | null
           created_at?: string
           id?: string
+          main_complaints?: string | null
           name?: string
+          objectives?: string[] | null
           practitioner_id?: string
+          restrictions?: string | null
           sex?: string
+          sport_modality?: string | null
         }
         Relationships: [
           {
