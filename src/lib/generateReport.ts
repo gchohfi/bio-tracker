@@ -226,6 +226,16 @@ function drawLegend(doc: jsPDF, x: number, y: number) {
 }
 
 /* ─── AI Analysis types ─── */
+export interface ProtocolRecommendation {
+  protocol_id: string;
+  protocol_name: string;
+  category: string;
+  via: string;
+  composition: string;
+  justification: string;
+  priority: "alta" | "media" | "baixa";
+}
+
 export interface AiAnalysis {
   summary: string;
   alerts: string[];
@@ -233,6 +243,7 @@ export interface AiAnalysis {
   trends: string[];
   suggestions: string[];
   full_text: string;
+  protocol_recommendations?: ProtocolRecommendation[];
 }
 
 /* ─── Main export ─── */
@@ -642,6 +653,107 @@ export function generatePatientReport(
         }
         doc.text(line, 14, aiY);
         aiY += 4.5;
+      }
+    }
+
+    // ── Protocol Recommendations ──
+    if (aiAnalysis.protocol_recommendations && aiAnalysis.protocol_recommendations.length > 0) {
+      doc.addPage();
+      aiY = 16;
+
+      // Section header
+      const GOLD = { r: 180, g: 140, b: 50 };
+      doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
+      doc.roundedRect(14, aiY - 4, pageW - 28, 12, 2, 2, "F");
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      doc.text("PROTOCOLOS ESSENTIA PHARMA SUGERIDOS", 20, aiY + 3);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(180, 200, 220);
+      doc.text("Baseado nos marcadores alterados • Avaliação clínica obrigatória antes da prescrição", pageW - 16, aiY + 3, { align: "right" });
+      aiY += 18;
+
+      const priorityColors: Record<string, { r: number; g: number; b: number }> = {
+        alta: { r: 210, g: 45, b: 45 },
+        media: { r: 220, g: 140, b: 30 },
+        baixa: { r: 22, g: 160, b: 90 },
+      };
+      const priorityLabels: Record<string, string> = {
+        alta: "PRIORIDADE ALTA",
+        media: "PRIORIDADE MÉDIA",
+        baixa: "PRIORIDADE BAIXA",
+      };
+
+      for (const proto of aiAnalysis.protocol_recommendations) {
+        if (aiY > pageH - 50) { doc.addPage(); aiY = 16; }
+
+        // Protocol card background
+        doc.setFillColor(248, 250, 252);
+        const cardH = 32;
+        doc.roundedRect(14, aiY, pageW - 28, cardH, 2, 2, "F");
+
+        // Left accent bar by priority
+        const pColor = priorityColors[proto.priority] ?? { r: 100, g: 100, b: 100 };
+        doc.setFillColor(pColor.r, pColor.g, pColor.b);
+        doc.roundedRect(14, aiY, 3, cardH, 1, 1, "F");
+
+        // Protocol ID badge
+        doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
+        doc.roundedRect(20, aiY + 3, 18, 6, 1, 1, "F");
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(255, 255, 255);
+        doc.text(proto.protocol_id, 29, aiY + 7.5, { align: "center" });
+
+        // Protocol name
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(BRAND.r, BRAND.g, BRAND.b);
+        doc.text(proto.protocol_name, 42, aiY + 7.5);
+
+        // Via badge
+        const viaColor = proto.via === "Endovenoso" ? ACCENT : { r: 100, g: 80, b: 160 };
+        doc.setFillColor(viaColor.r, viaColor.g, viaColor.b);
+        const viaText = proto.via === "Endovenoso" ? "EV" : "IM";
+        doc.roundedRect(pageW - 40, aiY + 3, 12, 6, 1, 1, "F");
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(255, 255, 255);
+        doc.text(viaText, pageW - 34, aiY + 7.5, { align: "center" });
+
+        // Priority badge
+        doc.setFillColor(pColor.r, pColor.g, pColor.b);
+        doc.roundedRect(pageW - 26, aiY + 3, 24, 6, 1, 1, "F");
+        doc.setFontSize(6);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(255, 255, 255);
+        doc.text(priorityLabels[proto.priority] ?? proto.priority.toUpperCase(), pageW - 14, aiY + 7.5, { align: "right" });
+
+        // Justification
+        doc.setFontSize(7.5);
+        doc.setFont("helvetica", "italic");
+        doc.setTextColor(60, 60, 60);
+        const justLines = doc.splitTextToSize(`“${proto.justification}”`, pageW - 60);
+        doc.text(justLines, 20, aiY + 15);
+
+        // Composition
+        doc.setFontSize(6.5);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(GRAY.r, GRAY.g, GRAY.b);
+        const compLines = doc.splitTextToSize(`Composição: ${proto.composition}`, pageW - 36);
+        doc.text(compLines, 20, aiY + 15 + justLines.length * 4 + 2);
+
+        aiY += cardH + 5;
+      }
+
+      // Essentia contact note
+      if (aiY < pageH - 30) {
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "italic");
+        doc.setTextColor(GRAY.r, GRAY.g, GRAY.b);
+        doc.text("Protocolos Essentia Pharma • consultoriainjetaveis@essentia.com.br • (48) 9 8859.0356 • essentia.com.br", pageW / 2, aiY, { align: "center" });
       }
     }
 

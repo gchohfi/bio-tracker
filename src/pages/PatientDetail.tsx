@@ -246,6 +246,8 @@ export default function PatientDetail() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   // Track how many PDFs were imported in the current session
   const [importedPdfCount, setImportedPdfCount] = useState(0);
+  // Date extracted automatically from the PDF
+  const [extractedExamDate, setExtractedExamDate] = useState<string | null>(null);
   const [reportEditOpen, setReportEditOpen] = useState(false);
   const [reportResults, setReportResults] = useState<any[]>([]);
   const [reportWithAI, setReportWithAI] = useState(false);
@@ -497,6 +499,7 @@ export default function PatientDetail() {
     fullText: string;
     cleanedText: string;
     count: number;
+    examDate: string | null;
   }> => {
     const { fullText, cleanedText } = await extractPdfText(file);
 
@@ -543,7 +546,12 @@ export default function PatientDetail() {
       }
     });
 
-    return { newValues, newLabRefs, fullText, cleanedText, count: results.length };
+    // Capture exam_date if returned by the edge function
+    const examDate: string | null = (typeof data?.exam_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(data.exam_date))
+      ? data.exam_date
+      : null;
+
+    return { newValues, newLabRefs, fullText, cleanedText, count: results.length, examDate };
   };
 
   const handlePdfImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -558,6 +566,7 @@ export default function PatientDetail() {
       let lastFullText = "";
       let lastCleanedText = "";
       let totalCount = 0;
+      let firstExamDate: string | null = null;
 
       for (const file of files) {
         toast({ title: `Processando ${file.name}...`, description: `${files.indexOf(file) + 1} de ${files.length}` });
@@ -567,6 +576,8 @@ export default function PatientDetail() {
         lastFullText = result.fullText;
         lastCleanedText = result.cleanedText;
         totalCount += result.count;
+        // Use the date from the first PDF that returns one
+        if (!firstExamDate && result.examDate) firstExamDate = result.examDate;
       }
 
       setMarkerValues(currentValues);
@@ -574,6 +585,17 @@ export default function PatientDetail() {
       setLastPdfText(lastCleanedText);
       setLastRawPdfText(lastFullText);
       setImportedPdfCount((prev) => prev + files.length);
+
+      // Auto-fill session date if extracted from PDF
+      if (firstExamDate) {
+        try {
+          const parsed = new Date(firstExamDate + "T12:00:00");
+          if (!isNaN(parsed.getTime())) {
+            setSessionDate(parsed);
+            setExtractedExamDate(firstExamDate);
+          }
+        } catch {}
+      }
 
       // Open edit dialog first, then verification
       setEditExtractionOpen(true);
@@ -677,7 +699,7 @@ export default function PatientDetail() {
           </div>
 
           {/* Date picker */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <Label>Data:</Label>
             <Popover>
               <PopoverTrigger asChild>
@@ -690,12 +712,18 @@ export default function PatientDetail() {
                 <Calendar
                   mode="single"
                   selected={sessionDate}
-                  onSelect={(d) => d && setSessionDate(d)}
+                  onSelect={(d) => { d && setSessionDate(d); setExtractedExamDate(null); }}
                   locale={ptBR}
                   className={cn("p-3 pointer-events-auto")}
                 />
               </PopoverContent>
             </Popover>
+            {extractedExamDate && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 border border-teal-200 px-2.5 py-0.5 text-xs font-medium text-teal-700">
+                <Check className="h-3 w-3" />
+                Data extraída do laudo
+              </span>
+            )}
           </div>
 
           {/* Category tabs — simplified: only show categories with filled markers OR all */}

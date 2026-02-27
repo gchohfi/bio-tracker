@@ -26,16 +26,222 @@ interface AnalysisRequest {
   results: MarkerResult[];
 }
 
+interface ProtocolRecommendation {
+  protocol_id: string;
+  protocol_name: string;
+  category: string;
+  via: string;
+  composition: string;
+  justification: string;
+  priority: "alta" | "media" | "baixa";
+}
+
 interface AnalysisResponse {
   summary: string;
-  
   patterns: string[];
   trends: string[];
   suggestions: string[];
   full_text: string;
+  protocol_recommendations?: ProtocolRecommendation[];
 }
 
-const SYSTEM_PROMPT = `Você é um assistente clínico especializado em medicina funcional e integrativa, com profundo conhecimento em interpretação de exames laboratoriais. 
+// ── Catálogo de Protocolos Essentia Pharma ──────────────────────────────────
+// Cada protocolo define os marcadores que, quando alterados, tornam o protocolo relevante.
+// markers_indicated: IDs dos marcadores do LabTrack que ativam a sugestão deste protocolo.
+const ESSENTIA_PROTOCOLS = [
+  // ── ENDOVENOSOS: Imunidade, Inflamação e Antioxidante ──
+  {
+    id: "EV 1.1", name: "Protocolo adjuvante para Imunidade", category: "Suporte para imunidade, inflamação e antioxidante",
+    via: "Endovenoso",
+    composition: "Alanil Glutamina 120mg/2mL, Complexo B sem B1 /2mL, NAC 300mg/2mL, L-Glutathion 100mg/2mL, Minerais /2mL (Cromo, Manganês, Magnésio, Zinco, Selênio, Cobre)",
+    markers_indicated: ["pcr", "vhs", "zinco", "selenio", "vitamina_d", "vitamina_c", "linfocitos", "neutrofilos"],
+  },
+  {
+    id: "EV 1.2", name: "Protocolo adjuvante Anti-inflamatório", category: "Suporte para imunidade, inflamação e antioxidante",
+    via: "Endovenoso",
+    composition: "MSM 750mg/5mL, NAC 300mg/2mL, Vit B3 (Nicotinamida) 30mg/2mL, Minerais /2mL, Aminoácidos (3,8%) /10mL, Ácido Lipoico 600mg/24mL",
+    markers_indicated: ["pcr", "vhs", "homocisteina", "vitamina_b12", "acido_folico", "zinco"],
+  },
+  {
+    id: "EV 1.3", name: "Protocolo de Vitaminas, Minerais, Antioxidantes e Aminoácidos", category: "Suporte para imunidade, inflamação e antioxidante",
+    via: "Endovenoso",
+    composition: "NAC 300mg/2mL, L-Glutathion 100mg/2mL, Vit B3 30mg/2mL, Complexo B sem B1 /2mL, Aminoácidos (3,8%) /10mL, Minerais /2mL",
+    markers_indicated: ["vitamina_b12", "acido_folico", "zinco", "selenio", "magnesio", "pcr"],
+  },
+  {
+    id: "EV 1.4", name: "Protocolo adjuvante Pós-Infecção", category: "Suporte para imunidade, inflamação e antioxidante",
+    via: "Endovenoso",
+    composition: "Complexo B sem B1 /2mL, L-Citrulina 200mg + Vit C 75mg/10mL, NAC 300mg/2mL, L-Leucina 150mg/10mL, L-Lisina 300mg/2mL, MSM 1,5g/10mL, Magnésio 1g/10mL, Minerais /2mL, N-Acetil L-Tirosina 20mg/2mL",
+    markers_indicated: ["vitamina_c", "vitamina_d", "zinco", "pcr", "vhs", "linfocitos"],
+  },
+  {
+    id: "EV 1.7", name: "Protocolo adjuvante Síndrome da Ativação Mastocitária", category: "Suporte para imunidade, inflamação e antioxidante",
+    via: "Endovenoso",
+    composition: "Vit C 444mg/2mL, Cloreto de Magnésio 500mg/5mL, Nanomicelas de Quercetina 15mg/2mL, Nanomicelas de Resveratrol 10mg/1mL, Vit D3 (Colecalciferol) 50.000–600.000 UI/1mL",
+    markers_indicated: ["vitamina_d", "magnesio", "pcr", "ige_total", "eosinofilos"],
+  },
+  {
+    id: "EV 1.9", name: "Protocolo Antioxidante Plus", category: "Suporte para imunidade, inflamação e antioxidante",
+    via: "Endovenoso",
+    composition: "Nanomicelas de Curcuminoides 2mg/2mg, Nanomicelas de Tocoferóis 10mg/1mL",
+    markers_indicated: ["pcr", "vhs", "tgo", "tgp", "ggt"],
+  },
+
+  // ── ENDOVENOSOS: Energia e Disposição ──
+  {
+    id: "EV 2.1", name: "Protocolo adjuvante para Fadiga/Indisposição", category: "Aumento de energia e disposição",
+    via: "Endovenoso",
+    composition: "NAC 300mg/2mL, Sulfato de Magnésio 200mg/2mL, Vit B12 (Metilcobalamina) 500mcg/1mL, Complexo B sem B1 /2mL, D-Ribose 500mg/2mL, Taurina 500mg/10mL, Aminoácidos (3,8%) /10mL, Inositol 1g/10mL",
+    markers_indicated: ["ferritina", "vitamina_b12", "tsh", "cortisol", "insulina_jejum", "glicose_jejum", "magnesio"],
+  },
+  {
+    id: "EV 2.2", name: "Protocolo adjuvante Energia Mitocondrial", category: "Aumento de energia e disposição",
+    via: "Endovenoso",
+    composition: "L-Carnitina 600mg/2mL, Vit B5 (D-Pantenol) 40mg/2mL, Sulfato de Magnésio 200mg/2mL, D-Ribose 500mg/2mL, Vit B3 30mg/2mL, Vit B2 (Riboflavina-5-Fosfato) 10mg/1mL, PQQ 2,5–5mg/1mL, Coenzima Q10 50mg/1mL",
+    markers_indicated: ["ferritina", "vitamina_b12", "t3_livre", "cortisol", "glicose_jejum", "magnesio"],
+  },
+  {
+    id: "EV 2.4", name: "Protocolo adjuvante Energia, Disposição e Foco", category: "Aumento de energia e disposição",
+    via: "Endovenoso",
+    composition: "NAC 300mg/2mL, L-Fenilalanina 20mg/2mL, Taurina 100mg/2mL, L-Triptofano 100mg/10mL, Piracetam 500mg/2mL, Complexo B com Metil B12 /2mL",
+    markers_indicated: ["vitamina_b12", "homocisteina", "tsh", "cortisol", "magnesio"],
+  },
+  {
+    id: "EV 2.7", name: "Protocolo adjuvante Energia e Saúde Mitocondrial", category: "Aumento de energia e disposição",
+    via: "Endovenoso",
+    composition: "Nanomicelas de Resveratrol 10mg/1mL, L-Carnitina 600mg/2mL, Ácido Lipoico 10mg/2mL, Coenzima Q10 100mg/2mL",
+    markers_indicated: ["ferritina", "t3_livre", "cortisol", "glicose_jejum", "insulina_jejum"],
+  },
+  {
+    id: "EV 2.8", name: "Protocolo adjuvante Revitalização Celular", category: "Aumento de energia e disposição",
+    via: "Endovenoso",
+    composition: "NADH 10mg/2mL, L-Carnitina 600mg/2mL, D-Ribose 500mg/2mL, L-Triptofano 100mg/10mL, NMN 100mg/1mL, Complexo B com Metil B12 /2mL, PQQ 2,5mg/1mL",
+    markers_indicated: ["ferritina", "vitamina_b12", "cortisol", "glicose_jejum", "magnesio"],
+  },
+
+  // ── ENDOVENOSOS: Cognição e Memória ──
+  {
+    id: "EV 3.1", name: "Protocolo adjuvante Recuperação Neuronal", category: "Cognição e memória",
+    via: "Endovenoso",
+    composition: "Alfa-GPC 98% de GPC 150mg/1mL, Clorato de Colina 330mg + L-Carnitina 330mg + Vit B5 80mg/2mL, Inositol 1g/10mL, L-Triptofano 100mg/10mL, Vit B12 (Metilcobalamina) 2500mcg/1mL, Minerais /2mL",
+    markers_indicated: ["vitamina_b12", "homocisteina", "vitamina_d", "zinco", "magnesio"],
+  },
+  {
+    id: "EV 3.2", name: "Protocolo adjuvante Redução do Estresse, Equilíbrio do Humor e Melhora da Memória", category: "Cognição e memória",
+    via: "Endovenoso",
+    composition: "N-Acetil L-Tirosina 20mg/2mL, L-Theanina 50mg/2mL, Minerais /2mL, Inositol 100mg + Taurina 100mg/2mL, Vit B12 (Metilcobalamina) 2500mcg/1mL",
+    markers_indicated: ["cortisol", "dhea_s", "vitamina_b12", "magnesio", "zinco"],
+  },
+
+  // ── ENDOVENOSOS: Saúde Hepática ──
+  {
+    id: "EV 4.1", name: "Protocolo adjuvante Saúde e Desintoxicação Hepática", category: "Saúde e desintoxicação hepática",
+    via: "Endovenoso",
+    composition: "L-Glutathion 600mg/5mL, NAC 300mg/2mL, Ácido Lipoico 600mg/24mL, Vit C 444mg/2mL, Complexo B sem B1 /2mL, Minerais /2mL",
+    markers_indicated: ["tgo", "tgp", "ggt", "fosfatase_alcalina", "bilirrubina_total", "albumina"],
+  },
+
+  // ── ENDOVENOSOS: Metabolismo ──
+  {
+    id: "EV 6.1", name: "Protocolo adjuvante para Distúrbios do Metabolismo", category: "Condições e patologias relacionadas a distúrbios de metabolismo",
+    via: "Endovenoso",
+    composition: "L-Carnitina 600mg/2mL, Cloreto de Cromo 100mcg/2mL, Ácido Lipoico 600mg/24mL, Inositol 1g/10mL, Vit B3 30mg/2mL, Magnésio 1g/10mL",
+    markers_indicated: ["glicose_jejum", "insulina_jejum", "hba1c", "glicemia_media_estimada", "colesterol_total", "ldl", "triglicerides", "pcr"],
+  },
+  {
+    id: "EV 2.6", name: "Protocolo adjuvante Ativador Metabólico", category: "Aumento de energia e disposição",
+    via: "Endovenoso",
+    composition: "L-Carnitina 600mg/2mL, Cloreto de Cromo 100mcg/2mL, HMB 50mg/2mL, Inositol 100mg + Taurina 100mg/2mL",
+    markers_indicated: ["glicose_jejum", "insulina_jejum", "triglicerides", "ldl", "hba1c"],
+  },
+
+  // ── ENDOVENOSOS: Saúde Feminina ──
+  {
+    id: "EV 9.1", name: "Protocolo adjuvante Saúde Feminina", category: "Saúde feminina",
+    via: "Endovenoso",
+    composition: "Complexo B com Metil B12 /2mL, Inositol 1g/10mL, Magnésio 1g/10mL, L-Carnitina 600mg/2mL, Zinco 20mg/2mL, Vit D3 50.000 UI/1mL",
+    markers_indicated: ["fsh", "lh", "estradiol", "progesterona", "testosterona_total", "dhea_s", "vitamina_d", "zinco", "insulina_jejum"],
+  },
+
+  // ── ENDOVENOSOS: Saúde Masculina ──
+  {
+    id: "EV 10.1", name: "Protocolo adjuvante Saúde Masculina", category: "Saúde masculina",
+    via: "Endovenoso",
+    composition: "Zinco 20mg/2mL, L-Carnitina 600mg/2mL, Vit D3 50.000 UI/1mL, Complexo B com Metil B12 /2mL, NAC 300mg/2mL",
+    markers_indicated: ["testosterona_total", "testosterona_livre", "dhea_s", "psa", "vitamina_d", "zinco"],
+  },
+
+  // ── ENDOVENOSOS: Saúde Cardiovascular ──
+  {
+    id: "EV 11.1", name: "Protocolo adjuvante Saúde Cardiovascular", category: "Saúde cardiovascular",
+    via: "Endovenoso",
+    composition: "Magnésio 1g/10mL, Taurina 500mg/10mL, L-Carnitina 600mg/2mL, Coenzima Q10 100mg/2mL, Vit C 444mg/2mL",
+    markers_indicated: ["colesterol_total", "ldl", "hdl", "triglicerides", "homocisteina", "pcr", "magnesio"],
+  },
+
+  // ── ENDOVENOSOS: Saúde Óssea ──
+  {
+    id: "EV 8.1", name: "Protocolo adjuvante Saúde Óssea, Muscular e Articular", category: "Saúde óssea, muscular e articular",
+    via: "Endovenoso",
+    composition: "Magnésio 1g/10mL, Vit D3 50.000 UI/1mL, L-Lisina 300mg/2mL, L-Prolina 300mg/2mL, Vit C 444mg/2mL, Minerais /2mL",
+    markers_indicated: ["vitamina_d", "calcio_total", "fosforo", "magnesio", "pth", "osteocalcina"],
+  },
+
+  // ── ENDOVENOSOS: Sono ──
+  {
+    id: "EV 13.1", name: "Protocolo adjuvante Saúde do Sono", category: "Saúde do sono",
+    via: "Endovenoso",
+    composition: "Magnésio 1g/10mL, L-Triptofano 100mg/10mL, Inositol 1g/10mL, Taurina 500mg/10mL, Vit B6 (Piridoxina) 100mg/2mL",
+    markers_indicated: ["cortisol", "magnesio", "vitamina_d", "tsh"],
+  },
+
+  // ── INTRAMUSCULARES: Energia ──
+  {
+    id: "IM 2.1", name: "Protocolo IM adjuvante para Fadiga/Indisposição", category: "Aumento de energia e disposição",
+    via: "Intramuscular",
+    composition: "Vit B12 (Metilcobalamina) 2500mcg/1mL, Complexo B com Metil B12 /2mL, Coenzima Q10 50mg/1mL",
+    markers_indicated: ["vitamina_b12", "ferritina", "tsh", "cortisol"],
+  },
+
+  // ── INTRAMUSCULARES: Imunidade ──
+  {
+    id: "IM 1.1", name: "Protocolo IM adjuvante para Imunidade", category: "Suporte para imunidade, inflamação e antioxidante",
+    via: "Intramuscular",
+    composition: "Vit D3 (Colecalciferol) 50.000–600.000 UI/1mL, Vit A (Palmitato de Retinol) 25.000 UI/1mL, Coenzima Q10 50mg/1mL",
+    markers_indicated: ["vitamina_d", "pcr", "vhs", "linfocitos"],
+  },
+
+  // ── INTRAMUSCULARES: Saúde Feminina ──
+  {
+    id: "IM 9.1", name: "Protocolo IM adjuvante Saúde Feminina", category: "Saúde feminina",
+    via: "Intramuscular",
+    composition: "Vit D3 50.000 UI/1mL, Vit B12 (Metilcobalamina) 2500mcg/1mL, Coenzima Q10 50mg/1mL",
+    markers_indicated: ["vitamina_d", "vitamina_b12", "estradiol", "fsh", "lh"],
+  },
+];
+
+// ── Sistema de matching: quais protocolos são relevantes para os marcadores alterados ──
+function matchProtocols(abnormalMarkerIds: string[], sex: "M" | "F"): typeof ESSENTIA_PROTOCOLS {
+  const abnormalSet = new Set(abnormalMarkerIds);
+  const scored = ESSENTIA_PROTOCOLS
+    .filter((p) => {
+      // Filtrar protocolos por sexo
+      if (sex === "M" && p.category === "Saúde feminina") return false;
+      if (sex === "F" && p.category === "Saúde masculina") return false;
+      return true;
+    })
+    .map((p) => {
+      const matches = p.markers_indicated.filter((m) => abnormalSet.has(m)).length;
+      return { protocol: p, matches };
+    })
+    .filter((x) => x.matches > 0)
+    .sort((a, b) => b.matches - a.matches);
+
+  // Retornar no máximo 5 protocolos mais relevantes
+  return scored.slice(0, 5).map((x) => x.protocol);
+}
+
+const SYSTEM_PROMPT = `Você é um assistente clínico especializado em medicina funcional e integrativa, com profundo conhecimento em interpretação de exames laboratoriais e protocolos de injetáveis.
 
 Sua função é analisar resultados de exames laboratoriais de pacientes e fornecer uma análise clínica estruturada, EQUILIBRADA e objetiva para uso profissional (nutricionistas, médicos, profissionais de saúde).
 
@@ -51,6 +257,7 @@ REGRAS IMPORTANTES:
 9. Seja conciso mas completo — cada seção deve ter no máximo 3-5 pontos
 10. Foque em achados acionáveis — o que o profissional pode fazer com essa informação
 11. No resumo (summary), comece com uma visão geral equilibrada do estado do paciente, mencionando primeiro os pontos positivos
+12. Para os protocolos sugeridos: avalie cada protocolo listado e determine se é clinicamente justificado com base nos marcadores alterados. Defina a prioridade ("alta", "media" ou "baixa") e escreva uma justificativa clínica concisa (1-2 frases) para cada um. Inclua apenas os protocolos que fazem sentido clínico real para este paciente.
 
 FORMATO DE SAÍDA (JSON estrito):
 {
@@ -58,10 +265,21 @@ FORMATO DE SAÍDA (JSON estrito):
   "patterns": ["Padrões clínicos identificados pela correlação entre marcadores — incluir padrões positivos também"],
   "trends": ["Tendências observadas entre sessões — destacar melhorias quando houver"],
   "suggestions": ["Sugestões de exames complementares ou ajustes — apenas quando clinicamente justificado"],
-  "full_text": "Análise narrativa completa em 3-5 parágrafos para inclusão no relatório. Tom equilibrado e profissional."
+  "full_text": "Análise narrativa completa em 3-5 parágrafos para inclusão no relatório. Tom equilibrado e profissional.",
+  "protocol_recommendations": [
+    {
+      "protocol_id": "EV 2.1",
+      "protocol_name": "Nome do protocolo",
+      "category": "Categoria",
+      "via": "Endovenoso ou Intramuscular",
+      "composition": "Composição resumida",
+      "justification": "Justificativa clínica de 1-2 frases baseada nos marcadores alterados deste paciente",
+      "priority": "alta | media | baixa"
+    }
+  ]
 }`;
 
-function buildUserPrompt(req: AnalysisRequest): string {
+function buildUserPrompt(req: AnalysisRequest, matchedProtocols: typeof ESSENTIA_PROTOCOLS): string {
   const age = req.birth_date
     ? Math.floor((Date.now() - new Date(req.birth_date).getTime()) / (365.25 * 24 * 3600 * 1000))
     : null;
@@ -119,7 +337,6 @@ MARCADORES FORA DA FAIXA FUNCIONAL (${abnormal.length} marcadores):
   // If multiple sessions, add trend data
   if (sessionDates.length > 1) {
     prompt += `\nDADOS DE TENDÊNCIA (múltiplas sessões):\n`;
-    // Find markers present in multiple sessions
     const markerSessions: Record<string, Array<{ date: string; value: number }>> = {};
     for (const r of req.results) {
       if (r.value !== null) {
@@ -137,6 +354,17 @@ MARCADORES FORA DA FAIXA FUNCIONAL (${abnormal.length} marcadores):
         prompt += `- ${name}: ${first.value} → ${last.value} (${trend} ${delta}%)\n`;
       }
     }
+  }
+
+  // Add matched protocols for AI to evaluate
+  if (matchedProtocols.length > 0) {
+    prompt += `\nPROTOCOLOS ESSENTIA PHARMA DISPONÍVEIS NA CLÍNICA (avalie a pertinência clínica de cada um para este paciente):\n`;
+    for (const p of matchedProtocols) {
+      prompt += `- ${p.id} | ${p.name} | Via: ${p.via}\n  Composição: ${p.composition}\n  Indicado quando: ${p.markers_indicated.join(", ")}\n\n`;
+    }
+    prompt += `Para cada protocolo acima, inclua no campo "protocol_recommendations" do JSON: protocol_id, protocol_name, category, via, composition, uma justificativa clínica de 1-2 frases baseada nos marcadores alterados deste paciente, e a prioridade ("alta", "media" ou "baixa"). Omita protocolos que não sejam clinicamente justificados para este caso.\n`;
+  } else {
+    prompt += `\nNenhum protocolo específico foi pré-selecionado para este paciente. Retorne "protocol_recommendations" como array vazio.\n`;
   }
 
   prompt += `\nPor favor, analise esses resultados e retorne um JSON com a análise clínica estruturada conforme o formato especificado.`;
@@ -159,21 +387,27 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
 
-    const userPrompt = buildUserPrompt(body);
+    // Identify abnormal marker IDs for protocol matching
+    const abnormalIds = body.results
+      .filter((r) => r.status === "low" || r.status === "high" || r.status === "critical_low" || r.status === "critical_high")
+      .map((r) => r.marker_id);
 
-    console.log(`Analyzing ${body.results.length} markers for ${body.patient_name}`);
+    const matchedProtocols = matchProtocols(abnormalIds, body.sex);
+    const userPrompt = buildUserPrompt(body, matchedProtocols);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    console.log(`Analyzing ${body.results.length} markers for ${body.patient_name} | ${abnormalIds.length} abnormal | ${matchedProtocols.length} protocols matched`);
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "gpt-4.1",
         temperature: 0.3,
         response_format: { type: "json_object" },
         messages: [
@@ -185,8 +419,8 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("AI API error:", errText);
-      throw new Error(`AI API returned ${response.status}: ${errText}`);
+      console.error("OpenAI API error:", errText);
+      throw new Error(`OpenAI API returned ${response.status}: ${errText}`);
     }
 
     const aiResponse = await response.json();
@@ -198,14 +432,13 @@ serve(async (req) => {
     try {
       analysis = JSON.parse(content);
     } catch {
-      // If JSON parsing fails, wrap the text in the expected structure
       analysis = {
         summary: content.slice(0, 300),
-        
         patterns: [],
         trends: [],
         suggestions: [],
         full_text: content,
+        protocol_recommendations: [],
       };
     }
 

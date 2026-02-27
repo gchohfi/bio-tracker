@@ -1859,6 +1859,10 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
               parameters: {
                 type: "object",
                 properties: {
+                  exam_date: {
+                    type: "string",
+                    description: "Date the exams were collected/performed, in YYYY-MM-DD format. Look for: 'Data de coleta', 'Data da coleta', 'Data do exame', 'Realizado em', 'Emitido em', 'Data de emissão', 'Coleta:', 'Data:'. Return null if not found."
+                  },
                   results: {
                     type: "array",
                     items: {
@@ -1876,6 +1880,7 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
                 },
                 required: ["results"],
                 additionalProperties: false,
+                // exam_date is optional — not in required to avoid breaking existing behavior
               },
             },
           },
@@ -1936,9 +1941,13 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     validResults = parseLabRefRanges(validResults);
     // Convert lab_ref units to match the stored value units (e.g. pmol/L → ng/dL for testosterona_livre)
     validResults = convertLabRefUnits(validResults);
+    // Extract exam_date from parsed response
+    const examDate: string | null = (typeof parsed.exam_date === "string" && parsed.exam_date.match(/^\d{4}-\d{2}-\d{2}$/))
+      ? parsed.exam_date
+      : null;
     console.log(`Extracted ${validResults.length} valid markers:`, validResults.map((r: any) => r.marker_id).join(', '));
-
-    return new Response(JSON.stringify({ results: validResults }), {
+    if (examDate) console.log(`Exam date extracted: ${examDate}`);
+    return new Response(JSON.stringify({ results: validResults, exam_date: examDate }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
