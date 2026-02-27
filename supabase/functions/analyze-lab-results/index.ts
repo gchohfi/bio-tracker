@@ -543,25 +543,69 @@ const ESSENTIA_PROTOCOLS = [
   },
 ];
 
-// ── Sistema de matching: quais protocolos são relevantes para os marcadores alterados ──
-function matchProtocols(abnormalMarkerIds: string[], sex: "M" | "F"): typeof ESSENTIA_PROTOCOLS {
-  const abnormalSet = new Set(abnormalMarkerIds);
-  const scored = ESSENTIA_PROTOCOLS
-    .filter((p) => {
-      // Filtrar protocolos por sexo
-      if (sex === "M" && p.category === "Saúde feminina") return false;
-      if (sex === "F" && p.category === "Saúde masculina") return false;
-      return true;
-    })
-    .map((p) => {
-      const matches = p.markers_indicated.filter((m) => abnormalSet.has(m)).length;
-      return { protocol: p, matches };
-    })
-    .filter((x) => x.matches > 0)
-    .sort((a, b) => b.matches - a.matches);
+// ── Mapeamento de objetivos do paciente para categorias de protocolos ──
+const OBJECTIVE_TO_CATEGORIES: Record<string, string[]> = {
+  performance_esportiva: ["Performance esportiva"],
+  ganho_massa: ["Suporte ao emagrecimento e ganho de massa muscular"],
+  emagrecimento: ["Suporte ao emagrecimento e ganho de massa muscular", "Condições e patologias relacionadas a distúrbios de metabolismo"],
+  desinflamacao: ["Suporte para imunidade, inflamação e antioxidante"],
+  energia_disposicao: ["Aumento de energia e disposição"],
+  longevidade: ["Aumento de energia e disposição"],
+  saude_hormonal: ["Saúde feminina", "Saúde masculina"],
+  imunidade: ["Suporte para imunidade, inflamação e antioxidante"],
+  cognicao_foco: ["Cognição e memória", "Condições e patologias relacionadas ao SNC"],
+  saude_pele: ["Saúde e beleza da pele, do cabelo e das unhas"],
+  sono: ["Saúde do sono"],
+  libido: ["Saúde feminina", "Saúde masculina"],
+  recuperacao_muscular: ["Performance esportiva", "Saúde óssea, muscular e articular"],
+  saude_intestinal: ["Saúde gastrointestinal"],
+};
 
-  // Retornar no máximo 5 protocolos mais relevantes
-  return scored.slice(0, 5).map((x) => x.protocol);
+// ── Sistema de matching: protocolos relevantes por marcadores alterados + objetivos do paciente ──
+function matchProtocols(abnormalMarkerIds: string[], sex: "M" | "F", objectives?: string[]): typeof ESSENTIA_PROTOCOLS {
+  const abnormalSet = new Set(abnormalMarkerIds);
+
+  // Categorias alinhadas aos objetivos do paciente
+  const objectiveCategories = new Set<string>();
+  if (objectives && objectives.length > 0) {
+    for (const obj of objectives) {
+      const cats = OBJECTIVE_TO_CATEGORIES[obj];
+      if (cats) cats.forEach((c) => objectiveCategories.add(c));
+    }
+    // Filtrar categorias por sexo
+    if (sex === "M") objectiveCategories.delete("Saúde feminina");
+    if (sex === "F") objectiveCategories.delete("Saúde masculina");
+  }
+
+  const sexFiltered = ESSENTIA_PROTOCOLS.filter((p) => {
+    if (sex === "M" && p.category === "Saúde feminina") return false;
+    if (sex === "F" && p.category === "Saúde masculina") return false;
+    return true;
+  });
+
+  // Score por marcadores alterados
+  const scored = sexFiltered.map((p) => {
+    const markerMatches = p.markers_indicated.filter((m) => abnormalSet.has(m)).length;
+    const objectiveMatch = objectiveCategories.has(p.category);
+    return { protocol: p, markerMatches, objectiveMatch };
+  });
+
+  // Protocolos com match de marcadores (top 5)
+  const byMarkers = scored
+    .filter((x) => x.markerMatches > 0)
+    .sort((a, b) => b.markerMatches - a.markerMatches)
+    .slice(0, 5);
+
+  const selectedIds = new Set(byMarkers.map((x) => x.protocol.id));
+
+  // Protocolos adicionais alinhados aos objetivos (que não foram selecionados por marcadores)
+  const byObjectives = scored
+    .filter((x) => x.objectiveMatch && !selectedIds.has(x.protocol.id))
+    .sort((a, b) => b.markerMatches - a.markerMatches)
+    .slice(0, 3);
+
+  // Combinar: até 5 por marcadores + até 3 por objetivos = máximo 8
+  return [...byMarkers, ...byObjectives].map((x) => x.protocol);
 }
 
 const SYSTEM_PROMPT = `Você é um assistente clínico especializado em medicina funcional e integrativa, com profundo conhecimento em interpretação de exames laboratoriais e protocolos de injetáveis.
@@ -751,7 +795,8 @@ serve(async (req) => {
       .filter((r) => r.status === "low" || r.status === "high" || r.status === "critical_low" || r.status === "critical_high")
       .map((r) => r.marker_id);
 
-    const matchedProtocols = matchProtocols(abnormalIds, body.sex);
+    const patientObjectives = body.patient_profile?.objectives ?? [];
+    const matchedProtocols = matchProtocols(abnormalIds, body.sex, patientObjectives);
     const userPrompt = buildUserPrompt(body, matchedProtocols);
 
     console.log(`Analyzing ${body.results.length} markers for ${body.patient_name} | ${abnormalIds.length} abnormal | ${matchedProtocols.length} protocols matched`);
