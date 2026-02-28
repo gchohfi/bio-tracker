@@ -15,6 +15,8 @@ import {
   MARKERS,
   getMarkersByCategory,
   getMarkerStatus,
+  getMarkerStatusFromRef,
+  resolveReference,
   parseOperatorValue,
   type Category,
   type MarkerDef,
@@ -82,10 +84,11 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
     return map;
   }, [results]);
 
-  // Build lab reference lookup: labRefMap[markerId][sessionId] = { text, min, max }
-  // Uses the most recent session that has a lab reference for each marker
-  const labRefMap = useMemo(() => {
+  // Build lab reference lookup: labRefMap[markerId] = { text, min, max }
+  // AND per-session lookup: labRefBySession[markerId][sessionId] = lab_ref_text
+  const { labRefMap, labRefBySession } = useMemo(() => {
     const map: Record<string, { text?: string; min?: number; max?: number }> = {};
+    const bySession: Record<string, Record<string, string>> = {};
     // Sort results by session date (newest first) to prefer most recent reference
     const sortedResults = [...results].sort((a, b) => {
       const sA = sessions.find(s => s.id === a.session_id);
@@ -97,11 +100,16 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
       const refText = (r as any).lab_ref_text;
       const refMin = (r as any).lab_ref_min;
       const refMax = (r as any).lab_ref_max;
+      // Per-session lab_ref_text
+      if (refText) {
+        if (!bySession[r.marker_id]) bySession[r.marker_id] = {};
+        bySession[r.marker_id][r.session_id] = refText;
+      }
       if ((refText || refMin !== undefined || refMax !== undefined) && !map[r.marker_id]) {
         map[r.marker_id] = { text: refText, min: refMin, max: refMax };
       }
     });
-    return map;
+    return { labRefMap: map, labRefBySession: bySession };
   }, [results, sessions]);
 
   // Sorted sessions oldest → newest (left to right)
@@ -110,16 +118,20 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
     [sessions]
   );
 
-  // Helper to get status considering operator from text_value
+  // Helper to get status using resolveReference (functional vs lab)
   const getStatusWithOperator = (val: number, marker: MarkerDef, sessionId: string): "normal" | "low" | "high" => {
+    const labRefText = labRefBySession[marker.id]?.[sessionId];
+    const ref = resolveReference(marker, sex, labRefText);
+    
+    // If we have a text_value with operator, parse it for operator-aware status
     const textVal = textMap[marker.id]?.[sessionId];
     if (textVal && !marker.qualitative) {
       const parsed = parseOperatorValue(textVal);
       if (parsed) {
-        return getMarkerStatus(parsed.numericValue, marker, sex, parsed.operator);
+        return getMarkerStatusFromRef(parsed.numericValue, ref);
       }
     }
-    return getMarkerStatus(val, marker, sex);
+    return getMarkerStatusFromRef(val, ref);
   };
 
   // Filter markers
@@ -368,25 +380,40 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                             <td className="px-1 py-1.5 text-[10px] text-muted-foreground whitespace-nowrap">
                               {isQualitative ? (
                                 "—"
-                              ) : (
-                                <div className="space-y-0.5">
-                                  {/* Faixa funcional LabTrack */}
-                                  <div className="text-[10px] text-muted-foreground" title="Faixa funcional LabTrack">
-                                    {min}–{max}
-                                  </div>
-                                  {/* Faixa do laboratório (se disponível) */}
-                                  {labRefMap[marker.id] && (
+                              ) : (() => {
+                                const latestLabRef = labRefMap[marker.id]?.text;
+                                const ref = resolveReference(marker, sex, latestLabRef);
+                                const isLabSource = ref.source === 'lab';
+                                return (
+                                  <div className="space-y-0.5">
+                                    {/* Faixa ativa (funcional ou lab) */}
                                     <div
-                                      className="text-[9px] text-blue-500/70 font-medium"
-                                      title={`Ref. laboratório: ${labRefMap[marker.id].text || `${labRefMap[marker.id].min ?? '?'}–${labRefMap[marker.id].max ?? '?'}`}`}
+                                      className={cn(
+                                        "text-[10px]",
+                                        isLabSource ? "text-blue-600 font-medium" : "text-muted-foreground"
+                                      )}
+                                      title={isLabSource ? "Usando referência do laboratório (unidades diferem)" : "Faixa funcional LabTrack"}
                                     >
-                                      Lab: {labRefMap[marker.id].text
-                                        ? labRefMap[marker.id].text
-                                        : `${labRefMap[marker.id].min ?? '?'}–${labRefMap[marker.id].max ?? '?'}`}
+                                      {ref.operator === 'range'
+                                        ? `${ref.min ?? '?'}–${ref.max ?? '?'}`
+                                        : `${ref.operator} ${ref.max ?? ref.min ?? '?'}`
+                                      }
+                                      {isLabSource && <span className="ml-0.5 text-[8px] opacity-70">Lab</span>}
                                     </div>
-                                  )}
-                                </div>
-                              )}
+                                    {/* Se funcional, mostrar lab como secundário */}
+                                    {!isLabSource && labRefMap[marker.id] && (
+                                      <div
+                                        className="text-[9px] text-blue-500/50"
+                                        title={`Ref. laboratório: ${labRefMap[marker.id].text || `${labRefMap[marker.id].min ?? '?'}–${labRefMap[marker.id].max ?? '?'}`}`}
+                                      >
+                                        Lab: {labRefMap[marker.id].text
+                                          ? labRefMap[marker.id].text
+                                          : `${labRefMap[marker.id].min ?? '?'}–${labRefMap[marker.id].max ?? '?'}`}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </td>
                             {sortedSessions.map((s) => {
                               if (isQualitative) {
