@@ -310,6 +310,12 @@ HEMOGRAMA:
 - "MONO" / "MONÓCITOS (%)" → monocitos
 - "EOS" / "EOSINÓFILOS (%)" → eosinofilos
 - "BASO" / "BASÓFILOS (%)" → basofilos
+⚠️ LEUCOGRAM DIFFERENTIALS RULE (neutrofilos, linfocitos, monocitos, eosinofilos, basofilos, segmentados, bastonetes):
+  - value: ALWAYS use the PERCENTAGE value (e.g. 35.0, not 1526)
+  - unit: always "%"
+  - lab_ref_range: use ONLY the percentage reference interval (e.g. "45,0 a 70,0"), NEVER the absolute count (/mm³ or /µL)
+  - If the lab shows both % and absolute count columns, use ONLY the % column for both value and lab_ref_range
+  - If only absolute count reference is available, set lab_ref_range to null/empty
 - "PLAQUETOGRAMA" / "PLT" / "TROMBÓCITOS" / "Contagem de Plaquetas" → plaquetas
 - "VPM" / "V.P.M." / "MPV" / "Volume Plaquetário Médio" / "MEAN PLATELET VOLUME" → vpm
 
