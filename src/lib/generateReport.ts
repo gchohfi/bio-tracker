@@ -402,6 +402,10 @@ export function generatePatientReport(
         1: { cellWidth: 12, textColor: [GRAY.r, GRAY.g, GRAY.b] },
         2: { cellWidth: 16, textColor: [GRAY.r, GRAY.g, GRAY.b], fontStyle: "italic" },
         3: { cellWidth: 16, textColor: [37, 99, 235], fontStyle: "italic", fontSize: 6.5 },
+        // Session date columns: fixed width so they don't stretch with few sessions
+        ...Object.fromEntries(
+          sorted.map((_, i) => [dataColStart + i, { cellWidth: 18, halign: "center" as const, fontStyle: "bold" as const }])
+        ),
         [trendColIdx]: { cellWidth: 8, halign: "center", fontSize: 8 },
         [sparkColIdx]: { cellWidth: 26 },
       },
