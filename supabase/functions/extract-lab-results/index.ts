@@ -359,6 +359,8 @@ TIREOIDE:
 HORMÔNIOS:
 - "Testosterona Total" / "TESTOSTERONA, SORO" / "TESTOSTERONA SÉRICA" → testosterona_total
 - "Testosterona Livre" / "TESTOSTERONA LIVRE CALCULADA" / "TESTOSTERONA LIVRE, SORO" / "Testosterona Livre Calculada" / "FTE" → testosterona_livre (unit: ng/dL). If pmol/L → ×0.000288 to get ng/dL.
+  ⚠️ Testosterona Livre has sex-specific references: Male ~5–21 ng/dL, Female ~0.1–0.5 ng/dL.
+    If the patient value is > 5 ng/dL (male range) but the lab_ref_range max is ≤ 2.0 ng/dL (female range), the wrong sex reference was captured — set lab_ref_range to null.
 - "Testosterona Biodisponível" / "TESTOSTERONA BIODISPONIVEL" / "Testosterona Biodisponível Calculada" → testosterona_biodisponivel (unit: ng/dL)
 - "Estradiol" / "ESTRADIOL (E2)" / "17-BETA-ESTRADIOL" / "17β-ESTRADIOL" / "E2" → estradiol. If ng/dL → ×10 to get pg/mL.
 - "Estrona" / "E1" / "Estrona (E1)" / "Estrona, soro" / "ESTRONA (E1)" → estrona
@@ -373,6 +375,10 @@ HORMÔNIOS:
 
 EIXO GH:
 - "IGF-1" / "IGF1" / "IGF I" / "IGF 1" / "SOMATOMEDINA C" / "SOMATOMEDINA-C" / "IGF 1- SOMATOMEDINA C" / "FATOR DE CRESCIMENTO INSULINA-SÍMILE" / "FATOR DE CRESCIMENTO INSULINO-SÍMILE TIPO 1" / "IGF-I" → igf1
+  ⚠️ IGF-1 lab_ref_range is ALWAYS in ng/mL with values between 50 and 600. Labs often list reference by age group:
+    Example: "20 a 29 anos: 127 a 424" / "30 a 39 anos: 88 a 400" / "40 a 44 anos: 71 a 382"
+    In this format, capture ONLY the value interval (e.g. "71 a 382"), NEVER the age range ("40 a 44").
+    If the extracted lab_ref_range max is < 50 (e.g. "40 a 44"), it is an age range — set lab_ref_range to null.
 - "IGFBP-3" / "IGFBP3" / "IGF BP3" / "PROTEÍNA LIGADORA 3 DO IGF" / "PROTEINA LIGADORA DE IGF TIPO 3" / "IGFBP-3 PROTEÍNA LIGADORA -3 DO IGF" / "IGFBP-3 (PROTEÍNA LIGADORA -3 DO IGF)" / "PROTEÍNA TRANSPORTADORA 3 DO IGF" / "PROTEINA LIGADORA-3 DO FATOR DE CRESCIMENTO SIMILE A INSULINA" / "FATOR DE CRESCIMENTO SIMILE A INSULINA" / "PROTEINA LIGADORA-3 DO FATOR DE CRESCIMENTO" → igfbp3
   ⚠️ If in ng/mL → ÷1000 to get µg/mL. Example: 6120 ng/mL → 6.12 µg/mL.
 
@@ -442,6 +448,7 @@ ELETRÓLITOS:
 - "Sódio" / "SÓDIO, SORO" / "SÓDIO SÉRICO" / "Na" / "Na+" → sodio
 - "Potássio" / "POTÁSSIO, SORO" / "POTÁSSIO SÉRICO" / "K" / "K+" → potassio
 - "Cálcio Total" / "CÁLCIO, SORO" / "CÁLCIO SÉRICO" / "Ca" / "Ca TOTAL" → calcio_total
+  ⚠️ Cálcio Total lab_ref_range is ALWAYS between 8.0 and 11.0 mg/dL. If the extracted lab_ref_range has max > 15 (e.g. "18 a 60"), it was captured from a nearby exam (e.g. PTH) — set lab_ref_range to null.
 - "Cálcio Ionizável" / "Cálcio Iônico" / "Cálcio ionizado" / "CÁLCIO IONIZADO, SORO" / "Ca++" / "Ca2+" / "iCa" → calcio_ionico (mmol/L)
 - "Fósforo" / "FÓSFORO, SORO" / "FÓSFORO SÉRICO" / "FOSFATO INORGÂNICO" / "Pi" / "FÓSFORO INORGÂNICO" / "FOSFORO INORGANICO" → fosforo
 - "Cloro" / "CLORETO" → cloro
@@ -935,6 +942,41 @@ function convertLabRefUnits(results: any[]): any[] {
   for (const r of results) {
     if (percentOnlyMarkers.has(r.marker_id) && (r.lab_ref_min != null || r.lab_ref_max != null)) {
       console.log(`Discarding absolute-unit lab_ref for percent marker ${r.marker_id}: ${r.lab_ref_min}-${r.lab_ref_max} (text: ${r.lab_ref_text})`);
+      r.lab_ref_min = null;
+      r.lab_ref_max = null;
+      r.lab_ref_text = '';
+    }
+  }
+
+  // Bug 1 — Cálcio Total: ref absurda (ex: "18 a 60") capturada do PTH próximo no laudo.
+  // Cálcio Total normal: 8.0–11.0 mg/dL. Se max > 15, descartar.
+  for (const r of results) {
+    if (r.marker_id === 'calcio_total' && typeof r.lab_ref_max === 'number' && r.lab_ref_max > 15) {
+      console.log(`Discarding out-of-range lab_ref for calcio_total: ${r.lab_ref_min}-${r.lab_ref_max} (likely captured from PTH)`);
+      r.lab_ref_min = null;
+      r.lab_ref_max = null;
+      r.lab_ref_text = '';
+    }
+  }
+
+  // Bug 2 — IGF-1: ref capturando faixa etária (ex: "40 a 44") em vez do intervalo de valores.
+  // IGF-1 ref de valor: sempre entre 50 e 600 ng/mL. Se max < 50, é faixa etária — descartar.
+  for (const r of results) {
+    if (r.marker_id === 'igf1' && typeof r.lab_ref_max === 'number' && r.lab_ref_max < 50) {
+      console.log(`Discarding age-range lab_ref for igf1: ${r.lab_ref_min}-${r.lab_ref_max} (age range, not value range)`);
+      r.lab_ref_min = null;
+      r.lab_ref_max = null;
+      r.lab_ref_text = '';
+    }
+  }
+
+  // Bug 3 — Testosterona Livre: ref feminina capturada para paciente masculino.
+  // Detectado pelo cruzamento valor x ref: se valor > 5 ng/dL (masculino) mas ref max ≤ 2.0 ng/dL (feminino).
+  for (const r of results) {
+    if (r.marker_id === 'testosterona_livre'
+      && typeof r.value === 'number' && r.value > 5
+      && typeof r.lab_ref_max === 'number' && r.lab_ref_max <= 2.0) {
+      console.log(`Discarding female lab_ref for testosterona_livre: value=${r.value} ng/dL (male) but ref max=${r.lab_ref_max} ng/dL (female)`);
       r.lab_ref_min = null;
       r.lab_ref_max = null;
       r.lab_ref_text = '';
