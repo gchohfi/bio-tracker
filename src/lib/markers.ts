@@ -1,3 +1,5 @@
+import { parseLabReference, type ParsedReference } from './parseLabReference';
+
 // Re-export from categoryConfig.ts — fonte única de verdade para categorias e cores.
 // Não edite as categorias ou cores aqui; edite em src/lib/categoryConfig.ts.
 export {
@@ -286,4 +288,74 @@ export function parseOperatorValue(textValue: string): { operator: string; numer
     operator: match[1],
     numericValue: parseFloat(match[2].replace(",", ".")),
   };
+}
+
+// ─── Re-export do parser para uso externo ────────────────────────────
+export { parseLabReference, type ParsedReference };
+
+/**
+ * Resolve qual referência usar (funcional vs laboratório).
+ *
+ * Regra: se a unidade do marcador funcional diferir da unidade do laboratório,
+ * usa a referência do laboratório como fallback. Caso contrário, prefere a funcional.
+ */
+export function resolveReference(
+  marker: MarkerDef,
+  sex: 'M' | 'F',
+  labRefText?: string,
+  labUnit?: string,
+): { min: number | null; max: number | null; operator: string; source: 'functional' | 'lab' } {
+  const [funcMin, funcMax] = marker.refRange[sex];
+
+  // Se não há texto de referência do laboratório, retorna funcional
+  if (!labRefText) {
+    return { min: funcMin, max: funcMax, operator: 'range', source: 'functional' };
+  }
+
+  const labParsed = parseLabReference(labRefText, sex);
+
+  const functionalUnit = marker.unit?.toLowerCase().trim() ?? '';
+  const labUnitNorm = labUnit?.toLowerCase().trim() ?? '';
+
+  // Se unidades diferem, usar referência do laboratório como fallback
+  if (functionalUnit && labUnitNorm && functionalUnit !== labUnitNorm) {
+    return {
+      min: labParsed.min,
+      max: labParsed.max,
+      operator: labParsed.operator,
+      source: 'lab',
+    };
+  }
+
+  // Caso contrário, preferir a referência funcional
+  return { min: funcMin, max: funcMax, operator: 'range', source: 'functional' };
+}
+
+/**
+ * Calcula status a partir de uma referência resolvida (com suporte a operadores).
+ * Complementa getMarkerStatus para contextos com dados de referência laboratorial.
+ */
+export function getMarkerStatusFromRef(
+  value: number,
+  ref: { min: number | null; max: number | null; operator: string },
+): 'normal' | 'low' | 'high' {
+  const { min, max, operator } = ref;
+
+  if (operator === '<') {
+    return value < (max ?? Infinity) ? 'normal' : 'high';
+  }
+  if (operator === '<=') {
+    return value <= (max ?? Infinity) ? 'normal' : 'high';
+  }
+  if (operator === '>') {
+    return value > (min ?? -Infinity) ? 'normal' : 'low';
+  }
+  if (operator === '>=') {
+    return value >= (min ?? -Infinity) ? 'normal' : 'low';
+  }
+
+  // operator === 'range' ou qualquer outro
+  if (min !== null && value < min) return 'low';
+  if (max !== null && value > max) return 'high';
+  return 'normal';
 }
