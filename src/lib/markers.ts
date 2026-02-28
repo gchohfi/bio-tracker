@@ -46,8 +46,8 @@ export const MARKERS: MarkerDef[] = [
   { id: "basofilos", name: "Basófilos", unit: "%", category: "Hemograma", refRange: { M: [0, 1], F: [0, 1] } , panel: "Adicional" },
   { id: "plaquetas", name: "Plaquetas", unit: "mil/µL", category: "Hemograma", refRange: { M: [200, 300], F: [200, 300] } , panel: "Padrão" },
   { id: "vpm", name: "VPM", unit: "fL", category: "Hemograma", refRange: { M: [9.2, 12.6], F: [9.2, 12.6] } , panel: "Adicional" },
-  { id: "pcr", name: "PCR", unit: "mg/L", category: "Hemograma", refRange: { M: [0, 1.0], F: [0, 1.0] } , panel: "Padrão" },
-  { id: "vhs", name: "VHS", unit: "mm/h", category: "Hemograma", refRange: { M: [0, 10], F: [0, 15] } , panel: "Padrão" },
+  { id: "pcr", name: "PCR", unit: "mg/L", category: "Inflamação", refRange: { M: [0, 1.0], F: [0, 1.0] } , panel: "Padrão" },
+  { id: "vhs", name: "VHS", unit: "mm/h", category: "Inflamação", refRange: { M: [0, 15], F: [0, 15] } , panel: "Padrão" },
   // Ferro
   { id: "ferro_serico", name: "Ferro Sérico", unit: "µg/dL", category: "Ferro", refRange: { M: [85, 130], F: [75, 120] } , panel: "Padrão" },
   { id: "ferritina", name: "Ferritina", unit: "ng/mL", category: "Ferro", refRange: { M: [50, 150], F: [40, 100] } , panel: "Padrão" },
@@ -69,7 +69,7 @@ export const MARKERS: MarkerDef[] = [
   { id: "vldl", name: "VLDL", unit: "mg/dL", category: "Lipídios", refRange: { M: [5, 20], F: [5, 20] } , panel: "Padrão" },
   { id: "triglicerides", name: "Triglicerídeos", unit: "mg/dL", category: "Lipídios", refRange: { M: [50, 100], F: [50, 100] } , panel: "Padrão" },
   { id: "colesterol_nao_hdl", name: "Colesterol Não-HDL", unit: "mg/dL", category: "Lipídios", refRange: { M: [0, 130], F: [0, 130] } , panel: "Adicional" },
-  { id: "apo_a1", name: "Apolipoproteína A-1", unit: "mg/dL", category: "Lipídios", refRange: { M: [104, 202], F: [108, 225] } , panel: "Padrão" },
+  { id: "apo_a1", name: "Apolipoproteína A-1", unit: "mg/dL", category: "Lipídios", refRange: { M: [108, 225], F: [108, 225] } , panel: "Padrão" },
   { id: "apo_b", name: "Apolipoproteína B", unit: "mg/dL", category: "Lipídios", refRange: { M: [0, 90], F: [0, 90] } , panel: "Padrão" },
   { id: "lipoproteina_a", name: "Lipoproteína (a)", unit: "nmol/L", category: "Lipídios", refRange: { M: [0, 75], F: [0, 75] } , panel: "Padrão" },
   { id: "relacao_ct_hdl", name: "CT/HDL", unit: "", category: "Lipídios", refRange: { M: [0, 3.5], F: [0, 3.5] } , panel: "Adicional" },
@@ -88,12 +88,12 @@ export const MARKERS: MarkerDef[] = [
   // Hormônios
   { id: "testosterona_total", name: "Testosterona Total", unit: "ng/dL", category: "Hormônios", refRange: { M: [500, 900], F: [15, 70] } , panel: "Padrão" },
   { id: "testosterona_livre", name: "Testosterona Livre", unit: "ng/dL", category: "Hormônios", refRange: { M: [5.0, 21.0], F: [0.10, 0.50] } , panel: "Padrão" },
-  { id: "testosterona_biodisponivel", name: "Testosterona Biodisponível", unit: "ng/dL", category: "Hormônios", refRange: { M: [70, 250], F: [0.5, 8.5] } , panel: "Padrão" },
+  { id: "testosterona_biodisponivel", name: "Testosterona Biodisponível", unit: "ng/dL", category: "Hormônios", refRange: { M: [50, 200], F: [0.5, 5] } , panel: "Padrão" },
   { id: "estradiol", name: "Estradiol", unit: "pg/mL", category: "Hormônios", refRange: { M: [20, 40], F: [12, 233] } , panel: "Padrão" },
   { id: "estrona", name: "Estrona (E1)", unit: "pg/mL", category: "Hormônios", refRange: { M: [10, 60], F: [17, 200] } , panel: "Padrão" },
-  { id: "progesterona", name: "Progesterona", unit: "ng/mL", category: "Hormônios", refRange: { M: [0.2, 1.4], F: [5.0, 20.0] } , panel: "Padrão" },
+  { id: "progesterona", name: "Progesterona", unit: "ng/mL", category: "Hormônios", refRange: { M: [0, 1], F: [5.0, 20.0] } , panel: "Padrão" },
   { id: "dhea_s", name: "DHEA-S", unit: "µg/dL", category: "Hormônios", refRange: { M: [200, 450], F: [150, 350] } , panel: "Padrão" },
-  { id: "cortisol", name: "Cortisol (manhã)", unit: "µg/dL", category: "Hormônios", refRange: { M: [10, 18], F: [10, 18] } , panel: "Padrão" },
+  { id: "cortisol", name: "Cortisol (manhã)", unit: "µg/dL", category: "Eixo Adrenal", refRange: { M: [10, 18], F: [10, 18] } , panel: "Padrão" },
   { id: "shbg", name: "SHBG", unit: "nmol/L", category: "Hormônios", refRange: { M: [20, 50], F: [40, 120] } , panel: "Padrão" },
   { id: "fsh", name: "FSH", unit: "mUI/mL", category: "Hormônios", refRange: { M: [1.5, 12.4], F: [3.5, 12.5] } , panel: "Padrão" },
   { id: "lh", name: "LH", unit: "mUI/mL", category: "Hormônios", refRange: { M: [1.7, 8.6], F: [2.4, 12.6] } , panel: "Padrão" },
@@ -105,10 +105,9 @@ export const MARKERS: MarkerDef[] = [
   // Eixo Adrenal
   { id: "acth", name: "ACTH", unit: "pg/mL", category: "Eixo Adrenal", refRange: { M: [4.7, 48.8], F: [4.7, 48.8] } , panel: "Padrão" },
   { id: "cortisol_livre_urina", name: "Cortisol Livre (urina 24h)", unit: "µg/24h", category: "Eixo Adrenal", refRange: { M: [13, 85], F: [13, 85] } , panel: "Adicional" },
-  { id: "aldosterona", name: "Aldosterona", unit: "ng/dL", category: "Eixo Adrenal", refRange: { M: [2.5, 39.2], F: [2.5, 39.2] } , panel: "Adicional" },
-  // Andrógenos
-  { id: "dihidrotestosterona", name: "Dihidrotestosterona", unit: "pg/mL", category: "Andrógenos", refRange: { M: [160, 790], F: [0, 460] } , panel: "Padrão" },
-  { id: "androstenediona", name: "Androstenediona", unit: "ng/dL", category: "Andrógenos", refRange: { M: [45, 157], F: [39, 165] } , panel: "Padrão" },
+  { id: "aldosterona", name: "Aldosterona", unit: "ng/dL", category: "Hormônios", refRange: { M: [2.5, 39.2], F: [2.5, 39.2] } , panel: "Adicional" },
+  { id: "dihidrotestosterona", name: "Dihidrotestosterona", unit: "pg/mL", category: "Hormônios", refRange: { M: [160, 790], F: [0, 80] } , panel: "Padrão" },
+  { id: "androstenediona", name: "Androstenediona", unit: "ng/dL", category: "Hormônios", refRange: { M: [50, 220], F: [39, 165] } , panel: "Padrão" },
   // Vitaminas
   { id: "vitamina_d", name: "Vitamina D (25-OH)", unit: "ng/mL", category: "Vitaminas", refRange: { M: [50, 80], F: [50, 80] } , panel: "Padrão" },
   { id: "vitamina_d_125", name: "1,25-Dihidroxi Vitamina D", unit: "pg/mL", category: "Vitaminas", refRange: { M: [19.9, 79.3], F: [19.9, 79.3] } , panel: "Padrão" },
@@ -122,9 +121,9 @@ export const MARKERS: MarkerDef[] = [
   { id: "homocisteina", name: "Homocisteína", unit: "µmol/L", category: "Vitaminas", refRange: { M: [5, 8], F: [5, 8] } , panel: "Padrão" },
   // Minerais
   { id: "magnesio", name: "Magnésio", unit: "mg/dL", category: "Minerais", refRange: { M: [2.0, 2.5], F: [2.0, 2.5] } , panel: "Adicional" },
-  { id: "zinco", name: "Zinco", unit: "µg/dL", category: "Minerais", refRange: { M: [80, 120], F: [75, 110] } , panel: "Padrão" },
+  { id: "zinco", name: "Zinco", unit: "µg/dL", category: "Minerais", refRange: { M: [75, 110], F: [75, 110] } , panel: "Padrão" },
   { id: "selenio", name: "Selênio", unit: "µg/L", category: "Minerais", refRange: { M: [40, 160], F: [40, 160] } , panel: "Padrão" },
-  { id: "cobre", name: "Cobre", unit: "µg/dL", category: "Minerais", refRange: { M: [70, 140], F: [80, 155] } , panel: "Padrão" },
+  { id: "cobre", name: "Cobre", unit: "µg/dL", category: "Minerais", refRange: { M: [80, 155], F: [80, 155] } , panel: "Padrão" },
   { id: "manganes", name: "Manganês", unit: "µg/L", category: "Minerais", refRange: { M: [4.7, 18.3], F: [4.7, 18.3] } , panel: "Adicional" },
   { id: "cromo", name: "Cromo", unit: "µg/L", category: "Minerais", refRange: { M: [0.5, 2.0], F: [0.5, 2.0] } , panel: "Adicional" },
   { id: "iodo_urinario", name: "Iodo Urinário", unit: "µg/L", category: "Minerais", refRange: { M: [100, 300], F: [100, 300] } , panel: "Adicional" },
@@ -132,9 +131,9 @@ export const MARKERS: MarkerDef[] = [
   { id: "mercurio", name: "Mercúrio", unit: "µg/L", category: "Toxicologia", refRange: { M: [0, 5.9], F: [0, 5.9] } , panel: "Padrão" },
   { id: "cadmio", name: "Cádmio", unit: "µg/L", category: "Toxicologia", refRange: { M: [0, 1.2], F: [0, 1.2] } , panel: "Adicional" },
   { id: "aluminio", name: "Alumínio", unit: "µg/L", category: "Toxicologia", refRange: { M: [0, 10], F: [0, 10] } , panel: "Padrão" },
-  { id: "cobalto", name: "Cobalto", unit: "µg/L", category: "Toxicologia", refRange: { M: [0, 0.9], F: [0, 0.9] } , panel: "Adicional" },
-  { id: "arsenico", name: "Arsênico", unit: "mcg/L", category: "Toxicologia", refRange: { M: [0, 10], F: [0, 10] } , panel: "Adicional" },
-  { id: "niquel", name: "Níquel", unit: "µg/L", category: "Toxicologia", refRange: { M: [0, 2.5], F: [0, 2.5] } , panel: "Adicional" },
+  { id: "cobalto", name: "Cobalto", unit: "µg/L", category: "Toxicologia", refRange: { M: [0, 1], F: [0, 1] } , panel: "Adicional" },
+  { id: "arsenico", name: "Arsênico", unit: "µg/L", category: "Toxicologia", refRange: { M: [0, 1], F: [0, 1] } , panel: "Adicional" },
+  { id: "niquel", name: "Níquel", unit: "µg/L", category: "Toxicologia", refRange: { M: [0, 1], F: [0, 1] } , panel: "Adicional" },
   // Hepático
   { id: "tgo_ast", name: "TGO (AST)", unit: "U/L", category: "Hepático", refRange: { M: [10, 26], F: [10, 25] } , panel: "Padrão" },
   { id: "tgp_alt", name: "TGP (ALT)", unit: "U/L", category: "Hepático", refRange: { M: [10, 26], F: [10, 25] } , panel: "Padrão" },
@@ -153,18 +152,17 @@ export const MARKERS: MarkerDef[] = [
   { id: "tfg", name: "TFG (CKD-EPI)", unit: "mL/min", category: "Renal", refRange: { M: [90, 120], F: [90, 120] } , panel: "Adicional" },
   { id: "cistatina_c", name: "Cistatina C", unit: "mg/L", category: "Renal", refRange: { M: [0.53, 0.95], F: [0.53, 0.95] } , panel: "Adicional" },
   // Eletrólitos
-  { id: "sodio", name: "Sódio", unit: "mEq/L", category: "Eletrólitos", refRange: { M: [138, 142], F: [138, 142] } , panel: "Padrão" },
-  { id: "potassio", name: "Potássio", unit: "mEq/L", category: "Eletrólitos", refRange: { M: [4.0, 4.5], F: [4.0, 4.5] } , panel: "Padrão" },
-  { id: "calcio_total", name: "Cálcio Total", unit: "mg/dL", category: "Eletrólitos", refRange: { M: [9.4, 10.2], F: [9.4, 10.2] } , panel: "Padrão" },
-  { id: "calcio_ionico", name: "Cálcio Iônico", unit: "mmol/L", category: "Eletrólitos", refRange: { M: [1.10, 1.35], F: [1.10, 1.35] } , panel: "Padrão" },
+  { id: "sodio", name: "Sódio", unit: "mEq/L", category: "Renal", refRange: { M: [138, 142], F: [138, 142] } , panel: "Padrão" },
+  { id: "potassio", name: "Potássio", unit: "mEq/L", category: "Renal", refRange: { M: [4.0, 4.5], F: [4.0, 4.5] } , panel: "Padrão" },
+  { id: "calcio_total", name: "Cálcio Total", unit: "mg/dL", category: "Renal", refRange: { M: [9.4, 10.2], F: [9.4, 10.2] } , panel: "Padrão" },
+  { id: "calcio_ionico", name: "Cálcio Iônico", unit: "mmol/L", category: "Renal", refRange: { M: [1.10, 1.35], F: [1.10, 1.35] } , panel: "Padrão" },
   { id: "fosforo", name: "Fósforo", unit: "mg/dL", category: "Eletrólitos", refRange: { M: [3.0, 4.0], F: [3.0, 4.0] } , panel: "Adicional" },
   { id: "cloro", name: "Cloro", unit: "mEq/L", category: "Eletrólitos", refRange: { M: [100, 106], F: [100, 106] } , panel: "Adicional" },
   { id: "bicarbonato", name: "Bicarbonato", unit: "mEq/L", category: "Eletrólitos", refRange: { M: [22, 26], F: [22, 26] } , panel: "Adicional" },
-  { id: "pth", name: "PTH", unit: "pg/mL", category: "Eletrólitos", refRange: { M: [15, 50], F: [15, 50] } , panel: "Padrão" },
+  { id: "pth", name: "PTH", unit: "pg/mL", category: "Renal", refRange: { M: [15, 50], F: [15, 50] } , panel: "Padrão" },
   { id: "calcitonina", name: "Calcitonina", unit: "pg/mL", category: "Eletrólitos", refRange: { M: [0, 8.4], F: [0, 5.0] } , panel: "Adicional" },
-  // Coagulação
-  { id: "fibrinogenio", name: "Fibrinogênio", unit: "mg/dL", category: "Coagulação", refRange: { M: [200, 400], F: [200, 400] } , panel: "Padrão" },
-  { id: "dimeros_d", name: "Dímeros D", unit: "ng/mL", category: "Coagulação", refRange: { M: [0, 500], F: [0, 500] } , panel: "Adicional" },
+  { id: "fibrinogenio", name: "Fibrinogênio", unit: "mg/dL", category: "Inflamação", refRange: { M: [200, 400], F: [200, 400] } , panel: "Padrão" },
+  { id: "dimeros_d", name: "Dímeros D", unit: "ng/mL", category: "Imunologia", refRange: { M: [0, 500], F: [0, 500] } , panel: "Adicional" },
   // Pancreático
   { id: "amilase", name: "Amilase", unit: "U/L", category: "Pancreático", refRange: { M: [28, 100], F: [28, 100] } , panel: "Padrão" },
   { id: "lipase", name: "Lipase", unit: "U/L", category: "Pancreático", refRange: { M: [13, 60], F: [13, 60] } , panel: "Padrão" },
@@ -225,7 +223,7 @@ export const MARKERS: MarkerDef[] = [
   { id: "urina_urobilinogenio", name: "Urobilinogênio", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Padrão" },
   { id: "urina_cetona", name: "Cetonas", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Padrão" },
   { id: "urina_muco", name: "Muco/Filamentos (urina)", unit: "", category: "Urina", refRange: { M: [0, 0], F: [0, 0] }, qualitative: true , panel: "Adicional" },
-  { id: "urina_albumina", name: "Albumina (urina)", unit: "mg/L", category: "Urina", refRange: { M: [0, 20], F: [0, 20] } , panel: "Padrão" },
+  { id: "urina_albumina", name: "Albumina (urina)", unit: "mg/L", category: "Urina", refRange: { M: [0, 30], F: [0, 30] } , panel: "Padrão" },
   { id: "urina_creatinina", name: "Creatinina (urina)", unit: "mg/dL", category: "Urina", refRange: { M: [50, 300], F: [50, 300] } , panel: "Padrão" },
   { id: "urina_acr", name: "Razão Albumina/Creatinina", unit: "mg/g", category: "Urina", refRange: { M: [0, 30], F: [0, 30] } , panel: "Padrão" },
   // Coprológico Funcional
@@ -248,8 +246,6 @@ export const MARKERS: MarkerDef[] = [
   { id: "psa_total", name: "PSA Total", unit: "ng/mL", category: "Hormônios", refRange: { M: [0, 2.5], F: [0, 0] } , panel: "Padrão" },
   { id: "psa_livre", name: "PSA Livre", unit: "ng/mL", category: "Hormônios", refRange: { M: [0, 0.5], F: [0, 0] } , panel: "Adicional" },
   { id: "psa_relacao", name: "PSA Livre/Total (%)", unit: "%", category: "Hormônios", refRange: { M: [25, 100], F: [0, 0] } , panel: "Adicional" },
-  // Glicemia Média Estimada (derivada do HbA1c)
-  { id: "glicemia_media_estimada", name: "Glicemia Média Estimada", unit: "mg/dL", category: "Glicemia", refRange: { M: [80, 115], F: [80, 115] } , panel: "Adicional" },
 ];
 
 /**
