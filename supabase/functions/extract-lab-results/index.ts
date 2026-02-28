@@ -919,6 +919,24 @@ function convertLabRefUnits(results: any[]): any[] {
     glicemia_media_estimada: (min, max) => ({ min, max }),
   };
 
+  // Sanity check: marcadores em % não devem ter referência laboratorial em valores absolutos
+  // (ex: Neutrófilos: lab_ref extraído como "1.526 a 5.020" /µL quando deveria ser "40 a 70" %)
+  const percentMarkers = new Set([
+    'neutrofilos', 'linfocitos', 'monocitos', 'eosinofilos', 'basofilos',
+    'neutrofilos_abs', 'linfocitos_abs', 'monocitos_abs',
+  ]);
+  for (const r of results) {
+    if (percentMarkers.has(r.marker_id)) {
+      // Se a referência máxima for > 100, é quase certamente um valor absoluto — descartar
+      if ((r.lab_ref_max != null && r.lab_ref_max > 100) || (r.lab_ref_min != null && r.lab_ref_min > 100)) {
+        console.log(`Discarding absolute-unit lab_ref for percent marker ${r.marker_id}: ${r.lab_ref_min}-${r.lab_ref_max}`);
+        r.lab_ref_min = null;
+        r.lab_ref_max = null;
+        r.lab_ref_text = '';
+      }
+    }
+  }
+
   for (const r of results) {
     const converter = refConverters[r.marker_id];
     if (!converter) continue;
