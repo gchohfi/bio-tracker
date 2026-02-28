@@ -454,6 +454,8 @@ ELETRÓLITOS:
 - "Cloro" / "CLORETO" → cloro
 - "Bicarbonato" / "CO2 Total" → bicarbonato
 - "PTH Intacto" / "Paratormônio" / "PARATORMÔNIO INTACTO" / "PTH INTACTO, SORO" / "PTHi" / "iPTH" / "PARATORMÔNIO MOLÉCULA INTACTA" / "PARATORMONIO" / "PARATORMÔNIO (PTH)" / "PARATORMONIO (PTH)" / "PARATORMÔNIO, MOLÉCULA INTACTA" / "PARATORMONIO (PTH), MOLECULA INTACTA" → pth
+  ⚠️ PTH lab_ref_range is ALWAYS between 10 and 100 pg/mL. Labs often list reference by age group (e.g. "40 a 49 anos: 15 a 65").
+    If the extracted lab_ref_range has min > 30 and max < 50 (e.g. "40 a 49"), it is an age range — set lab_ref_range to null.
 - "Calcitonina" / "Calcitonina, soro" / "TIREOCALCITONINA" → calcitonina
 
 FERRO:
@@ -964,6 +966,20 @@ function convertLabRefUnits(results: any[]): any[] {
   for (const r of results) {
     if (r.marker_id === 'igf1' && typeof r.lab_ref_max === 'number' && r.lab_ref_max < 50) {
       console.log(`Discarding age-range lab_ref for igf1: ${r.lab_ref_min}-${r.lab_ref_max} (age range, not value range)`);
+      r.lab_ref_min = null;
+      r.lab_ref_max = null;
+      r.lab_ref_text = '';
+    }
+  }
+
+  // Bug 4 — PTH: ref capturando faixa etária (ex: "40 a 49") em vez do intervalo de valores.
+  // PTH ref de valor: sempre entre 10 e 100 pg/mL. Se max < 50 e min > 30, é faixa etária — descartar.
+  for (const r of results) {
+    if (r.marker_id === 'pth'
+      && typeof r.lab_ref_max === 'number'
+      && typeof r.lab_ref_min === 'number'
+      && r.lab_ref_max < 50 && r.lab_ref_min > 30) {
+      console.log(`Discarding age-range lab_ref for pth: ${r.lab_ref_min}-${r.lab_ref_max} (age range, not value range)`);
       r.lab_ref_min = null;
       r.lab_ref_max = null;
       r.lab_ref_text = '';
