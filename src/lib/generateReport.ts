@@ -375,6 +375,13 @@ export function generatePatientReport(
     const dataColStart = 4;
     const catColor = getCategoryRGB(cat);
 
+    // Tint: mistura 90% branco + 10% cor da categoria para fundo suave
+    const tint = {
+      r: Math.round(catColor.r * 0.12 + 255 * 0.88),
+      g: Math.round(catColor.g * 0.12 + 255 * 0.88),
+      b: Math.round(catColor.b * 0.12 + 255 * 0.88),
+    };
+
     autoTable(doc, {
       startY,
       head,
@@ -384,7 +391,7 @@ export function generatePatientReport(
         fontSize: 7.5,
         cellPadding: { top: 1.5, bottom: 1.5, left: 1, right: 1 },
         overflow: "linebreak",
-        lineColor: [230, 235, 240],
+        lineColor: [Math.round(catColor.r * 0.25 + 255 * 0.75), Math.round(catColor.g * 0.25 + 255 * 0.75), Math.round(catColor.b * 0.25 + 255 * 0.75)],
         lineWidth: 0.2,
       },
       headStyles: {
@@ -395,7 +402,7 @@ export function generatePatientReport(
         cellPadding: { top: 2, bottom: 2, left: 1, right: 1 },
       },
       alternateRowStyles: {
-        fillColor: [LIGHT_BG.r, LIGHT_BG.g, LIGHT_BG.b],
+        fillColor: [tint.r, tint.g, tint.b],
       },
       columnStyles: {
         0: { cellWidth: 30, fontStyle: "bold", textColor: [BRAND.r, BRAND.g, BRAND.b] },
