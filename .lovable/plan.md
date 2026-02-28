@@ -1,85 +1,81 @@
 
-# Correção de Referências e Reorganização de Categorias (Planilha PABTrack)
+
+# Integrar parseLabReference + resolveReference em markers.ts
 
 ## Resumo
 
-Aplicar todas as correções identificadas na planilha `Referencias_PABTrack_por_Sexo.xlsx`, incluindo ajustes de faixas de referência funcional, correções de unidades, remoção de duplicata, e reorganização de categorias.
+Criar o arquivo `parseLabReference.ts` (com os 3 fixes) e adicionar a funcao `resolveReference` ao `markers.ts` como helper complementar -- sem quebrar a API existente de `getMarkerStatus`.
 
 ---
 
-## 1. Correções de Faixas de Referência (markers.ts)
+## Problema com a abordagem original
 
-| Marcador | Campo | Atual | Correto (planilha) |
-|---|---|---|---|
-| DHT (F) | refRange.F | `[0, 460]` | `[0, 80]` |
-| Androstenediona (M) | refRange.M | `[45, 157]` | `[50, 220]` |
-| Testosterona Biodisponivel (M) | refRange.M | `[70, 250]` | `[50, 200]` |
-| Testosterona Biodisponivel (F) | refRange.F | `[0.5, 8.5]` | `[0.5, 5]` |
-| VHS (M) | refRange.M | `[0, 10]` | `[0, 15]` |
-| Zinco (M) | refRange.M | `[80, 120]` | `[75, 110]` |
-| Cobre (M) | refRange.M | `[70, 140]` | `[80, 155]` |
-| Apo A1 (M) | refRange.M | `[104, 202]` | `[108, 225]` |
-| Arsenico | refRange (ambos) | `[0, 10]` | `[0, 1]` |
-| Arsenico | unit | `mcg/L` | `µg/L` |
-| Niquel | refRange (ambos) | `[0, 2.5]` | `[0, 1]` |
-| Cobalto | refRange (ambos) | `[0, 0.9]` | `[0, 1]` |
-| Albumina urina | refRange (ambos) | `[0, 20]` | `[0, 30]` |
-| Progesterona (M) | refRange.M | `[0.2, 1.4]` | `[0, 1]` |
+A proposta de substituir `getMarkerStatus` por `resolveReference` quebraria 6 arquivos porque:
+- `getMarkerStatus` recebe `(value, marker, sex, operator?)` -- nao recebe `LabResult`
+- A maioria dos callers nao tem acesso a `lab_ref_range` ou `unit` do resultado
+- `MarkerDef` usa `refRange: { M: [min, max] }`, nao `functionalMin`/`functionalMax`
 
-## 2. Remoção de Duplicata
-
-Remover a segunda entrada de `glicemia_media_estimada` (linha 252, com valores `[80, 115]`). Manter apenas a primeira (linha 64, com valores `[70, 100]`).
-
-## 3. Nova Categoria: Inflamacao
-
-Criar a categoria **"Inflamacao"** em `categoryConfig.ts` e mover os seguintes marcadores:
-
-- **PCR**: de Hemograma para Inflamacao
-- **VHS**: de Hemograma para Inflamacao
-- **Fibrinogenio**: de Coagulacao para Inflamacao
-
-## 4. Reorganizacao de Categorias Existentes
-
-| Marcador | Categoria Atual | Categoria Correta |
-|---|---|---|
-| Cortisol (manha) | Hormonios | Eixo Adrenal |
-| DHT | Androgenos | Hormonios |
-| Androstenediona | Androgenos | Hormonios |
-| Aldosterona | Eixo Adrenal | Hormonios |
-| Dimeros D | Coagulacao | Imunologia |
-| Sodio | Eletrolitos | Renal |
-| Potassio | Eletrolitos | Renal |
-| Calcio Total | Eletrolitos | Renal |
-| Calcio Ionico | Eletrolitos | Renal |
-| PTH | Eletrolitos | Renal |
-
-Apos essas mudancas:
-- **Androgenos** ficara vazio -- sera removido do `categoryConfig.ts`
-- **Coagulacao** ficara vazio -- sera removido do `categoryConfig.ts`
-- **Eletrolitos** mantera Fosforo, Cloro, Bicarbonato, Calcitonina
-
-## 5. Arquivos Modificados
-
-### `src/lib/categoryConfig.ts`
-- Adicionar `"Inflamacao"` com cor HSL propria (ex: `"5 70% 50%"`)
-- Remover `"Androgenos"` e `"Coagulacao"`
-
-### `src/lib/markers.ts`
-- Corrigir 14 faixas de referencia (tabela acima)
-- Corrigir unidade do Arsenico
-- Remover duplicata `glicemia_media_estimada`
-- Alterar `category` de 10 marcadores conforme reorganizacao
-
-### `src/components/EvolutionTable.tsx`
-- Nenhuma alteracao necessaria (usa `CATEGORIES` e `CATEGORY_COLORS` dinamicamente)
-
-### `src/lib/generateReport.ts`
-- Nenhuma alteracao necessaria (usa `categoryConfig.ts` como fonte unica)
+**Solucao**: manter `getMarkerStatus` intacto e adicionar `resolveReference` como funcao auxiliar para contextos que possuem dados de referencia laboratorial.
 
 ---
 
-## Detalhes Tecnicos
+## Alteracoes
 
-- Todas as cores de categorias sao derivadas automaticamente de `categoryConfig.ts`
-- O componente `EvolutionTable` renderiza categorias dinamicamente, entao mover marcadores entre categorias nao requer mudancas no frontend
-- O teste `marker-sync.test.ts` pode precisar de atualizacao se valida IDs ou categorias especificas
+### 1. Criar `src/lib/parseLabReference.ts`
+
+Criar o arquivo com o codigo fornecido pelo usuario, aplicando os 3 fixes identificados:
+
+- **toFloat**: distinguir ponto-milhar (seguido de 3 digitos) de ponto-decimal
+- **OPERATOR_MAP**: separar `<` de `<=` e `>` de `>=` (4 entradas distintas em vez de 2 com `=?`)
+- **Limpeza do reduce morto**: substituir o `.reduce` nao-funcional por iteracao direta sobre os prefixos de sexo
+- **Teste corrigido**: `"Inferior ou igual a 15"` deve esperar `<=` (nao `<`)
+
+### 2. Atualizar `src/lib/markers.ts`
+
+**a) Adicionar import:**
+```typescript
+import { parseLabReference, type ParsedReference } from './parseLabReference';
+```
+
+**b) Adicionar `resolveReference` como funcao exportada:**
+```typescript
+export function resolveReference(
+  marker: MarkerDef,
+  sex: 'M' | 'F',
+  labRefText?: string,
+  labUnit?: string,
+): { min: number | null; max: number | null; operator: string; source: 'functional' | 'lab' }
+```
+
+Logica:
+- Extrair `[funcMin, funcMax]` de `marker.refRange[sex]`
+- Se `labRefText` existir, chamar `parseLabReference(labRefText, sex)`
+- Comparar `marker.unit` com `labUnit`: se diferirem, usar referencia do laboratorio como fallback
+- Caso contrario, retornar a referencia funcional
+
+**c) Manter `getMarkerStatus` inalterado** -- continua funcionando como hoje para todos os callers existentes.
+
+**d) Adicionar `getMarkerStatusFromRef` como funcao complementar:**
+```typescript
+export function getMarkerStatusFromRef(
+  value: number,
+  ref: { min: number | null; max: number | null; operator: string }
+): 'normal' | 'low' | 'high'
+```
+
+Essa funcao aplica a logica de status baseada no operador (`range`, `<`, `<=`, `>`, `>=`), como proposto pelo usuario.
+
+### 3. Nenhuma alteracao nos callers existentes
+
+Os 6 arquivos que chamam `getMarkerStatus` continuam funcionando sem mudanca. A integracao de `resolveReference` nos componentes (EvolutionTable, PatientDetail) sera feita em um passo futuro, quando os dados de `lab_ref_range` estiverem disponiveis no contexto.
+
+---
+
+## Resumo dos arquivos
+
+| Arquivo | Acao |
+|---|---|
+| `src/lib/parseLabReference.ts` | Criar (com 3 fixes) |
+| `src/lib/markers.ts` | Adicionar import, `resolveReference`, `getMarkerStatusFromRef` |
+| Demais arquivos | Nenhuma alteracao |
+
