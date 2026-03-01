@@ -1024,6 +1024,20 @@ function convertLabRefUnits(results: any[]): any[] {
     }
   }
 
+  // Bug 6 — HbA1c: ref capturando faixa de pré-diabetes (5.7–6.4%) em vez do range normal (4.0–5.6%).
+  // O laudo exibe a faixa de pré-diabetes como referência, mas o range normal é < 5.7%.
+  // Se ref_min >= 5.0 e ref_max <= 7.0, é a faixa de pré-diabetes — descartar.
+  for (const r of results) {
+    if (r.marker_id === 'hba1c'
+      && typeof r.lab_ref_min === 'number' && r.lab_ref_min >= 5.0
+      && typeof r.lab_ref_max === 'number' && r.lab_ref_max <= 7.0) {
+      console.log(`Discarding pre-diabetes lab_ref for hba1c: ${r.lab_ref_min}-${r.lab_ref_max} (pre-diabetes range, not normal range)`);
+      r.lab_ref_min = null;
+      r.lab_ref_max = null;
+      r.lab_ref_text = '';
+    }
+  }
+
   // Bug genérico — Sanity bounds: comparar lab_ref extraída com sanityRanges esperados.
   // Se a referência extraída estiver mais de 20x fora do range esperado, descartar.
   // Isso protege contra casos não cobertos pelas regras específicas acima.
