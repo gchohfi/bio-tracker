@@ -344,11 +344,11 @@ export const MARKERS: MarkerDef[] = [
     refRange: { M: [19.9, 79.3], F: [19.9, 79.3] }, panel: "Padrão" },
 
   { id: "vitamina_b12",    name: "Vitamina B12",     unit: "pg/mL",        category: "Vitaminas",
-    labRange: { M: [211, 911], F: [211, 911] },
+    labRange: { M: [300, 9999], F: [300, 9999] },  // Ref. Lab.: "Normal: maior que 300 pg/mL" (sem limite superior)
     refRange: { M: [500, 1000], F: [500, 1000] }, panel: "Padrão" },
 
   { id: "acido_folico",    name: "Ácido Fólico",     unit: "ng/mL",        category: "Vitaminas",
-    labRange: { M: [4.6, 18.7], F: [4.6, 18.7] },
+    labRange: { M: [3.9, 9999], F: [3.9, 9999] },  // Ref. Lab.: "> 3,9 ng/mL" (sem limite superior)
     refRange: { M: [10, 25],    F: [10, 25]    }, panel: "Padrão" },
 
   { id: "vitamina_a",      name: "Vitamina A",       unit: "mg/L",         category: "Vitaminas",

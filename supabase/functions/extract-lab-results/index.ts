@@ -358,7 +358,7 @@ TIREOIDE:
 
 HORMÔNIOS:
 - "Testosterona Total" / "TESTOSTERONA, SORO" / "TESTOSTERONA SÉRICA" → testosterona_total
-- "Testosterona Livre" / "TESTOSTERONA LIVRE CALCULADA" / "TESTOSTERONA LIVRE, SORO" / "Testosterona Livre Calculada" / "FTE" → testosterona_livre (unit: ng/dL). If pmol/L → ×0.000288 to get ng/dL.
+- "Testosterona Livre" / "TESTOSTERONA LIVRE CALCULADA" / "TESTOSTERONA LIVRE, SORO" / "Testosterona Livre Calculada" / "FTE" → testosterona_livre (unit: ng/dL). If pmol/L → ÷34.7 (i.e., ×0.02882) to get ng/dL. Example: 15.3 pmol/L ÷ 34.7 = 0.441 ng/dL. IMPORTANT: always convert to ng/dL before returning, regardless of patient sex.
   ⚠️ Testosterona Livre has sex-specific references: Male ~5–21 ng/dL, Female ~0.1–0.5 ng/dL.
     If the patient value is > 5 ng/dL (male range) but the lab_ref_range max is ≤ 2.0 ng/dL (female range), the wrong sex reference was captured — set lab_ref_range to null.
 - "Testosterona Biodisponível" / "TESTOSTERONA BIODISPONIVEL" / "Testosterona Biodisponível Calculada" → testosterona_biodisponivel (unit: ng/dL)
@@ -703,7 +703,10 @@ function validateAndFixValues(results: any[]): any[] {
     // Se AI retornar pmol/L (ex: 2–70 pmol/L para mulheres, 170–2400 pmol/L para homens) → ÷34.7.
     // Se AI retornar pg/mL (ex: 1–20 pg/mL para mulheres, 50–700 pg/mL para homens) → ÷10.
     // Não converter valores já em ng/dL (0.01–25 ng/dL cobre ambos os sexos).
-    testosterona_livre: { min: 0.01, max: 25.0, fix: (v) => v > 25.0 && v <= 700 ? v / 34.7 : v > 700 ? v / 1000 : v, label: "testosterona_livre pmol→ng/dL" },
+    // Testosterona Livre fix: valores > 1.5 ng/dL são suspeitos para mulheres (max normal é 1.07 ng/dL).
+    // Se entre 1.5 e 700 → provavelmente pmol/L ÷ 34.7. Se > 700 → pg/mL ÷ 1000.
+    // Nota: valores masculinos normais são 3-24 ng/dL, então não converter se 3 < v < 25.
+    testosterona_livre: { min: 0.01, max: 25.0, fix: (v) => v > 25.0 && v <= 700 ? v / 34.7 : v > 700 ? v / 1000 : (v > 1.5 && v <= 3.0) ? v / 34.7 : v, label: "testosterona_livre pmol→ng/dL" },
     // Estrona: expected pg/mL (5–200). If AI returned ng/dL (~0.5–20) → ×10 to get pg/mL.
     estrona: { min: 5, max: 500, fix: (v) => v < 5 ? v * 10 : v, label: "estrona ng/dL→pg/mL" },
     // Tireoide
