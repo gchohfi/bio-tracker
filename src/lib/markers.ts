@@ -8,6 +8,7 @@ export {
   getCategoryRgb,
 } from "@/lib/categoryConfig";
 import { CATEGORY_CONFIG, type Category } from "@/lib/categoryConfig";
+import { parseLabReference, type ParsedReference } from './parseLabReference';
 
 // CATEGORY_COLORS mantido para compatibilidade retroativa com componentes existentes.
 // Derivado automaticamente do CATEGORY_CONFIG — não precisa ser mantido manualmente.
@@ -844,4 +845,68 @@ export function parseOperatorValue(textValue: string): { operator: string; numer
     operator: match[1],
     numericValue: parseFloat(match[2].replace(",", ".")),
   };
+}
+
+// ─── Re-export do parser para uso externo ────────────────────────────
+export { parseLabReference, type ParsedReference };
+
+/**
+ * Resolve qual referência usar para cálculo de status.
+ *
+ * Regra (pedido médico):
+ *   1. Se há lab_ref_text do laudo, parse e usa como referência laboratorial específica.
+ *   2. Caso contrário, usa labRange (referência laboratorial convencional SBPC/ML).
+ *   3. refRange (funcional) é apenas informativo — nunca usado para status/cores.
+ */
+export function resolveReference(
+  marker: MarkerDef,
+  sex: 'M' | 'F',
+  labRefText?: string,
+  _labUnit?: string,
+): { min: number | null; max: number | null; operator: string; source: 'functional' | 'lab' } {
+  // Se há texto de referência do laudo, usar ele (mais específico)
+  if (labRefText) {
+    const labParsed = parseLabReference(labRefText, sex);
+    if (labParsed.min !== null || labParsed.max !== null) {
+      return {
+        min: labParsed.min,
+        max: labParsed.max,
+        operator: labParsed.operator,
+        source: 'lab',
+      };
+    }
+  }
+
+  // Padrão: usar labRange (referência laboratorial convencional)
+  const [labMin, labMax] = marker.labRange[sex];
+  return { min: labMin, max: labMax, operator: 'range', source: 'lab' };
+}
+
+/**
+ * Calcula status a partir de uma referência resolvida (com suporte a operadores).
+ * Complementa getMarkerStatus para contextos com dados de referência laboratorial.
+ */
+export function getMarkerStatusFromRef(
+  value: number,
+  ref: { min: number | null; max: number | null; operator: string },
+): 'normal' | 'low' | 'high' {
+  const { min, max, operator } = ref;
+
+  if (operator === '<') {
+    return value < (max ?? Infinity) ? 'normal' : 'high';
+  }
+  if (operator === '<=') {
+    return value <= (max ?? Infinity) ? 'normal' : 'high';
+  }
+  if (operator === '>') {
+    return value > (min ?? -Infinity) ? 'normal' : 'low';
+  }
+  if (operator === '>=') {
+    return value >= (min ?? -Infinity) ? 'normal' : 'low';
+  }
+
+  // operator === 'range' ou qualquer outro
+  if (min !== null && value < min) return 'low';
+  if (max !== null && value > max) return 'high';
+  return 'normal';
 }
