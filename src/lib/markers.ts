@@ -327,8 +327,8 @@ export const MARKERS: MarkerDef[] = [
 
   // ── Andrógenos ────────────────────────────────────────────────────────────
   { id: "dihidrotestosterona", name: "Dihidrotestosterona", unit: "pg/mL", category: "Andrógenos",
-    labRange: { M: [250, 990], F: [24, 368] },
-    refRange: { M: [160, 790], F: [0, 80]   }, panel: "Padrão" },
+    labRange: { M: [250, 990], F: [16, 79] },
+    refRange: { M: [160, 790], F: [0, 80]  }, panel: "Padrão" },
 
   { id: "androstenediona", name: "Androstenediona",  unit: "ng/dL",        category: "Andrógenos",
     labRange: { M: [45, 157], F: [39, 165] },
@@ -451,7 +451,7 @@ export const MARKERS: MarkerDef[] = [
     refRange: { M: [35, 85],  F: [35, 85]  }, panel: "Padrão" },
 
   { id: "bilirrubina_total", name: "Bilirrubina Total", unit: "mg/dL",     category: "Hepático",
-    labRange: { M: [0.2, 1.2], F: [0.2, 1.2] },
+    labRange: { M: [0.2, 1.1], F: [0.2, 1.1] },
     refRange: { M: [0.2, 1.0], F: [0.2, 1.0] }, panel: "Adicional" },
 
   { id: "bilirrubina_direta", name: "Bilirrubina Direta", unit: "mg/dL",   category: "Hepático",
