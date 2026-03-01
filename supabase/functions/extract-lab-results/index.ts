@@ -1002,6 +1002,17 @@ function convertLabRefUnits(results: any[]): any[] {
     }
   }
 
+  // Bug 5 — Leucócitos: bug de milhar com ponto decimal (ex: "3.470 a 8.290" → 3.47 e 8.29 em vez de 3470 e 8290).
+  // Leucócitos são sempre >1000 /µL. Se ref_max < 100, multiplicar por 1000.
+  for (const r of results) {
+    if (r.marker_id === 'leucocitos'
+      && typeof r.lab_ref_max === 'number' && r.lab_ref_max < 100) {
+      console.log(`[leucocitos] Fixing thousands separator bug: ref [${r.lab_ref_min}, ${r.lab_ref_max}] → [${(r.lab_ref_min ?? 0) * 1000}, ${r.lab_ref_max * 1000}]`);
+      if (typeof r.lab_ref_min === 'number') r.lab_ref_min = Math.round(r.lab_ref_min * 1000);
+      r.lab_ref_max = Math.round(r.lab_ref_max * 1000);
+    }
+  }
+
   // Bug genérico — Sanity bounds: comparar lab_ref extraída com sanityRanges esperados.
   // Se a referência extraída estiver mais de 20x fora do range esperado, descartar.
   // Isso protege contra casos não cobertos pelas regras específicas acima.
@@ -1013,6 +1024,7 @@ function convertLabRefUnits(results: any[]): any[] {
     hcm:                  { min: 15, max: 45 },
     chcm:                 { min: 25, max: 40 },
     rdw:                  { min: 8, max: 20 },
+    leucocitos:           { min: 1000, max: 20000 },
     plaquetas:            { min: 50, max: 700 },
     vpm:                  { min: 5, max: 15 },
     glicose_jejum:        { min: 40, max: 500 },
