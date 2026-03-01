@@ -341,7 +341,8 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                         </td>
                       </tr>
                       {group.markers.map((marker) => {
-                        const [min, max] = marker.refRange[sex];
+                        const [min, max] = marker.labRange[sex];   // ref. laboratorial convencional
+                        const [fMin, fMax] = marker.refRange[sex];  // ref. funcional (descritiva)
                         const isQualitative = marker.qualitative;
                         const markerPanel = (marker as any).panel as string | undefined;
                         return (
@@ -370,19 +371,17 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                                 "—"
                               ) : (
                                 <div className="space-y-0.5">
-                                  {/* Faixa funcional LabTrack */}
-                                  <div className="text-[10px] text-muted-foreground" title="Faixa funcional LabTrack">
+                                  {/* Referência laboratorial convencional (principal) */}
+                                  <div className="text-[10px] font-semibold text-foreground/80" title="Referência laboratorial convencional (SBPC/ML)">
                                     {min}–{max}
                                   </div>
-                                  {/* Faixa do laboratório (se disponível) */}
-                                  {labRefMap[marker.id] && (
+                                  {/* Referência funcional (descritiva, secundária) */}
+                                  {fMin !== fMax && (
                                     <div
-                                      className="text-[9px] text-blue-500/70 font-medium"
-                                      title={`Ref. laboratório: ${labRefMap[marker.id].text || `${labRefMap[marker.id].min ?? '?'}–${labRefMap[marker.id].max ?? '?'}`}`}
+                                      className="text-[9px] text-violet-500/80"
+                                      title="Faixa funcional/ótima (medicina integrativa) — apenas informativa"
                                     >
-                                      Lab: {labRefMap[marker.id].text
-                                        ? labRefMap[marker.id].text
-                                        : `${labRefMap[marker.id].min ?? '?'}–${labRefMap[marker.id].max ?? '?'}`}
+                                      Func: {fMin}–{fMax}
                                     </div>
                                   )}
                                 </div>

@@ -697,22 +697,31 @@ function buildUserPrompt(
     if (p.restrictions) prompt += `- Restrições/alergias: ${p.restrictions}\n`;
   }
 
-  prompt += `\nMARCADORES FORA DA FAIXA FUNCIONAL (${abnormal.length}):\n`;
+  prompt += `\nMARCADORES FORA DA FAIXA LABORATORIAL (${abnormal.length}):\n`;
   for (const r of abnormal) {
     const valueStr = r.value !== null ? `${r.value} ${r.unit}` : r.text_value ?? "—";
-    const refStr = r.functional_min !== undefined && r.functional_max !== undefined
-      ? `(ref: ${r.functional_min}–${r.functional_max} ${r.unit})`
+    // Referência laboratorial convencional (base para status)
+    const labRefStr = (r as any).lab_min !== undefined && (r as any).lab_max !== undefined
+      ? `(ref. lab: ${(r as any).lab_min}–${(r as any).lab_max} ${r.unit})`
+      : "";
+    // Referência funcional (contexto adicional para a IA)
+    const funcRefStr = r.functional_min !== undefined && r.functional_max !== undefined
+      ? `[faixa funcional: ${r.functional_min}–${r.functional_max}]`
       : "";
     const statusLabels: Record<string, string> = {
       low: "↓ BAIXO", high: "↑ ALTO", critical_low: "⬇ CRÍTICO BAIXO", critical_high: "⬆ CRÍTICO ALTO",
     };
-    prompt += `- ${r.marker_name}: ${valueStr} ${statusLabels[r.status] ?? r.status} ${refStr} [${r.session_date}]\n`;
+    prompt += `- ${r.marker_name}: ${valueStr} ${statusLabels[r.status] ?? r.status} ${labRefStr} ${funcRefStr} [${r.session_date}]\n`;
   }
 
-  prompt += `\nMARCADORES DENTRO DA FAIXA FUNCIONAL (${normal.length}):\n`;
+  prompt += `\nMARCADORES DENTRO DA FAIXA LABORATORIAL (${normal.length}):\n`;
   for (const r of normal) {
     const valueStr = r.value !== null ? `${r.value} ${r.unit}` : r.text_value ?? "—";
-    prompt += `- ${r.marker_name}: ${valueStr} [${r.session_date}]\n`;
+    // Incluir referência funcional se diferente da laboratorial (para contexto clínico)
+    const funcRefStr = r.functional_min !== undefined && r.functional_max !== undefined
+      ? `[faixa funcional: ${r.functional_min}–${r.functional_max}]`
+      : "";
+    prompt += `- ${r.marker_name}: ${valueStr} ${funcRefStr} [${r.session_date}]\n`;
   }
 
   // Tendências entre sessões

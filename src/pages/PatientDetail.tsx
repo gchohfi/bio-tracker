@@ -424,6 +424,10 @@ export default function PatientDetail() {
         value: r.value,
         text_value: r.text_value,
         unit: marker?.unit ?? "",
+        // Referência laboratorial convencional (usada para status)
+        lab_min: marker?.labRange?.[sex]?.[0] ?? marker?.labRange?.M?.[0],
+        lab_max: marker?.labRange?.[sex]?.[1] ?? marker?.labRange?.M?.[1],
+        // Referência funcional/ótima (apenas informativa para a IA)
         functional_min: marker?.refRange?.[sex]?.[0] ?? marker?.refRange?.M?.[0],
         functional_max: marker?.refRange?.[sex]?.[1] ?? marker?.refRange?.M?.[1],
         status,
@@ -1255,7 +1259,8 @@ function MarkerInput({
     );
   }
 
-  const [min, max] = marker.refRange[sex];
+  const [min, max] = marker.labRange[sex];  // referência laboratorial convencional
+  const [fMin, fMax] = marker.refRange[sex]; // referência funcional (descritiva)
   const operatorMatch = value.match(/^([<>]=?)\s*(\d+[.,]?\d*)$/);
   const isOperatorValue = !!operatorMatch;
   const numVal = isOperatorValue ? parseFloat(operatorMatch![2].replace(",", ".")) : Number(value);
@@ -1291,19 +1296,26 @@ function MarkerInput({
         placeholder={`${min} – ${max}`}
         className={cn("h-8 text-sm", borderColor)}
       />
-      <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-        <span>Ref: {min} – {max}</span>
-        {status && (
-          <Badge
-            variant="outline"
-            className={cn(
-              "h-4 px-1 text-[10px]",
-              status === "normal" && "border-emerald-400 text-emerald-700",
-              (status === "low" || status === "high") && "border-red-400 text-red-700"
-            )}
-          >
-            {status === "normal" ? "✓" : status === "low" ? "↓ Baixo" : "↑ Alto"}
-          </Badge>
+      <div className="mt-1 flex flex-col gap-0.5 text-[10px] text-muted-foreground">
+        <div className="flex items-center justify-between">
+          <span className="font-semibold text-foreground/80">Lab: {min} – {max}</span>
+          {status && (
+            <Badge
+              variant="outline"
+              className={cn(
+                "h-4 px-1 text-[10px]",
+                status === "normal" && "border-emerald-400 text-emerald-700",
+                (status === "low" || status === "high") && "border-red-400 text-red-700"
+              )}
+            >
+              {status === "normal" ? "✓" : status === "low" ? "↓ Baixo" : "↑ Alto"}
+            </Badge>
+          )}
+        </div>
+        {fMin !== fMax && (
+          <span className="text-[9px] text-violet-500" title="Faixa funcional/ótima (medicina integrativa)">
+            Funcional: {fMin} – {fMax}
+          </span>
         )}
       </div>
     </div>

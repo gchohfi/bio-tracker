@@ -206,7 +206,7 @@ function drawLegend(doc: jsPDF, x: number, y: number) {
   doc.setFillColor(GREEN.r, GREEN.g, GREEN.b);
   doc.circle(x + 2, y - 1, 1.2, "F");
   doc.setTextColor(60, 60, 60);
-  doc.text("Dentro da faixa funcional", x + 5, y);
+  doc.text("Dentro da faixa laboratorial", x + 5, y);
 
   // Red dot + text (below range)
   doc.setFillColor(RED.r, RED.g, RED.b);
@@ -220,7 +220,7 @@ function drawLegend(doc: jsPDF, x: number, y: number) {
 
   y += 5;
   doc.setTextColor(GRAY.r, GRAY.g, GRAY.b);
-  doc.text("▲ Subindo (> 5%)    ▼ Descendo (> 5%)    ● Estável    Faixa verde no sparkline = faixa de referência funcional", x, y);
+  doc.text("▲ Subindo (> 5%)    ▼ Descendo (> 5%)    ● Estável    Faixa verde no sparkline = faixa laboratorial convencional", x, y);
 
   return y + 3;
 }
@@ -320,7 +320,7 @@ export function generatePatientReport(
     );
 
     const head = [
-      ["Marcador", "Un.", "Ref. Funcional", "Ref. Lab.", ...sessionDateHeaders, "Tend.", "Evolução"],
+      ["Marcador", "Un.", "Ref. Lab.", "Ref. Funcional", ...sessionDateHeaders, "Tend.", "Evolução"],
     ];
 
     const body: any[][] = [];
@@ -332,23 +332,28 @@ export function generatePatientReport(
 
     markersWithData.forEach((marker, idx) => {
       const isQualitative = marker.qualitative === true;
-      const [min, max] = marker.refRange[sex];
+      const [min, max] = marker.labRange[sex];   // referência laboratorial convencional
+      const [fMin, fMax] = marker.refRange[sex]; // referência funcional (descritiva)
       const values = sorted.map((s) => resultMap[marker.id]?.[s.id]);
       const textValues = sorted.map((s) => textResultMap[marker.id]?.[s.id]);
       const numericValues = values.filter((v) => v !== undefined) as number[];
       const trend = isQualitative ? null : getTrend(numericValues);
 
+      // Ref. Lab. = labRange (principal) ou ref. do laudo se disponível
       const labRef = labRefByMarker[marker.id];
       const labRefStr = isQualitative ? "—" :
         labRef
           ? (labRef.text || `${labRef.min ?? '?'} – ${labRef.max ?? '?'}`)
-          : "—";
+          : `${min} – ${max}`;
+      // Ref. Funcional = refRange (descritiva, secundária)
+      const funcRefStr = isQualitative ? "Qualitativo" :
+        (fMin !== fMax ? `${fMin} – ${fMax}` : "—");
 
       const row: any[] = [
         marker.name,
         isQualitative ? "—" : marker.unit,
-        isQualitative ? "Qualitativo" : `${min} – ${max}`,
         labRefStr,
+        funcRefStr,
         ...sorted.map((s, i) => {
           if (isQualitative) {
             return textValues[i] || "—";
@@ -407,8 +412,8 @@ export function generatePatientReport(
       columnStyles: {
         0: { cellWidth: 30, fontStyle: "bold", textColor: [BRAND.r, BRAND.g, BRAND.b] },
         1: { cellWidth: 12, textColor: [GRAY.r, GRAY.g, GRAY.b] },
-        2: { cellWidth: 16, textColor: [GRAY.r, GRAY.g, GRAY.b], fontStyle: "italic" },
-        3: { cellWidth: 16, textColor: [37, 99, 235], fontStyle: "italic", fontSize: 6.5 },
+        2: { cellWidth: 16, textColor: [37, 99, 235], fontStyle: "bold" },
+        3: { cellWidth: 16, textColor: [130, 80, 200], fontStyle: "italic", fontSize: 6.5 },
         // Session date columns: fixed width so they don't stretch with few sessions
         ...Object.fromEntries(
           sorted.map((_, i) => [dataColStart + i, { cellWidth: 18, halign: "center" as const, fontStyle: "bold" as const }])
@@ -451,7 +456,7 @@ export function generatePatientReport(
             (s) => s.rowIndex === data.row.index
           );
           if (sparkData) {
-            const [min, max] = sparkData.marker.refRange[sex];
+            const [min, max] = sparkData.marker.labRange[sex]; // sparkline usa ref. laboratorial
             drawSparkline(
               doc,
               sparkData.values,
@@ -538,7 +543,7 @@ export function generatePatientReport(
     doc.roundedRect(18, startY + 7, 3, 3, 0.5, 0.5, "F");
     doc.setFontSize(7);
     doc.setTextColor(GREEN.r, GREEN.g, GREEN.b);
-    doc.text("Todos os marcadores dentro da faixa funcional", 23, startY + 10);
+    doc.text("Todos os marcadores dentro da faixa laboratorial", 23, startY + 10);
   }
 
   startY += 20;
