@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manual do Usuário – LabTrack</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --muted: #64748b;
+      --primary: #2563eb;
+      --primary-light: #eff6ff;
+      --accent: #f59e0b;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+    .hero {
+      background: linear-gradient(135deg, var(--primary), #1d4ed8);
+      color: white;
+      padding: 3rem 1.5rem;
+      text-align: center;
+    }
+    .hero h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+    .hero p { opacity: 0.85; font-size: 1.1rem; }
+    .container { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem; }
+    .toc {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem 2rem;
+      margin-bottom: 2.5rem;
+    }
+    .toc h2 { font-size: 1.1rem; margin-bottom: 0.75rem; color: var(--primary); }
+    .toc ol { padding-left: 1.25rem; }
+    .toc li { margin-bottom: 0.35rem; }
+    .toc a { color: var(--primary); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+    }
+    h2 {
+      font-size: 1.35rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--primary-light);
+    }
+    h3 { font-size: 1.05rem; margin: 1.25rem 0 0.5rem; color: var(--text); }
+    p { margin-bottom: 0.75rem; }
+    ul, ol { padding-left: 1.5rem; margin-bottom: 0.75rem; }
+    li { margin-bottom: 0.35rem; }
+    .step {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      background: var(--primary-light);
+      border-radius: 8px;
+    }
+    .step-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    .tip {
+      background: #fffbeb;
+      border-left: 4px solid var(--accent);
+      padding: 0.75rem 1rem;
+      border-radius: 0 8px 8px 0;
+      margin: 1rem 0;
+      font-size: 0.92rem;
+    }
+    .tip strong { color: #92400e; }
+    .warn {
+      background: #fef2f2;
+      border-left: 4px solid #ef4444;
+      padding: 0.75rem 1rem;
+      border-radius: 0 8px 8px 0;
+      margin: 1rem 0;
+      font-size: 0.92rem;
+    }
+    .warn strong { color: #991b1b; }
+    kbd {
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.1rem 0.4rem;
+      font-size: 0.85rem;
+      font-family: monospace;
+    }
+    .badge {
+      display: inline-block;
+      background: var(--primary);
+      color: white;
+      font-size: 0.7rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      vertical-align: middle;
+      margin-left: 0.25rem;
+    }
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 1.5rem; }
+      section { padding: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>🧪 Manual do Usuário – LabTrack</h1>
+  <p>Guia completo para acompanhamento de exames laboratoriais</p>
+</div>
+
+<div class="container">
+
+  <nav class="toc">
+    <h2>📑 Índice</h2>
+    <ol>
+      <li><a href="#inicio">Primeiros Passos</a></li>
+      <li><a href="#pacientes">Gerenciando Pacientes</a></li>
+      <li><a href="#importar">Importando Exames (PDF)</a></li>
+      <li><a href="#revisao">Revisão e Correção dos Resultados</a></li>
+      <li><a href="#evolucao">Tabela de Evolução</a></li>
+      <li><a href="#analise">Análise com IA</a></li>
+      <li><a href="#relatorio">Gerando Relatórios em PDF</a></li>
+      <li><a href="#aliases">Configurando Aliases de Marcadores</a></li>
+      <li><a href="#perfil">Perfil do Paciente</a></li>
+      <li><a href="#dicas">Dicas e Boas Práticas</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1. Primeiros Passos -->
+  <section id="inicio">
+    <h2>1. Primeiros Passos</h2>
+
+    <h3>Criando sua conta</h3>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Acesse o LabTrack e clique em <strong>"Cadastre-se"</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>Preencha seu <strong>nome</strong>, <strong>email</strong> e <strong>senha</strong> (mínimo 6 caracteres).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>Verifique seu email e clique no link de confirmação.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>Retorne ao LabTrack e faça login com suas credenciais.</div>
+    </div>
+
+    <h3>Esqueci minha senha</h3>
+    <p>Na tela de login, digite seu email e clique em <strong>"Esqueci minha senha"</strong>. Um link de recuperação será enviado para seu email.</p>
+  </section>
+
+  <!-- 2. Pacientes -->
+  <section id="pacientes">
+    <h2>2. Gerenciando Pacientes</h2>
+
+    <h3>Cadastrando um novo paciente</h3>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Na tela inicial, clique no botão <strong>"Novo paciente"</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>Preencha os campos obrigatórios: <strong>Nome</strong> e <strong>Sexo</strong> (Masculino/Feminino).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>Opcionalmente, adicione <strong>data de nascimento</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>Clique em <strong>"Salvar"</strong>.</div>
+    </div>
+
+    <div class="tip">
+      <strong>💡 Dica:</strong> O sexo do paciente é fundamental para a correta interpretação dos valores de referência, pois muitos marcadores possuem faixas diferentes para homens e mulheres.
+    </div>
+
+    <h3>Buscando pacientes</h3>
+    <p>Use a <strong>barra de busca</strong> na tela inicial para filtrar pacientes pelo nome. A busca é instantânea.</p>
+
+    <h3>Acessando um paciente</h3>
+    <p>Clique no <strong>card do paciente</strong> para acessar sua página de detalhes, onde ficam todos os exames e análises.</p>
+  </section>
+
+  <!-- 3. Importar Exames -->
+  <section id="importar">
+    <h2>3. Importando Exames (PDF)</h2>
+
+    <p>O LabTrack extrai automaticamente os resultados de exames a partir de PDFs de laboratório.</p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Na página do paciente, clique em <strong>"Importar PDF"</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>Selecione o arquivo PDF do exame laboratorial.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>Selecione a <strong>data do exame</strong> (o sistema tenta detectar automaticamente).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>O sistema processará o PDF e extrairá os marcadores encontrados.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div>Revise os resultados na <strong>tela de verificação</strong> antes de confirmar.</div>
+    </div>
+
+    <div class="tip">
+      <strong>💡 Dica:</strong> PDFs de laboratórios conhecidos (como DASA, Fleury, etc.) têm melhor taxa de reconhecimento. Se algum marcador não for detectado, você pode adicioná-lo manualmente.
+    </div>
+
+    <div class="warn">
+      <strong>⚠️ Atenção:</strong> Sempre revise os valores extraídos antes de confirmar. A extração automática pode ocasionalmente confundir valores, especialmente em PDFs com formatação não-padrão.
+    </div>
+  </section>
+
+  <!-- 4. Revisão -->
+  <section id="revisao">
+    <h2>4. Revisão e Correção dos Resultados</h2>
+
+    <h3>Tela de Verificação (pós-importação)</h3>
+    <p>Após a extração do PDF, você verá uma lista com todos os marcadores detectados:</p>
+    <ul>
+      <li><strong>Verde</strong> = valor dentro da faixa funcional</li>
+      <li><strong>Vermelho</strong> = valor fora da faixa (alto ou baixo)</li>
+      <li><strong>Ícone de lápis</strong> = clique para editar o valor</li>
+    </ul>
+    <p>Você pode <strong>remover</strong> marcadores incorretos ou <strong>corrigir</strong> valores antes de salvar.</p>
+
+    <h3>Editando resultados já salvos</h3>
+    <p>Na tabela de evolução, clique no <strong>ícone de edição</strong> na coluna da sessão desejada para modificar valores individuais.</p>
+  </section>
+
+  <!-- 5. Evolução -->
+  <section id="evolucao">
+    <h2>5. Tabela de Evolução</h2>
+
+    <p>A tabela de evolução é o coração do LabTrack. Ela mostra todos os marcadores do paciente organizados por <strong>categorias</strong> e por <strong>data do exame</strong>.</p>
+
+    <h3>Navegando pela tabela</h3>
+    <ul>
+      <li>As categorias ficam organizadas em abas ou seções colapsáveis (ex: Hemograma, Perfil Lipídico, Tireoide, etc.)</li>
+      <li>Cada coluna representa uma <strong>sessão de exame</strong> (data)</li>
+      <li>Use a <strong>barra de busca</strong> para encontrar marcadores específicos</li>
+    </ul>
+
+    <h3>Interpretação das cores</h3>
+    <ul>
+      <li>🟢 <strong>Verde</strong>: valor dentro da faixa de referência funcional</li>
+      <li>🔴 <strong>Vermelho</strong>: valor acima ou abaixo da faixa funcional</li>
+    </ul>
+
+    <h3>Referências funcionais vs. laboratoriais</h3>
+    <p>O LabTrack utiliza faixas de referência <strong>funcionais</strong> (baseadas em medicina funcional), que são tipicamente mais estreitas que as faixas convencionais dos laboratórios. Ao passar o mouse sobre um valor, você pode ver os detalhes da referência.</p>
+  </section>
+
+  <!-- 6. Análise IA -->
+  <section id="analise">
+    <h2>6. Análise com IA <span class="badge">IA</span></h2>
+
+    <p>O LabTrack conta com inteligência artificial para gerar análises completas dos exames do paciente.</p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Na página do paciente, clique no botão <strong>"Gerar análise"</strong> (ícone de cérebro/IA).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>A IA analisará todos os marcadores disponíveis, considerando o perfil do paciente (sexo, idade, queixas, objetivos).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>O resultado incluirá: <strong>resumo clínico</strong>, <strong>marcadores alterados</strong>, <strong>correlações</strong> e <strong>sugestões de protocolo</strong>.</div>
+    </div>
+
+    <div class="tip">
+      <strong>💡 Dica:</strong> Para análises mais precisas, preencha o <strong>perfil completo</strong> do paciente (queixas, objetivos, nível de atividade, modalidade esportiva e restrições) antes de gerar a análise.
+    </div>
+  </section>
+
+  <!-- 7. Relatórios -->
+  <section id="relatorio">
+    <h2>7. Gerando Relatórios em PDF</h2>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Na página do paciente, clique no botão <strong>"Gerar PDF"</strong> (ícone de download).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>Uma tela de revisão será exibida com todos os valores que entrarão no relatório.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>Revise e corrija qualquer valor, se necessário (clique no lápis ao lado do valor).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>Clique em <strong>"Gerar PDF"</strong> para baixar o relatório.</div>
+    </div>
+
+    <p>O relatório gerado inclui:</p>
+    <ul>
+      <li>Dados do paciente</li>
+      <li>Tabela com todos os marcadores, valores e referências</li>
+      <li>Indicação visual de valores alterados</li>
+      <li>Data do exame</li>
+    </ul>
+  </section>
+
+  <!-- 8. Aliases -->
+  <section id="aliases">
+    <h2>8. Configurando Aliases de Marcadores</h2>
+
+    <p>Diferentes laboratórios podem usar nomes diferentes para o mesmo exame (ex: "TSH Ultra-Sensível" vs "TSH"). O sistema de <strong>aliases</strong> permite mapear esses nomes alternativos.</p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Na página do paciente, clique no ícone de <strong>engrenagem</strong> (configurações de aliases).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>Busque o marcador que deseja configurar.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>Adicione os <strong>nomes alternativos</strong> que o laboratório usa para aquele marcador.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>Na próxima importação, o sistema reconhecerá automaticamente os aliases configurados.</div>
+    </div>
+
+    <div class="tip">
+      <strong>💡 Dica:</strong> O sistema já vem com diversos aliases pré-configurados para os laboratórios mais comuns. Você só precisa adicionar novos aliases quando encontrar um nome que não foi reconhecido automaticamente.
+    </div>
+  </section>
+
+  <!-- 9. Perfil -->
+  <section id="perfil">
+    <h2>9. Perfil do Paciente</h2>
+
+    <p>O perfil do paciente enriquece as análises da IA com contexto clínico.</p>
+
+    <h3>Campos disponíveis</h3>
+    <ul>
+      <li><strong>Nome</strong> e <strong>Sexo</strong> (obrigatórios)</li>
+      <li><strong>Data de nascimento</strong> – usada para calcular a idade</li>
+      <li><strong>Queixas principais</strong> – sintomas reportados pelo paciente</li>
+      <li><strong>Objetivos</strong> – metas de saúde (ex: emagrecimento, performance, longevidade)</li>
+      <li><strong>Nível de atividade</strong> – sedentário, leve, moderado, intenso</li>
+      <li><strong>Modalidade esportiva</strong> – tipo de exercício praticado</li>
+      <li><strong>Restrições</strong> – alergias, intolerâncias, restrições alimentares</li>
+    </ul>
+
+    <p>Para editar o perfil, clique no <strong>ícone de perfil</strong> na página do paciente.</p>
+  </section>
+
+  <!-- 10. Dicas -->
+  <section id="dicas">
+    <h2>10. Dicas e Boas Práticas</h2>
+
+    <ul>
+      <li>📋 <strong>Sempre revise</strong> os valores extraídos do PDF antes de confirmar a importação.</li>
+      <li>📅 <strong>Mantenha as datas corretas</strong> – a evolução depende de datas precisas para cada sessão.</li>
+      <li>👤 <strong>Preencha o perfil completo</strong> – quanto mais informações sobre o paciente, melhor será a análise da IA.</li>
+      <li>🔍 <strong>Use a busca</strong> para encontrar rapidamente marcadores específicos na tabela de evolução.</li>
+      <li>📄 <strong>PDFs de boa qualidade</strong> – PDFs digitais (não escaneados) geram melhores resultados na extração.</li>
+      <li>🔄 <strong>Importe múltiplos exames</strong> – o LabTrack brilha quando há dados de múltiplas datas para comparação da evolução.</li>
+      <li>⚙️ <strong>Configure aliases</strong> quando um marcador não for reconhecido automaticamente.</li>
+    </ul>
+  </section>
+
+</div>
+
+<footer>
+  <p>LabTrack – Acompanhamento Inteligente de Exames Laboratoriais</p>
+  <p>Manual v1.0 – Março 2026</p>
+</footer>
+
+</body>
+</html>
