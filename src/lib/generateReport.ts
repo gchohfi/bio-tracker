@@ -339,12 +339,28 @@ export function generatePatientReport(
       const numericValues = values.filter((v) => v !== undefined) as number[];
       const trend = isQualitative ? null : getTrend(numericValues);
 
-      // Ref. Lab. = labRange (principal) ou ref. do laudo se disponível
+      // Ref. Lab. = preferir valores numéricos (lab_ref_min/max ou labRange do markers.ts)
+      // Usar lab_ref_text apenas quando for um operador como "< 34" ou "> 60"
       const labRef = labRefByMarker[marker.id];
-      const labRefStr = isQualitative ? "—" :
-        labRef
-          ? (labRef.text || `${labRef.min ?? '?'} – ${labRef.max ?? '?'}`)
-          : `${min} – ${max}`;
+      const labRefStr = isQualitative ? "—" : (() => {
+        if (!labRef) return `${min} – ${max}`;
+        // Se há valores numéricos min/max do laudo, usar eles
+        if (labRef.min != null && labRef.max != null) {
+          return `${labRef.min} – ${labRef.max}`;
+        }
+        // Se só tem min (ex: TFG > 60) ou só max (ex: Anti-TPO < 34)
+        if (labRef.min != null && labRef.max == null) {
+          return `> ${labRef.min}`;
+        }
+        if (labRef.max != null && labRef.min == null) {
+          // Verificar se o texto original tem operador < ou <=
+          const txt = labRef.text || '';
+          const op = /^[<≤]/.test(txt.trim()) ? '<' : '';
+          return op ? `${op} ${labRef.max}` : `${min} – ${labRef.max}`;
+        }
+        // Se só tem texto descritivo sem valores numéricos, usar labRange do markers.ts
+        return `${min} – ${max}`;
+      })();
       // Ref. Funcional = refRange (descritiva, secundária)
       const funcRefStr = isQualitative ? "Qualitativo" :
         (fMin !== fMax ? `${fMin} – ${fMax}` : "—");

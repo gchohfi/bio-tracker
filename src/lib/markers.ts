@@ -868,6 +868,14 @@ export function resolveReference(
 ): { min: number | null; max: number | null; operator: string; source: 'functional' | 'lab' } {
   // Se há texto de referência do laudo, usar ele (mais específico)
   if (labRefText) {
+    // Descartar textos descritivos que contêm referências etárias/contextuais
+    // (ex: "Maior ou igual a 20 anos:", "Mulheres: até 63 ng/dL", "Fase Folicular: até 12,0")
+    // Esses textos não representam o range do valor do exame, mas sim contexto clínico
+    const isAgeOrContextualText = /\banos\b|\bidade\b/i.test(labRefText);
+    if (isAgeOrContextualText) {
+      const [labMin, labMax] = marker.labRange[sex];
+      return { min: labMin, max: labMax, operator: 'range', source: 'lab' };
+    }
     const labParsed = parseLabReference(labRefText, sex);
     if (labParsed.min !== null || labParsed.max !== null) {
       // Validação de sanity bounds: comparar com labRange esperado
