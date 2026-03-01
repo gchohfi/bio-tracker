@@ -1152,6 +1152,19 @@ function parseLabRefRanges(results: any[]): any[] {
     }
     let t = refText.trim();
 
+    // Remover padrões de horário que confundem o parser: "(6-10 horas)", "6-10h"
+    t = t.replace(/\(\s*\d+\s*[-–]\s*\d+\s*h(?:oras?)?\s*\)/gi, '').trim();
+    t = t.replace(/\d+\s*[-–]\s*\d+\s*h(?:oras?)?/gi, '').trim();
+    // Remover prefixos de horário: "Horas da manhã:", "Manhã:"
+    t = t.replace(/^(?:horas?\s+d[ao]\s+)?(?:manh[aã]|tarde|noite)\s*:?\s*/gi, '').trim();
+    // Remover padrões de faixa etária: "Homens 20-49 anos:", "Mulheres >= 50 anos:"
+    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*\d+\s*[-–]\s*\d+\s*anos?\s*:?\s*/gi, '').trim();
+    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*>=?\s*\d+\s*anos?\s*:?\s*/gi, '').trim();
+    t = t.replace(/\d+\s*[-–]\s*\d+\s*anos?\s*:/gi, '').trim();
+    t = t.replace(/>=?\s*\d+\s*anos?\s*:/gi, '').trim();
+    // Remover prefixos de fase: "Pré-púberes:", "Pós-menopausa:"
+    t = t.replace(/^(?:pr[eé]-?p[uú]beres?|p[oó]s-?menopausa|menopausa|adultos?)\s*:?\s*/gi, '').trim();
+
     // Normalizar: remover "Inferior a" / "Superior a" para < / >
     t = t.replace(/^Inferior\s+a\s+/i, '< ').replace(/^Superior\s+a\s+/i, '> ');
 
