@@ -964,7 +964,18 @@ function convertLabRefUnits(results: any[]): any[] {
     }
   }
 
-  // Bug 2 — IGF-1: ref capturando faixa etária (ex: "40 a 44") em vez do intervalo de valores.
+  // Bug 2a — AMH: ref capturando faixa etária (ex: "35 a 39") em vez do intervalo de valores.
+  // AMH ref de valor: sempre entre 0.01 e 15 ng/mL. Se max > 10, é faixa etária — descartar.
+  for (const r of results) {
+    if (r.marker_id === 'amh' && typeof r.lab_ref_max === 'number' && r.lab_ref_max > 10) {
+      console.log(`Discarding age-range lab_ref for amh: ${r.lab_ref_min}-${r.lab_ref_max} (age range, not value range)`);
+      r.lab_ref_min = null;
+      r.lab_ref_max = null;
+      r.lab_ref_text = '';
+    }
+  }
+
+  // Bug 2b — IGF-1: ref capturando faixa etária (ex: "40 a 44") em vez do intervalo de valores.
   // IGF-1 ref de valor: sempre entre 50 e 600 ng/mL. Se max < 50, é faixa etária — descartar.
   for (const r of results) {
     if (r.marker_id === 'igf1' && typeof r.lab_ref_max === 'number' && r.lab_ref_max < 50) {
