@@ -1038,6 +1038,30 @@ function convertLabRefUnits(results: any[]): any[] {
     }
   }
 
+  // Filtro: descartar lab_ref_text que são cabeçalhos de faixa etária
+  // Ex: "Maior ou igual a 20 anos:", "Até 49 anos", "maior que 2 anos: até 32 U/L"
+  // Esses textos não contêm valores de referência numéricos — são apenas rótulos de tabela
+  const ageHeaderPatterns = [
+    /maior ou igual a \d+ anos/i,
+    /^até \d+ anos/i,
+    /^de \d+ a \d+ anos/i,
+    /^\d+ a \d+ anos:/i,
+    /^maior que \d+ anos:/i,
+  ];
+  for (const r of results) {
+    if (r.lab_ref_text && ageHeaderPatterns.some((p: RegExp) => p.test(r.lab_ref_text as string))) {
+      // Verificar se o texto NÃO contém valores numéricos de referência além da faixa etária
+      const textWithoutAge = (r.lab_ref_text as string).replace(/\d+\s*anos?/gi, '').trim();
+      const hasValueRange = /\d+[,.]?\d*\s*(a|até|-)\s*\d+[,.]?\d*/.test(textWithoutAge);
+      if (!hasValueRange) {
+        console.log(`[age-header] Discarding age-header lab_ref_text for ${r.marker_id}: "${r.lab_ref_text}"`);
+        r.lab_ref_text = '';
+        r.lab_ref_min = null;
+        r.lab_ref_max = null;
+      }
+    }
+  }
+
   // Bug genérico — Sanity bounds: comparar lab_ref extraída com sanityRanges esperados.
   // Se a referência extraída estiver mais de 20x fora do range esperado, descartar.
   // Isso protege contra casos não cobertos pelas regras específicas acima.
