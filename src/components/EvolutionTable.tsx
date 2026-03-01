@@ -353,7 +353,11 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                         </td>
                       </tr>
                       {group.markers.map((marker) => {
-                        const [min, max] = marker.labRange[sex];   // ref. laboratorial convencional
+                        // Referência laboratorial: preferir lab_ref_text do laudo (mais específico)
+                        const labRefText = labRefMap[marker.id]?.text;
+                        const resolvedRef = resolveReference(marker, sex, labRefText);
+                        const min = resolvedRef.min ?? marker.labRange[sex][0];
+                        const max = resolvedRef.max ?? marker.labRange[sex][1];
                         const [fMin, fMax] = marker.refRange[sex];  // ref. funcional (descritiva)
                         const isQualitative = marker.qualitative;
                         const markerPanel = (marker as any).panel as string | undefined;
