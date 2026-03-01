@@ -55,11 +55,11 @@ export const MARKERS: MarkerDef[] = [
     refRange: { M: [82, 95],  F: [82, 95]  }, panel: "Padrão" },
 
   { id: "hcm",             name: "HCM",             unit: "pg",           category: "Hemograma",
-    labRange: { M: [26, 34], F: [26, 34] },
+    labRange: { M: [27, 32], F: [27, 32] },
     refRange: { M: [28, 32], F: [28, 32] }, panel: "Padrão" },
 
   { id: "chcm",            name: "CHCM",            unit: "g/dL",         category: "Hemograma",
-    labRange: { M: [31, 37], F: [31, 37] },
+    labRange: { M: [32, 36], F: [32, 36] },
     refRange: { M: [32, 36], F: [32, 36] }, panel: "Padrão" },
 
   { id: "rdw",             name: "RDW",             unit: "%",            category: "Hemograma",
