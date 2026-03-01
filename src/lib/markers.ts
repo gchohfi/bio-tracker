@@ -911,16 +911,14 @@ export function getMarkerStatusFromRef(
 ): 'normal' | 'low' | 'high' {
   const { min, max, operator } = ref;
 
-  if (operator === '<') {
-    return value < (max ?? Infinity) ? 'normal' : 'high';
-  }
-  if (operator === '<=') {
+  if (operator === '<' || operator === '<=') {
+    // When a lab report says "< X" or "<= X", the stored numeric value equals the detection
+    // limit (e.g. "< 34" is stored as 34). Use inclusive comparison so that a value equal
+    // to the limit is still classified as normal.
     return value <= (max ?? Infinity) ? 'normal' : 'high';
   }
-  if (operator === '>') {
-    return value > (min ?? -Infinity) ? 'normal' : 'low';
-  }
-  if (operator === '>=') {
+  if (operator === '>' || operator === '>=') {
+    // Similarly, "> X" or ">= X" stored as X should be normal.
     return value >= (min ?? -Infinity) ? 'normal' : 'low';
   }
 
