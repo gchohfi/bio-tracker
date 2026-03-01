@@ -881,25 +881,38 @@ function validateAndFixValues(results: any[]): any[] {
     }
   }
 
-  // === LIMPEZA: urina_leucocitos e urina_hemacias qualitativo ===
-  // Fleury imprime valor + referência na mesma linha: "15.900 /mL Até 25.000 /mL"
-  // Gemini captura o texto completo. Precisamos extrair apenas o valor inicial.
+  // === LIMPEZA: urina_leucocitos, urina_hemacias e urina_hemoglobina qualitativo ===
+  // Fleury imprime valor + referência na mesma linha:
+  //   "15.900 /mL Até 25.000 /mL"  (leucócitos/hemácias quantitativos)
+  //   "13,4 g/dL 11,7 a 14,9"      (hemoglobina — alucinação do hemograma)
+  // Gemini captura o texto completo. Precisamos extrair apenas o valor qualitativo inicial.
+  const URINA_QUALITATIVE_CLEANUP = new Set(['urina_leucocitos', 'urina_hemacias', 'urina_hemoglobina']);
   for (const r of results) {
-    if (r.marker_id !== 'urina_leucocitos' && r.marker_id !== 'urina_hemacias') continue;
+    if (!URINA_QUALITATIVE_CLEANUP.has(r.marker_id)) continue;
     const tv: string | undefined = r.text_value;
     if (!tv || typeof tv !== 'string') continue;
-    // Se o text_value contém "Até", "até", "Ref", "ref" ou dois números grandes separados por espaço,
-    // extrai apenas a primeira parte (até o primeiro espaço seguido de "/mL" ou "Até" ou número grande)
+
+    // Caso 1: text_value contém valor hemograma + unidade (ex: "13,4 g/dL 11,7 a 14,9")
+    // Detectar padrão: número + g/dL ou milhões → alucinação do hemograma → remover
+    if (/[\d.,]+\s*(?:g\/dL|milh[õo]es|mm[³3]|µL)/i.test(tv)) {
+      console.log(`ANTI-HALLUCINATION: removed ${r.marker_id} text_value "${tv}" (hemograma hallucination)`);
+      r._remove = true;
+      continue;
+    }
+
+    // Caso 2: text_value contém número + referência (ex: "15.900 /mL Até 25.000 /mL")
+    // Extrai apenas a primeira parte (até o primeiro "Até", "Ref", "<", ">" ou número grande)
     const cleanMatch = tv.match(/^(\d[\d.,]*)\s*(?:\/mL)?\s*(?:Até|até|Ref|ref|<|>|\d{4,})/i);
     if (cleanMatch) {
-      const cleanVal = cleanMatch[1].replace(/[.,](\d{3})$/g, '$1').replace(',', '.'); // remover separador de milhar
+      const cleanVal = cleanMatch[1].replace(/[.,](\d{3})$/g, '$1').replace(',', '.');
       const num = parseFloat(cleanVal);
       if (!isNaN(num) && num > 0) {
         r.text_value = `${Math.round(num)} /mL`;
-        // Também atualizar o value numérico para o marcador quantitativo correspondente
         console.log(`Cleaned urina qualitative text_value for ${r.marker_id}: "${tv}" → "${r.text_value}"`);
       }
     }
+    // Caso 3: text_value é um texto qualitativo válido (ex: "Negativo", "Positivo", "1+")
+    // Não fazer nada — manter como está
   }
 
    return results.filter((r: any) => !r._remove);
@@ -1295,8 +1308,14 @@ function parseLabRefRanges(results: any[]): any[] {
     // Remover prefixos de fase: "Pré-púberes:", "Pós-menopausa:"
     t = t.replace(/^(?:pr[eé]-?p[uú]beres?|p[oó]s-?menopausa|menopausa|adultos?)\s*:?\s*/gi, '').trim();
 
-    // Normalizar: remover "Inferior a" / "Superior a" para < / >
-    t = t.replace(/^Inferior\s+a\s+/i, '< ').replace(/^Superior\s+a\s+/i, '> ');
+    // Normalizar: remover "Inferior a" / "Superior a" / "Até" / "Menor que" / "Maior que" / "Acima de" para < / >
+    t = t.replace(/^Inferior\s+a\s+/i, '< ');
+    t = t.replace(/^Superior\s+a\s+/i, '> ');
+    t = t.replace(/^Até\s+/i, '< ');
+    t = t.replace(/^Menor\s+(?:ou\s+igual\s+a|que)\s+/i, '< ');
+    t = t.replace(/^Maior\s+(?:ou\s+igual\s+a|que)\s+/i, '> ');
+    t = t.replace(/^Acima\s+de\s+/i, '> ');
+    t = t.replace(/^Abaixo\s+de\s+/i, '< ');
 
     // Extrair primeiro intervalo numérico de textos longos (ex: "Acima de 20 anos: 0,23 a 0,42 ng/dL")
     // Busca padrão "N,N a N,N" ou "N.N a N.N" ou "N a N" em qualquer posição do texto
