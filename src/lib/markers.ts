@@ -243,12 +243,12 @@ export const MARKERS: MarkerDef[] = [
     refRange: { M: [0, 34], F: [0, 34] }, panel: "Padrão" },
 
   { id: "anti_tg",         name: "Anti-TG",         unit: "UI/mL",        category: "Tireoide",
-    labRange: { M: [0, 20], F: [0, 20] },
-    refRange: { M: [0, 20], F: [0, 20] }, panel: "Padrão" },
+    labRange: { M: [0, 1.3], F: [0, 1.3] },
+    refRange: { M: [0, 1.3], F: [0, 1.3] }, panel: "Padrão" },
 
   { id: "trab",            name: "TRAb",            unit: "UI/L",         category: "Tireoide",
-    labRange: { M: [0, 1.75], F: [0, 1.75] },
-    refRange: { M: [0, 1.75], F: [0, 1.75] }, panel: "Padrão" },
+    labRange: { M: [0, 1.0], F: [0, 1.0] },
+    refRange: { M: [0, 1.0], F: [0, 1.0] }, panel: "Padrão" },
 
   // ── Hormônios ─────────────────────────────────────────────────────────────
   { id: "testosterona_total", name: "Testosterona Total", unit: "ng/dL",  category: "Hormônios",

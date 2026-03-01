@@ -1316,6 +1316,11 @@ function parseLabRefRanges(results: any[]): any[] {
     t = t.replace(/^Maior\s+(?:ou\s+igual\s+a|que)\s+/i, '> ');
     t = t.replace(/^Acima\s+de\s+/i, '> ');
     t = t.replace(/^Abaixo\s+de\s+/i, '< ');
+    // Se após normalização o texto ainda contém "anos", é texto etário puro → descartar
+    if (/\d+\s*anos?/i.test(t)) {
+      delete r.lab_ref_text;
+      continue;
+    }
 
     // Extrair primeiro intervalo numérico de textos longos (ex: "Acima de 20 anos: 0,23 a 0,42 ng/dL")
     // Busca padrão "N,N a N,N" ou "N.N a N.N" ou "N a N" em qualquer posição do texto
