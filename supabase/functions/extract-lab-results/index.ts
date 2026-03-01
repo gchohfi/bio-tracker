@@ -999,6 +999,72 @@ function convertLabRefUnits(results: any[]): any[] {
     }
   }
 
+  // Bug genérico — Sanity bounds: comparar lab_ref extraída com sanityRanges esperados.
+  // Se a referência extraída estiver mais de 20x fora do range esperado, descartar.
+  // Isso protege contra casos não cobertos pelas regras específicas acima.
+  const labRefSanityRanges: Record<string, { min: number; max: number }> = {
+    hemoglobina:          { min: 8, max: 20 },
+    hematocrito:          { min: 25, max: 60 },
+    eritrocitos:          { min: 2, max: 8 },
+    vcm:                  { min: 50, max: 120 },
+    hcm:                  { min: 15, max: 45 },
+    chcm:                 { min: 25, max: 40 },
+    rdw:                  { min: 8, max: 20 },
+    plaquetas:            { min: 50, max: 700 },
+    vpm:                  { min: 5, max: 15 },
+    glicose_jejum:        { min: 40, max: 500 },
+    hba1c:                { min: 3, max: 15 },
+    insulina_jejum:       { min: 0.5, max: 100 },
+    colesterol_total:     { min: 50, max: 500 },
+    hdl:                  { min: 10, max: 150 },
+    ldl:                  { min: 10, max: 400 },
+    triglicerides:        { min: 20, max: 2000 },
+    tsh:                  { min: 0.01, max: 100 },
+    t4_livre:             { min: 0.1, max: 5 },
+    t3_livre:             { min: 0.1, max: 1.0 },
+    t3_total:             { min: 30, max: 300 },
+    testosterona_total:   { min: 1, max: 1500 },
+    testosterona_livre:   { min: 0.01, max: 30 },
+    estradiol:            { min: 5, max: 5000 },
+    progesterona:         { min: 0, max: 50 },
+    dhea_s:               { min: 10, max: 600 },
+    cortisol:             { min: 1, max: 50 },
+    igf1:                 { min: 50, max: 600 },
+    vitamina_d:           { min: 3, max: 200 },
+    vitamina_b12:         { min: 50, max: 3000 },
+    ferritina:            { min: 1, max: 2000 },
+    ferro_serico:         { min: 10, max: 500 },
+    calcio_total:         { min: 5, max: 15 },
+    magnesio:             { min: 0.5, max: 5 },
+    sodio:                { min: 100, max: 180 },
+    potassio:             { min: 2, max: 8 },
+    creatinina:           { min: 0.1, max: 15 },
+    ureia:                { min: 5, max: 200 },
+    acido_urico:          { min: 0.5, max: 15 },
+    albumina:             { min: 1, max: 8 },
+    pcr:                  { min: 0, max: 200 },
+    homocisteina:         { min: 1, max: 50 },
+    zinco:                { min: 40, max: 200 },
+  };
+  for (const r of results) {
+    const sanity = labRefSanityRanges[r.marker_id];
+    if (!sanity) continue;
+    if (typeof r.lab_ref_min !== 'number' && typeof r.lab_ref_max !== 'number') continue;
+    const refMin = typeof r.lab_ref_min === 'number' ? r.lab_ref_min : r.lab_ref_max as number;
+    const refMax = typeof r.lab_ref_max === 'number' ? r.lab_ref_max : r.lab_ref_min as number;
+    const expectedMid = (sanity.min + sanity.max) / 2;
+    const parsedMid = (refMin + refMax) / 2;
+    if (expectedMid > 0 && parsedMid > 0) {
+      const ratio = Math.max(expectedMid / parsedMid, parsedMid / expectedMid);
+      if (ratio > 20) {
+        console.log(`[sanity] Discarding incompatible lab_ref for ${r.marker_id}: [${refMin}, ${refMax}] ratio=${ratio.toFixed(1)}x vs expected [${sanity.min}, ${sanity.max}]`);
+        r.lab_ref_min = null;
+        r.lab_ref_max = null;
+        r.lab_ref_text = '';
+      }
+    }
+  }
+
   for (const r of results) {
     const converter = refConverters[r.marker_id];
     if (!converter) continue;

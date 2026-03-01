@@ -855,6 +855,8 @@ export { parseLabReference, type ParsedReference };
  *
  * Regra (pedido médico):
  *   1. Se há lab_ref_text do laudo, parse e usa como referência laboratorial específica.
+ *      Porém, valida sanity bounds: se o range extraído for incompatível com labRange
+ *      (diferença > 20x), descarta e usa labRange como fallback seguro.
  *   2. Caso contrário, usa labRange (referência laboratorial convencional SBPC/ML).
  *   3. refRange (funcional) é apenas informativo — nunca usado para status/cores.
  */
@@ -868,12 +870,29 @@ export function resolveReference(
   if (labRefText) {
     const labParsed = parseLabReference(labRefText, sex);
     if (labParsed.min !== null || labParsed.max !== null) {
-      return {
-        min: labParsed.min,
-        max: labParsed.max,
-        operator: labParsed.operator,
-        source: 'lab',
-      };
+      // Validação de sanity bounds: comparar com labRange esperado
+      const [labMin, labMax] = marker.labRange[sex];
+      const parsedMin = labParsed.min ?? labParsed.max ?? 0;
+      const parsedMax = labParsed.max ?? labParsed.min ?? 0;
+      const expectedMid = (labMin + labMax) / 2;
+      const parsedMid = (parsedMin + parsedMax) / 2;
+      // Se o valor médio parseado for mais de 20x diferente do labRange esperado, descartar
+      const ratio = expectedMid > 0 && parsedMid > 0
+        ? Math.max(expectedMid / parsedMid, parsedMid / expectedMid)
+        : 1;
+      if (ratio <= 20) {
+        return {
+          min: labParsed.min,
+          max: labParsed.max,
+          operator: labParsed.operator,
+          source: 'lab',
+        };
+      }
+      // Sanity check falhou: lab_ref_text incompatível com unidade esperada, usar labRange
+      console.warn(
+        `[resolveReference] Descartando lab_ref_text "${labRefText}" para ${marker.id}: ` +
+        `ratio=${ratio.toFixed(1)}x vs labRange [${labMin}, ${labMax}]. Usando labRange padrão.`
+      );
     }
   }
 
