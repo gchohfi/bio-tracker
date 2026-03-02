@@ -140,12 +140,15 @@ export type Database = {
           mode: string
           model_used: string | null
           patient_id: string
+          patient_plan: string | null
           patterns: Json | null
+          prescription_table: Json | null
           protocol_recommendations: Json | null
           specialty_id: string
           specialty_name: string | null
           suggestions: Json | null
           summary: string | null
+          technical_analysis: string | null
           trends: Json | null
           updated_at: string
         }
@@ -156,12 +159,15 @@ export type Database = {
           mode?: string
           model_used?: string | null
           patient_id: string
+          patient_plan?: string | null
           patterns?: Json | null
+          prescription_table?: Json | null
           protocol_recommendations?: Json | null
           specialty_id?: string
           specialty_name?: string | null
           suggestions?: Json | null
           summary?: string | null
+          technical_analysis?: string | null
           trends?: Json | null
           updated_at?: string
         }
@@ -172,12 +178,15 @@ export type Database = {
           mode?: string
           model_used?: string | null
           patient_id?: string
+          patient_plan?: string | null
           patterns?: Json | null
+          prescription_table?: Json | null
           protocol_recommendations?: Json | null
           specialty_id?: string
           specialty_name?: string | null
           suggestions?: Json | null
           summary?: string | null
+          technical_analysis?: string | null
           trends?: Json | null
           updated_at?: string
         }
