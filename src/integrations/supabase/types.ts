@@ -132,6 +132,65 @@ export type Database = {
           },
         ]
       }
+      patient_analyses: {
+        Row: {
+          created_at: string
+          full_text: string | null
+          id: string
+          mode: string
+          model_used: string | null
+          patient_id: string
+          patterns: Json | null
+          protocol_recommendations: Json | null
+          specialty_id: string
+          specialty_name: string | null
+          suggestions: Json | null
+          summary: string | null
+          trends: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          full_text?: string | null
+          id?: string
+          mode?: string
+          model_used?: string | null
+          patient_id: string
+          patterns?: Json | null
+          protocol_recommendations?: Json | null
+          specialty_id?: string
+          specialty_name?: string | null
+          suggestions?: Json | null
+          summary?: string | null
+          trends?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          full_text?: string | null
+          id?: string
+          mode?: string
+          model_used?: string | null
+          patient_id?: string
+          patterns?: Json | null
+          protocol_recommendations?: Json | null
+          specialty_id?: string
+          specialty_name?: string | null
+          suggestions?: Json | null
+          summary?: string | null
+          trends?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_analyses_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           activity_level: string | null
