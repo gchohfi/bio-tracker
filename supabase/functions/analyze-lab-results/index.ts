@@ -918,6 +918,7 @@ serve(async (req) => {
   }
 
   try {
+    const startMs = Date.now();
     const body: AnalysisRequest = await req.json();
 
     if (!body.patient_name || !body.results || body.results.length === 0) {
@@ -1048,6 +1049,36 @@ serve(async (req) => {
     }
 
     const isTruncated = finishReason === "length";
+    const durationMs = Date.now() - startMs;
+
+    // Fire-and-forget: log AI call for observability
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
+      const authHeader = req.headers.get("Authorization");
+      if (supabaseUrl && supabaseKey && authHeader) {
+        const logClient = createClient(supabaseUrl, supabaseKey, {
+          global: { headers: { Authorization: authHeader } },
+        });
+        const { data: userData } = await logClient.auth.getUser();
+        const practitionerId = userData?.user?.id;
+        if (practitionerId) {
+          logClient.from("ai_call_logs").insert({
+            practitioner_id: practitionerId,
+            patient_id: (body as any).patient_id ?? null,
+            specialty_id: specialtyId,
+            mode: effectiveMode,
+            input_tokens: usage?.prompt_tokens ?? null,
+            output_tokens: usage?.completion_tokens ?? null,
+            finish_reason: finishReason,
+            success: true,
+            duration_ms: durationMs,
+          }).then(() => {}).catch((e: any) => console.warn("ai_call_logs insert failed:", e));
+        }
+      }
+    } catch (logErr) {
+      console.warn("ai_call_logs error (non-blocking):", logErr);
+    }
 
     return new Response(
       JSON.stringify({
@@ -1060,6 +1091,7 @@ serve(async (req) => {
           content_length: content.length,
           max_tokens: maxTokens,
           mode: effectiveMode,
+          duration_ms: durationMs,
         },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
