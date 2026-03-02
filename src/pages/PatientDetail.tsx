@@ -1418,88 +1418,160 @@ export default function PatientDetail() {
                         )}
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Resumo */}
+                    <CardContent className="space-y-6">
+                      {/* ── VISÃO GERAL ── */}
                       {selectedAnalysis.summary && (
-                        <div className="rounded-lg bg-muted/50 p-4">
-                          <p className="text-sm font-medium mb-1 text-primary">Visão Geral</p>
+                        <div className="rounded-lg bg-muted/50 p-4 border-l-4 border-primary">
+                          <h3 className="font-bold text-sm text-primary mb-2 uppercase tracking-wide">Visão Geral</h3>
                           <p className="text-sm leading-relaxed">{selectedAnalysis.summary}</p>
                         </div>
                       )}
 
-                      {/* Padrões clínicos */}
+                      {/* ── PADRÕES CLÍNICOS ── */}
                       {selectedAnalysis.patterns && (selectedAnalysis.patterns as any[]).length > 0 && (
                         <div>
-                          <p className="text-sm font-medium mb-2 text-primary">Padrões Clínicos</p>
-                          <div className="space-y-2">
+                          <h3 className="font-bold text-sm text-primary mb-2 uppercase tracking-wide">Padrões Clínicos Identificados</h3>
+                          <ul className="space-y-1.5 ml-1">
                             {(selectedAnalysis.patterns as any[]).map((p: any, i: number) => {
-                              const isString = typeof p === "string";
-                              const name = isString ? p : p.name;
-                              const description = isString ? null : p.description;
-                              const severity = isString ? null : p.severity;
+                              const text = typeof p === "string" ? p : (p.name ? `${p.name}${p.description ? ` — ${p.description}` : ""}` : JSON.stringify(p));
                               return (
-                                <div key={i} className="flex items-start gap-2 text-sm">
-                                  {severity && (
-                                    <Badge variant="outline" className={cn(
-                                      "text-[10px] h-5 shrink-0 mt-0.5",
-                                      severity === "critical" && "border-red-500 text-red-600",
-                                      severity === "high" && "border-orange-500 text-orange-600",
-                                      severity === "medium" && "border-yellow-500 text-yellow-600",
-                                      severity === "low" && "border-blue-500 text-blue-600",
-                                    )}>{severity}</Badge>
-                                  )}
-                                  <div>
-                                    <span className="font-medium">{name}</span>
-                                    {description && <span className="text-muted-foreground"> — {description}</span>}
-                                  </div>
-                                </div>
+                                <li key={i} className="flex items-start gap-2 text-sm">
+                                  <span className="text-primary mt-0.5">•</span>
+                                  <span>{text}</span>
+                                </li>
                               );
                             })}
-                          </div>
+                          </ul>
                         </div>
                       )}
 
-                      {/* Análise narrativa completa (full_text com 3 documentos) */}
-                      {selectedAnalysis.full_text && (
-                        <div>
-                          <p className="text-sm font-medium mb-2 text-primary">Análise Completa</p>
-                          <div className="rounded-lg border bg-background p-4 text-sm leading-relaxed whitespace-pre-wrap font-mono text-xs max-h-[600px] overflow-y-auto">
-                            {selectedAnalysis.full_text}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Sugestões */}
+                      {/* ── SUGESTÕES DE INVESTIGAÇÃO ── */}
                       {selectedAnalysis.suggestions && (selectedAnalysis.suggestions as any[]).length > 0 && (
                         <div>
-                          <p className="text-sm font-medium mb-2 text-primary">Exames Complementares Sugeridos</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {(selectedAnalysis.suggestions as any[]).map((s: any, i: number) => (
-                              <Badge key={i} variant="secondary" className="text-xs">
-                                {typeof s === "string" ? s : s.exam ?? s.name ?? JSON.stringify(s)}
-                              </Badge>
-                            ))}
+                          <h3 className="font-bold text-sm text-primary mb-2 uppercase tracking-wide">Sugestões de Investigação Complementar</h3>
+                          <ul className="space-y-1.5 ml-1">
+                            {(selectedAnalysis.suggestions as any[]).map((s: any, i: number) => {
+                              const text = typeof s === "string" ? s : (s.exam ?? s.name ?? JSON.stringify(s));
+                              const reason = typeof s === "object" && s.reason ? ` — ${s.reason}` : "";
+                              return (
+                                <li key={i} className="flex items-start gap-2 text-sm">
+                                  <span className="text-primary mt-0.5">•</span>
+                                  <span>{text}{reason}</span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* ── DOC 1 — ANÁLISE TÉCNICA ── */}
+                      {selectedAnalysis.technical_analysis && (
+                        <div className="rounded-lg border bg-background p-4">
+                          <h3 className="font-bold text-sm text-primary mb-3 uppercase tracking-wide">Documento 1 — Análise Técnica para o Médico</h3>
+                          <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                            {selectedAnalysis.technical_analysis}
                           </div>
                         </div>
                       )}
 
-                      {/* Protocolos */}
+                      {/* ── DOC 2 — PLANO DE CONDUTAS ── */}
+                      {selectedAnalysis.patient_plan && (
+                        <div className="rounded-lg border bg-background p-4">
+                          <h3 className="font-bold text-sm text-primary mb-3 uppercase tracking-wide">Documento 2 — Plano de Condutas</h3>
+                          <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                            {selectedAnalysis.patient_plan}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── DOC 3 — PRESCRIÇÃO ── */}
+                      {selectedAnalysis.prescription_table && (selectedAnalysis.prescription_table as any[]).length > 0 && (
+                        <div>
+                          <h3 className="font-bold text-sm text-primary mb-3 uppercase tracking-wide">Documento 3 — Prescrição Detalhada</h3>
+                          <div className="overflow-x-auto rounded-lg border">
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="bg-primary text-primary-foreground">
+                                  <th className="px-3 py-2 text-left font-semibold">Substância</th>
+                                  <th className="px-3 py-2 text-left font-semibold">Dose</th>
+                                  <th className="px-3 py-2 text-left font-semibold">Via</th>
+                                  <th className="px-3 py-2 text-left font-semibold">Frequência</th>
+                                  <th className="px-3 py-2 text-left font-semibold">Duração</th>
+                                  <th className="px-3 py-2 text-left font-semibold">Condições/CI</th>
+                                  <th className="px-3 py-2 text-left font-semibold">Monitorização</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(selectedAnalysis.prescription_table as any[]).map((row: any, i: number) => (
+                                  <tr key={i} className={cn("border-t", i % 2 === 0 ? "bg-background" : "bg-muted/30")}>
+                                    <td className="px-3 py-2 font-medium">{row.substancia ?? row.substance ?? ""}</td>
+                                    <td className="px-3 py-2">{row.dose ?? ""}</td>
+                                    <td className="px-3 py-2">{row.via ?? row.route ?? ""}</td>
+                                    <td className="px-3 py-2">{row.frequencia ?? row.frequency ?? ""}</td>
+                                    <td className="px-3 py-2">{row.duracao ?? row.duration ?? ""}</td>
+                                    <td className="px-3 py-2">{row.condicoes_ci ?? row.conditions ?? ""}</td>
+                                    <td className="px-3 py-2">{row.monitorizacao ?? row.monitoring ?? ""}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── PROTOCOLOS ESSENTIA ── */}
                       {selectedAnalysis.protocol_recommendations && (selectedAnalysis.protocol_recommendations as any[]).length > 0 && (
                         <div>
-                          <p className="text-sm font-medium mb-2 text-primary">Protocolos Essentia Sugeridos</p>
-                          <div className="space-y-2">
+                          <h3 className="font-bold text-sm text-primary mb-3 uppercase tracking-wide">Protocolos Essentia Recomendados</h3>
+                          <div className="space-y-3">
                             {(selectedAnalysis.protocol_recommendations as any[]).map((p: any, i: number) => (
-                              <div key={i} className="rounded-lg border p-3">
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className="font-medium text-sm">{p.protocol_name ?? p.name}</span>
-                                  <Badge variant="outline" className="text-[10px]">{p.priority ?? "sugerido"}</Badge>
+                              <div key={i} className="rounded-lg border p-4 space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-semibold text-sm">
+                                    {p.protocol_id && <span className="text-muted-foreground mr-1">{p.protocol_id} —</span>}
+                                    {p.protocol_name ?? p.name}
+                                  </span>
+                                  {p.priority && (
+                                    <Badge variant="outline" className={cn(
+                                      "text-[10px] uppercase",
+                                      p.priority?.toLowerCase() === "alta" && "border-red-500 text-red-600",
+                                      p.priority?.toLowerCase() === "média" && "border-yellow-500 text-yellow-600",
+                                      p.priority?.toLowerCase() === "baixa" && "border-blue-500 text-blue-600",
+                                    )}>
+                                      {p.priority}
+                                    </Badge>
+                                  )}
                                 </div>
-                                {p.justification && <p className="text-xs text-muted-foreground">{p.justification}</p>}
+                                {(p.via || p.route) && (
+                                  <p className="text-xs"><span className="font-medium text-muted-foreground">Via:</span> {p.via ?? p.route}</p>
+                                )}
+                                {(p.composicao || p.composition) && (
+                                  <p className="text-xs"><span className="font-medium text-muted-foreground">Composição:</span> {p.composicao ?? p.composition}</p>
+                                )}
+                                {p.justification && (
+                                  <p className="text-xs text-muted-foreground italic">{p.justification}</p>
+                                )}
+                                {p.key_actives && (p.key_actives as string[]).length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {(p.key_actives as string[]).map((a: string, j: number) => (
+                                      <Badge key={j} variant="secondary" className="text-[10px]">{a}</Badge>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
+
+                      {/* ── DISCLAIMER ── */}
+                      <div className="border-t pt-4 mt-4">
+                        <p className="text-[10px] text-muted-foreground text-center italic leading-relaxed">
+                          Esta análise foi gerada por inteligência artificial e tem caráter exclusivamente informativo e educacional.
+                          Não substitui avaliação, diagnóstico ou prescrição médica. O profissional de saúde é o único responsável
+                          pelas decisões clínicas. Modelo: {selectedAnalysis.model_used ?? "N/A"}.
+                        </p>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
