@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_call_logs: {
+        Row: {
+          created_at: string | null
+          duration_ms: number | null
+          error_type: string | null
+          finish_reason: string | null
+          id: string
+          input_tokens: number | null
+          mode: string | null
+          output_tokens: number | null
+          patient_id: string | null
+          practitioner_id: string
+          specialty_id: string | null
+          success: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration_ms?: number | null
+          error_type?: string | null
+          finish_reason?: string | null
+          id?: string
+          input_tokens?: number | null
+          mode?: string | null
+          output_tokens?: number | null
+          patient_id?: string | null
+          practitioner_id: string
+          specialty_id?: string | null
+          success?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          duration_ms?: number | null
+          error_type?: string | null
+          finish_reason?: string | null
+          id?: string
+          input_tokens?: number | null
+          mode?: string | null
+          output_tokens?: number | null
+          patient_id?: string | null
+          practitioner_id?: string
+          specialty_id?: string | null
+          success?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_call_logs_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analysis_prompts: {
         Row: {
           author: string | null
