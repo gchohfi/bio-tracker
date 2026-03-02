@@ -900,9 +900,9 @@ function validateAndFixValues(results: any[]): any[] {
       continue;
     }
 
-    // Caso 2: text_value contém número + referência (ex: "15.900 /mL Até 25.000 /mL")
-    // Extrai apenas a primeira parte (até o primeiro "Até", "Ref", "<", ">" ou número grande)
-    const cleanMatch = tv.match(/^(\d[\d.,]*)\s*(?:\/mL)?\s*(?:Até|até|Ref|ref|<|>|\d{4,})/i);
+    // Caso 2: text_value contém número + referência (ex: "15.900 /mL Até 25.000 /mL", "1.000/mL inferior a 30.000/mL")
+    // Extrai apenas a primeira parte (até o primeiro "Até", "inferior", "superior", "menor", "maior", "Ref", "<", ">" ou número grande)
+    const cleanMatch = tv.match(/^(\d[\d.,]*)\s*(?:\/mL)?\s*(?:Até|até|inferior|superior|menor|maior|Ref|ref|<|>|\d{4,})/i);
     if (cleanMatch) {
       const cleanVal = cleanMatch[1].replace(/[.,](\d{3})$/g, '$1').replace(',', '.');
       const num = parseFloat(cleanVal);
@@ -1253,6 +1253,18 @@ function postProcessResults(results: any[]): any[] {
       const neutro = Math.round((bast + seg) * 100) / 100;
       results.push({ marker_id: "neutrofilos", value: neutro });
       console.log(`Calculated neutrofilos: ${bast} + ${seg} = ${neutro}`);
+    }
+  }
+  // Calculate Capacidade de Fixação Latente do Ferro = TIBC - Ferro Sérico
+  if (!resultMap.has("fixacao_latente_ferro") && resultMap.has("tibc") && resultMap.has("ferro_serico")) {
+    const tibc = resultMap.get("tibc").value;
+    const ferro = resultMap.get("ferro_serico").value;
+    if (typeof tibc === "number" && typeof ferro === "number") {
+      const latente = Math.round(tibc - ferro);
+      if (latente >= 0) {
+        results.push({ marker_id: "fixacao_latente_ferro", value: latente });
+        console.log(`Calculated fixacao_latente_ferro: ${tibc} - ${ferro} = ${latente}`);
+      }
     }
   }
   // Calculate Razão Albumina/Creatinina urinária (ACR)
