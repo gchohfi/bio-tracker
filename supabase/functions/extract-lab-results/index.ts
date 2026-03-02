@@ -1273,20 +1273,50 @@ function postProcessResults(results: any[]): any[] {
 }
 
 /**
+ * Inline copy of parseLabReference from src/lib/parseLabReference.ts
+ * SYNC NOTE: Keep synchronized with the frontend version.
+ *
+ * Converte string numérica para float, distinguindo ponto-milhar de ponto-decimal.
+ */
+function toFloat(s: string): number | null {
+  if (!s) return null;
+  let cleaned = s.trim().replace(/\s/g, '');
+  if (cleaned.includes(',')) {
+    cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+  } else {
+    const thousandsMatch = cleaned.match(/^(\d{1,3})(\.(\d{3}))+$/);
+    if (thousandsMatch) {
+      cleaned = cleaned.replace(/\./g, '');
+    }
+  }
+  const val = parseFloat(cleaned);
+  return isNaN(val) ? null : val;
+}
+
+const OPERATOR_PATTERNS: Array<{ pattern: RegExp; operator: string }> = [
+  { pattern: /^inferior\s+ou\s+igual\s+a\b/i, operator: '<=' },
+  { pattern: /^menor\s+ou\s+igual\s+a?\b/i, operator: '<=' },
+  { pattern: /^superior\s+ou\s+igual\s+a\b/i, operator: '>=' },
+  { pattern: /^maior\s+ou\s+igual\s+a?\b/i, operator: '>=' },
+  { pattern: /^inferior\s+a\b/i, operator: '<' },
+  { pattern: /^menor\s+que\b/i, operator: '<' },
+  { pattern: /^superior\s+a\b/i, operator: '>' },
+  { pattern: /^maior\s+que\b/i, operator: '>' },
+  { pattern: /^ate\b/i, operator: '<=' },
+  { pattern: /^até\b/i, operator: '<=' },
+  { pattern: /^acima\s+de\b/i, operator: '>' },
+  { pattern: /^abaixo\s+de\b/i, operator: '<' },
+  { pattern: /^<=\s*/, operator: '<=' },
+  { pattern: /^>=\s*/, operator: '>=' },
+  { pattern: /^<\s*/, operator: '<' },
+  { pattern: /^>\s*/, operator: '>' },
+];
+
+/**
  * Parseia o lab_ref_text retornado pelo Gemini em campos numéricos lab_ref_min e lab_ref_max.
- * Suporta formatos comuns de laudos brasileiros:
- *   "12.0 a 16.0"                    → min=12.0, max=16.0, text="12.0 a 16.0"
- *   "70 a 99 mg/dL"                  → min=70, max=99, text="70 a 99"
- *   "Acima de 20 anos: 0,23 a 0,42"  → min=0.23, max=0.42, text="0,23 a 0,42"
- *   "< 34"                            → max=34
- *   "> 60"                            → min=60
- *   "Nao reagente"                    → mantém apenas lab_ref_text (qualitativo)
- *   Textos muito longos (>80 chars)   → tenta extrair o primeiro intervalo numérico
+ * Versão sincronizada com src/lib/parseLabReference.ts (com 3 fixes aplicados).
  */
 function parseLabRefRanges(results: any[]): any[] {
-  const parseNum = (s: string) => parseFloat(s.replace(',', '.').replace('.', '').replace(',', '.'));
-  const parseNumSimple = (s: string) => parseFloat(s.replace(',', '.'));
-
   for (const r of results) {
     const refText: string | undefined = r.lab_ref_text;
     if (!refText || typeof refText !== 'string' || refText.trim() === '') {
@@ -1295,73 +1325,89 @@ function parseLabRefRanges(results: any[]): any[] {
     }
     let t = refText.trim();
 
-    // Remover padrões de horário que confundem o parser: "(6-10 horas)", "6-10h"
+    // ── Remover padrões descritivos que confundem o parser ──
+    // Horários
     t = t.replace(/\(\s*\d+\s*[-–]\s*\d+\s*h(?:oras?)?\s*\)/gi, '').trim();
     t = t.replace(/\d+\s*[-–]\s*\d+\s*h(?:oras?)?/gi, '').trim();
-    // Remover prefixos de horário: "Horas da manhã:", "Manhã:"
-    t = t.replace(/^(?:horas?\s+d[ao]\s+)?(?:manh[aã]|tarde|noite)\s*:?\s*/gi, '').trim();
-    // Remover padrões de faixa etária: "Homens 20-49 anos:", "Mulheres >= 50 anos:"
+    t = t.replace(/^(?:horas?\s+d[ao]\s+)?(?:manh[aã]|tarde|noite|vesper[ae])\s*:?\s*/gi, '').trim();
+    // Faixa etária por sexo
     t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*\d+\s*[-–]\s*\d+\s*anos?\s*:?\s*/gi, '').trim();
     t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*>=?\s*\d+\s*anos?\s*:?\s*/gi, '').trim();
+    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*<=?\s*\d+\s*anos?\s*:?\s*/gi, '').trim();
     t = t.replace(/\d+\s*[-–]\s*\d+\s*anos?\s*:/gi, '').trim();
     t = t.replace(/>=?\s*\d+\s*anos?\s*:/gi, '').trim();
-    // Remover prefixos de fase: "Pré-púberes:", "Pós-menopausa:"
+    // Fases de vida
     t = t.replace(/^(?:pr[eé]-?p[uú]beres?|p[oó]s-?menopausa|menopausa|adultos?)\s*:?\s*/gi, '').trim();
 
-    // Normalizar: remover "Inferior a" / "Superior a" / "Até" / "Menor que" / "Maior que" / "Acima de" para < / >
-    t = t.replace(/^Inferior\s+a\s+/i, '< ');
-    t = t.replace(/^Superior\s+a\s+/i, '> ');
-    t = t.replace(/^Até\s+/i, '< ');
-    t = t.replace(/^Menor\s+(?:ou\s+igual\s+a|que)\s+/i, '< ');
-    t = t.replace(/^Maior\s+(?:ou\s+igual\s+a|que)\s+/i, '> ');
-    t = t.replace(/^Acima\s+de\s+/i, '> ');
-    t = t.replace(/^Abaixo\s+de\s+/i, '< ');
-    // Se após normalização o texto ainda contém "anos", é texto etário puro → descartar
-    if (/\d+\s*anos?/i.test(t)) {
+    // Se após limpeza o texto ainda contém "anos", é texto etário puro → descartar
+    if (/^\d+\s*(?:a|[-–])\s*\d+\s*anos?\s*$/i.test(t) || /^\d+\s*anos?\s*$/i.test(t)) {
       delete r.lab_ref_text;
       continue;
     }
 
-    // Extrair primeiro intervalo numérico de textos longos (ex: "Acima de 20 anos: 0,23 a 0,42 ng/dL")
-    // Busca padrão "N,N a N,N" ou "N.N a N.N" ou "N a N" em qualquer posição do texto
-    const embeddedRange = t.match(/([\d]+[.,][\d]+|[\d]+)\s*(?:a|\u2013|\u2014)\s*([\d]+[.,][\d]+|[\d]+)/);
-    if (embeddedRange) {
-      const min = parseNumSimple(embeddedRange[1]);
-      const max = parseNumSimple(embeddedRange[2]);
-      if (!isNaN(min) && !isNaN(max) && min < max) {
+    // ── Detecção de qualitativo ──
+    if (/^(n[aã]o\s*reag|reag|negativ|positiv|ausente|presente|normal|indeterminad)/i.test(t)) {
+      // Manter apenas lab_ref_text (sem min/max)
+      continue;
+    }
+
+    // ── Detecção de operador ──
+    let matched = false;
+    for (const { pattern, operator } of OPERATOR_PATTERNS) {
+      if (pattern.test(t)) {
+        const numStr = t.replace(pattern, '').trim();
+        const numMatch = numStr.match(/[\d.,]+/);
+        if (numMatch) {
+          const val = toFloat(numMatch[0]);
+          if (val !== null) {
+            if (operator === '<' || operator === '<=') {
+              r.lab_ref_max = val;
+              r.lab_ref_text = `${operator} ${val}`;
+            } else {
+              r.lab_ref_min = val;
+              r.lab_ref_text = `${operator} ${val}`;
+            }
+            matched = true;
+            break;
+          }
+        }
+      }
+    }
+    if (matched) continue;
+
+    // ── Detecção de range (X a Y, X - Y, X–Y) ──
+    const rangeMatch = t.match(
+      /([\d.,]+)\s*(?:a|até|to|-|–|—)\s*([\d.,]+)/i
+    );
+    if (rangeMatch) {
+      const min = toFloat(rangeMatch[1]);
+      const max = toFloat(rangeMatch[2]);
+      if (min !== null && max !== null && min < max) {
         r.lab_ref_min = min;
         r.lab_ref_max = max;
-        // Simplificar o texto exibido: usar apenas o intervalo numérico
-        r.lab_ref_text = `${embeddedRange[1]} a ${embeddedRange[2]}`;
+        r.lab_ref_text = `${min} a ${max}`;
         continue;
       }
     }
 
-    // Formato "< X" ou "<= X" ou "Inferior a X" (apenas máximo)
-    const ltMatch = t.match(/^[<≤]=?\s*([\d.,]+)/);
-    if (ltMatch) {
-      r.lab_ref_max = parseNumSimple(ltMatch[1]);
-      r.lab_ref_text = `< ${ltMatch[1]}`;
-      continue;
+    // ── Número isolado (sem operador) — tratar como máximo ──
+    const singleNum = t.match(/^([\d.,]+)\s*$/);
+    if (singleNum) {
+      const val = toFloat(singleNum[1]);
+      if (val !== null) {
+        r.lab_ref_max = val;
+        r.lab_ref_text = `<= ${val}`;
+        continue;
+      }
     }
 
-    // Formato "> X" ou ">= X" (apenas mínimo)
-    const gtMatch = t.match(/^[>≥]=?\s*([\d.,]+)/);
-    if (gtMatch) {
-      r.lab_ref_min = parseNumSimple(gtMatch[1]);
-      r.lab_ref_text = `> ${gtMatch[1]}`;
-      continue;
-    }
-
-    // Texto muito longo sem intervalo numérico extraível (ex: HOMA-IR, Progesterona com interpretação)
-    // Truncar para não poluir o relatório
+    // Texto muito longo sem intervalo numérico extraível → descartar
     if (t.length > 60) {
       delete r.lab_ref_text;
       continue;
     }
 
-    // Texto qualitativo curto ("Nao reagente", "Negativo", "Normal", etc.) — mantém apenas lab_ref_text
-    // Não define min/max
+    // Texto qualitativo curto — mantém apenas lab_ref_text
   }
   return results;
 }
@@ -1752,11 +1798,11 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   tryGeneric('bilirrubina_indireta', [/(?:Bilirrubina\s+Indireta)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('albumina', [/(?:Albumina)[\s:.\-]*?(\d+[.,]?\d*)\s*(?:g\/dL)/i]);
   tryGeneric('proteinas_totais', [/(?:Prote[íi]nas\s+Totais)[\s:.\-]*?(\d[.,]\d+)/i]);
-  tryGeneric('ldh', [/(?:LDH|LACTATO\s+DESIDROGENASE)[\s:.\-]*?(\d+)/i]);
+  tryGeneric('ldh', [/(?:LDH|LACTATO\s+DESIDROGENASE|DESIDROGENASE\s+L[AÁ]TICA)[\s:.\-]*?(\d+)/i]);
   tryGeneric('creatinina', [/(?:Creatinina)[\s:.\-]*?(\d+[.,]?\d*)\s*(?:mg\/dL)/i]);
   tryGeneric('acido_urico', [/(?:[ÁAáa]cido\s+[ÚUúu]rico)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('tfg', [/(?:TFG|CKD[- ]?EPI|eGFR|Filtra[çc][ãa]o\s+Glomerular)[\s:.\-]*?([<>≥≤]?\s*\d+)/i]);
-  tryGeneric('dimeros_d', [/(?:D[íi]meros?\s*D|D[- ]?D[íi]mero)[\s:.\-]*?([<>]?\s*\d+)/i]);
+  tryGeneric('dimeros_d', [/(?:D[íi]meros?\s*D|D[- ]?D[íi]mero|FRAGMENTO\s+D)[\s:.\-]*?([<>]?\s*\d+)/i]);
   tryGeneric('cloro', [/(?:Cloro|CLORO|Cloreto)[\s:.\-]*?(\d{2,3})/i]);
   tryGeneric('bicarbonato', [/(?:Bicarbonato|CO2\s*Total)[\s:.\-]*?(\d+[.,]?\d*)/i]);
 
@@ -1780,8 +1826,41 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
       }
     }
   }
+  // Additional generic fallbacks for commonly missed markers
+  tryGeneric('ferro_serico', [/(?:Ferro\s+S[ée]rico|FERRO,?\s*SORO|SIDEREMIA)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('transferrina', [/(?:Transferrina)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('sat_transferrina', [/(?:Satura[çc][ãa]o\s+(?:da?\s+)?Transferrina|[ÍI]ndice\s+de\s+Satura[çc][ãa]o|IST)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('tibc', [/(?:TIBC|Capacidade\s+Total\s+(?:de\s+)?(?:Fixa[çc][ãa]o|Liga[çc][ãa]o)\s+(?:do\s+)?Ferro|CTFF|CTLF|Capacidade\s+Ferrop[ée]xica)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('ureia', [/(?:Ur[ée]ia|UREIA,?\s*SORO)[\s:.\-]*?(\d+[.,]?\d*)\s*(?:mg\/dL)?/i]);
+  tryGeneric('cistatina_c', [/(?:Cistatina\s+C)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('calcio_total', [/(?:C[áa]lcio\s+Total|C[áa]lcio,?\s*soro)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('calcio_ionico', [/(?:C[áa]lcio\s+I[ôo]ni(?:co|z[áa]vel)|Ca\s*\+\+|Ca2\+|iCa)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('cobre', [/(?:Cobre)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('manganes', [/(?:Mangan[êe]s)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('iodo_urinario', [/(?:Iodo\s+Urin[áa]rio)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('vitamina_e', [/(?:Vitamina\s+E)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('vitamina_b6', [/(?:Vitamina\s+B6|Piridoxina)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('vitamina_b1', [/(?:Vitamina\s+B1|Tiamina)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('fator_reumatoide', [/(?:Fator\s+Reumat[óo]ide|FR)[\s:.\-]*?([<>]?\s*\d+[.,]?\d*)/i]);
+  tryGeneric('anti_transglutaminase_iga', [/(?:Anti[- ]?Transglutaminase|tTG\s*IgA)[\s:.\-]*?([<>]?\s*\d+[.,]?\d*)/i]);
+  tryGeneric('g6pd', [/(?:G6PD|Glicose[- ]?6[- ]?Fosfato)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('chumbo', [/(?:Chumbo|PLUMBEMIA|Pb\s+SANGUE)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('mercurio', [/(?:Merc[úu]rio|Hg\b)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('cadmio', [/(?:C[áa]dmio|Cd\b)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('aluminio', [/(?:Alum[íi]nio|Al\b)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('dihidrotestosterona', [/(?:Di?hidrotestosterona|DHT|D\.?H\.?T\.?|5[- ]?[Aa]lfa[- ]?DHT)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('androstenediona', [/(?:Androstenediona|Delta\s*4\s*Androstenediona)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('cortisol_livre_urina', [/(?:Cortisol\s+Livre.*?[Uu]rina|CLU|Cortisol\s+Urin[áa]rio)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('testosterona_biodisponivel', [/(?:Testosterona\s+Biodispon[ií]vel)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('anti_hbs', [/(?:Anti[- ]?HBs)[\s:.\-]*?([<>]?\s*\d+[.,]?\d*)/i]);
+  tryGeneric('psa_total', [/(?:PSA\s+Total)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('psa_livre', [/(?:PSA\s+Livre)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('psa_relacao', [/(?:PSA\s+Livre\s*\/\s*Total|Rela[çc][ãa]o\s+PSA)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('urina_albumina', [/(?:Albumina\s*(?:\(urina\)|urin[áa]ria)|Microalbumin[úu]ria)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('urina_creatinina', [/(?:Creatinina\s*(?:\(urina\)|urin[áa]ria))[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('urina_acr', [/(?:Raz[ãa]o\s+Albumina\s*\/\s*Creatinina|RAC|ACR)[\s:.\-]*?(\d+[.,]?\d*)/i]);
 
-  // =============================================
+
   // URINA TIPO I — formato em colunas do Fleury
   // =============================================
   const urinaMatch = pdfText.match(/URINA\s+TIPO\s+I[\s\S]{0,5000}/i);
