@@ -272,7 +272,7 @@ export default function PatientDetail() {
 
   const loadSpecialties = async () => {
     try {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("analysis_prompts")
         .select("specialty_id, specialty_name, specialty_icon, has_protocols")
         .eq("is_active", true)
