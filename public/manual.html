@@ -101,6 +101,15 @@
       font-size: 0.92rem;
     }
     .warn strong { color: #991b1b; }
+    .new {
+      background: #f0fdf4;
+      border-left: 4px solid #22c55e;
+      padding: 0.75rem 1rem;
+      border-radius: 0 8px 8px 0;
+      margin: 1rem 0;
+      font-size: 0.92rem;
+    }
+    .new strong { color: #166534; }
     kbd {
       background: #f1f5f9;
       border: 1px solid var(--border);
@@ -118,6 +127,9 @@
       border-radius: 999px;
       vertical-align: middle;
       margin-left: 0.25rem;
+    }
+    .badge-green {
+      background: #22c55e;
     }
     footer {
       text-align: center;
@@ -144,14 +156,17 @@
     <h2>📑 Índice</h2>
     <ol>
       <li><a href="#inicio">Primeiros Passos</a></li>
+      <li><a href="#dashboard">Dashboard e Visão Geral</a></li>
       <li><a href="#pacientes">Gerenciando Pacientes</a></li>
       <li><a href="#importar">Importando Exames (PDF)</a></li>
       <li><a href="#revisao">Revisão e Correção dos Resultados</a></li>
       <li><a href="#evolucao">Tabela de Evolução</a></li>
-      <li><a href="#analise">Análise com IA</a></li>
+      <li><a href="#analise">Análise com IA por Especialidade</a></li>
+      <li><a href="#protocolos">Protocolos Essentia com IA</a></li>
       <li><a href="#relatorio">Gerando Relatórios em PDF</a></li>
       <li><a href="#aliases">Configurando Aliases de Marcadores</a></li>
       <li><a href="#perfil">Perfil do Paciente</a></li>
+      <li><a href="#prompts">Gerenciador de Prompts (Especialidades)</a></li>
       <li><a href="#dicas">Dicas e Boas Práticas</a></li>
     </ol>
   </nav>
@@ -179,29 +194,60 @@
     </div>
 
     <h3>Esqueci minha senha</h3>
-    <p>Na tela de login, digite seu email e clique em <strong>"Esqueci minha senha"</strong>. Um link de recuperação será enviado para seu email.</p>
+    <p>Na tela de login, digite seu email e clique em <strong>"Esqueci minha senha"</strong>. Um link de recuperação será enviado para seu email, permitindo redefinir sua senha.</p>
   </section>
 
-  <!-- 2. Pacientes -->
+  <!-- 2. Dashboard -->
+  <section id="dashboard">
+    <h2>2. Dashboard e Visão Geral</h2>
+
+    <p>Após o login, a tela inicial exibe um painel com informações resumidas da sua prática:</p>
+
+    <h3>Cards de estatísticas</h3>
+    <ul>
+      <li><strong>Pacientes</strong> – total de pacientes cadastrados</li>
+      <li><strong>Sessões</strong> – total de sessões de exames registradas</li>
+      <li><strong>Alertas pendentes</strong> – marcadores fora da faixa funcional nas sessões mais recentes de cada paciente</li>
+    </ul>
+
+    <h3>Últimas Sessões</h3>
+    <p>A seção "Últimas Sessões" mostra as 8 sessões mais recentes com:</p>
+    <ul>
+      <li>Nome do paciente e data do exame</li>
+      <li>Número de <strong>alertas</strong> (marcadores alterados)</li>
+      <li><strong>Marcadores ausentes</strong> – exames do painel padrão que não foram encontrados na sessão (indicados com ícone laranja)</li>
+    </ul>
+    <p>Clique em qualquer sessão para ir diretamente ao paciente correspondente.</p>
+
+    <h3>Navegação</h3>
+    <p>No cabeçalho, você encontra:</p>
+    <ul>
+      <li><strong>Logo LabTrack</strong> – clique para voltar ao dashboard</li>
+      <li><strong>Prompts IA</strong> – acesso ao gerenciador de prompts de especialidades</li>
+      <li><strong>Email e Sair</strong> – identificação do usuário logado e botão de logout</li>
+    </ul>
+  </section>
+
+  <!-- 3. Pacientes -->
   <section id="pacientes">
-    <h2>2. Gerenciando Pacientes</h2>
+    <h2>3. Gerenciando Pacientes</h2>
 
     <h3>Cadastrando um novo paciente</h3>
     <div class="step">
       <div class="step-num">1</div>
-      <div>Na tela inicial, clique no botão <strong>"Novo paciente"</strong>.</div>
+      <div>Na tela inicial, clique no botão <strong>"Novo Paciente"</strong>.</div>
     </div>
     <div class="step">
       <div class="step-num">2</div>
-      <div>Preencha os campos obrigatórios: <strong>Nome</strong> e <strong>Sexo</strong> (Masculino/Feminino).</div>
+      <div>Preencha os campos obrigatórios: <strong>Nome</strong> e <strong>Sexo biológico</strong> (Feminino/Masculino).</div>
     </div>
     <div class="step">
       <div class="step-num">3</div>
-      <div>Opcionalmente, adicione <strong>data de nascimento</strong>.</div>
+      <div>Opcionalmente, adicione a <strong>data de nascimento</strong> (a idade será calculada automaticamente).</div>
     </div>
     <div class="step">
       <div class="step-num">4</div>
-      <div>Clique em <strong>"Salvar"</strong>.</div>
+      <div>Clique em <strong>"Criar"</strong>.</div>
     </div>
 
     <div class="tip">
@@ -211,52 +257,63 @@
     <h3>Buscando pacientes</h3>
     <p>Use a <strong>barra de busca</strong> na tela inicial para filtrar pacientes pelo nome. A busca é instantânea.</p>
 
-    <h3>Acessando um paciente</h3>
-    <p>Clique no <strong>card do paciente</strong> para acessar sua página de detalhes, onde ficam todos os exames e análises.</p>
+    <h3>Editando o nome do paciente</h3>
+    <p>Na página do paciente, clique no <strong>ícone de lápis</strong> ao lado do nome para editá-lo diretamente. Pressione <kbd>Enter</kbd> para salvar ou <kbd>Esc</kbd> para cancelar.</p>
+
+    <h3>Excluindo um paciente</h3>
+    <p>Na página do paciente, clique no <strong>ícone de lixeira vermelho</strong>. Uma confirmação será solicitada antes da exclusão permanente.</p>
+
+    <div class="warn">
+      <strong>⚠️ Atenção:</strong> A exclusão de um paciente remove também todas as suas sessões, resultados e análises de forma permanente.
+    </div>
   </section>
 
-  <!-- 3. Importar Exames -->
+  <!-- 4. Importar Exames -->
   <section id="importar">
-    <h2>3. Importando Exames (PDF)</h2>
+    <h2>4. Importando Exames (PDF)</h2>
 
-    <p>O LabTrack extrai automaticamente os resultados de exames a partir de PDFs de laboratório.</p>
+    <p>O LabTrack extrai automaticamente os resultados de exames a partir de PDFs de laboratório usando IA.</p>
 
     <div class="step">
       <div class="step-num">1</div>
-      <div>Na página do paciente, clique em <strong>"Importar PDF"</strong>.</div>
+      <div>Na página do paciente, clique em <strong>"Nova Sessão"</strong>.</div>
     </div>
     <div class="step">
       <div class="step-num">2</div>
-      <div>Selecione o arquivo PDF do exame laboratorial.</div>
+      <div>Clique no botão <strong>"Importar PDF"</strong> e selecione um ou mais arquivos PDF.</div>
     </div>
     <div class="step">
       <div class="step-num">3</div>
-      <div>Selecione a <strong>data do exame</strong> (o sistema tenta detectar automaticamente).</div>
+      <div>O sistema processará os PDFs e abrirá a tela de <strong>revisão dos valores extraídos</strong>.</div>
     </div>
     <div class="step">
       <div class="step-num">4</div>
-      <div>O sistema processará o PDF e extrairá os marcadores encontrados.</div>
+      <div>A <strong>data do exame</strong> é detectada automaticamente do PDF. Caso não seja detectada, selecione manualmente no calendário.</div>
     </div>
     <div class="step">
       <div class="step-num">5</div>
-      <div>Revise os resultados na <strong>tela de verificação</strong> antes de confirmar.</div>
+      <div>Após revisar, confirme e clique em <strong>"Salvar"</strong>.</div>
+    </div>
+
+    <div class="new">
+      <strong>🆕 Múltiplos PDFs:</strong> Agora é possível importar vários PDFs de uma vez para a mesma sessão. Basta selecionar múltiplos arquivos ou clicar em <strong>"Adicionar PDF"</strong> para importar PDFs adicionais. Os marcadores são acumulados.
     </div>
 
     <div class="tip">
-      <strong>💡 Dica:</strong> PDFs de laboratórios conhecidos (como DASA, Fleury, etc.) têm melhor taxa de reconhecimento. Se algum marcador não for detectado, você pode adicioná-lo manualmente.
+      <strong>💡 Dica:</strong> PDFs digitais (não escaneados) geram melhores resultados na extração. Laboratórios como DASA, Fleury e similares têm alta taxa de reconhecimento.
     </div>
 
     <div class="warn">
-      <strong>⚠️ Atenção:</strong> Sempre revise os valores extraídos antes de confirmar. A extração automática pode ocasionalmente confundir valores, especialmente em PDFs com formatação não-padrão.
+      <strong>⚠️ Atenção:</strong> Sempre revise os valores extraídos antes de salvar. A extração automática pode ocasionalmente confundir valores em PDFs com formatação não-padrão.
     </div>
   </section>
 
-  <!-- 4. Revisão -->
+  <!-- 5. Revisão -->
   <section id="revisao">
-    <h2>4. Revisão e Correção dos Resultados</h2>
+    <h2>5. Revisão e Correção dos Resultados</h2>
 
-    <h3>Tela de Verificação (pós-importação)</h3>
-    <p>Após a extração do PDF, você verá uma lista com todos os marcadores detectados:</p>
+    <h3>Tela de Revisão (pós-importação)</h3>
+    <p>Após a extração do PDF, uma tela de revisão é aberta automaticamente com todos os marcadores detectados:</p>
     <ul>
       <li><strong>Verde</strong> = valor dentro da faixa funcional</li>
       <li><strong>Vermelho</strong> = valor fora da faixa (alto ou baixo)</li>
@@ -264,19 +321,28 @@
     </ul>
     <p>Você pode <strong>remover</strong> marcadores incorretos ou <strong>corrigir</strong> valores antes de salvar.</p>
 
+    <h3>Botão "Revisar"</h3>
+    <p>Após a importação, o botão <strong>"Revisar"</strong> fica disponível na barra superior da sessão, permitindo reabrir a tela de edição dos valores extraídos a qualquer momento antes de salvar.</p>
+
+    <h3>Tela de Verificação</h3>
+    <p>Após confirmar a revisão, uma segunda tela de <strong>verificação</strong> mostra um resumo final com o texto original do PDF lado a lado para conferência.</p>
+
     <h3>Editando resultados já salvos</h3>
-    <p>Na tabela de evolução, clique no <strong>ícone de edição</strong> na coluna da sessão desejada para modificar valores individuais.</p>
+    <p>Na tabela de evolução, clique no <strong>ícone de edição</strong> na coluna da sessão desejada para reabrir e modificar valores.</p>
   </section>
 
-  <!-- 5. Evolução -->
+  <!-- 6. Evolução -->
   <section id="evolucao">
-    <h2>5. Tabela de Evolução</h2>
+    <h2>6. Tabela de Evolução</h2>
 
     <p>A tabela de evolução é o coração do LabTrack. Ela mostra todos os marcadores do paciente organizados por <strong>categorias</strong> e por <strong>data do exame</strong>.</p>
 
+    <h3>Acessando a tabela</h3>
+    <p>Na página do paciente, clique na aba <strong>"Evolução"</strong> (ícone de gráfico) para alternar da visualização de sessões para a tabela de evolução.</p>
+
     <h3>Navegando pela tabela</h3>
     <ul>
-      <li>As categorias ficam organizadas em abas ou seções colapsáveis (ex: Hemograma, Perfil Lipídico, Tireoide, etc.)</li>
+      <li>As categorias são identificadas por <strong>cores</strong> e organizadas em grupos (Hemograma, Ferro, Glicemia, Lipídios, Tireoide, Hormônios, etc.)</li>
       <li>Cada coluna representa uma <strong>sessão de exame</strong> (data)</li>
       <li>Use a <strong>barra de busca</strong> para encontrar marcadores específicos</li>
     </ul>
@@ -288,26 +354,44 @@
     </ul>
 
     <h3>Referências funcionais vs. laboratoriais</h3>
-    <p>O LabTrack utiliza faixas de referência <strong>funcionais</strong> (baseadas em medicina funcional), que são tipicamente mais estreitas que as faixas convencionais dos laboratórios. Ao passar o mouse sobre um valor, você pode ver os detalhes da referência.</p>
+    <p>O LabTrack utiliza faixas de referência <strong>funcionais</strong> (baseadas em medicina funcional), que são tipicamente mais estreitas que as faixas convencionais dos laboratórios. Os relatórios em PDF incluem ambas as referências para comparação.</p>
   </section>
 
-  <!-- 6. Análise IA -->
+  <!-- 7. Análise IA -->
   <section id="analise">
-    <h2>6. Análise com IA <span class="badge">IA</span></h2>
+    <h2>7. Análise com IA por Especialidade <span class="badge">IA</span></h2>
 
-    <p>O LabTrack conta com inteligência artificial para gerar análises completas dos exames do paciente.</p>
+    <p>O LabTrack conta com inteligência artificial para gerar análises clínicas completas, agora com suporte a <strong>múltiplas especialidades</strong>.</p>
 
+    <h3>Escolhendo a especialidade</h3>
+    <p>Na página do paciente, antes de gerar a análise, selecione a especialidade no <strong>seletor dropdown</strong> ao lado do botão "Análise IA". As especialidades disponíveis incluem:</p>
+    <ul>
+      <li>🧬 <strong>Medicina Funcional</strong> – foco em causas-raiz, medicina integrativa e saúde global</li>
+      <li>🍎 <strong>Nutrologia</strong> – foco em emagrecimento, composição corporal e estado nutricional</li>
+      <li>⚗️ <strong>Endocrinologia</strong> – foco em eixos hormonais, tireoide e metabolismo</li>
+      <li>🧴 <strong>Dermatologia</strong> – foco em marcadores inflamatórios e nutricionais que impactam a pele</li>
+    </ul>
+
+    <div class="new">
+      <strong>🆕 Framework CERTO:</strong> Todos os prompts seguem o padrão <strong>CERTO</strong> (Contexto, Exigência, Referências, Tarefas, Observações), garantindo análises técnicas de alta qualidade com linguagem de <em>médico para médico</em>.
+    </div>
+
+    <h3>Gerando a análise</h3>
     <div class="step">
       <div class="step-num">1</div>
-      <div>Na página do paciente, clique no botão <strong>"Gerar análise"</strong> (ícone de cérebro/IA).</div>
+      <div>Selecione a <strong>especialidade</strong> no dropdown.</div>
     </div>
     <div class="step">
       <div class="step-num">2</div>
-      <div>A IA analisará todos os marcadores disponíveis, considerando o perfil do paciente (sexo, idade, queixas, objetivos).</div>
+      <div>Clique no botão <strong>"Análise IA"</strong> (ícone de cérebro).</div>
     </div>
     <div class="step">
       <div class="step-num">3</div>
-      <div>O resultado incluirá: <strong>resumo clínico</strong>, <strong>marcadores alterados</strong>, <strong>correlações</strong> e <strong>sugestões de protocolo</strong>.</div>
+      <div>A IA analisará todos os marcadores considerando o perfil do paciente e a especialidade selecionada.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>O resultado inclui: <strong>resumo clínico</strong>, <strong>padrões identificados</strong>, <strong>tendências</strong>, <strong>sugestões de conduta</strong> e (se aplicável) <strong>recomendações de protocolos</strong>.</div>
     </div>
 
     <div class="tip">
@@ -315,13 +399,39 @@
     </div>
   </section>
 
-  <!-- 7. Relatórios -->
-  <section id="relatorio">
-    <h2>7. Gerando Relatórios em PDF</h2>
+  <!-- 8. Protocolos -->
+  <section id="protocolos">
+    <h2>8. Protocolos Essentia com IA <span class="badge badge-green">Novo</span></h2>
+
+    <p>O LabTrack pode sugerir <strong>protocolos de injetáveis Essentia Pharma</strong> personalizados com base nos exames do paciente.</p>
 
     <div class="step">
       <div class="step-num">1</div>
-      <div>Na página do paciente, clique no botão <strong>"Gerar PDF"</strong> (ícone de download).</div>
+      <div>Na página do paciente, clique no botão <strong>"Protocolos IA"</strong> (ícone de seringa, verde).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>A IA analisará os marcadores alterados e sugerirá protocolos injetáveis específicos.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>Os protocolos sugeridos são incluídos no relatório PDF quando gerado com análise IA.</div>
+    </div>
+
+    <p>Os protocolos disponíveis incluem: protocolo imunidade, reposição de aminoácidos, vitaminas e minerais, ALA, vitamina D, B12, CoQ10, nanomicelas de curcuminoides e resveratrol, e Morosil.</p>
+
+    <div class="tip">
+      <strong>💡 Dica:</strong> A geração de protocolos depende da especialidade ter a opção "Protocolos Essentia" habilitada no Gerenciador de Prompts.
+    </div>
+  </section>
+
+  <!-- 9. Relatórios -->
+  <section id="relatorio">
+    <h2>9. Gerando Relatórios em PDF</h2>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Na página do paciente, clique no botão <strong>"Exportar PDF"</strong> (ícone de download).</div>
     </div>
     <div class="step">
       <div class="step-num">2</div>
@@ -336,24 +446,26 @@
       <div>Clique em <strong>"Gerar PDF"</strong> para baixar o relatório.</div>
     </div>
 
-    <p>O relatório gerado inclui:</p>
+    <p>O relatório gerado em layout <strong>paisagem</strong> inclui:</p>
     <ul>
-      <li>Dados do paciente</li>
-      <li>Tabela com todos os marcadores, valores e referências</li>
-      <li>Indicação visual de valores alterados</li>
+      <li>Dados do paciente (nome, sexo, idade)</li>
+      <li>Tabela com Marcador, Valor, Unidade, Referência Funcional e Referência Laboratorial</li>
+      <li>Indicação visual com símbolos: ✓ (normal), ↑ (alto), ↓ (baixo)</li>
+      <li>Seção de <strong>Observações</strong> para detalhamento clínico</li>
+      <li>Seção de <strong>Protocolos Essentia Pharma</strong> (quando gerados com IA)</li>
       <li>Data do exame</li>
     </ul>
   </section>
 
-  <!-- 8. Aliases -->
+  <!-- 10. Aliases -->
   <section id="aliases">
-    <h2>8. Configurando Aliases de Marcadores</h2>
+    <h2>10. Configurando Aliases de Marcadores</h2>
 
     <p>Diferentes laboratórios podem usar nomes diferentes para o mesmo exame (ex: "TSH Ultra-Sensível" vs "TSH"). O sistema de <strong>aliases</strong> permite mapear esses nomes alternativos.</p>
 
     <div class="step">
       <div class="step-num">1</div>
-      <div>Na página do paciente, clique no ícone de <strong>engrenagem</strong> (configurações de aliases).</div>
+      <div>Na tela de nova sessão, clique no ícone de <strong>engrenagem ⚙️</strong> (configurações de aliases).</div>
     </div>
     <div class="step">
       <div class="step-num">2</div>
@@ -373,16 +485,16 @@
     </div>
   </section>
 
-  <!-- 9. Perfil -->
+  <!-- 11. Perfil -->
   <section id="perfil">
-    <h2>9. Perfil do Paciente</h2>
+    <h2>11. Perfil do Paciente</h2>
 
-    <p>O perfil do paciente enriquece as análises da IA com contexto clínico.</p>
+    <p>O perfil do paciente enriquece as análises da IA com contexto clínico. Para editar, clique no botão <strong>"Perfil"</strong> (ícone de pessoa, azul) na página do paciente.</p>
 
     <h3>Campos disponíveis</h3>
     <ul>
-      <li><strong>Nome</strong> e <strong>Sexo</strong> (obrigatórios)</li>
-      <li><strong>Data de nascimento</strong> – usada para calcular a idade</li>
+      <li><strong>Nome</strong> e <strong>Sexo</strong> (obrigatórios, definidos no cadastro)</li>
+      <li><strong>Data de nascimento</strong> – usada para calcular a idade automaticamente</li>
       <li><strong>Queixas principais</strong> – sintomas reportados pelo paciente</li>
       <li><strong>Objetivos</strong> – metas de saúde (ex: emagrecimento, performance, longevidade)</li>
       <li><strong>Nível de atividade</strong> – sedentário, leve, moderado, intenso</li>
@@ -390,21 +502,67 @@
       <li><strong>Restrições</strong> – alergias, intolerâncias, restrições alimentares</li>
     </ul>
 
-    <p>Para editar o perfil, clique no <strong>ícone de perfil</strong> na página do paciente.</p>
+    <p>O botão "Perfil" exibe entre parênteses a quantidade de objetivos preenchidos, facilitando a identificação rápida de pacientes com perfil completo.</p>
+
+    <div class="tip">
+      <strong>💡 Dica:</strong> Quanto mais completo o perfil, mais precisa será a análise da IA. Preencha ao menos as queixas e objetivos para melhores resultados.
+    </div>
   </section>
 
-  <!-- 10. Dicas -->
+  <!-- 12. Gerenciador de Prompts -->
+  <section id="prompts">
+    <h2>12. Gerenciador de Prompts <span class="badge badge-green">Novo</span></h2>
+
+    <p>O Gerenciador de Prompts permite configurar os <strong>prompts de análise clínica</strong> enviados à IA para cada especialidade. Acesse pelo botão <strong>"Prompts IA"</strong> no cabeçalho do sistema.</p>
+
+    <h3>Funcionalidades</h3>
+    <ul>
+      <li><strong>Visualizar</strong> todos os prompts configurados com prévia do conteúdo</li>
+      <li><strong>Editar</strong> o prompt, nome, ícone e descrição de cada especialidade</li>
+      <li><strong>Ativar/Desativar</strong> especialidades (somente as ativas aparecem no seletor)</li>
+      <li><strong>Habilitar Protocolos Essentia</strong> por especialidade (toggle individual)</li>
+      <li><strong>Criar novas especialidades</strong> com ID, nome, ícone e prompt personalizado</li>
+      <li><strong>Controle de versão</strong> – cada prompt possui versão e autor registrados</li>
+    </ul>
+
+    <h3>Criando uma nova especialidade</h3>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Clique em <strong>"Nova Especialidade"</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>Preencha o <strong>ID</strong> (slug único, ex: "cardiologia"), <strong>nome</strong>, <strong>ícone</strong> (emoji) e o <strong>prompt do sistema</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>Opcionalmente, habilite o <strong>sistema de Protocolos Essentia</strong> para que a IA sugira injetáveis.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>Clique em <strong>"Criar Especialidade"</strong>.</div>
+    </div>
+
+    <div class="tip">
+      <strong>💡 Dica:</strong> Recomendamos seguir o framework <strong>CERTO</strong> (Contexto, Exigência, Referências, Tarefas, Observações) ao escrever novos prompts para garantir análises consistentes e completas.
+    </div>
+  </section>
+
+  <!-- 13. Dicas -->
   <section id="dicas">
-    <h2>10. Dicas e Boas Práticas</h2>
+    <h2>13. Dicas e Boas Práticas</h2>
 
     <ul>
       <li>📋 <strong>Sempre revise</strong> os valores extraídos do PDF antes de confirmar a importação.</li>
       <li>📅 <strong>Mantenha as datas corretas</strong> – a evolução depende de datas precisas para cada sessão.</li>
       <li>👤 <strong>Preencha o perfil completo</strong> – quanto mais informações sobre o paciente, melhor será a análise da IA.</li>
-      <li>🔍 <strong>Use a busca</strong> para encontrar rapidamente marcadores específicos na tabela de evolução.</li>
+      <li>🔍 <strong>Use a busca</strong> para encontrar rapidamente marcadores na tabela de evolução ou pacientes no dashboard.</li>
       <li>📄 <strong>PDFs de boa qualidade</strong> – PDFs digitais (não escaneados) geram melhores resultados na extração.</li>
-      <li>🔄 <strong>Importe múltiplos exames</strong> – o LabTrack brilha quando há dados de múltiplas datas para comparação da evolução.</li>
+      <li>🔄 <strong>Importe múltiplos exames</strong> – o LabTrack brilha quando há dados de múltiplas datas para comparação.</li>
       <li>⚙️ <strong>Configure aliases</strong> quando um marcador não for reconhecido automaticamente.</li>
+      <li>🧠 <strong>Escolha a especialidade correta</strong> antes de gerar a análise IA para obter condutas mais direcionadas.</li>
+      <li>💉 <strong>Use Protocolos IA</strong> para receber sugestões de injetáveis baseadas nos achados laboratoriais.</li>
+      <li>🎛️ <strong>Personalize os prompts</strong> no Gerenciador para adequar a linguagem e o foco da IA à sua prática clínica.</li>
     </ul>
   </section>
 
@@ -412,7 +570,7 @@
 
 <footer>
   <p>LabTrack – Acompanhamento Inteligente de Exames Laboratoriais</p>
-  <p>Manual v1.0 – Março 2026</p>
+  <p>Manual v2.0 – Março 2026</p>
 </footer>
 
 </body>

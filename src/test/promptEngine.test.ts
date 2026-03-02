@@ -469,7 +469,8 @@ describe("Prompt Engine — Seleção de Especialidade e Carregamento de Prompt"
 
     it("specialty_id undefined usa fallback (default medicina_funcional)", () => {
       // Simula: const specialtyId = body.specialty_id ?? "medicina_funcional"
-      const specialtyId = undefined ?? "medicina_funcional";
+      const raw: string | undefined = undefined;
+      const specialtyId = raw ?? "medicina_funcional";
       const result = loadPromptForSpecialty(specialtyId);
       expect(result.activeSystemPrompt).toContain("medicina funcional");
       expect(result.specialtyHasProtocols).toBe(true);
