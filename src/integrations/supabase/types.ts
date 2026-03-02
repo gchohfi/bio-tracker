@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      analysis_prompts: {
+        Row: {
+          author: string | null
+          created_at: string | null
+          description: string | null
+          has_protocols: boolean | null
+          id: string
+          is_active: boolean | null
+          specialty_icon: string | null
+          specialty_id: string
+          specialty_name: string
+          system_prompt: string
+          updated_at: string | null
+          version: string | null
+        }
+        Insert: {
+          author?: string | null
+          created_at?: string | null
+          description?: string | null
+          has_protocols?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          specialty_icon?: string | null
+          specialty_id: string
+          specialty_name: string
+          system_prompt: string
+          updated_at?: string | null
+          version?: string | null
+        }
+        Update: {
+          author?: string | null
+          created_at?: string | null
+          description?: string | null
+          has_protocols?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          specialty_icon?: string | null
+          specialty_id?: string
+          specialty_name?: string
+          system_prompt?: string
+          updated_at?: string | null
+          version?: string | null
+        }
+        Relationships: []
+      }
       lab_results: {
         Row: {
           created_at: string

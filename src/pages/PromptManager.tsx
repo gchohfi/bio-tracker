@@ -59,7 +59,7 @@ export default function PromptManager() {
   const loadPrompts = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("analysis_prompts")
         .select("*")
         .order("specialty_name");
@@ -81,7 +81,7 @@ export default function PromptManager() {
     if (!editingPrompt) return;
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("analysis_prompts")
         .update({
           specialty_name: editingPrompt.specialty_name,
@@ -106,7 +106,7 @@ export default function PromptManager() {
 
   const handleToggleActive = async (prompt: AnalysisPrompt) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("analysis_prompts")
         .update({ is_active: !prompt.is_active })
         .eq("id", prompt.id);
@@ -125,7 +125,7 @@ export default function PromptManager() {
     }
     setSaving(true);
     try {
-      const { error } = await supabase.from("analysis_prompts").insert({
+      const { error } = await (supabase as any).from("analysis_prompts").insert({
         specialty_id: newPrompt.specialty_id.toLowerCase().replace(/\s+/g, "_"),
         specialty_name: newPrompt.specialty_name,
         specialty_icon: newPrompt.specialty_icon,
