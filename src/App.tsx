@@ -10,6 +10,7 @@ import PatientDetail from "./pages/PatientDetail";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import PromptManager from "./pages/PromptManager";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <PatientDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/prompts"
+              element={
+                <ProtectedRoute>
+                  <PromptManager />
                 </ProtectedRoute>
               }
             />

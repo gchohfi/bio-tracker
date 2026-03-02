@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
@@ -37,6 +38,7 @@ import {
   UserCircle2,
   Brain,
   Syringe,
+  Sliders,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
 import ImportVerification from "@/components/ImportVerification";
@@ -259,11 +261,29 @@ export default function PatientDetail() {
   const [reportEditOpen, setReportEditOpen] = useState(false);
   const [reportResults, setReportResults] = useState<any[]>([]);
   const [reportWithAI, setReportWithAI] = useState(false);
+  const [selectedSpecialty, setSelectedSpecialty] = useState("medicina_funcional");
+  const [availableSpecialties, setAvailableSpecialties] = useState<Array<{ specialty_id: string; specialty_name: string; specialty_icon: string; has_protocols: boolean }>>([]);
 
   useEffect(() => {
     if (!id) return;
     fetchData();
+    loadSpecialties();
   }, [id]);
+
+  const loadSpecialties = async () => {
+    try {
+      const { data } = await supabase
+        .from("analysis_prompts")
+        .select("specialty_id, specialty_name, specialty_icon, has_protocols")
+        .eq("is_active", true)
+        .order("specialty_name");
+      if (data && data.length > 0) {
+        setAvailableSpecialties(data);
+      }
+    } catch {
+      // Silently fail — table may not exist yet
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -492,6 +512,7 @@ export default function PatientDetail() {
           results: enriched,
           mode: "analysis_only",
           patient_profile: buildPatientProfile(),
+          specialty_id: selectedSpecialty,
         },
       });
       if (error) throw error;
@@ -1081,22 +1102,49 @@ export default function PatientDetail() {
                   Exportar PDF
                 </Button>
 
-                {/* Análise de Exames com IA */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateAnalysis}
-                  disabled={isAnalyzing || isGeneratingProtocols}
-                  className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
-                  title="Gera análise clínica dos exames com IA"
-                >
-                  {isAnalyzing ? (
-                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Brain className="mr-1.5 h-4 w-4" />
+                {/* Seletor de especialidade + Análise IA */}
+                <div className="flex items-center gap-1">
+                  {availableSpecialties.length > 0 && (
+                    <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
+                      <SelectTrigger className="h-8 w-auto text-xs border-indigo-200 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-50 gap-1 px-2">
+                        <SelectValue>
+                          {(() => {
+                            const sp = availableSpecialties.find(s => s.specialty_id === selectedSpecialty);
+                            return sp ? `${sp.specialty_icon} ${sp.specialty_name}` : selectedSpecialty;
+                          })()}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableSpecialties.map((sp) => (
+                          <SelectItem key={sp.specialty_id} value={sp.specialty_id}>
+                            <span className="flex items-center gap-2">
+                              <span>{sp.specialty_icon}</span>
+                              <span>{sp.specialty_name}</span>
+                              {sp.has_protocols && (
+                                <span className="text-xs text-emerald-600">(+ Protocolos)</span>
+                              )}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   )}
-                  {isAnalyzing ? "Analisando..." : "Análise IA"}
-                </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateAnalysis}
+                    disabled={isAnalyzing || isGeneratingProtocols}
+                    className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                    title="Gera análise clínica dos exames com IA"
+                  >
+                    {isAnalyzing ? (
+                      <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Brain className="mr-1.5 h-4 w-4" />
+                    )}
+                    {isAnalyzing ? "Analisando..." : "Análise IA"}
+                  </Button>
+                </div>
 
                 {/* Protocolos Sugeridos com IA */}
                 <Button

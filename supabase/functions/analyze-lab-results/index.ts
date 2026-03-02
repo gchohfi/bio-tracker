@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,6 +35,7 @@ interface AnalysisRequest {
   results: MarkerResult[];
   mode?: "full" | "analysis_only" | "protocols_only";
   patient_profile?: PatientProfile | null;
+  specialty_id?: string; // ID da especialidade para carregar o prompt do banco
 }
 
 interface ProtocolRecommendation {
@@ -803,6 +805,33 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
+    // ── Prompt Engine: carregar prompt do banco por especialidade ──
+    const specialtyId = body.specialty_id ?? "medicina_funcional";
+    let activeSystemPrompt = SYSTEM_PROMPT; // fallback para o prompt hardcoded
+    let specialtyHasProtocols = true;
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
+      if (supabaseUrl && supabaseKey) {
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        const { data: promptData, error: promptError } = await supabase
+          .from("analysis_prompts")
+          .select("system_prompt, has_protocols")
+          .eq("specialty_id", specialtyId)
+          .eq("is_active", true)
+          .single();
+        if (!promptError && promptData?.system_prompt) {
+          activeSystemPrompt = promptData.system_prompt;
+          specialtyHasProtocols = promptData.has_protocols ?? false;
+          console.log(`Loaded prompt for specialty: ${specialtyId}`);
+        } else {
+          console.warn(`Prompt not found for specialty '${specialtyId}', using default. Error: ${promptError?.message}`);
+        }
+      }
+    } catch (promptLoadError) {
+      console.warn("Failed to load prompt from DB, using default:", promptLoadError);
+    }
+
     // Camada 1+2: Score de ativos terapêuticos
     const abnormalResults = body.results.filter(
       (r) => r.status === "low" || r.status === "high" || r.status === "critical_low" || r.status === "critical_high"
@@ -810,16 +839,20 @@ serve(async (req) => {
     const objectives = body.patient_profile?.objectives ?? [];
     const scoredActives = scoreActives(abnormalResults, body.sex, objectives);
 
-    // Camada 3: Mapear ativos → protocolos Essentia
-    const topActiveIds = scoredActives.slice(0, 8).map((sa) => sa.active.id);
-    const matchedProtocols = matchProtocolsByActives(topActiveIds, body.sex);
+    // Camada 3: Mapear ativos → protocolos Essentia (apenas para especialidades com protocolos)
+    const topActiveIds = specialtyHasProtocols ? scoredActives.slice(0, 8).map((sa) => sa.active.id) : [];
+    const matchedProtocols = specialtyHasProtocols ? matchProtocolsByActives(topActiveIds, body.sex) : [];
 
-    const userPrompt = buildUserPrompt(body, scoredActives, matchedProtocols);
+    // Se a especialidade não tem protocolos, forçar modo analysis_only
+    const effectiveMode = !specialtyHasProtocols ? "analysis_only" : (body.mode ?? "full");
+    const bodyWithMode = { ...body, mode: effectiveMode };
+
+    const userPrompt = buildUserPrompt(bodyWithMode, scoredActives, matchedProtocols);
 
     console.log(
-      `Analyzing ${body.results.length} markers for ${body.patient_name} | ` +
+      `Analyzing ${body.results.length} markers for ${body.patient_name} | specialty: ${specialtyId} | ` +
       `${abnormalResults.length} abnormal | ${scoredActives.length} actives scored | ` +
-      `${matchedProtocols.length} protocols matched`
+      `${matchedProtocols.length} protocols matched | has_protocols: ${specialtyHasProtocols}`
     );
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -833,7 +866,7 @@ serve(async (req) => {
         temperature: 0.25,
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: activeSystemPrompt },
           { role: "user", content: userPrompt },
         ],
       }),
@@ -864,7 +897,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ analysis }),
+      JSON.stringify({ analysis, specialty_id: specialtyId }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
