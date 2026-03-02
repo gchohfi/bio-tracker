@@ -542,7 +542,7 @@ export default function PatientDetail() {
       }
       const { data: analysisData, error } = await supabase.functions.invoke("analyze-lab-results", {
         body: {
-          patient_name: patient.name, sex: patient.sex, birth_date: patient.birth_date,
+          patient_id: patient.id, patient_name: patient.name, sex: patient.sex, birth_date: patient.birth_date,
           sessions: sessions.map((s) => ({ id: s.id, session_date: s.session_date })),
           results: enriched,
           mode: "analysis_only",
@@ -615,7 +615,7 @@ export default function PatientDetail() {
       const enriched = buildEnrichedResults(results);
       const { data: analysisData, error } = await supabase.functions.invoke("analyze-lab-results", {
         body: {
-          patient_name: patient.name, sex: patient.sex, birth_date: patient.birth_date,
+          patient_id: patient.id, patient_name: patient.name, sex: patient.sex, birth_date: patient.birth_date,
           sessions: sessions.map((s) => ({ id: s.id, session_date: s.session_date })),
           results: enriched,
           mode: "protocols_only",
@@ -660,6 +660,7 @@ export default function PatientDetail() {
       }
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke("analyze-lab-results", {
         body: {
+          patient_id: patient.id,
           patient_name: patient.name,
           sex: patient.sex,
           birth_date: patient.birth_date,

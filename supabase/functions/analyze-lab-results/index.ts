@@ -29,6 +29,7 @@ interface PatientProfile {
 
 interface AnalysisRequest {
   patient_name: string;
+  patient_id?: string;
   sex: "M" | "F";
   birth_date?: string;
   sessions: Array<{ id: string; session_date: string }>;
@@ -1065,7 +1066,7 @@ serve(async (req) => {
         if (practitionerId) {
           logClient.from("ai_call_logs").insert({
             practitioner_id: practitionerId,
-            patient_id: (body as any).patient_id ?? null,
+            patient_id: body.patient_id ?? null,
             specialty_id: specialtyId,
             mode: effectiveMode,
             input_tokens: usage?.prompt_tokens ?? null,
