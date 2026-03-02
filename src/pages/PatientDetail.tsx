@@ -522,6 +522,11 @@ export default function PatientDetail() {
     toast({ title: "Gerando análise de exames...", description: "Aguarde alguns segundos." });
     try {
       const enriched = buildEnrichedResults(results);
+      if (enriched.length === 0) {
+        toast({ title: "Sem dados", description: "Nenhum resultado laboratorial encontrado para analisar.", variant: "destructive" });
+        setIsAnalyzing(false);
+        return;
+      }
       const { data: analysisData, error } = await supabase.functions.invoke("analyze-lab-results", {
         body: {
           patient_name: patient.name, sex: patient.sex, birth_date: patient.birth_date,
@@ -624,6 +629,11 @@ export default function PatientDetail() {
     toast({ title: "Gerando análise completa com IA...", description: "Isso pode levar alguns segundos." });
     try {
       const enrichedResults = buildEnrichedResults(updatedResults);
+      if (enrichedResults.length === 0) {
+        toast({ title: "Sem dados", description: "Nenhum resultado laboratorial encontrado para analisar.", variant: "destructive" });
+        setIsAnalyzing(false);
+        return;
+      }
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke("analyze-lab-results", {
         body: {
           patient_name: patient.name,

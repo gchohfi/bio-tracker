@@ -801,13 +801,112 @@ function buildUserPrompt(
 
   // Instruções por modo
   if (mode === "analysis_only") {
-    prompt += `\nMODO: Gere APENAS a análise clínica. Retorne "protocol_recommendations" como array vazio.\n`;
+    prompt += `\nMODO: Gere APENAS a análise clínica (summary, patterns, trends, suggestions, full_text, technical_analysis, patient_plan). Retorne "protocol_recommendations" como array vazio e "prescription_table" como array vazio.\n`;
   } else if (mode === "protocols_only") {
     prompt += `\nMODO: Gere APENAS as recomendações de protocolos. Retorne summary, patterns, trends, suggestions e full_text como strings/arrays vazios.\n`;
   }
 
   prompt += `\nRetorne um JSON com a análise clínica estruturada conforme o formato especificado.`;
   return prompt;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ROBUST FALLBACK: Extract partial analysis from truncated/malformed JSON
+// ══════════════════════════════════════════════════════════════════════════════
+function extractPartialAnalysis(raw: string): AnalysisResponse {
+  const result: AnalysisResponse = {
+    summary: "",
+    patterns: [],
+    trends: [],
+    suggestions: [],
+    full_text: raw,
+    protocol_recommendations: [],
+  };
+
+  // Try to fix truncated JSON by closing open brackets/braces
+  const fixedJson = tryFixTruncatedJson(raw);
+  if (fixedJson) {
+    try {
+      const parsed = JSON.parse(fixedJson);
+      return {
+        summary: parsed.summary ?? "",
+        patterns: parsed.patterns ?? [],
+        trends: parsed.trends ?? [],
+        suggestions: parsed.suggestions ?? [],
+        full_text: parsed.full_text ?? raw,
+        technical_analysis: parsed.technical_analysis,
+        patient_plan: parsed.patient_plan,
+        prescription_table: parsed.prescription_table,
+        protocol_recommendations: parsed.protocol_recommendations ?? [],
+      };
+    } catch { /* fall through to regex extraction */ }
+  }
+
+  // Regex extraction as last resort
+  const extractString = (key: string): string | undefined => {
+    const regex = new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)`, "s");
+    const match = raw.match(regex);
+    return match?.[1]?.replace(/\\n/g, "\n").replace(/\\"/g, '"');
+  };
+
+  const extractArray = (key: string): string[] => {
+    const regex = new RegExp(`"${key}"\\s*:\\s*\\[([^\\]]*)`, "s");
+    const match = raw.match(regex);
+    if (!match) return [];
+    try {
+      return JSON.parse(`[${match[1]}]`);
+    } catch {
+      // Extract quoted strings
+      const items: string[] = [];
+      const strRegex = /"((?:[^"\\]|\\.)*)"/g;
+      let m;
+      while ((m = strRegex.exec(match[1])) !== null) items.push(m[1]);
+      return items;
+    }
+  };
+
+  result.summary = extractString("summary") ?? raw.slice(0, 300);
+  result.technical_analysis = extractString("technical_analysis");
+  result.patient_plan = extractString("patient_plan");
+  result.patterns = extractArray("patterns");
+  result.trends = extractArray("trends");
+  result.suggestions = extractArray("suggestions");
+
+  console.log(
+    `Partial extraction: summary=${!!result.summary} technical=${!!result.technical_analysis} ` +
+    `plan=${!!result.patient_plan} patterns=${result.patterns.length}`
+  );
+
+  return result;
+}
+
+function tryFixTruncatedJson(raw: string): string | null {
+  let s = raw.trim();
+  // Remove markdown code fences if present
+  if (s.startsWith("```")) {
+    s = s.replace(/^```(?:json)?\s*/, "").replace(/```\s*$/, "").trim();
+  }
+  if (!s.startsWith("{")) return null;
+
+  // Count open/close braces and brackets
+  let braces = 0, brackets = 0, inString = false, escaped = false;
+  for (const ch of s) {
+    if (escaped) { escaped = false; continue; }
+    if (ch === "\\") { escaped = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === "{") braces++;
+    if (ch === "}") braces--;
+    if (ch === "[") brackets++;
+    if (ch === "]") brackets--;
+  }
+
+  // Close any remaining open structures
+  if (inString) s += '"';
+  while (brackets > 0) { s += "]"; brackets--; }
+  while (braces > 0) { s += "}"; braces--; }
+
+  return s;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -890,6 +989,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         temperature: 0.25,
+        max_tokens: 16384,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: activeSystemPrompt },
@@ -901,29 +1001,50 @@ serve(async (req) => {
     if (!response.ok) {
       const errText = await response.text();
       console.error("AI gateway error:", errText);
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit excedido. Tente novamente em alguns instantes." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Créditos insuficientes. Adicione créditos ao workspace." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       throw new Error(`AI gateway returned ${response.status}: ${errText}`);
     }
 
     const aiResponse = await response.json();
     const content = aiResponse.choices?.[0]?.message?.content;
+    const finishReason = aiResponse.choices?.[0]?.finish_reason;
+    const usage = aiResponse.usage;
+
+    console.log(
+      `AI response | finish_reason: ${finishReason} | ` +
+      `completion_tokens: ${usage?.completion_tokens ?? "?"} | ` +
+      `content_length: ${content?.length ?? 0}`
+    );
+
     if (!content) throw new Error("Empty response from AI");
+
+    if (finishReason === "length") {
+      console.warn("⚠ Response was TRUNCATED (finish_reason=length). Attempting partial extraction.");
+    }
 
     let analysis: AnalysisResponse;
     try {
       analysis = JSON.parse(content);
-    } catch {
-      analysis = {
-        summary: content.slice(0, 300),
-        patterns: [],
-        trends: [],
-        suggestions: [],
-        full_text: content,
-        protocol_recommendations: [],
-      };
+    } catch (parseError) {
+      console.warn("JSON.parse failed, attempting robust extraction:", (parseError as Error).message);
+      analysis = extractPartialAnalysis(content);
     }
 
     return new Response(
-      JSON.stringify({ analysis, specialty_id: specialtyId }),
+      JSON.stringify({
+        analysis,
+        specialty_id: specialtyId,
+        _diagnostics: { finish_reason: finishReason, completion_tokens: usage?.completion_tokens, content_length: content.length },
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
