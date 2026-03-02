@@ -238,7 +238,9 @@ export default function PatientDetail() {
   const [activeCategory, setActiveCategory] = useState<Category>("Hemograma");
   const [markerValues, setMarkerValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [detailTab, setDetailTab] = useState<"sessions" | "evolution">("sessions");
+  const [detailTab, setDetailTab] = useState<"sessions" | "evolution" | "analysis">("sessions");
+  const [savedAnalyses, setSavedAnalyses] = useState<any[]>([]);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
   const [extracting, setExtracting] = useState(false);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const [editingName, setEditingName] = useState(false);
@@ -264,10 +266,25 @@ export default function PatientDetail() {
   const [selectedSpecialty, setSelectedSpecialty] = useState("medicina_funcional");
   const [availableSpecialties, setAvailableSpecialties] = useState<Array<{ specialty_id: string; specialty_name: string; specialty_icon: string; has_protocols: boolean }>>([]);
 
+  // ── Carregar análises salvas ─────────────────────────────────────────
+  const loadSavedAnalyses = async () => {
+    if (!id) return;
+    const { data } = await (supabase as any)
+      .from("patient_analyses")
+      .select("*")
+      .eq("patient_id", id)
+      .order("created_at", { ascending: false });
+    if (data) {
+      setSavedAnalyses(data);
+      if (data.length > 0) setSelectedAnalysis(data[0]);
+    }
+  };
+
   useEffect(() => {
     if (!id) return;
     fetchData();
     loadSpecialties();
+    loadSavedAnalyses();
   }, [id]);
 
   const loadSpecialties = async () => {
@@ -522,8 +539,30 @@ export default function PatientDetail() {
         ? { ...analysis, protocol_recommendations: cachedProtocols }
         : analysis;
       setCachedAiAnalysis(merged);
-      generatePatientReport(patient.name, sex, sessions, results, merged);
-      toast({ title: "Análise de exames exportada!" });
+      // Salvar análise no banco
+      const sp = availableSpecialties.find(s => s.specialty_id === selectedSpecialty);
+      const { data: savedData, error: saveError } = await (supabase as any)
+        .from("patient_analyses")
+        .insert({
+          patient_id: patient.id,
+          specialty_id: selectedSpecialty,
+          specialty_name: sp?.specialty_name ?? selectedSpecialty,
+          mode: "analysis_only",
+          summary: analysis?.summary ?? null,
+          patterns: analysis?.patterns ?? [],
+          trends: analysis?.trends ?? [],
+          suggestions: analysis?.suggestions ?? [],
+          full_text: analysis?.full_text ?? null,
+          protocol_recommendations: merged?.protocol_recommendations ?? [],
+        })
+        .select()
+        .single();
+      if (savedData) {
+        setSavedAnalyses(prev => [savedData, ...prev]);
+        setSelectedAnalysis(savedData);
+        setDetailTab("analysis");
+      }
+      toast({ title: "✅ Análise gerada e salva!", description: "Visualize na aba Análise IA." });
     } catch (err: any) {
       toast({ title: "Erro na análise", description: err.message, variant: "destructive" });
     } finally {
@@ -1175,8 +1214,8 @@ export default function PatientDetail() {
           </div>
         </div>
 
-        {/* Tabs for Sessions and Evolution */}
-        <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "sessions" | "evolution")}>
+        {/* Tabs for Sessions, Evolution and AI Analysis */}
+        <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "sessions" | "evolution" | "analysis")}>
           <TabsList>
             <TabsTrigger value="sessions" className="gap-1.5">
               <FlaskConical className="h-3.5 w-3.5" />
@@ -1185,6 +1224,13 @@ export default function PatientDetail() {
             <TabsTrigger value="evolution" className="gap-1.5">
               <BarChart3 className="h-3.5 w-3.5" />
               Evolução
+            </TabsTrigger>
+            <TabsTrigger value="analysis" className="gap-1.5">
+              <Brain className="h-3.5 w-3.5" />
+              Análise IA
+              {savedAnalyses.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{savedAnalyses.length}</Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -1245,6 +1291,156 @@ export default function PatientDetail() {
 
           <TabsContent value="evolution" className="mt-4">
             <EvolutionTable patientId={patient.id} sessions={sessions} sex={sex} />
+          </TabsContent>
+
+          <TabsContent value="analysis" className="mt-4">
+            {savedAnalyses.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <Brain className="mb-4 h-12 w-12 text-muted-foreground/50" />
+                  <p className="text-lg font-medium">Nenhuma análise gerada ainda</p>
+                  <p className="text-sm text-muted-foreground">
+                    Clique em "✨ Análise IA" para gerar a primeira análise com IA
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {/* Selector de análises anteriores */}
+                {savedAnalyses.length > 1 && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-muted-foreground font-medium">Histórico:</span>
+                    {savedAnalyses.map((a, i) => (
+                      <button
+                        key={a.id}
+                        onClick={() => setSelectedAnalysis(a)}
+                        className={cn(
+                          "text-xs px-2 py-1 rounded-full border transition-colors",
+                          selectedAnalysis?.id === a.id
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background hover:bg-muted border-border"
+                        )}
+                      >
+                        {a.specialty_name ?? a.specialty_id} • {format(parseISO(a.created_at), "dd/MM/yy HH:mm")}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Conteúdo da análise selecionada */}
+                {selectedAnalysis && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Brain className="h-4 w-4 text-primary" />
+                            {selectedAnalysis.specialty_name ?? selectedAnalysis.specialty_id}
+                          </CardTitle>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Gerado em {format(parseISO(selectedAnalysis.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const sessionIds = sessions.map(s => s.id);
+                            supabase.from("lab_results").select("*").in("session_id", sessionIds).then(({ data }) => {
+                              const results = (data || []).map(r => ({
+                                marker_id: r.marker_id, session_id: r.session_id,
+                                value: r.value ?? 0, text_value: r.text_value ?? undefined,
+                                lab_ref_min: r.lab_ref_min ?? undefined, lab_ref_max: r.lab_ref_max ?? undefined, lab_ref_text: r.lab_ref_text ?? undefined,
+                              }));
+                              generatePatientReport(patient.name, sex, sessions, results, selectedAnalysis);
+                            });
+                          }}
+                          className="gap-1.5"
+                        >
+                          <FileDown className="h-3.5 w-3.5" />
+                          Exportar PDF
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Resumo */}
+                      {selectedAnalysis.summary && (
+                        <div className="rounded-lg bg-muted/50 p-4">
+                          <p className="text-sm font-medium mb-1 text-primary">Visão Geral</p>
+                          <p className="text-sm leading-relaxed">{selectedAnalysis.summary}</p>
+                        </div>
+                      )}
+
+                      {/* Padrões clínicos */}
+                      {selectedAnalysis.patterns && (selectedAnalysis.patterns as any[]).length > 0 && (
+                        <div>
+                          <p className="text-sm font-medium mb-2 text-primary">Padrões Clínicos</p>
+                          <div className="space-y-2">
+                            {(selectedAnalysis.patterns as any[]).map((p: any, i: number) => (
+                              <div key={i} className="flex items-start gap-2 text-sm">
+                                <Badge variant="outline" className={cn(
+                                  "text-[10px] h-5 shrink-0 mt-0.5",
+                                  p.severity === "critical" && "border-red-500 text-red-600",
+                                  p.severity === "high" && "border-orange-500 text-orange-600",
+                                  p.severity === "medium" && "border-yellow-500 text-yellow-600",
+                                  p.severity === "low" && "border-blue-500 text-blue-600",
+                                )}>{p.severity ?? "info"}</Badge>
+                                <div>
+                                  <span className="font-medium">{p.name}</span>
+                                  {p.description && <span className="text-muted-foreground"> — {p.description}</span>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Análise narrativa completa (full_text com 3 documentos) */}
+                      {selectedAnalysis.full_text && (
+                        <div>
+                          <p className="text-sm font-medium mb-2 text-primary">Análise Completa</p>
+                          <div className="rounded-lg border bg-background p-4 text-sm leading-relaxed whitespace-pre-wrap font-mono text-xs max-h-[600px] overflow-y-auto">
+                            {selectedAnalysis.full_text}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sugestões */}
+                      {selectedAnalysis.suggestions && (selectedAnalysis.suggestions as any[]).length > 0 && (
+                        <div>
+                          <p className="text-sm font-medium mb-2 text-primary">Exames Complementares Sugeridos</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {(selectedAnalysis.suggestions as any[]).map((s: any, i: number) => (
+                              <Badge key={i} variant="secondary" className="text-xs">
+                                {typeof s === "string" ? s : s.exam ?? s.name ?? JSON.stringify(s)}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Protocolos */}
+                      {selectedAnalysis.protocol_recommendations && (selectedAnalysis.protocol_recommendations as any[]).length > 0 && (
+                        <div>
+                          <p className="text-sm font-medium mb-2 text-primary">Protocolos Essentia Sugeridos</p>
+                          <div className="space-y-2">
+                            {(selectedAnalysis.protocol_recommendations as any[]).map((p: any, i: number) => (
+                              <div key={i} className="rounded-lg border p-3">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="font-medium text-sm">{p.protocol_name ?? p.name}</span>
+                                  <Badge variant="outline" className="text-[10px]">{p.priority ?? "sugerido"}</Badge>
+                                </div>
+                                {p.justification && <p className="text-xs text-muted-foreground">{p.justification}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
