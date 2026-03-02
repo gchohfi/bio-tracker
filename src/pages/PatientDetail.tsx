@@ -1432,21 +1432,29 @@ export default function PatientDetail() {
                         <div>
                           <p className="text-sm font-medium mb-2 text-primary">Padrões Clínicos</p>
                           <div className="space-y-2">
-                            {(selectedAnalysis.patterns as any[]).map((p: any, i: number) => (
-                              <div key={i} className="flex items-start gap-2 text-sm">
-                                <Badge variant="outline" className={cn(
-                                  "text-[10px] h-5 shrink-0 mt-0.5",
-                                  p.severity === "critical" && "border-red-500 text-red-600",
-                                  p.severity === "high" && "border-orange-500 text-orange-600",
-                                  p.severity === "medium" && "border-yellow-500 text-yellow-600",
-                                  p.severity === "low" && "border-blue-500 text-blue-600",
-                                )}>{p.severity ?? "info"}</Badge>
-                                <div>
-                                  <span className="font-medium">{p.name}</span>
-                                  {p.description && <span className="text-muted-foreground"> — {p.description}</span>}
+                            {(selectedAnalysis.patterns as any[]).map((p: any, i: number) => {
+                              const isString = typeof p === "string";
+                              const name = isString ? p : p.name;
+                              const description = isString ? null : p.description;
+                              const severity = isString ? null : p.severity;
+                              return (
+                                <div key={i} className="flex items-start gap-2 text-sm">
+                                  {severity && (
+                                    <Badge variant="outline" className={cn(
+                                      "text-[10px] h-5 shrink-0 mt-0.5",
+                                      severity === "critical" && "border-red-500 text-red-600",
+                                      severity === "high" && "border-orange-500 text-orange-600",
+                                      severity === "medium" && "border-yellow-500 text-yellow-600",
+                                      severity === "low" && "border-blue-500 text-blue-600",
+                                    )}>{severity}</Badge>
+                                  )}
+                                  <div>
+                                    <span className="font-medium">{name}</span>
+                                    {description && <span className="text-muted-foreground"> — {description}</span>}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}
