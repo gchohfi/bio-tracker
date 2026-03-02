@@ -509,6 +509,18 @@ export default function PatientDetail() {
     };
   };
 
+  // ── Helper: map AI errors to user-friendly toasts ──────────────────────
+  const handleAiError = (err: any, title: string) => {
+    const status = err?.context?.status ?? err?.status;
+    if (status === 429) {
+      toast({ title, description: "Limite de requisições atingido. Aguarde alguns instantes e tente novamente.", variant: "destructive" });
+    } else if (status === 402) {
+      toast({ title, description: "Créditos insuficientes. Verifique seu plano.", variant: "destructive" });
+    } else {
+      toast({ title, description: err.message || "Erro desconhecido", variant: "destructive" });
+    }
+  };
+
   // ── Gerar Análise de Exames (somente análise clínica, sem protocolos) ──
   const handleGenerateAnalysis = async () => {
     if (!patient) return;
@@ -540,6 +552,14 @@ export default function PatientDetail() {
       });
       if (error) throw error;
       const analysis = analysisData?.analysis;
+      // Log diagnostics
+      if (analysisData?._diagnostics) {
+        console.log("[AI Diagnostics]", analysisData._diagnostics);
+      }
+      // Warn if truncated
+      if (analysisData?._truncated) {
+        toast({ title: "⚠ Análise possivelmente incompleta", description: "A resposta da IA foi truncada. Considere usar o modo 'Somente Análise' para respostas menores.", variant: "destructive" });
+      }
       // Merge with existing cached protocols if any
       const merged = cachedProtocols.length > 0
         ? { ...analysis, protocol_recommendations: cachedProtocols }
@@ -573,7 +593,7 @@ export default function PatientDetail() {
       }
       toast({ title: "✅ Análise gerada e salva!", description: "Visualize na aba Análise IA." });
     } catch (err: any) {
-      toast({ title: "Erro na análise", description: err.message, variant: "destructive" });
+      handleAiError(err, "Erro na análise");
     } finally {
       setIsAnalyzing(false);
     }
@@ -603,16 +623,19 @@ export default function PatientDetail() {
         },
       });
       if (error) throw error;
+      if (analysisData?._diagnostics) console.log("[AI Diagnostics]", analysisData._diagnostics);
+      if (analysisData?._truncated) {
+        toast({ title: "⚠ Protocolos possivelmente incompletos", description: "A resposta da IA foi truncada.", variant: "destructive" });
+      }
       const protocols = analysisData?.analysis?.protocol_recommendations ?? [];
       setCachedProtocols(protocols);
-      // Merge with existing cached analysis if any
       const merged = cachedAiAnalysis
         ? { ...cachedAiAnalysis, protocol_recommendations: protocols }
         : { protocol_recommendations: protocols };
       generatePatientReport(patient.name, sex, sessions, results, merged);
       toast({ title: `${protocols.length} protocolo(s) sugerido(s) exportado(s)!` });
     } catch (err: any) {
-      toast({ title: "Erro nos protocolos", description: err.message, variant: "destructive" });
+      handleAiError(err, "Erro nos protocolos");
     } finally {
       setIsGeneratingProtocols(false);
     }
@@ -647,12 +670,16 @@ export default function PatientDetail() {
         },
       });
       if (analysisError) throw analysisError;
+      if (analysisData?._diagnostics) console.log("[AI Diagnostics]", analysisData._diagnostics);
+      if (analysisData?._truncated) {
+        toast({ title: "⚠ Análise possivelmente incompleta", description: "A resposta da IA foi truncada. Considere gerar a análise e os protocolos separadamente.", variant: "destructive" });
+      }
       setCachedAiAnalysis(analysisData?.analysis);
       setCachedProtocols(analysisData?.analysis?.protocol_recommendations ?? []);
       generatePatientReport(patient.name, sex, sessions, updatedResults, analysisData?.analysis);
       toast({ title: "Relatório completo com IA exportado!" });
     } catch (err: any) {
-      toast({ title: "Erro na análise de IA", description: err.message, variant: "destructive" });
+      handleAiError(err, "Erro na análise de IA");
     } finally {
       setIsAnalyzing(false);
     }

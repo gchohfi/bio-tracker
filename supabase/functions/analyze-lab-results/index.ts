@@ -980,6 +980,14 @@ serve(async (req) => {
       `${matchedProtocols.length} protocols matched | has_protocols: ${specialtyHasProtocols}`
     );
 
+    // ── Dynamic max_tokens by mode ──
+    const MAX_TOKENS_BY_MODE: Record<string, number> = {
+      analysis_only: 6000,
+      protocols_only: 8000,
+      full: 16384,
+    };
+    const maxTokens = MAX_TOKENS_BY_MODE[effectiveMode] ?? 16384;
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -989,7 +997,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         temperature: 0.25,
-        max_tokens: 16384,
+        max_tokens: maxTokens,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: activeSystemPrompt },
@@ -1039,11 +1047,20 @@ serve(async (req) => {
       analysis = extractPartialAnalysis(content);
     }
 
+    const isTruncated = finishReason === "length";
+
     return new Response(
       JSON.stringify({
         analysis,
         specialty_id: specialtyId,
-        _diagnostics: { finish_reason: finishReason, completion_tokens: usage?.completion_tokens, content_length: content.length },
+        _truncated: isTruncated,
+        _diagnostics: {
+          finish_reason: finishReason,
+          completion_tokens: usage?.completion_tokens,
+          content_length: content.length,
+          max_tokens: maxTokens,
+          mode: effectiveMode,
+        },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
