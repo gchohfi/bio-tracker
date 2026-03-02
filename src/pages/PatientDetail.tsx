@@ -47,6 +47,7 @@ import EditReportDialog from "@/components/EditReportDialog";
 import AliasConfigDialog, { loadCustomAliases } from "@/components/AliasConfigDialog";
 import { PatientProfileDialog } from "@/components/PatientProfileDialog";
 import { generatePatientReport } from "@/lib/generateReport";
+import { exportPrescriptionCSV } from "@/lib/exportPrescriptionCSV";
 import {
   CATEGORIES,
   CATEGORY_COLORS,
@@ -1373,6 +1374,20 @@ export default function PatientDetail() {
                           <FileDown className="h-3.5 w-3.5" />
                           Exportar PDF
                         </Button>
+                        {selectedAnalysis.prescription_table && (selectedAnalysis.prescription_table as any[]).length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              exportPrescriptionCSV(selectedAnalysis.prescription_table as any[], patient.name);
+                              toast({ title: "Prescrição exportada como planilha!" });
+                            }}
+                            className="gap-1.5"
+                          >
+                            <FileDown className="h-3.5 w-3.5" />
+                            Prescrição (Planilha)
+                          </Button>
+                        )}
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
