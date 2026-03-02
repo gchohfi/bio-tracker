@@ -770,6 +770,8 @@ export function generatePatientReport(
       doc.addPage();
       aiY = 16;
       const PURPLE = { r: 100, g: 60, b: 160 };
+
+      // ── Cabeçalho da seção ──
       doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
       doc.roundedRect(14, aiY - 4, pageW - 28, 12, 2, 2, "F");
       doc.setFontSize(11);
@@ -782,7 +784,85 @@ export function generatePatientReport(
       doc.text("Dosagens exatas • Vias de administração • Contraindicações • Monitorização", pageW - 16, aiY + 3, { align: "right" });
       aiY += 16;
 
-      // Table headers
+      // ── Tabela com autoTable ──
+      const tableRows = aiAnalysis.prescription_table.map((row) => [
+        row.substancia ?? "",
+        row.dose ?? "",
+        row.via ?? "",
+        row.frequencia ?? "",
+        row.duracao ?? "",
+        row.condicoes_ci ?? "",
+        row.monitorizacao ?? "",
+      ]);
+
+      autoTable(doc, {
+        startY: aiY,
+        head: [["Substância", "Dose", "Via", "Frequência", "Duração", "Condições/CI", "Monitorização"]],
+        body: tableRows,
+        margin: { left: 14, right: 14 },
+        tableWidth: pageW - 28,
+        styles: {
+          fontSize: 7.5,
+          cellPadding: { top: 3, right: 3, bottom: 3, left: 3 },
+          valign: "middle",
+          textColor: [40, 40, 40],
+          lineColor: [210, 215, 225],
+          lineWidth: 0.2,
+          overflow: "linebreak",
+          font: "helvetica",
+        },
+        headStyles: {
+          fillColor: [PURPLE.r, PURPLE.g, PURPLE.b],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          fontSize: 8,
+          cellPadding: { top: 4, right: 3, bottom: 4, left: 3 },
+          halign: "left",
+        },
+        alternateRowStyles: {
+          fillColor: [245, 243, 252],
+        },
+        bodyStyles: {
+          fillColor: [255, 255, 255],
+        },
+        columnStyles: {
+          0: { cellWidth: 38, fontStyle: "bold" },  // Substância
+          1: { cellWidth: 22, halign: "center" },   // Dose
+          2: { cellWidth: 18, halign: "center" },   // Via
+          3: { cellWidth: 28, halign: "center" },   // Frequência
+          4: { cellWidth: 22, halign: "center" },   // Duração
+          5: { cellWidth: "auto" },                 // Condições/CI
+          6: { cellWidth: "auto" },                 // Monitorização
+        },
+        didParseCell: (data) => {
+          // Destacar o cabeçalho com linha inferior mais espessa
+          if (data.section === "head") {
+            data.cell.styles.lineWidth = 0;
+          }
+        },
+        didDrawPage: () => {
+          // Manter aiY sincronizado após quebras de página automáticas
+        },
+      });
+
+      aiY = (doc as any).lastAutoTable.finalY + 8;
+
+      // Nota de rodapé da tabela
+      if (aiY < pageH - 20) {
+        doc.setFontSize(6.5);
+        doc.setFont("helvetica", "italic");
+        doc.setTextColor(GRAY.r, GRAY.g, GRAY.b);
+        doc.text(
+          "CI = Contraindicações. Esta prescrição é uma sugestão gerada por IA e deve ser validada pelo médico responsável antes da dispensação.",
+          14,
+          aiY,
+          { maxWidth: pageW - 28 }
+        );
+      }
+
+      // Bloco legado removido — mantido apenas para compatibilidade de compilação
+      if (false) {
+      // Table headers (legado — não utilizado)
       const cols = [
         { header: "Substância", width: 40 },
         { header: "Dose", width: 25 },
@@ -854,6 +934,7 @@ export function generatePatientReport(
         doc.line(14, aiY + rowH, pageW - 14, aiY + rowH);
         aiY += rowH;
       }
+      } // fim bloco legado
     }
 
     // ── Protocol Recommendations ──
