@@ -236,6 +236,16 @@ export interface ProtocolRecommendation {
   priority: "alta" | "media" | "baixa";
 }
 
+export interface PrescriptionRow {
+  substancia: string;
+  dose: string;
+  via: string;
+  frequencia: string;
+  duracao: string;
+  condicoes_ci: string;
+  monitorizacao: string;
+}
+
 export interface AiAnalysis {
   summary: string;
   alerts: string[];
@@ -243,6 +253,9 @@ export interface AiAnalysis {
   trends: string[];
   suggestions: string[];
   full_text: string;
+  technical_analysis?: string;
+  patient_plan?: string;
+  prescription_table?: PrescriptionRow[];
   protocol_recommendations?: ProtocolRecommendation[];
 }
 
@@ -661,8 +674,42 @@ export function generatePatientReport(
       aiY += 5;
     }
 
-    // Full narrative text
-    if (aiAnalysis.full_text) {
+    // ── Documento 1: Análise Técnica Completa ──
+    if (aiAnalysis.technical_analysis) {
+      doc.addPage();
+      aiY = 16;
+      // Doc header
+      doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
+      doc.roundedRect(14, aiY - 4, pageW - 28, 12, 2, 2, "F");
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      doc.text("DOCUMENTO 1 — ANÁLISE TÉCNICA COMPLETA", 20, aiY + 3);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(180, 200, 220);
+      doc.text("Faixas funcionais • Cálculos mostrados • Correlações clínicas", pageW - 16, aiY + 3, { align: "right" });
+      aiY += 16;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(40, 40, 40);
+      const techLines = doc.splitTextToSize(aiAnalysis.technical_analysis, pageW - 28);
+      for (const line of techLines) {
+        if (aiY > pageH - 20) { doc.addPage(); aiY = 16; }
+        // Bold section headers (lines starting with ##)
+        if (line.startsWith("##") || line.startsWith("**")) {
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(BRAND.r, BRAND.g, BRAND.b);
+          doc.text(line.replace(/^#+\s*|\*\*/g, ""), 14, aiY);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(40, 40, 40);
+        } else {
+          doc.text(line, 14, aiY);
+        }
+        aiY += 4.5;
+      }
+    } else if (aiAnalysis.full_text) {
+      // Fallback: exibir full_text se technical_analysis não existir
       if (aiY > pageH - 50) { doc.addPage(); aiY = 16; }
       doc.setDrawColor(200, 210, 220);
       doc.setLineWidth(0.3);
@@ -677,14 +724,135 @@ export function generatePatientReport(
       doc.setFontSize(8);
       doc.setTextColor(40, 40, 40);
       const fullLines = doc.splitTextToSize(aiAnalysis.full_text, pageW - 28);
-      // Handle page breaks within full text
       for (const line of fullLines) {
-        if (aiY > pageH - 20) {
-          doc.addPage();
-          aiY = 16;
-        }
+        if (aiY > pageH - 20) { doc.addPage(); aiY = 16; }
         doc.text(line, 14, aiY);
         aiY += 4.5;
+      }
+    }
+
+    // ── Documento 2: Plano de Condutas ──
+    if (aiAnalysis.patient_plan) {
+      doc.addPage();
+      aiY = 16;
+      doc.setFillColor(ACCENT.r, ACCENT.g, ACCENT.b);
+      doc.roundedRect(14, aiY - 4, pageW - 28, 12, 2, 2, "F");
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      doc.text("DOCUMENTO 2 — PLANO DE CONDUTAS", 20, aiY + 3);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(200, 240, 235);
+      doc.text("Estilo de vida • Suplementação • Injetáveis indicados • Acompanhamento", pageW - 16, aiY + 3, { align: "right" });
+      aiY += 16;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(40, 40, 40);
+      const planLines = doc.splitTextToSize(aiAnalysis.patient_plan, pageW - 28);
+      for (const line of planLines) {
+        if (aiY > pageH - 20) { doc.addPage(); aiY = 16; }
+        if (line.startsWith("##") || line.startsWith("**")) {
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(ACCENT.r, ACCENT.g, ACCENT.b);
+          doc.text(line.replace(/^#+\s*|\*\*/g, ""), 14, aiY);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(40, 40, 40);
+        } else {
+          doc.text(line, 14, aiY);
+        }
+        aiY += 4.5;
+      }
+    }
+
+    // ── Documento 3: Prescrição em Tabela ──
+    if (aiAnalysis.prescription_table && aiAnalysis.prescription_table.length > 0) {
+      doc.addPage();
+      aiY = 16;
+      const PURPLE = { r: 100, g: 60, b: 160 };
+      doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+      doc.roundedRect(14, aiY - 4, pageW - 28, 12, 2, 2, "F");
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      doc.text("DOCUMENTO 3 — PRESCRIÇÃO DETALHADA", 20, aiY + 3);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(220, 200, 255);
+      doc.text("Dosagens exatas • Vias de administração • Contraindicações • Monitorização", pageW - 16, aiY + 3, { align: "right" });
+      aiY += 16;
+
+      // Table headers
+      const cols = [
+        { header: "Substância", width: 40 },
+        { header: "Dose", width: 25 },
+        { header: "Via", width: 20 },
+        { header: "Frequência", width: 30 },
+        { header: "Duração", width: 25 },
+        { header: "Cond./CI", width: 50 },
+        { header: "Monitorização", width: 0 }, // fill remaining
+      ];
+      const totalFixed = cols.slice(0, -1).reduce((s, c) => s + c.width, 0);
+      cols[cols.length - 1].width = pageW - 28 - totalFixed;
+
+      // Header row
+      doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
+      doc.roundedRect(14, aiY, pageW - 28, 8, 1, 1, "F");
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      let colX = 14;
+      for (const col of cols) {
+        doc.text(col.header, colX + 2, aiY + 5);
+        colX += col.width;
+      }
+      aiY += 10;
+
+      // Data rows
+      let rowBg = false;
+      for (const row of aiAnalysis.prescription_table) {
+        const cells = [
+          row.substancia,
+          row.dose,
+          row.via,
+          row.frequencia,
+          row.duracao,
+          row.condicoes_ci,
+          row.monitorizacao,
+        ];
+        // Calculate row height based on longest cell
+        let maxLines = 1;
+        colX = 14;
+        for (let i = 0; i < cells.length; i++) {
+          const cellLines = doc.splitTextToSize(cells[i] ?? "", cols[i].width - 4);
+          if (cellLines.length > maxLines) maxLines = cellLines.length;
+        }
+        const rowH = maxLines * 4 + 4;
+        if (aiY + rowH > pageH - 20) { doc.addPage(); aiY = 16; }
+
+        // Row background
+        if (rowBg) {
+          doc.setFillColor(245, 247, 252);
+          doc.roundedRect(14, aiY, pageW - 28, rowH, 0.5, 0.5, "F");
+        }
+        rowBg = !rowBg;
+
+        // Cell content
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.setTextColor(40, 40, 40);
+        colX = 14;
+        for (let i = 0; i < cells.length; i++) {
+          const cellLines = doc.splitTextToSize(cells[i] ?? "", cols[i].width - 4);
+          doc.text(cellLines, colX + 2, aiY + 4);
+          colX += cols[i].width;
+        }
+
+        // Subtle separator
+        doc.setDrawColor(220, 225, 235);
+        doc.setLineWidth(0.2);
+        doc.line(14, aiY + rowH, pageW - 14, aiY + rowH);
+        aiY += rowH;
       }
     }
 

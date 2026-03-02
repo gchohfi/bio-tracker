@@ -49,12 +49,25 @@ interface ProtocolRecommendation {
   key_actives: string[];
 }
 
+interface PrescriptionRow {
+  substancia: string;
+  dose: string;
+  via: string;
+  frequencia: string;
+  duracao: string;
+  condicoes_ci: string;
+  monitorizacao: string;
+}
+
 interface AnalysisResponse {
   summary: string;
   patterns: string[];
   trends: string[];
   suggestions: string[];
   full_text: string;
+  technical_analysis?: string;    // Documento 1: análise técnica com faixas funcionais
+  patient_plan?: string;          // Documento 2: plano de condutas resumido
+  prescription_table?: PrescriptionRow[]; // Documento 3: prescrição em tabela
   protocol_recommendations?: ProtocolRecommendation[];
 }
 
@@ -647,6 +660,19 @@ FORMATO DE SAÍDA (JSON estrito):
   "trends": ["Tendências entre sessões — destacar melhorias"],
   "suggestions": ["Sugestões de exames complementares — apenas quando clinicamente justificado"],
   "full_text": "Análise narrativa completa em 3-5 parágrafos. Tom equilibrado e profissional.",
+  "technical_analysis": "DOCUMENTO 1 — ANÁLISE TÉCNICA COMPLETA: texto detalhado com faixas funcionais, cálculos mostrados (ex: HOMA-IR = glicose × insulina / 405), correlações entre marcadores, exames recebidos listados com unidades, exames ausentes sinalizados.",
+  "patient_plan": "DOCUMENTO 2 — PLANO DE CONDUTAS: mudanças de estilo de vida, suplementação oral, injetáveis indicados (quando aplicável), acompanhamento proposto. Texto corrido, linguagem acessível para o paciente.",
+  "prescription_table": [
+    {
+      "substancia": "Nome do ativo ou medicamento",
+      "dose": "Dose exata com unidade",
+      "via": "Oral / EV / IM / Sublingual",
+      "frequencia": "Frequência de uso",
+      "duracao": "Duração do tratamento",
+      "condicoes_ci": "Condições de uso ou contraindicações relevantes",
+      "monitorizacao": "O que monitorar durante o uso"
+    }
+  ],
   "protocol_recommendations": [
     {
       "protocol_id": "EV X.X",

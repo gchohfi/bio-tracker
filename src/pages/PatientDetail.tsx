@@ -553,6 +553,9 @@ export default function PatientDetail() {
           trends: analysis?.trends ?? [],
           suggestions: analysis?.suggestions ?? [],
           full_text: analysis?.full_text ?? null,
+          technical_analysis: analysis?.technical_analysis ?? null,
+          patient_plan: analysis?.patient_plan ?? null,
+          prescription_table: analysis?.prescription_table ?? [],
           protocol_recommendations: merged?.protocol_recommendations ?? [],
         })
         .select()
