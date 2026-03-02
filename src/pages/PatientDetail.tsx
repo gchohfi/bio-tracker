@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
@@ -278,6 +279,23 @@ export default function PatientDetail() {
     if (data) {
       setSavedAnalyses(data);
       if (data.length > 0) setSelectedAnalysis(data[0]);
+    }
+  };
+
+  const handleDeleteAnalysis = async (analysisId: string) => {
+    const { error } = await (supabase as any)
+      .from("patient_analyses")
+      .delete()
+      .eq("id", analysisId);
+    if (error) {
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Análise excluída com sucesso" });
+    const updated = savedAnalyses.filter(a => a.id !== analysisId);
+    setSavedAnalyses(updated);
+    if (selectedAnalysis?.id === analysisId) {
+      setSelectedAnalysis(updated.length > 0 ? updated[0] : null);
     }
   };
 
@@ -1353,18 +1371,40 @@ export default function PatientDetail() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs text-muted-foreground font-medium">Histórico:</span>
                     {savedAnalyses.map((a, i) => (
-                      <button
-                        key={a.id}
-                        onClick={() => setSelectedAnalysis(a)}
-                        className={cn(
-                          "text-xs px-2 py-1 rounded-full border transition-colors",
-                          selectedAnalysis?.id === a.id
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-background hover:bg-muted border-border"
-                        )}
-                      >
-                        {a.specialty_name ?? a.specialty_id} • {format(parseISO(a.created_at), "dd/MM/yy HH:mm")}
-                      </button>
+                      <div key={a.id} className="flex items-center gap-0.5">
+                        <button
+                          onClick={() => setSelectedAnalysis(a)}
+                          className={cn(
+                            "text-xs px-2 py-1 rounded-full border transition-colors",
+                            selectedAnalysis?.id === a.id
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background hover:bg-muted border-border"
+                          )}
+                        >
+                          {a.specialty_name ?? a.specialty_id} • {format(parseISO(a.created_at), "dd/MM/yy HH:mm")}
+                        </button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button className="p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Excluir análise">
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir análise?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                A análise de {a.specialty_name ?? a.specialty_id} gerada em {format(parseISO(a.created_at), "dd/MM/yyyy HH:mm")} será excluída permanentemente.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteAnalysis(a.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -1383,39 +1423,63 @@ export default function PatientDetail() {
                             Gerado em {format(parseISO(selectedAnalysis.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
                           </p>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const sessionIds = sessions.map(s => s.id);
-                            supabase.from("lab_results").select("*").in("session_id", sessionIds).then(({ data }) => {
-                              const results = (data || []).map(r => ({
-                                marker_id: r.marker_id, session_id: r.session_id,
-                                value: r.value ?? 0, text_value: r.text_value ?? undefined,
-                                lab_ref_min: r.lab_ref_min ?? undefined, lab_ref_max: r.lab_ref_max ?? undefined, lab_ref_text: r.lab_ref_text ?? undefined,
-                              }));
-                              generatePatientReport(patient.name, sex, sessions, results, selectedAnalysis);
-                            });
-                          }}
-                          className="gap-1.5"
-                        >
-                          <FileDown className="h-3.5 w-3.5" />
-                          Exportar PDF
-                        </Button>
-                        {selectedAnalysis.prescription_table && (selectedAnalysis.prescription_table as any[]).length > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive">
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Excluir
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir análise?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta ação não pode ser desfeita. A análise será removida permanentemente.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteAnalysis(selectedAnalysis.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              exportPrescriptionCSV(selectedAnalysis.prescription_table as any[], patient.name);
-                              toast({ title: "Prescrição exportada como planilha!" });
+                              const sessionIds = sessions.map(s => s.id);
+                              supabase.from("lab_results").select("*").in("session_id", sessionIds).then(({ data }) => {
+                                const results = (data || []).map(r => ({
+                                  marker_id: r.marker_id, session_id: r.session_id,
+                                  value: r.value ?? 0, text_value: r.text_value ?? undefined,
+                                  lab_ref_min: r.lab_ref_min ?? undefined, lab_ref_max: r.lab_ref_max ?? undefined, lab_ref_text: r.lab_ref_text ?? undefined,
+                                }));
+                                generatePatientReport(patient.name, sex, sessions, results, selectedAnalysis);
+                              });
                             }}
                             className="gap-1.5"
                           >
                             <FileDown className="h-3.5 w-3.5" />
-                            Prescrição (Planilha)
+                            Exportar PDF
                           </Button>
-                        )}
+                          {selectedAnalysis.prescription_table && (selectedAnalysis.prescription_table as any[]).length > 0 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                exportPrescriptionCSV(selectedAnalysis.prescription_table as any[], patient.name);
+                                toast({ title: "Prescrição exportada como planilha!" });
+                              }}
+                              className="gap-1.5"
+                            >
+                              <FileDown className="h-3.5 w-3.5" />
+                              Prescrição (Planilha)
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
