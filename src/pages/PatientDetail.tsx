@@ -469,7 +469,7 @@ export default function PatientDetail() {
       });
 
       if (allResults.length > 0) {
-        const { error } = await supabase.from("lab_results").insert(allResults as LabResult["Insert"][]);
+        const { error } = await supabase.from("lab_results").insert(allResults);
         if (error) throw error;
       }
 
@@ -933,7 +933,7 @@ export default function PatientDetail() {
             setSessionDate(parsed);
             setExtractedExamDate(firstExamDate);
           }
-        } catch { /* intentional: ignore parse errors for extracted date */ }
+        } catch (e) { /* intentional: ignore date parse errors for extracted exam date */ console.debug("Date parse skipped:", e); }
       }
 
       // Open edit dialog first, then verification
