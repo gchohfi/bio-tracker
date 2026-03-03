@@ -463,7 +463,9 @@ export function generatePatientReport(
       }
       const val = resultMap[m.id]?.[latestSession.id];
       if (val !== undefined) {
-        if (getMarkerStatus(val, m, sex) !== "normal") alertCount++;
+        const textVal = textResultMap[m.id]?.[latestSession.id];
+        const operatorParsed = textVal ? parseOperatorValue(textVal) : null;
+        if (getMarkerStatus(val, m, sex, operatorParsed?.operator) !== "normal") alertCount++;
         else normalCount++;
       }
     });
