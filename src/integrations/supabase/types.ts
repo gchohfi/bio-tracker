@@ -185,6 +185,244 @@ export type Database = {
           },
         ]
       }
+      patient_anamneses: {
+        Row: {
+          id: string
+          patient_id: string
+          specialty_id: string
+          expectativa_consulta: string | null
+          queixas_principais: string | null
+          objetivos: string | null
+          nota_saude: number | null
+          o_que_melhoraria: string | null
+          fase_melhor: string | null
+          evento_marcante: string | null
+          comorbidades: string | null
+          peso_altura: string | null
+          suplementacao: string | null
+          medicamentos_continuos: string | null
+          tipo_sanguineo: string | null
+          estado_pele: string | null
+          estado_cabelos: string | null
+          estado_unhas: string | null
+          memoria_concentracao: string | null
+          imunidade: string | null
+          consumo_cafe: string | null
+          habitos: string[] | null
+          sintomas_atuais: string[] | null
+          evacuacoes_por_dia: string | null
+          tipo_fezes: string | null
+          uso_antibiotico_2anos: string | null
+          estufamento_gases: string | null
+          litros_agua_dia: string | null
+          dorme_bem: string | null
+          horario_sono: string | null
+          acorda_cansado: string | null
+          dificuldade_dormir: string | null
+          nivel_estresse: number | null
+          faz_terapia: string | null
+          atividade_relaxamento: string | null
+          hobbies: string | null
+          atividade_fisica: string | null
+          recordatorio_alimentar: string | null
+          intolerancias_alimentares: string | null
+          episodios_compulsao: string | null
+          culpa_apos_comer: string | null
+          preferencias_alimentares: string | null
+          aversoes_alimentares: string | null
+          ciclo_regular: string | null
+          metodo_contraceptivo: string | null
+          deseja_engravidar: string | null
+          tem_tpm: string | null
+          specialty_data: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          patient_id: string
+          specialty_id: string
+          expectativa_consulta?: string | null
+          queixas_principais?: string | null
+          objetivos?: string | null
+          nota_saude?: number | null
+          o_que_melhoraria?: string | null
+          fase_melhor?: string | null
+          evento_marcante?: string | null
+          comorbidades?: string | null
+          peso_altura?: string | null
+          suplementacao?: string | null
+          medicamentos_continuos?: string | null
+          tipo_sanguineo?: string | null
+          estado_pele?: string | null
+          estado_cabelos?: string | null
+          estado_unhas?: string | null
+          memoria_concentracao?: string | null
+          imunidade?: string | null
+          consumo_cafe?: string | null
+          habitos?: string[] | null
+          sintomas_atuais?: string[] | null
+          evacuacoes_por_dia?: string | null
+          tipo_fezes?: string | null
+          uso_antibiotico_2anos?: string | null
+          estufamento_gases?: string | null
+          litros_agua_dia?: string | null
+          dorme_bem?: string | null
+          horario_sono?: string | null
+          acorda_cansado?: string | null
+          dificuldade_dormir?: string | null
+          nivel_estresse?: number | null
+          faz_terapia?: string | null
+          atividade_relaxamento?: string | null
+          hobbies?: string | null
+          atividade_fisica?: string | null
+          recordatorio_alimentar?: string | null
+          intolerancias_alimentares?: string | null
+          episodios_compulsao?: string | null
+          culpa_apos_comer?: string | null
+          preferencias_alimentares?: string | null
+          aversoes_alimentares?: string | null
+          ciclo_regular?: string | null
+          metodo_contraceptivo?: string | null
+          deseja_engravidar?: string | null
+          tem_tpm?: string | null
+          specialty_data?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          patient_id?: string
+          specialty_id?: string
+          expectativa_consulta?: string | null
+          queixas_principais?: string | null
+          objetivos?: string | null
+          nota_saude?: number | null
+          o_que_melhoraria?: string | null
+          fase_melhor?: string | null
+          evento_marcante?: string | null
+          comorbidades?: string | null
+          peso_altura?: string | null
+          suplementacao?: string | null
+          medicamentos_continuos?: string | null
+          tipo_sanguineo?: string | null
+          estado_pele?: string | null
+          estado_cabelos?: string | null
+          estado_unhas?: string | null
+          memoria_concentracao?: string | null
+          imunidade?: string | null
+          consumo_cafe?: string | null
+          habitos?: string[] | null
+          sintomas_atuais?: string[] | null
+          evacuacoes_por_dia?: string | null
+          tipo_fezes?: string | null
+          uso_antibiotico_2anos?: string | null
+          estufamento_gases?: string | null
+          litros_agua_dia?: string | null
+          dorme_bem?: string | null
+          horario_sono?: string | null
+          acorda_cansado?: string | null
+          dificuldade_dormir?: string | null
+          nivel_estresse?: number | null
+          faz_terapia?: string | null
+          atividade_relaxamento?: string | null
+          hobbies?: string | null
+          atividade_fisica?: string | null
+          recordatorio_alimentar?: string | null
+          intolerancias_alimentares?: string | null
+          episodios_compulsao?: string | null
+          culpa_apos_comer?: string | null
+          preferencias_alimentares?: string | null
+          aversoes_alimentares?: string | null
+          ciclo_regular?: string | null
+          metodo_contraceptivo?: string | null
+          deseja_engravidar?: string | null
+          tem_tpm?: string | null
+          specialty_data?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_anamneses_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_specialty_notes: {
+        Row: {
+          id: string
+          patient_id: string
+          specialty_id: string
+          impressao_clinica: string | null
+          hipoteses_diagnosticas: string | null
+          foco_consulta: string | null
+          observacoes_exames: string | null
+          conduta_planejada: string | null
+          pontos_atencao: string | null
+          medicamentos_prescritos: string | null
+          resposta_tratamento: string | null
+          proximos_passos: string | null
+          notas_livres: string | null
+          exames_em_dia: boolean | null
+          adesao_tratamento: string | null
+          motivacao_paciente: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          patient_id: string
+          specialty_id?: string
+          impressao_clinica?: string | null
+          hipoteses_diagnosticas?: string | null
+          foco_consulta?: string | null
+          observacoes_exames?: string | null
+          conduta_planejada?: string | null
+          pontos_atencao?: string | null
+          medicamentos_prescritos?: string | null
+          resposta_tratamento?: string | null
+          proximos_passos?: string | null
+          notas_livres?: string | null
+          exames_em_dia?: boolean | null
+          adesao_tratamento?: string | null
+          motivacao_paciente?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          patient_id?: string
+          specialty_id?: string
+          impressao_clinica?: string | null
+          hipoteses_diagnosticas?: string | null
+          foco_consulta?: string | null
+          observacoes_exames?: string | null
+          conduta_planejada?: string | null
+          pontos_atencao?: string | null
+          medicamentos_prescritos?: string | null
+          resposta_tratamento?: string | null
+          proximos_passos?: string | null
+          notas_livres?: string | null
+          exames_em_dia?: boolean | null
+          adesao_tratamento?: string | null
+          motivacao_paciente?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_specialty_notes_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_analyses: {
         Row: {
           created_at: string

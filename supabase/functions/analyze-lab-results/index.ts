@@ -694,8 +694,12 @@ FORMATO DE SAÍDA (JSON estrito):
 function buildUserPrompt(
   req: AnalysisRequest,
   scoredActives: ScoredActive[],
-  matchedProtocols: Array<{ protocol: EssentiaProtocol; coverage: number; matched_actives: string[] }>
+  matchedProtocols: Array<{ protocol: EssentiaProtocol; coverage: number; matched_actives: string[] }>,
+  specialtyIdOverride?: string
 ): string {
+  // Referências funcionais apenas para Nutrologia; demais especialidades usam ref. do laboratório
+  const activeSpecialty = specialtyIdOverride ?? req.specialty_id ?? "medicina_funcional";
+  const useFunctionalRefs = activeSpecialty === "nutrologia";
   const age = req.birth_date
     ? Math.floor((Date.now() - new Date(req.birth_date).getTime()) / (365.25 * 24 * 3600 * 1000))
     : null;
@@ -733,8 +737,8 @@ function buildUserPrompt(
     const labRefStr = (r as any).lab_min !== undefined && (r as any).lab_max !== undefined
       ? `(ref. lab: ${(r as any).lab_min}–${(r as any).lab_max} ${r.unit})`
       : "";
-    // Referência funcional (contexto adicional para a IA)
-    const funcRefStr = r.functional_min !== undefined && r.functional_max !== undefined
+    // Referência funcional: apenas para Nutrologia
+    const funcRefStr = useFunctionalRefs && r.functional_min !== undefined && r.functional_max !== undefined
       ? `[faixa funcional: ${r.functional_min}–${r.functional_max}]`
       : "";
     const statusLabels: Record<string, string> = {
@@ -746,8 +750,8 @@ function buildUserPrompt(
   prompt += `\nMARCADORES DENTRO DA FAIXA LABORATORIAL (${normal.length}):\n`;
   for (const r of normal) {
     const valueStr = r.value !== null ? `${r.value} ${r.unit}` : r.text_value ?? "—";
-    // Incluir referência funcional se diferente da laboratorial (para contexto clínico)
-    const funcRefStr = r.functional_min !== undefined && r.functional_max !== undefined
+    // Referência funcional: apenas para Nutrologia
+    const funcRefStr = useFunctionalRefs && r.functional_min !== undefined && r.functional_max !== undefined
       ? `[faixa funcional: ${r.functional_min}–${r.functional_max}]`
       : "";
     prompt += `- ${r.marker_name}: ${valueStr} ${funcRefStr} [${r.session_date}]\n`;
@@ -1059,6 +1063,47 @@ serve(async (req) => {
       }
     }
 
+    // ── Buscar notas clínicas do médico para enriquecer o prompt ──
+    let doctorNotesContext = "";
+    if (body.patient_id) {
+      try {
+        const supabaseUrl3 = Deno.env.get("SUPABASE_URL");
+        const supabaseKey3 = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
+        if (supabaseUrl3 && supabaseKey3) {
+          const supabaseClient3 = createClient(supabaseUrl3, supabaseKey3);
+          const { data: notesData } = await supabaseClient3
+            .from("doctor_specialty_notes")
+            .select("*")
+            .eq("patient_id", body.patient_id)
+            .eq("specialty_id", specialtyId)
+            .single();
+          if (notesData) {
+            const n = notesData as Record<string, unknown>;
+            const noteLines: string[] = [];
+            if (n.impressao_clinica) noteLines.push(`Impressao clinica: ${n.impressao_clinica}`);
+            if (n.hipoteses_diagnosticas) noteLines.push(`Hipoteses diagnosticas: ${n.hipoteses_diagnosticas}`);
+            if (n.foco_consulta) noteLines.push(`Foco desta consulta: ${n.foco_consulta}`);
+            if (n.observacoes_exames) noteLines.push(`Observacoes sobre exames: ${n.observacoes_exames}`);
+            if (n.conduta_planejada) noteLines.push(`Conduta planejada: ${n.conduta_planejada}`);
+            if (n.pontos_atencao) noteLines.push(`Pontos de atencao: ${n.pontos_atencao}`);
+            if (n.medicamentos_prescritos) noteLines.push(`Medicamentos ja prescritos: ${n.medicamentos_prescritos}`);
+            if (n.resposta_tratamento) noteLines.push(`Resposta ao tratamento anterior: ${n.resposta_tratamento}`);
+            if (n.proximos_passos) noteLines.push(`Proximos passos planejados: ${n.proximos_passos}`);
+            if (n.notas_livres) noteLines.push(`Notas adicionais: ${n.notas_livres}`);
+            if (n.adesao_tratamento) noteLines.push(`Adesao ao tratamento: ${n.adesao_tratamento}`);
+            if (n.motivacao_paciente) noteLines.push(`Motivacao do paciente: ${n.motivacao_paciente}`);
+            if (n.exames_em_dia !== null) noteLines.push(`Exames em dia: ${n.exames_em_dia ? 'sim' : 'nao'}`);
+            if (noteLines.length > 0) {
+              doctorNotesContext = `\nNOTAS CLINICAS DO MEDICO (${specialtyId.replace(/_/g, " ")}):\n` + noteLines.map(l => `- ${l}`).join("\n") + "\n";
+              console.log(`Doctor notes loaded: ${noteLines.length} fields for patient ${body.patient_id}`);
+            }
+          }
+        }
+      } catch (notesError) {
+        console.warn("Failed to load doctor notes:", notesError);
+      }
+    }
+
     // Camada 1+2: Score de ativos terapeuticos
     const abnormalResults = body.results.filter(
       (r) => r.status === "low" || r.status === "high" || r.status === "critical_low" || r.status === "critical_high"
@@ -1074,10 +1119,12 @@ serve(async (req) => {
     const effectiveMode = !specialtyHasProtocols ? "analysis_only" : (body.mode ?? "full");
     const bodyWithMode = { ...body, mode: effectiveMode };
 
-     const userPromptBase = buildUserPrompt(bodyWithMode, scoredActives, matchedProtocols);
+     const userPromptBase = buildUserPrompt(bodyWithMode, scoredActives, matchedProtocols, specialtyId);
     // Injetar anamnese no prompt logo apos os dados do paciente (antes dos marcadores)
-    const userPrompt = anamneseContext
-      ? userPromptBase.replace("\nMARCADORES FORA DA FAIXA", anamneseContext + "\nMARCADORES FORA DA FAIXA")
+    // Combinar anamnese + notas do médico no prompt
+    const combinedContext = (anamneseContext || "") + (doctorNotesContext || "");
+    const userPrompt = combinedContext
+      ? userPromptBase.replace("\nMARCADORES FORA DA FAIXA", combinedContext + "\nMARCADORES FORA DA FAIXA")
       : userPromptBase;
     console.log(
       `Analyzing ${body.results.length} markers for ${body.patient_name} | specialty: ${specialtyId} | ` +

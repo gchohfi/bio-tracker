@@ -41,6 +41,7 @@ import {
   Syringe,
   Sliders,
   ClipboardList,
+  Stethoscope,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
 import ImportVerification from "@/components/ImportVerification";
@@ -49,6 +50,7 @@ import EditReportDialog from "@/components/EditReportDialog";
 import AliasConfigDialog, { loadCustomAliases } from "@/components/AliasConfigDialog";
 import { PatientProfileDialog } from "@/components/PatientProfileDialog";
 import { AnamneseTab } from "@/components/AnamneseTab";
+import { DoctorNotesTab } from "@/components/DoctorNotesTab";
 import { generatePatientReport } from "@/lib/generateReport";
 import { exportPrescriptionCSV } from "@/lib/exportPrescriptionCSV";
 import {
@@ -242,7 +244,7 @@ export default function PatientDetail() {
   const [activeCategory, setActiveCategory] = useState<Category>("Hemograma");
   const [markerValues, setMarkerValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [detailTab, setDetailTab] = useState<"sessions" | "evolution" | "analysis" | "anamnese">("sessions");
+  const [detailTab, setDetailTab] = useState<"sessions" | "evolution" | "analysis" | "anamnese" | "doctor_notes">("sessions");
   const [savedAnalyses, setSavedAnalyses] = useState<any[]>([]);
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
   const [extracting, setExtracting] = useState(false);
@@ -470,12 +472,14 @@ export default function PatientDetail() {
     setReportEditOpen(true);
   };
 
-  // ── Helper: build enriched results for AI ─────────────────────────────
+  // ── Helper: build enriched results for AI ──────────────────────────────────────────────
   const buildEnrichedResults = (results: any[]) =>
     results.map((r) => {
       const marker = MARKERS.find((m) => m.id === r.marker_id);
       const session = sessions.find((s) => s.id === r.session_id);
       const status = marker ? getMarkerStatus(r.value ?? 0, marker, sex, r.text_value ?? undefined) : "normal";
+      // Referências funcionais apenas para Nutrologia; demais usam ref. do laboratório
+      const isNutrologia = selectedSpecialty === "nutrologia";
       return {
         marker_id: r.marker_id,
         marker_name: marker?.name ?? r.marker_id,
@@ -485,9 +489,9 @@ export default function PatientDetail() {
         // Referência laboratorial convencional (usada para status)
         lab_min: marker?.labRange?.[sex]?.[0] ?? marker?.labRange?.M?.[0],
         lab_max: marker?.labRange?.[sex]?.[1] ?? marker?.labRange?.M?.[1],
-        // Referência funcional/ótima (apenas informativa para a IA)
-        functional_min: marker?.refRange?.[sex]?.[0] ?? marker?.refRange?.M?.[0],
-        functional_max: marker?.refRange?.[sex]?.[1] ?? marker?.refRange?.M?.[1],
+        // Referência funcional/ótima: apenas para Nutrologia
+        functional_min: isNutrologia ? (marker?.refRange?.[sex]?.[0] ?? marker?.refRange?.M?.[0]) : undefined,
+        functional_max: isNutrologia ? (marker?.refRange?.[sex]?.[1] ?? marker?.refRange?.M?.[1]) : undefined,
         status,
         session_date: session?.session_date ?? "",
       };
@@ -1277,7 +1281,7 @@ export default function PatientDetail() {
         </div>
 
         {/* Tabs for Sessions, Evolution and AI Analysis */}
-        <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "sessions" | "evolution" | "analysis" | "anamnese")}>
+        <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "sessions" | "evolution" | "analysis" | "anamnese" | "doctor_notes")}>
           <TabsList>
             <TabsTrigger value="sessions" className="gap-1.5">
               <FlaskConical className="h-3.5 w-3.5" />
@@ -1297,6 +1301,10 @@ export default function PatientDetail() {
             <TabsTrigger value="anamnese" className="gap-1.5">
               <ClipboardList className="h-3.5 w-3.5" />
               Anamnese
+            </TabsTrigger>
+            <TabsTrigger value="doctor_notes" className="gap-1.5">
+              <Stethoscope className="h-3.5 w-3.5" />
+              Notas Clínicas
             </TabsTrigger>
           </TabsList>
 
@@ -1650,6 +1658,9 @@ export default function PatientDetail() {
           </TabsContent>
           <TabsContent value="anamnese" className="mt-4">
             {patient && <AnamneseTab patient={patient} />}
+          </TabsContent>
+          <TabsContent value="doctor_notes" className="mt-4">
+            {patient && <DoctorNotesTab patient={patient} />}
           </TabsContent>
         </Tabs>
       </div>
