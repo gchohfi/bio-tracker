@@ -13,7 +13,60 @@ import { useToast } from "@/hooks/use-toast";
 import { Save, ClipboardList, Heart, Leaf, Activity, Microscope, Loader2, CheckCircle2, Upload, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
-type Anamnese = Tables<"patient_anamneses">;
+// Interface local para patient_anamneses (tabela criada via migration)
+interface Anamnese {
+  id: string;
+  patient_id: string;
+  specialty_id: string;
+  expectativa_consulta: string | null;
+  queixas_principais: string | null;
+  objetivos: string | null;
+  nota_saude: number | null;
+  o_que_melhoraria: string | null;
+  fase_melhor: string | null;
+  evento_marcante: string | null;
+  comorbidades: string | null;
+  peso_altura: string | null;
+  suplementacao: string | null;
+  medicamentos_continuos: string | null;
+  tipo_sanguineo: string | null;
+  estado_pele: string | null;
+  estado_cabelos: string | null;
+  estado_unhas: string | null;
+  memoria_concentracao: string | null;
+  imunidade: string | null;
+  consumo_cafe: string | null;
+  habitos: string[] | null;
+  sintomas_atuais: string[] | null;
+  evacuacoes_por_dia: string | null;
+  tipo_fezes: string | null;
+  uso_antibiotico_2anos: string | null;
+  estufamento_gases: string | null;
+  litros_agua_dia: string | null;
+  dorme_bem: string | null;
+  horario_sono: string | null;
+  acorda_cansado: string | null;
+  dificuldade_dormir: string | null;
+  nivel_estresse: number | null;
+  faz_terapia: string | null;
+  atividade_relaxamento: string | null;
+  hobbies: string | null;
+  atividade_fisica: string | null;
+  recordatorio_alimentar: string | null;
+  intolerancias_alimentares: string | null;
+  episodios_compulsao: string | null;
+  culpa_apos_comer: string | null;
+  preferencias_alimentares: string | null;
+  aversoes_alimentares: string | null;
+  ciclo_regular: string | null;
+  metodo_contraceptivo: string | null;
+  deseja_engravidar: string | null;
+  tem_tpm: string | null;
+  specialty_data: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
 type Patient = Tables<"patients">;
 
 interface AnamneseTabProps {

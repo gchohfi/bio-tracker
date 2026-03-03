@@ -15,7 +15,28 @@ import {
 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
-type DoctorNotes = Tables<"doctor_specialty_notes">;
+// Interface local para doctor_specialty_notes (tabela criada via migration)
+interface DoctorNotes {
+  id: string;
+  patient_id: string;
+  specialty_id: string;
+  impressao_clinica: string | null;
+  hipoteses_diagnosticas: string | null;
+  foco_consulta: string | null;
+  observacoes_exames: string | null;
+  conduta_planejada: string | null;
+  pontos_atencao: string | null;
+  medicamentos_prescritos: string | null;
+  resposta_tratamento: string | null;
+  proximos_passos: string | null;
+  notas_livres: string | null;
+  exames_em_dia: boolean;
+  adesao_tratamento: string | null;
+  motivacao_paciente: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 type Patient = Tables<"patients">;
 
 interface DoctorNotesTabProps {
