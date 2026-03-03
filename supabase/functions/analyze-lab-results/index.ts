@@ -805,6 +805,12 @@ function buildUserPrompt(
     prompt += `\nMODO: Gere APENAS a análise clínica (summary, patterns, trends, suggestions, full_text, technical_analysis, patient_plan). Retorne "protocol_recommendations" como array vazio e "prescription_table" como array vazio.\n`;
   } else if (mode === "protocols_only") {
     prompt += `\nMODO: Gere APENAS as recomendações de protocolos. Retorne summary, patterns, trends, suggestions e full_text como strings/arrays vazios.\n`;
+  } else {
+    // modo full — reforçar que prescription_table NÃO pode ser vazio
+    prompt += `\n⚠ REGRA OBRIGATÓRIA: O campo "prescription_table" NUNCA deve ser retornado como array vazio no modo full.`;
+    prompt += ` Inclua TODOS os suplementos orais, injetáveis e medicamentos recomendados no plano de condutas.`;
+    prompt += ` Cada item DEVE conter: substancia, dose, via, frequencia, duracao, condicoes_ci, monitorizacao.`;
+    prompt += ` Mínimo de 3 itens. Se houver suplementação oral mencionada no patient_plan, ela DEVE aparecer na prescription_table.\n`;
   }
 
   prompt += `\nRetorne um JSON com a análise clínica estruturada conforme o formato especificado.`;
@@ -866,16 +872,32 @@ function extractPartialAnalysis(raw: string): AnalysisResponse {
     }
   };
 
+  // Extract prescription_table (array of objects) via regex
+  const extractObjectArray = (key: string): any[] => {
+    const regex = new RegExp(`"${key}"\\s*:\\s*\\[`, "s");
+    const match = regex.exec(raw);
+    if (!match) return [];
+    // Find the matching closing bracket
+    let depth = 0;
+    let start = match.index + match[0].length - 1; // position of '['
+    for (let i = start; i < raw.length; i++) {
+      if (raw[i] === "[") depth++;
+      else if (raw[i] === "]") { depth--; if (depth === 0) { try { return JSON.parse(raw.slice(start, i + 1)); } catch { return []; } } }
+    }
+    return [];
+  };
+
   result.summary = extractString("summary") ?? raw.slice(0, 300);
   result.technical_analysis = extractString("technical_analysis");
   result.patient_plan = extractString("patient_plan");
+  result.prescription_table = extractObjectArray("prescription_table");
   result.patterns = extractArray("patterns");
   result.trends = extractArray("trends");
   result.suggestions = extractArray("suggestions");
 
   console.log(
     `Partial extraction: summary=${!!result.summary} technical=${!!result.technical_analysis} ` +
-    `plan=${!!result.patient_plan} patterns=${result.patterns.length}`
+    `plan=${!!result.patient_plan} prescription=${(result.prescription_table ?? []).length} patterns=${result.patterns.length}`
   );
 
   return result;
