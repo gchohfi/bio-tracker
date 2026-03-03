@@ -749,7 +749,12 @@ export function generatePatientReport(
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.setTextColor(40, 40, 40);
-      const planLines = doc.splitTextToSize(aiAnalysis.patient_plan, pageW - 28);
+      // Remover título "DOCUMENTO 3" caso a IA o inclua no patient_plan (evita duplicação)
+      const cleanedPlan = aiAnalysis.patient_plan
+        .replace(/\*?\*?DOCUMENTO\s+3[^\n]*/gi, "")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+      const planLines = doc.splitTextToSize(cleanedPlan, pageW - 28);
       for (const line of planLines) {
         if (aiY > pageH - 20) { doc.addPage(); aiY = 16; }
         if (line.startsWith("##") || line.startsWith("**")) {
