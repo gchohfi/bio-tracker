@@ -59,13 +59,13 @@ export default function PromptManager() {
   const loadPrompts = async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("analysis_prompts")
         .select("*")
         .order("specialty_name");
       if (error) throw error;
       setPrompts(data || []);
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro ao carregar prompts", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
@@ -81,7 +81,7 @@ export default function PromptManager() {
     if (!editingPrompt) return;
     setSaving(true);
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("analysis_prompts")
         .update({
           specialty_name: editingPrompt.specialty_name,
@@ -97,7 +97,7 @@ export default function PromptManager() {
       toast({ title: "Prompt salvo com sucesso!" });
       setEditDialogOpen(false);
       loadPrompts();
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro ao salvar prompt", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
@@ -106,14 +106,14 @@ export default function PromptManager() {
 
   const handleToggleActive = async (prompt: AnalysisPrompt) => {
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("analysis_prompts")
         .update({ is_active: !prompt.is_active })
         .eq("id", prompt.id);
       if (error) throw error;
       toast({ title: `Especialidade ${!prompt.is_active ? "ativada" : "desativada"}` });
       loadPrompts();
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro ao atualizar", description: err.message, variant: "destructive" });
     }
   };
@@ -125,7 +125,7 @@ export default function PromptManager() {
     }
     setSaving(true);
     try {
-      const { error } = await (supabase as any).from("analysis_prompts").insert({
+      const { error } = await supabase.from("analysis_prompts").insert({
         specialty_id: newPrompt.specialty_id.toLowerCase().replace(/\s+/g, "_"),
         specialty_name: newPrompt.specialty_name,
         specialty_icon: newPrompt.specialty_icon,
@@ -139,7 +139,7 @@ export default function PromptManager() {
       setNewDialogOpen(false);
       setNewPrompt({ specialty_id: "", specialty_name: "", specialty_icon: "🔬", description: "", system_prompt: "", has_protocols: false, is_active: true });
       loadPrompts();
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro ao criar especialidade", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);

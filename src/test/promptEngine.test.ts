@@ -146,7 +146,7 @@ function getEffectiveMode(
   requestedMode?: string
 ): "full" | "analysis_only" | "protocols_only" {
   if (!hasProtocols) return "analysis_only";
-  return (requestedMode as any) ?? "full";
+  return (requestedMode ?? "full") as "full" | "analysis_only" | "protocols_only";
 }
 
 // ─── Ativos terapêuticos (subset para testes) ─────────────────────────────────

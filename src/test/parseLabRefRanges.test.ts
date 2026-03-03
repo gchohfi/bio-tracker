@@ -5,10 +5,21 @@
  */
 import { describe, it, expect } from "vitest";
 
+// ─── Tipos locais para testes ────────────────────────────────────────────────
+type LabResultLike = {
+  marker_id?: string;
+  lab_ref_text?: string;
+  lab_ref_min?: number;
+  lab_ref_max?: number;
+  text_value?: string;
+  value?: number;
+  _remove?: boolean;
+};
+
 // ─── Replicação da lógica parseLabRefRanges ──────────────────────────────────
 // Espelha exatamente o código em supabase/functions/extract-lab-results/index.ts
 
-function parseLabRefRanges(results: any[]): any[] {
+function parseLabRefRanges(results: LabResultLike[]): LabResultLike[] {
   const parseNumSimple = (s: string) => parseFloat(s.replace(',', '.'));
   for (const r of results) {
     const refText: string | undefined = r.lab_ref_text;
@@ -80,7 +91,7 @@ function parseLabRefRanges(results: any[]): any[] {
 // ─── Replicação da lógica de limpeza de urina qualitativo ────────────────────
 const URINA_QUALITATIVE_CLEANUP = new Set(['urina_leucocitos', 'urina_hemacias', 'urina_hemoglobina']);
 
-function cleanUrinaQualitative(results: any[]): any[] {
+function cleanUrinaQualitative(results: LabResultLike[]): LabResultLike[] {
   for (const r of results) {
     if (!URINA_QUALITATIVE_CLEANUP.has(r.marker_id)) continue;
     const tv: string | undefined = r.text_value;
@@ -100,7 +111,7 @@ function cleanUrinaQualitative(results: any[]): any[] {
       }
     }
   }
-  return results.filter((r: any) => !r._remove);
+  return results.filter((r) => !r._remove);
 }
 
 // ─── Testes: parseLabRefRanges ────────────────────────────────────────────────

@@ -111,7 +111,7 @@ export function parseLabReference(text: string, sex?: 'M' | 'F'): ParsedReferenc
   // ── 1. Separação por sexo ──
   // Tentar encontrar segmentos separados por sexo (ex: "Homens: 4.5-5.5 / Mulheres: 4.0-5.0")
   // Dividir por / , ; ou quebra de linha
-  const segments = input.split(/[\/;]|\n/).map(s => s.trim()).filter(Boolean);
+  const segments = input.split(/[/;]|\n/).map(s => s.trim()).filter(Boolean);
 
   if (segments.length > 1 && sex) {
     // Procurar o segmento que corresponde ao sexo do paciente

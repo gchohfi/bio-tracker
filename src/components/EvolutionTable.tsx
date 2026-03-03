@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -75,7 +75,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
   const textMap = useMemo(() => {
     const map: Record<string, Record<string, string>> = {};
     results.forEach((r) => {
-      const textVal = (r as any).text_value;
+      const textVal = r.text_value;
       if (textVal) {
         if (!map[r.marker_id]) map[r.marker_id] = {};
         map[r.marker_id][r.session_id] = textVal;
@@ -97,9 +97,9 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
       return sB.session_date.localeCompare(sA.session_date);
     });
     sortedResults.forEach((r) => {
-      const refText = (r as any).lab_ref_text;
-      const refMin = (r as any).lab_ref_min;
-      const refMax = (r as any).lab_ref_max;
+      const refText = r.lab_ref_text;
+      const refMin = r.lab_ref_min;
+      const refMax = r.lab_ref_max;
       // Per-session lab_ref_text
       if (refText) {
         if (!bySession[r.marker_id]) bySession[r.marker_id] = {};
@@ -119,7 +119,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
   );
 
   // Helper to get status using resolveReference (functional vs lab)
-  const getStatusWithOperator = (val: number, marker: MarkerDef, sessionId: string): "normal" | "low" | "high" => {
+  const getStatusWithOperator = useCallback((val: number, marker: MarkerDef, sessionId: string): "normal" | "low" | "high" => {
     const labRefText = labRefBySession[marker.id]?.[sessionId];
     const ref = resolveReference(marker, sex, labRefText);
     
@@ -132,7 +132,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
       }
     }
     return getMarkerStatusFromRef(val, ref);
-  };
+  }, [labRefBySession, sex, textMap]);
 
   // Filter markers
   const filteredMarkers = useMemo(() => {
@@ -140,7 +140,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
 
     // Filter by panel
     if (panelFilter !== "all") {
-      markers = markers.filter((m) => (m as any).panel === panelFilter);
+      markers = markers.filter((m) => m.panel === panelFilter);
     }
 
     if (statusFilter === "with_data") {
@@ -169,7 +169,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
     }
 
     return markers;
-  }, [activeCategory, statusFilter, panelFilter, resultMap, textMap, sex, sortedSessions]);
+  }, [activeCategory, statusFilter, panelFilter, resultMap, textMap, sortedSessions, getStatusWithOperator]);
 
   // Summary stats for the latest session
   const summaryStats = useMemo(() => {
@@ -186,7 +186,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
       else if (status === "high") high++;
     });
     return { normal, low, high, total: normal + low + high };
-  }, [resultMap, textMap, sortedSessions, sex]);
+  }, [resultMap, sortedSessions, getStatusWithOperator]);
 
   const alertCount = summaryStats.low + summaryStats.high;
 
@@ -360,7 +360,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                         const max = resolvedRef.max ?? marker.labRange[sex][1];
                         const [fMin, fMax] = marker.refRange[sex];  // ref. funcional (descritiva)
                         const isQualitative = marker.qualitative;
-                        const markerPanel = (marker as any).panel as string | undefined;
+                        const markerPanel = marker.panel;
                         return (
                           <tr
                             key={marker.id}

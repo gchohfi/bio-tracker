@@ -16,10 +16,13 @@
  */
 import { describe, it, expect } from "vitest";
 
+// ─── Tipos locais para testes ────────────────────────────────────────────────
+type ResultLike = { marker_id: string; value: number };
+
 // ─── Replicação da lógica postProcessResults ─────────────────────────────────
 // Espelha exatamente o código em supabase/functions/extract-lab-results/index.ts
-function postProcessResults(results: any[]): any[] {
-  const resultMap = new Map<string, any>();
+function postProcessResults(results: ResultLike[]): ResultLike[] {
+  const resultMap = new Map<string, ResultLike>();
   for (const r of results) {
     if (r.marker_id) resultMap.set(r.marker_id, r);
   }
@@ -128,7 +131,7 @@ function mkResult(marker_id: string, value: number) {
   return { marker_id, value };
 }
 
-function getCalculated(results: any[], marker_id: string): number | undefined {
+function getCalculated(results: ResultLike[], marker_id: string): number | undefined {
   return results.find(r => r.marker_id === marker_id)?.value;
 }
 

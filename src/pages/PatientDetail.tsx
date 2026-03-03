@@ -58,11 +58,55 @@ import {
   type Category,
   type MarkerDef,
 } from "@/lib/markers";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables, Json } from "@/integrations/supabase/types";
 
 type Patient = Tables<"patients">;
 type LabSession = Tables<"lab_sessions">;
 type LabResult = Tables<"lab_results">;
+type SavedAnalysis = Tables<"patient_analyses">;
+
+interface ResultRow {
+  marker_id: string;
+  session_id: string;
+  value: number;
+  text_value?: string;
+  lab_ref_min?: number;
+  lab_ref_max?: number;
+  lab_ref_text?: string;
+}
+
+type PatternItem = string | { name?: string; description?: string; impact?: string };
+type SuggestionItem = string | { exam?: string; name?: string; reason?: string };
+type PrescriptionRow = {
+  substancia?: string; substance?: string;
+  dose?: string;
+  via?: string; route?: string;
+  frequencia?: string; frequency?: string;
+  duracao?: string; duration?: string;
+  condicoes_ci?: string; conditions?: string;
+  monitorizacao?: string; monitoring?: string;
+};
+type ProtocolItem = {
+  protocol_id?: string;
+  protocol_name?: string; name?: string;
+  priority?: string;
+  rationale?: string;
+  protocols?: Json[];
+  [key: string]: Json | undefined;
+};
+interface AiAnalysisResult {
+  summary?: string | null;
+  patterns?: PatternItem[];
+  suggestions?: SuggestionItem[];
+  full_text?: string | null;
+  technical_analysis?: string | null;
+  patient_plan?: string | null;
+  prescription_table?: PrescriptionRow[];
+  protocol_recommendations?: ProtocolItem[];
+  trends?: Json[];
+  _truncated?: boolean;
+  _diagnostics?: unknown;
+}
 
 // ── PDF text extraction helper ──────────────────────────────────────────
 async function extractPdfText(file: File): Promise<{ fullText: string; cleanedText: string }> {
@@ -73,11 +117,11 @@ async function extractPdfText(file: File): Promise<{ fullText: string; cleanedTe
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    const items = content.items as any[];
+    const items = content.items;
     if (items.length === 0) continue;
     const lines: { y: number; items: { x: number; str: string }[] }[] = [];
     items.forEach((item) => {
-      if (!item.str) return;
+      if (!('str' in item)) return;
       const y = Math.round(item.transform[5]);
       const x = item.transform[4];
       let line = lines.find((l) => Math.abs(l.y - y) < 3);
@@ -241,8 +285,8 @@ export default function PatientDetail() {
   const [markerValues, setMarkerValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [detailTab, setDetailTab] = useState<"sessions" | "evolution" | "analysis">("sessions");
-  const [savedAnalyses, setSavedAnalyses] = useState<any[]>([]);
-  const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
+  const [savedAnalyses, setSavedAnalyses] = useState<SavedAnalysis[]>([]);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<SavedAnalysis | null>(null);
   const [extracting, setExtracting] = useState(false);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const [editingName, setEditingName] = useState(false);
@@ -255,15 +299,15 @@ export default function PatientDetail() {
   const [labRefRanges, setLabRefRanges] = useState<Record<string, { min?: number; max?: number; text?: string }>>({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingProtocols, setIsGeneratingProtocols] = useState(false);
-  const [cachedAiAnalysis, setCachedAiAnalysis] = useState<any>(null);
-  const [cachedProtocols, setCachedProtocols] = useState<any[]>([]);
+  const [cachedAiAnalysis, setCachedAiAnalysis] = useState<AiAnalysisResult | null>(null);
+  const [cachedProtocols, setCachedProtocols] = useState<ProtocolItem[]>([]);
   const [profileOpen, setProfileOpen] = useState(false);
   // Track how many PDFs were imported in the current session
   const [importedPdfCount, setImportedPdfCount] = useState(0);
   // Date extracted automatically from the PDF
   const [extractedExamDate, setExtractedExamDate] = useState<string | null>(null);
   const [reportEditOpen, setReportEditOpen] = useState(false);
-  const [reportResults, setReportResults] = useState<any[]>([]);
+  const [reportResults, setReportResults] = useState<ResultRow[]>([]);
   const [reportWithAI, setReportWithAI] = useState(false);
   const [selectedSpecialty, setSelectedSpecialty] = useState("medicina_funcional");
   const [availableSpecialties, setAvailableSpecialties] = useState<Array<{ specialty_id: string; specialty_name: string; specialty_icon: string; has_protocols: boolean }>>([]);
@@ -271,7 +315,7 @@ export default function PatientDetail() {
   // ── Carregar análises salvas ─────────────────────────────────────────
   const loadSavedAnalyses = async () => {
     if (!id) return;
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from("patient_analyses")
       .select("*")
       .eq("patient_id", id)
@@ -283,7 +327,7 @@ export default function PatientDetail() {
   };
 
   const handleDeleteAnalysis = async (analysisId: string) => {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("patient_analyses")
       .delete()
       .eq("id", analysisId);
@@ -308,7 +352,7 @@ export default function PatientDetail() {
 
   const loadSpecialties = async () => {
     try {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from("analysis_prompts")
         .select("specialty_id, specialty_name, specialty_icon, has_protocols")
         .eq("is_active", true)
@@ -425,14 +469,14 @@ export default function PatientDetail() {
       });
 
       if (allResults.length > 0) {
-        const { error } = await supabase.from("lab_results").insert(allResults as any);
+        const { error } = await supabase.from("lab_results").insert(allResults as LabResult["Insert"][]);
         if (error) throw error;
       }
 
       toast({ title: editingSessionId ? "Sessão atualizada!" : "Sessão criada!" });
       setFormOpen(false);
       fetchData();
-    } catch (err: any) {
+    } catch (err) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
@@ -469,7 +513,7 @@ export default function PatientDetail() {
   };
 
   // ── Helper: build enriched results for AI ─────────────────────────────
-  const buildEnrichedResults = (results: any[]) =>
+  const buildEnrichedResults = (results: ResultRow[]) =>
     results.map((r) => {
       const marker = MARKERS.find((m) => m.id === r.marker_id);
       const session = sessions.find((s) => s.id === r.session_id);
@@ -528,14 +572,15 @@ export default function PatientDetail() {
   };
 
   // ── Helper: map AI errors to user-friendly toasts ──────────────────────
-  const handleAiError = (err: any, title: string) => {
-    const status = err?.context?.status ?? err?.status;
+  const handleAiError = (err: unknown, title: string) => {
+    const apiErr = err as { context?: { status?: number }; status?: number; message?: string };
+    const status = apiErr?.context?.status ?? apiErr?.status;
     if (status === 429) {
       toast({ title, description: "Limite de requisições atingido. Aguarde alguns instantes e tente novamente.", variant: "destructive" });
     } else if (status === 402) {
       toast({ title, description: "Créditos insuficientes. Verifique seu plano.", variant: "destructive" });
     } else {
-      toast({ title, description: err.message || "Erro desconhecido", variant: "destructive" });
+      toast({ title, description: apiErr.message || "Erro desconhecido", variant: "destructive" });
     }
   };
 
@@ -585,7 +630,7 @@ export default function PatientDetail() {
       setCachedAiAnalysis(merged);
       // Salvar análise no banco
       const sp = availableSpecialties.find(s => s.specialty_id === selectedSpecialty);
-      const { data: savedData, error: saveError } = await (supabase as any)
+      const { data: savedData, error: saveError } = await supabase
         .from("patient_analyses")
         .insert({
           patient_id: patient.id,
@@ -610,7 +655,7 @@ export default function PatientDetail() {
         setDetailTab("analysis");
       }
       toast({ title: "✅ Análise gerada e salva!", description: "Visualize na aba Análise IA." });
-    } catch (err: any) {
+    } catch (err) {
       handleAiError(err, "Erro na análise");
     } finally {
       setIsAnalyzing(false);
@@ -652,14 +697,14 @@ export default function PatientDetail() {
         : { protocol_recommendations: protocols };
       generatePatientReport(patient.name, sex, sessions, results, merged);
       toast({ title: `${protocols.length} protocolo(s) sugerido(s) exportado(s)!` });
-    } catch (err: any) {
+    } catch (err) {
       handleAiError(err, "Erro nos protocolos");
     } finally {
       setIsGeneratingProtocols(false);
     }
   };
 
-  const handleReportConfirm = async (updatedResults: any[]) => {
+  const handleReportConfirm = async (updatedResults: ResultRow[]) => {
     if (!patient) return;
     if (!reportWithAI) {
       generatePatientReport(patient.name, sex, sessions, updatedResults);
@@ -697,7 +742,7 @@ export default function PatientDetail() {
       setCachedProtocols(analysisData?.analysis?.protocol_recommendations ?? []);
       generatePatientReport(patient.name, sex, sessions, updatedResults, analysisData?.analysis);
       toast({ title: "Relatório completo com IA exportado!" });
-    } catch (err: any) {
+    } catch (err) {
       handleAiError(err, "Erro na análise de IA");
     } finally {
       setIsAnalyzing(false);
@@ -825,8 +870,8 @@ export default function PatientDetail() {
       // Try patterns: "Data de Coleta: DD/MM/YYYY", "Coleta: DD/MM/YYYY", "Data da coleta: DD/MM/YYYY",
       // "Realizado em: DD/MM/YYYY", "Data do exame: DD/MM/YYYY", "COLETADO: DD/MM/YYYY HH:MM"
       const datePatterns = [
-        /(?:Data\s+d[aeo]\s+[Cc]olet[ao]|Colet(?:a|ado)|Realizado\s+em|Data\s+d[oe]\s+[Ee]xame|Data\s+da\s+[Ff]icha|RECEBIDO.*?COLETADO)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i,
-        /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})(?=\s+\d{1,2}:\d{2})/,
+        /(?:Data\s+d[aeo]\s+[Cc]olet[ao]|Colet(?:a|ado)|Realizado\s+em|Data\s+d[oe]\s+[Ee]xame|Data\s+da\s+[Ff]icha|RECEBIDO.*?COLETADO)[:\s]*(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/i,
+        /(\d{2})[/\-.](\d{2})[/\-.](\d{4})(?=\s+\d{1,2}:\d{2})/,
       ];
       for (const pattern of datePatterns) {
         const match = fullText.match(pattern);
@@ -888,7 +933,7 @@ export default function PatientDetail() {
             setSessionDate(parsed);
             setExtractedExamDate(firstExamDate);
           }
-        } catch {}
+        } catch { /* intentional: ignore parse errors for extracted date */ }
       }
 
       // Open edit dialog first, then verification
@@ -898,7 +943,7 @@ export default function PatientDetail() {
         title: `${totalCount} marcadores importados de ${files.length} PDF(s)!`,
         description: "Revise os valores antes de salvar.",
       });
-    } catch (err: any) {
+    } catch (err) {
       console.error("PDF import error:", err);
       toast({ title: "Erro na importação", description: err.message || "Erro ao processar PDF", variant: "destructive" });
     } finally {
@@ -1006,7 +1051,7 @@ export default function PatientDetail() {
                 <Calendar
                   mode="single"
                   selected={sessionDate}
-                  onSelect={(d) => { d && setSessionDate(d); setExtractedExamDate(null); }}
+                  onSelect={(d) => { if (d) setSessionDate(d); setExtractedExamDate(null); }}
                   locale={ptBR}
                   className={cn("p-3 pointer-events-auto")}
                 />
@@ -1465,12 +1510,12 @@ export default function PatientDetail() {
                             <FileDown className="h-3.5 w-3.5" />
                             Exportar PDF
                           </Button>
-                          {selectedAnalysis.prescription_table && (selectedAnalysis.prescription_table as any[]).length > 0 && (
+                          {selectedAnalysis.prescription_table && (selectedAnalysis.prescription_table as unknown as PrescriptionRow[]).length > 0 && (
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                exportPrescriptionCSV(selectedAnalysis.prescription_table as any[], patient.name);
+                                exportPrescriptionCSV(selectedAnalysis.prescription_table as unknown as PrescriptionRow[], patient.name);
                                 toast({ title: "Prescrição exportada como planilha!" });
                               }}
                               className="gap-1.5"
@@ -1492,11 +1537,11 @@ export default function PatientDetail() {
                       )}
 
                       {/* ── PADRÕES CLÍNICOS ── */}
-                      {selectedAnalysis.patterns && (selectedAnalysis.patterns as any[]).length > 0 && (
+                      {selectedAnalysis.patterns && (selectedAnalysis.patterns as unknown as PatternItem[]).length > 0 && (
                         <div>
                           <h3 className="font-bold text-sm text-primary mb-2 uppercase tracking-wide">Padrões Clínicos Identificados</h3>
                           <ul className="space-y-1.5 ml-1">
-                            {(selectedAnalysis.patterns as any[]).map((p: any, i: number) => {
+                            {(selectedAnalysis.patterns as unknown as PatternItem[]).map((p, i) => {
                               const text = typeof p === "string" ? p : (p.name ? `${p.name}${p.description ? ` — ${p.description}` : ""}` : JSON.stringify(p));
                               return (
                                 <li key={i} className="flex items-start gap-2 text-sm">
@@ -1510,11 +1555,11 @@ export default function PatientDetail() {
                       )}
 
                       {/* ── SUGESTÕES DE INVESTIGAÇÃO ── */}
-                      {selectedAnalysis.suggestions && (selectedAnalysis.suggestions as any[]).length > 0 && (
+                      {selectedAnalysis.suggestions && (selectedAnalysis.suggestions as unknown as SuggestionItem[]).length > 0 && (
                         <div>
                           <h3 className="font-bold text-sm text-primary mb-2 uppercase tracking-wide">Sugestões de Investigação Complementar</h3>
                           <ul className="space-y-1.5 ml-1">
-                            {(selectedAnalysis.suggestions as any[]).map((s: any, i: number) => {
+                            {(selectedAnalysis.suggestions as unknown as SuggestionItem[]).map((s, i) => {
                               const text = typeof s === "string" ? s : (s.exam ?? s.name ?? JSON.stringify(s));
                               const reason = typeof s === "object" && s.reason ? ` — ${s.reason}` : "";
                               return (
@@ -1549,7 +1594,7 @@ export default function PatientDetail() {
                       )}
 
                       {/* ── DOC 3 — PRESCRIÇÃO ── */}
-                      {selectedAnalysis.prescription_table && (selectedAnalysis.prescription_table as any[]).length > 0 && (
+                      {selectedAnalysis.prescription_table && (selectedAnalysis.prescription_table as unknown as PrescriptionRow[]).length > 0 && (
                         <div>
                           <h3 className="font-bold text-sm text-primary mb-3 uppercase tracking-wide">Documento 3 — Prescrição Detalhada</h3>
                           <div className="overflow-x-auto rounded-lg border">
@@ -1566,7 +1611,7 @@ export default function PatientDetail() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {(selectedAnalysis.prescription_table as any[]).map((row: any, i: number) => (
+                                {(selectedAnalysis.prescription_table as unknown as PrescriptionRow[]).map((row, i) => (
                                   <tr key={i} className={cn("border-t", i % 2 === 0 ? "bg-background" : "bg-muted/30")}>
                                     <td className="px-3 py-2 font-medium">{row.substancia ?? row.substance ?? ""}</td>
                                     <td className="px-3 py-2">{row.dose ?? ""}</td>
@@ -1584,11 +1629,11 @@ export default function PatientDetail() {
                       )}
 
                       {/* ── PROTOCOLOS ESSENTIA ── */}
-                      {selectedAnalysis.protocol_recommendations && (selectedAnalysis.protocol_recommendations as any[]).length > 0 && (
+                      {selectedAnalysis.protocol_recommendations && (selectedAnalysis.protocol_recommendations as unknown as ProtocolItem[]).length > 0 && (
                         <div>
                           <h3 className="font-bold text-sm text-primary mb-3 uppercase tracking-wide">Protocolos Essentia Recomendados</h3>
                           <div className="space-y-3">
-                            {(selectedAnalysis.protocol_recommendations as any[]).map((p: any, i: number) => (
+                            {(selectedAnalysis.protocol_recommendations as unknown as ProtocolItem[]).map((p, i) => (
                               <div key={i} className="rounded-lg border p-4 space-y-2">
                                 <div className="flex items-center justify-between">
                                   <span className="font-semibold text-sm">

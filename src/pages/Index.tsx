@@ -95,7 +95,7 @@ export default function Index() {
 
     // Build session → patient info map
     const sessionPatientMap = new Map<string, { name: string; sex: string }>();
-    sessions.forEach((s: any) => {
+    sessions.forEach((s) => {
       sessionPatientMap.set(s.id, {
         name: s.patients?.name || "—",
         sex: s.patients?.sex || "F",

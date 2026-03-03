@@ -336,7 +336,7 @@ export function generatePatientReport(
       ["Marcador", "Un.", "Ref. Lab.", "Ref. Funcional", ...sessionDateHeaders, "Tend.", "Evolução"],
     ];
 
-    const body: any[][] = [];
+    const body: string[][] = [];
     const sparklineData: {
       marker: MarkerDef;
       values: number[];
@@ -378,7 +378,7 @@ export function generatePatientReport(
       const funcRefStr = isQualitative ? "Qualitativo" :
         (fMin !== fMax ? `${fMin} – ${fMax}` : "—");
 
-      const row: any[] = [
+      const row: string[] = [
         marker.name,
         isQualitative ? "—" : marker.unit,
         labRefStr,
@@ -501,7 +501,7 @@ export function generatePatientReport(
       },
     });
 
-    startY = (doc as any).lastAutoTable.finalY + 8;
+    startY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
   });
 
   // ── Summary section ──
@@ -845,7 +845,7 @@ export function generatePatientReport(
         },
       });
 
-      aiY = (doc as any).lastAutoTable.finalY + 8;
+      aiY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
 
       // Nota de rodapé da tabela
       if (aiY < pageH - 20) {
@@ -860,81 +860,6 @@ export function generatePatientReport(
         );
       }
 
-      // Bloco legado removido — mantido apenas para compatibilidade de compilação
-      if (false) {
-      // Table headers (legado — não utilizado)
-      const cols = [
-        { header: "Substância", width: 40 },
-        { header: "Dose", width: 25 },
-        { header: "Via", width: 20 },
-        { header: "Frequência", width: 30 },
-        { header: "Duração", width: 25 },
-        { header: "Cond./CI", width: 50 },
-        { header: "Monitorização", width: 0 }, // fill remaining
-      ];
-      const totalFixed = cols.slice(0, -1).reduce((s, c) => s + c.width, 0);
-      cols[cols.length - 1].width = pageW - 28 - totalFixed;
-
-      // Header row
-      doc.setFillColor(PURPLE.r, PURPLE.g, PURPLE.b);
-      doc.roundedRect(14, aiY, pageW - 28, 8, 1, 1, "F");
-      doc.setFontSize(7);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(255, 255, 255);
-      let colX = 14;
-      for (const col of cols) {
-        doc.text(col.header, colX + 2, aiY + 5);
-        colX += col.width;
-      }
-      aiY += 10;
-
-      // Data rows
-      let rowBg = false;
-      for (const row of aiAnalysis.prescription_table) {
-        const cells = [
-          row.substancia,
-          row.dose,
-          row.via,
-          row.frequencia,
-          row.duracao,
-          row.condicoes_ci,
-          row.monitorizacao,
-        ];
-        // Calculate row height based on longest cell
-        let maxLines = 1;
-        colX = 14;
-        for (let i = 0; i < cells.length; i++) {
-          const cellLines = doc.splitTextToSize(cells[i] ?? "", cols[i].width - 4);
-          if (cellLines.length > maxLines) maxLines = cellLines.length;
-        }
-        const rowH = maxLines * 4 + 4;
-        if (aiY + rowH > pageH - 20) { doc.addPage(); aiY = 16; }
-
-        // Row background
-        if (rowBg) {
-          doc.setFillColor(245, 247, 252);
-          doc.roundedRect(14, aiY, pageW - 28, rowH, 0.5, 0.5, "F");
-        }
-        rowBg = !rowBg;
-
-        // Cell content
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(7);
-        doc.setTextColor(40, 40, 40);
-        colX = 14;
-        for (let i = 0; i < cells.length; i++) {
-          const cellLines = doc.splitTextToSize(cells[i] ?? "", cols[i].width - 4);
-          doc.text(cellLines, colX + 2, aiY + 4);
-          colX += cols[i].width;
-        }
-
-        // Subtle separator
-        doc.setDrawColor(220, 225, 235);
-        doc.setLineWidth(0.2);
-        doc.line(14, aiY + rowH, pageW - 14, aiY + rowH);
-        aiY += rowH;
-      }
-      } // fim bloco legado
     }
 
     // ── Protocol Recommendations ──
