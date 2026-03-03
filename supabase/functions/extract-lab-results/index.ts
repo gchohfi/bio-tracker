@@ -417,12 +417,13 @@ MINERAIS:
 
 TOXICOLOGIA:
 - "CHUMBO" / "PLUMBEMIA" / "Pb SANGUE" / "CHUMBO (Pb)" / "LEAD" / "CHUMBO SANGUE" / "DOSAGEM DE CHUMBO" → chumbo. If µg/L → ÷10 to get µg/dL.
-- "MERCURIO" / "Mercúrio" / "MERCÚRIO, SANGUE" / "MERCÚRIO TOTAL" / "Hg" → mercurio
-- "CADMIO" / "Cádmio" / "CÁDMIO, SANGUE" / "Cd" → cadmio
-- "ALUMINIO" / "Alumínio" / "ALUMÍNIO, SORO" / "Al" → aluminio
-- "COBALTO" / "Cobalto" / "COBALTO, SORO" / "Co" → cobalto (unit: µg/L)
-- "ARSENICO" / "Arsênico" / "ARSÊNICO" / "Dosagem de Arsênico" / "ARSÊNICO, URINA" / "As" → arsenico (unit: mcg/L). Use operator if "Inferior a X"
-- "NIQUEL" / "Níquel" / "NÍQUEL" / "Dosagem de Níquel" / "NÍQUEL, SORO" / "Ni" → niquel (unit: µg/L)
+- "MERCURIO" / "Mercúrio" / "MERCÚRIO, SANGUE" / "MERCÚRIO TOTAL" → mercurio. IMPORTANT: Do NOT extract "Hg" alone — it is too short and causes false positives (e.g. from "mmHg"). Only extract if the FULL word "Mercúrio" or "MERCURIO" appears as the marker name with an associated numeric result value.
+- "CADMIO" / "Cádmio" / "CÁDMIO, SANGUE" → cadmio. Do NOT use "Cd" alone.
+- "ALUMINIO" / "Alumínio" / "ALUMÍNIO, SORO" → aluminio. Do NOT use "Al" alone.
+- "COBALTO" / "Cobalto" / "COBALTO, SORO" → cobalto (unit: µg/L). Do NOT use "Co" alone.
+- "ARSENICO" / "Arsênico" / "ARSÊNICO" / "Dosagem de Arsênico" / "ARSÊNICO, URINA" → arsenico (unit: mcg/L). Do NOT use "As" alone. Use operator if "Inferior a X"
+- "NIQUEL" / "Níquel" / "NÍQUEL" / "Dosagem de Níquel" / "NÍQUEL, SORO" → niquel (unit: µg/L). Do NOT use "Ni" alone.
+IMPORTANT FOR TOXICOLOGY: Only extract toxicology markers when they appear as actual lab test results with a numeric value. Do NOT extract them from footnotes, disclaimers, reference lists, or lists of available tests. If a toxicology marker name appears only in a contextual/informational section without a clear numeric result, ignore it.
 
 HEPÁTICO:
 - "AST" / "TGO" / "GOT" / "GOT/AST" / "TRANSAMINASE GLUTÂMICO OXALACÉTICA" / "ASPARTATO AMINOTRANSFERASE" / "AST/TGO" / "SGOT" → tgo_ast
@@ -1857,9 +1858,9 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   tryGeneric('anti_transglutaminase_iga', [/(?:Anti[- ]?Transglutaminase|tTG\s*IgA)[\s:.\-]*?([<>]?\s*\d+[.,]?\d*)/i]);
   tryGeneric('g6pd', [/(?:G6PD|Glicose[- ]?6[- ]?Fosfato)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('chumbo', [/(?:Chumbo|PLUMBEMIA|Pb\s+SANGUE)[\s:.\-]*?(\d+[.,]?\d*)/i]);
-  tryGeneric('mercurio', [/(?:Merc[úu]rio|Hg\b)[\s:.\-]*?(\d+[.,]?\d*)/i]);
-  tryGeneric('cadmio', [/(?:C[áa]dmio|Cd\b)[\s:.\-]*?(\d+[.,]?\d*)/i]);
-  tryGeneric('aluminio', [/(?:Alum[íi]nio|Al\b)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('mercurio', [/(?:Merc[úu]rio(?:\s+(?:Total|Sangue))?)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('cadmio', [/(?:C[áa]dmio)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('aluminio', [/(?:Alum[íi]nio)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('dihidrotestosterona', [/(?:Di?hidrotestosterona|DHT|D\.?H\.?T\.?|5[- ]?[Aa]lfa[- ]?DHT)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('androstenediona', [/(?:Androstenediona|Delta\s*4\s*Androstenediona)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('cortisol_livre_urina', [/(?:Cortisol\s+Livre.*?[Uu]rina|CLU|Cortisol\s+Urin[áa]rio)[\s:.\-]*?(\d+[.,]?\d*)/i]);
@@ -2096,7 +2097,26 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
     }
   }
 
-  return [...aiResults, ...additional];
+  // Plausibility validation for toxicology markers — discard implausible values
+  const toxPlausibility: Record<string, number> = {
+    mercurio: 100,    // µg/L — values above 100 are almost certainly false positives
+    aluminio: 200,    // µg/L
+    cadmio: 50,       // µg/L
+    chumbo: 100,      // µg/dL
+    cobalto: 50,      // µg/L
+    arsenico: 500,    // µg/L
+    niquel: 100,      // µg/L
+  };
+  const allResults = [...aiResults, ...additional];
+  const filtered = allResults.filter(r => {
+    const maxPlausible = toxPlausibility[r.marker_id];
+    if (maxPlausible !== undefined && r.value !== undefined && r.value !== null && r.value > maxPlausible) {
+      console.log(`Plausibility filter: discarding ${r.marker_id} = ${r.value} (max plausible: ${maxPlausible})`);
+      return false;
+    }
+    return true;
+  });
+  return filtered;
 }
 
 
