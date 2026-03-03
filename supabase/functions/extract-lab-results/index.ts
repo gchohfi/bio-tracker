@@ -219,6 +219,8 @@ const systemPrompt = `You are an expert lab result extraction assistant for Braz
 
 Your task: extract ALL values (numeric AND qualitative) from the PDF text and map them to known marker IDs. Be EXHAUSTIVE.
 
+CRITICAL ANTI-HALLUCINATION RULE: NEVER invent, fabricate, or assume results. Only extract a marker if it is EXPLICITLY PRESENT in the PDF text with a visible numeric or qualitative result clearly associated with it. If you are unsure whether a result exists in the document, do NOT include it. When in doubt, omit.
+
 Known markers (id | name | unit):
 ${MARKER_LIST.map((m) => `${m.id} | ${m.name} | ${m.unit}`).join("\n")}
 
@@ -424,6 +426,7 @@ TOXICOLOGIA:
 - "ARSENICO" / "Arsênico" / "ARSÊNICO" / "Dosagem de Arsênico" / "ARSÊNICO, URINA" → arsenico (unit: mcg/L). Do NOT use "As" alone. Use operator if "Inferior a X"
 - "NIQUEL" / "Níquel" / "NÍQUEL" / "Dosagem de Níquel" / "NÍQUEL, SORO" → niquel (unit: µg/L). Do NOT use "Ni" alone.
 IMPORTANT FOR TOXICOLOGY: Only extract toxicology markers when they appear as actual lab test results with a numeric value. Do NOT extract them from footnotes, disclaimers, reference lists, or lists of available tests. If a toxicology marker name appears only in a contextual/informational section without a clear numeric result, ignore it.
+TOXICOLOGY HALLUCINATION WARNING: Toxicology markers (mercury/mercurio, aluminum/aluminio, cadmium/cadmio, lead/chumbo, arsenic/arsenico, nickel/niquel, cobalt/cobalto) are RARE in routine Brazilian lab exams. Only extract them if you see the EXACT full test name AND a clear numeric result value printed in the document. Do NOT hallucinate these markers based on their presence in the marker list. If the test was not ordered or not performed, it will not appear in the PDF.
 
 HEPÁTICO:
 - "AST" / "TGO" / "GOT" / "GOT/AST" / "TRANSAMINASE GLUTÂMICO OXALACÉTICA" / "ASPARTATO AMINOTRANSFERASE" / "AST/TGO" / "SGOT" → tgo_ast
@@ -2097,6 +2100,30 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
     }
   }
 
+  // Cross-check: for toxicology markers, verify the marker name actually appears in the PDF text
+  // This prevents AI hallucinations where the model invents toxicology results not present in the document
+  const toxMarkerTextTerms: Record<string, string[]> = {
+    mercurio:  ['mercúrio', 'mercurio', 'mercury', 'hg sangue', 'hg, sangue'],
+    aluminio:  ['alumínio', 'aluminio', 'aluminum', 'al, soro', 'al sérico'],
+    cadmio:    ['cádmio', 'cadmio', 'cadmium', 'cd, sangue'],
+    chumbo:    ['chumbo', 'plumbemia', 'lead', 'pb sangue'],
+    arsenico:  ['arsênico', 'arsenico', 'arsenic', 'as, urina'],
+    niquel:    ['níquel', 'niquel', 'nickel', 'ni, soro'],
+    cobalto:   ['cobalto', 'cobalt', 'co, soro'],
+  };
+  const pdfTextLower = pdfText.toLowerCase();
+  const crossChecked = [...aiResults, ...additional].filter(r => {
+    const terms = toxMarkerTextTerms[r.marker_id];
+    if (terms) {
+      const foundInText = terms.some(t => pdfTextLower.includes(t));
+      if (!foundInText) {
+        console.log(`CROSS-CHECK: discarding ${r.marker_id} = ${r.value} — marker name NOT found in PDF text (hallucination)`);
+        return false;
+      }
+    }
+    return true;
+  });
+
   // Plausibility validation for toxicology markers — discard implausible values
   const toxPlausibility: Record<string, number> = {
     mercurio: 100,    // µg/L — values above 100 are almost certainly false positives
@@ -2107,8 +2134,7 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
     arsenico: 500,    // µg/L
     niquel: 100,      // µg/L
   };
-  const allResults = [...aiResults, ...additional];
-  const filtered = allResults.filter(r => {
+  const filtered = crossChecked.filter(r => {
     const maxPlausible = toxPlausibility[r.marker_id];
     if (maxPlausible !== undefined && r.value !== undefined && r.value !== null && r.value > maxPlausible) {
       console.log(`Plausibility filter: discarding ${r.marker_id} = ${r.value} (max plausible: ${maxPlausible})`);
