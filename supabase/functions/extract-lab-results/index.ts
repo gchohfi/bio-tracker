@@ -969,6 +969,32 @@ function convertLabRefUnits(results: any[]): any[] {
       r.lab_ref_text = '';
     }
   }
+  // Bug 7 — Diferenciais do leucograma em valor absoluto (/mm³) em vez de percentual (%).
+  // Alguns laudos (ex: Fleury) apresentam tanto % quanto /mm³ para neutrófilos, linfócitos, etc.
+  // O Gemini às vezes extrai o valor absoluto em vez do percentual.
+  // Fix: se o valor for > 100 para um marcador percentual, converter usando leucócitos totais.
+  // Fórmula: % = (absoluto / leucocitos_total) * 100
+  // Marcadores afetados: neutrofilos, linfocitos, monocitos, eosinofilos, basofilos, segmentados, bastonetes
+  const percentDifferentials = new Set([
+    'neutrofilos', 'linfocitos', 'monocitos', 'eosinofilos', 'basofilos', 'segmentados', 'bastonetes',
+  ]);
+  const leucocitosResult = results.find((r: any) => r.marker_id === 'leucocitos');
+  const leucocitosTotal = leucocitosResult ? leucocitosResult.value : null;
+  for (const r of results) {
+    if (percentDifferentials.has(r.marker_id) && typeof r.value === 'number' && r.value > 100) {
+      if (leucocitosTotal && leucocitosTotal > 0) {
+        // Converter valor absoluto para percentual
+        const pct = parseFloat(((r.value / leucocitosTotal) * 100).toFixed(1));
+        console.log(`[leucogram-fix] Converting ${r.marker_id} absolute ${r.value} /mm³ → ${pct}% (leucocitos=${leucocitosTotal})`);
+        r.value = pct;
+        r.unit = '%';
+      } else {
+        // Sem leucócitos totais, remover o marcador (valor absoluto não pode ser usado como %)
+        console.log(`[leucogram-fix] Removing ${r.marker_id} absolute ${r.value} /mm³ (no leucocitos total available)`);
+        r._remove = true;
+      }
+    }
+  }
 
   // Bug 1 — Cálcio Total: ref absurda (ex: "18 a 60") capturada do PTH próximo no laudo.
   // Cálcio Total normal: 8.0–11.0 mg/dL. Se max > 15, descartar.
