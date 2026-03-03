@@ -698,8 +698,8 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     eritrocitos: { min: 1, max: 10, fix: (v) => v > 1000 ? v / 1000000 : v > 10 ? v / 10 : v },
     plaquetas: { min: 50, max: 700, fix: (v) => v > 1000 ? v / 1000 : v },
     // Hormônios
-    progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v, label: "progesterona ÷100" },
-    estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 100 : v < 50 ? v * 10 : v > 5000 ? v / 10 : v },
+    progesterona: { min: 0, max: 50, fix: (v) => v > 5 ? v / 100 : v > 50 ? v / 100 : v, label: "progesterona ng/dL→ng/mL" },
+    estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 10 : v > 5000 ? v / 10 : v, label: "estradiol ng/dL→pg/mL" },
     prolactina: { min: 0.5, max: 200, fix: (v) => v > 200 ? v / 100 : v },
     insulina_jejum: { min: 0.5, max: 100, fix: (v) => v > 100 ? v / 100 : v },
     // Eixo GH
@@ -708,7 +708,7 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     igfbp3: { min: 0.5, max: 15, fix: (v) => v > 100 ? v / 1000 : v > 15 ? v / 10 : v, label: "igfbp3 ng/mL→µg/mL" },
     igf1: { min: 20, max: 1000 },
     // Andrógenos
-    dihidrotestosterona: { min: 0, max: 2000 },
+    dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 5 ? v * 10 : v, label: "DHT ng/dL→pg/mL" },
     // Testosterona Livre: expected ng/dL.
     // Faixa funcional feminina: 0.10–0.50 ng/dL. Faixa funcional masculina: 5.0–21.0 ng/dL.
     // Se AI retornar pmol/L (ex: 2–70 pmol/L para mulheres, 170–2400 pmol/L para homens) → ÷34.7.
@@ -813,6 +813,33 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
       } else {
         console.log(`Fixed ${r.marker_id}: ${original} → ${r.value} (${range.label || 'decimal fix'})`);
       }
+    }
+  }
+
+  // ── Deterministic unit conversion based on lab_ref_max ──
+  // If the lab reference max indicates the source unit is ng/dL, convert value + refs
+  const UNIT_CONVERSIONS: Record<string, { factor: number; detectSourceUnit: (refMax: number) => boolean; label: string }> = {
+    estradiol:           { factor: 10,   detectSourceUnit: (max) => max > 0 && max < 100,  label: 'estradiol ng/dL→pg/mL' },
+    progesterona:        { factor: 0.01, detectSourceUnit: (max) => max > 50,               label: 'progesterona ng/dL→ng/mL' },
+    dihidrotestosterona: { factor: 10,   detectSourceUnit: (max) => max > 0 && max < 100,  label: 'DHT ng/dL→pg/mL' },
+  };
+
+  for (const r of results) {
+    const conv = UNIT_CONVERSIONS[r.marker_id];
+    if (!conv) continue;
+    if (typeof r.value !== 'number') continue;
+    
+    const refMax = typeof r.lab_ref_max === 'number' ? r.lab_ref_max : null;
+    if (refMax !== null && conv.detectSourceUnit(refMax)) {
+      const origValue = r.value;
+      r.value = parseFloat((r.value * conv.factor).toFixed(4));
+      if (typeof r.lab_ref_min === 'number') {
+        r.lab_ref_min = parseFloat((r.lab_ref_min * conv.factor).toFixed(4));
+      }
+      if (typeof r.lab_ref_max === 'number') {
+        r.lab_ref_max = parseFloat((r.lab_ref_max * conv.factor).toFixed(4));
+      }
+      console.log(`DETERMINISTIC CONV ${conv.label}: value ${origValue}→${r.value}, ref_max ${refMax}→${r.lab_ref_max}`);
     }
   }
 
