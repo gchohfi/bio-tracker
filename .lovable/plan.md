@@ -1,90 +1,50 @@
 
 
-# Plano: Correções de bugs identificados na revisão de código
+# Plano: Fix Testosterona Livre — conversão sex-aware
 
-Excelente análise. Vou organizar as correções por prioridade.
+## Problema
 
----
+A função `validateAndFixValues` no backend não recebe o sexo do paciente. O fix de `testosterona_livre` tem um buraco: valores entre 3.0 e 25.0 ng/dL não são convertidos porque podem ser válidos para homens. Mas para mulheres, valores como 5.73 e 15.3 são claramente pmol/L (15.3 pmol/L ÷ 34.7 = 0.441 ng/dL, 5.73 ÷ 34.7 = 0.165 ng/dL).
 
-## Bug 1 (Crítico): `parseBrNum` confunde decimais com milhares
+Dados desta paciente (F):
+- 2025-11-10: 15.3 (deveria ser 0.441 ng/dL)
+- 2026-02-07: 5.73 (deveria ser 0.165 ng/dL)
+- 2026-02-07: 0.57 (correto)
 
-**Arquivo:** `supabase/functions/extract-lab-results/index.ts` linha 1477
+## Correção
 
-O regex `/^\d+\.\d{3}$/` interpreta "0.800" como 800 (milhar) em vez de 0.8 (decimal). Afeta creatinina, cálcio iônico, T3 livre, etc.
+### 1. Passar sexo do paciente para a Edge Function
 
-**Correção:** Exigir pelo menos 2 dígitos antes do ponto para considerar milhar. Alterar para `/^\d{2,}(\.\d{3})+$/` — isso garante que "1.000" → 1000, mas "0.800" → 0.8.
+**Frontend** (`src/pages/PatientDetail.tsx`): Enviar o sexo do paciente no body da chamada:
+```typescript
+body: { pdfText: cleanedText + aliasHint, patientSex: patient.sex }
+```
 
----
+**Backend** (`supabase/functions/extract-lab-results/index.ts`): Extrair `patientSex` do request body.
 
-## Bug 2 (Crítico): Regex fallback sem validação
+### 2. Tornar `validateAndFixValues` sex-aware
 
-**Arquivo:** `supabase/functions/extract-lab-results/index.ts` linha 2371
+Alterar a assinatura para receber o sexo: `validateAndFixValues(results, patientSex)`.
 
-`regexFallback()` roda DEPOIS de `validateAndFixValues()` e `postProcessResults()`. Marcadores do fallback entram sem sanity check.
+Atualizar o fix de `testosterona_livre` para usar lógica sex-aware:
+- **Mulheres (F):** valores > 1.0 ng/dL são suspeitos (lab range max feminino é 1.07). Se > 1.0 e ≤ 700 → dividir por 34.7 (pmol/L → ng/dL). Se > 700 → dividir por 1000 (pg/mL → ng/dL).
+- **Homens (M) ou desconhecido:** manter a lógica atual (só converter > 25).
 
-**Correção:** Após `regexFallback()`, rodar novamente `validateAndFixValues()` apenas nos marcadores novos, e re-executar cálculos derivados relevantes (bilirrubina indireta, HOMA-IR).
+### 3. Corrigir dados existentes
 
----
+Executar um UPDATE no banco para corrigir os 2 valores errados desta paciente:
+- 15.3 → 0.4410 (15.3 / 34.7)
+- 5.73 → 0.1651 (5.73 / 34.7)
 
-## Bug 3 (Alto): Operadores ≤/≥ perdidos no strip do backend
+### 4. Deploy
 
-**Arquivo:** `supabase/functions/extract-lab-results/index.ts` linha 832
+Deploy da edge function `extract-lab-results` atualizada.
 
-O regex `/^[<>]=?\s*\d/` não inclui `≤`/`≥`. Resultado: `text_value="≤ 34"` é deletado.
+## Arquivos a editar
 
-**Correção:** Alterar para `/^[<>≤≥]=?\s*\d/`.
-
----
-
-## Bug 4 (Alto): Frontend cego para ≤/≥
-
-**Arquivos afetados:**
-- `src/pages/PatientDetail.tsx` linhas 373, 812 — regex `/^[<>]=?\s*\d/`
-- `src/components/EditReportDialog.tsx` linhas 83, 160 — regex `/^[<>]=?\s*\d/` e `/^[<>]/`
-- `src/lib/markers.ts` linha 842 — `parseOperatorValue` regex `/^([<>]=?)\s*/`
-
-**Correção:** Adicionar `≤≥` a todos os regexes de operador, e no `parseOperatorValue` normalizar `≤` → `<=` e `≥` → `>=`.
-
----
-
-## Bug 5 (Médio): DHT sanity check não é sex-aware
-
-**Arquivo:** `supabase/functions/extract-lab-results/index.ts` linha 704
-
-`dihidrotestosterona: { min: 50, ... fix: v < 50 ? v * 10 }` — valores femininos válidos (10-40 pg/mL) são multiplicados por 10.
-
-**Correção:** Remover o fix automático do DHT. Valores fora de range serão preservados como estão — melhor ter o valor real que um valor incorretamente multiplicado.
-
----
-
-## Bug 6 (Baixo): Estradiol dead code
-
-**Arquivo:** `supabase/functions/extract-lab-results/index.ts` linha 695
-
-`estradiol: fix: v > 5000 ? v/10 : v < 5 ? v*100 : v < 50 ? v*10 : v` — o branch `v < 50 ? v*10` é dead code porque `v < 5` já retorna antes.
-
-**Correção:** Ajustar para `v < 5 ? v * 100 : v < 50 ? v * 10 : v > 5000 ? v / 10 : v` — reordenar para que todos os branches sejam alcançáveis.
-
----
-
-## Bug 7 (Info): PCR/VHS na categoria errada
-
-**Arquivo:** `src/lib/markers.ts`
-
-PCR e VHS estão em "Hemograma" mas são inflamatórios. Não afeta extração, mas melhora a organização na UI.
-
-**Correção:** Mover `pcr` e `vhs` para a categoria "Inflamação" (que já existe no `categoryConfig.ts`).
-
----
-
-## Resumo de arquivos a editar
-
-| Arquivo | Alterações |
+| Arquivo | Alteração |
 |---------|-----------|
-| `supabase/functions/extract-lab-results/index.ts` | Bugs 1, 2, 3, 5, 6 |
-| `src/pages/PatientDetail.tsx` | Bug 4 (2 regexes) |
-| `src/components/EditReportDialog.tsx` | Bug 4 (2 regexes) |
-| `src/lib/markers.ts` | Bugs 4 e 7 |
-
-Após as edições, deploy da edge function `extract-lab-results`.
+| `src/pages/PatientDetail.tsx` | Enviar `patientSex` no body |
+| `supabase/functions/extract-lab-results/index.ts` | Receber `patientSex`, passar para `validateAndFixValues`, fix sex-aware |
+| Migration SQL | Corrigir os 2 valores errados no banco |
 
