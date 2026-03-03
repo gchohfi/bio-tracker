@@ -1,50 +1,98 @@
 
 
-# Plano: Fix Testosterona Livre — conversão sex-aware
+# Correção de Conversões de Unidade: Estradiol, Progesterona e DHT
 
-## Problema
+## Problemas Identificados
 
-A função `validateAndFixValues` no backend não recebe o sexo do paciente. O fix de `testosterona_livre` tem um buraco: valores entre 3.0 e 25.0 ng/dL não são convertidos porque podem ser válidos para homens. Mas para mulheres, valores como 5.73 e 15.3 são claramente pmol/L (15.3 pmol/L ÷ 34.7 = 0.441 ng/dL, 5.73 ÷ 34.7 = 0.165 ng/dL).
+Os 3 erros têm a mesma causa raiz: **conflito entre conversão da IA e sanity checks no pós-processamento**.
 
-Dados desta paciente (F):
-- 2025-11-10: 15.3 (deveria ser 0.441 ng/dL)
-- 2026-02-07: 5.73 (deveria ser 0.165 ng/dL)
-- 2026-02-07: 0.57 (correto)
+### Erro 1 — Estradiol (4.4 ng/dL → 440 pg/mL, deveria ser 44)
+- A IA converte corretamente: 4.4 × 10 = 44 pg/mL
+- Mas o sanity check (linha 702) vê `44 < 50` e aplica `× 10` novamente → 440
+- **Bug**: dupla conversão no sanity fix
 
-## Correção
+### Erro 2 — Progesterona (19 ng/dL → 19 ng/mL, deveria ser 0.19)  
+- A IA não converteu (manteve 19)
+- O sanity check (linha 701) só corrige se `> 50`, então 19 passa direto
+- **Bug**: threshold do sanity muito alto + IA falhou em converter
 
-### 1. Passar sexo do paciente para a Edge Function
+### Erro 3 — DHT (13 ng/dL → 13 pg/mL, deveria ser 130)
+- A IA não converteu (manteve 13)
+- O sanity check para DHT (linha 711) não tem função `fix`
+- **Bug**: sem fallback de conversão
 
-**Frontend** (`src/pages/PatientDetail.tsx`): Enviar o sexo do paciente no body da chamada:
+## Correções Propostas
+
+### 1. Estradiol — remover branch que causa dupla conversão
 ```typescript
-body: { pdfText: cleanedText + aliasHint, patientSex: patient.sex }
+// ANTES (bugado):
+estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 100 : v < 50 ? v * 10 : v > 5000 ? v / 10 : v }
+
+// DEPOIS:
+estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 10 : v > 5000 ? v / 10 : v }
 ```
+- `v < 5` (valor em ng/dL não convertido, ex: 4.4) → `× 10` = 44 ✓
+- Valores 5–5000 já estão em pg/mL, não mexer
 
-**Backend** (`supabase/functions/extract-lab-results/index.ts`): Extrair `patientSex` do request body.
+### 2. Progesterona — adicionar detecção de ng/dL não convertido
+```typescript
+// ANTES:
+progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v }
 
-### 2. Tornar `validateAndFixValues` sex-aware
+// DEPOIS (sex-aware):
+progesterona: { min: 0, max: 50, fix: (v) => {
+  // Labs brasileiros reportam ng/dL (ex: 19, 89). Nosso target é ng/mL.
+  // Fase folicular: 0.1-1.5 ng/mL = 10-150 ng/dL
+  // Fase lútea: 5-25 ng/mL = 500-2500 ng/dL  
+  // Se > 5 para mulher ou > 1.5 para homem, provavelmente ng/dL não convertido
+  if (v > 5) return v / 100;  // ng/dL → ng/mL
+  return v;
+}}
+```
+- 19 ng/dL → `19 > 5` → `÷ 100` = 0.19 ng/mL ✓
+- Valor já convertido (0.19 ng/mL) → não mexe ✓
 
-Alterar a assinatura para receber o sexo: `validateAndFixValues(results, patientSex)`.
+### 3. DHT — adicionar fix para conversão ng/dL → pg/mL
+```typescript
+// ANTES:
+dihidrotestosterona: { min: 0, max: 2000 }
 
-Atualizar o fix de `testosterona_livre` para usar lógica sex-aware:
-- **Mulheres (F):** valores > 1.0 ng/dL são suspeitos (lab range max feminino é 1.07). Se > 1.0 e ≤ 700 → dividir por 34.7 (pmol/L → ng/dL). Se > 700 → dividir por 1000 (pg/mL → ng/dL).
-- **Homens (M) ou desconhecido:** manter a lógica atual (só converter > 25).
+// DEPOIS:
+dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 5 ? v * 10 : v }
+```
+- 13 ng/dL → `13 ≥ 5` → passa (já no range se AI converteu) ... não, 13 está no range.
 
-### 3. Corrigir dados existentes
+Melhor abordagem: checar contra referência do lab. Se `lab_ref_max` está em ng/dL (ex: 46), o valor está em ng/dL e precisa `× 10`.
 
-Executar um UPDATE no banco para corrigir os 2 valores errados desta paciente:
-- 15.3 → 0.4410 (15.3 / 34.7)
-- 5.73 → 0.1651 (5.73 / 34.7)
+Na verdade, a solução mais robusta é **adicionar conversão determinística no pós-processamento** para estes 3 marcadores, usando o `lab_ref_text` como sinal da unidade fonte:
 
-### 4. Deploy
+### 4. Pós-processamento determinístico (abordagem principal)
+Adicionar uma etapa após a extração que detecta a unidade fonte pelo `lab_ref_text` e converte deterministicamente:
 
-Deploy da edge function `extract-lab-results` atualizada.
+```typescript
+// No postProcessResults ou equivalente:
+const UNIT_CONVERSIONS = {
+  estradiol:    { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10,   detectRef: (max) => max < 100 },
+  progesterona: { sourceUnit: 'ng/dL', targetUnit: 'ng/mL', factor: 0.01, detectRef: (max) => max > 50 },
+  dihidrotestosterona: { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10, detectRef: (max) => max < 100 },
+};
+```
+Se o `lab_ref_max` indica unidade ng/dL (ex: estradiol ref max 23.3, progesterona ref max 89, DHT ref max 46), aplicar conversão e também converter as referências.
 
-## Arquivos a editar
+### 5. Corrigir dados existentes no banco
+Migration SQL para corrigir os 3 valores da paciente atual.
+
+## Arquivos a alterar
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/pages/PatientDetail.tsx` | Enviar `patientSex` no body |
-| `supabase/functions/extract-lab-results/index.ts` | Receber `patientSex`, passar para `validateAndFixValues`, fix sex-aware |
-| Migration SQL | Corrigir os 2 valores errados no banco |
+| `supabase/functions/extract-lab-results/index.ts` | Corrigir sanity fixes + adicionar pós-processamento determinístico |
+| Migration SQL | Corrigir os 3 valores errados no banco |
+
+## Resumo
+- Estradiol: corrigir sanity para não duplicar conversão
+- Progesterona: baixar threshold do sanity
+- DHT: adicionar fix de conversão
+- Adicionar detecção determinística por lab_ref como camada extra de segurança
+- Corrigir dados existentes via migration
 
