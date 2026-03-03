@@ -405,7 +405,7 @@ VITAMINAS:
 - "Vitamina E" → vitamina_e
 - "Ácido Ascórbico" / "Vitamina C" / "ÁCIDO ASCÓRBICO, PLASMA" / "VITAMINA C, SORO" / "ASCORBATO" → vitamina_c
 - "Vitamina B6" → vitamina_b6
-- "Vitamina B1" → vitamina_b1
+- "Vitamina B1" / "Tiamina" → vitamina_b1 ⚠️ ONLY if explicitly "B1" or "Tiamina" — NOT "B12", "B6", or other B vitamins
 - "Homocisteína" / "HOMOCISTEÍNA, PLASMA" / "HOMOCISTEÍNA TOTAL" / "HCY" → homocisteina
 
 MINERAIS:
@@ -1878,7 +1878,7 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   tryGeneric('iodo_urinario', [/(?:Iodo\s+Urin[áa]rio)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('vitamina_e', [/(?:Vitamina\s+E)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('vitamina_b6', [/(?:Vitamina\s+B6|Piridoxina)[\s:.\-]*?(\d+[.,]?\d*)/i]);
-  tryGeneric('vitamina_b1', [/(?:Vitamina\s+B1|Tiamina)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  tryGeneric('vitamina_b1', [/(?:Vitamina\s+B1(?!\d)|Tiamina)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('fator_reumatoide', [/(?:Fator\s+Reumat[óo]ide|FR)[\s:.\-]*?([<>]?\s*\d+[.,]?\d*)/i]);
   tryGeneric('anti_transglutaminase_iga', [/(?:Anti[- ]?Transglutaminase|tTG\s*IgA)[\s:.\-]*?([<>]?\s*\d+[.,]?\d*)/i]);
   tryGeneric('g6pd', [/(?:G6PD|Glicose[- ]?6[- ]?Fosfato)[\s:.\-]*?(\d+[.,]?\d*)/i]);
