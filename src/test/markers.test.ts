@@ -49,6 +49,16 @@ describe("parseOperatorValue", () => {
   it("returns null for descriptive text", () => {
     expect(parseOperatorValue("Maior ou igual a 20 anos:")).toBeNull();
   });
+
+  it("parses '≤ 34' (Unicode) and normalizes to '<='", () => {
+    const result = parseOperatorValue("≤ 34");
+    expect(result).toEqual({ operator: "<=", numericValue: 34 });
+  });
+
+  it("parses '≥ 60' (Unicode) and normalizes to '>='", () => {
+    const result = parseOperatorValue("≥ 60");
+    expect(result).toEqual({ operator: ">=", numericValue: 60 });
+  });
 });
 
 // ─── getMarkerStatusFromRef ──────────────────────────────────────────────────

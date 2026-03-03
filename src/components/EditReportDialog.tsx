@@ -80,7 +80,7 @@ export default function EditReportDialog({
     setEditingKey(markerId);
     if (marker?.qualitative) {
       setEditBuffer(row?.text_value || "");
-    } else if (row?.text_value && /^[<>]=?\s*\d/.test(row.text_value)) {
+    } else if (row?.text_value && /^[<>≤≥]=?\s*\d/.test(row.text_value)) {
       setEditBuffer(row.text_value);
     } else {
       setEditBuffer(String(row?.value ?? ""));
@@ -157,7 +157,7 @@ export default function EditReportDialog({
               const isEditing = editingKey === marker.id;
               const displayVal = marker.qualitative
                 ? (row.text_value || "—")
-                : (row.text_value && /^[<>]/.test(row.text_value) ? row.text_value : String(row.value));
+                : (row.text_value && /^[<>≤≥]/.test(row.text_value) ? row.text_value : String(row.value));
               
               const status = marker.qualitative ? "normal" : getMarkerStatus(row.value, marker, sex);
 

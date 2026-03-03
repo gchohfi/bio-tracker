@@ -106,11 +106,11 @@ export const MARKERS: MarkerDef[] = [
     labRange: { M: [7.5, 12.5], F: [7.5, 12.5] },
     refRange: { M: [9.2, 12.6], F: [9.2, 12.6] }, panel: "Adicional" },
 
-  { id: "pcr",             name: "PCR",             unit: "mg/L",         category: "Hemograma",
+  { id: "pcr",             name: "PCR",             unit: "mg/L",         category: "Inflamação",
     labRange: { M: [0, 5.0], F: [0, 5.0] },
     refRange: { M: [0, 1.0], F: [0, 1.0] }, panel: "Padrão" },
 
-  { id: "vhs",             name: "VHS",             unit: "mm/h",         category: "Hemograma",
+  { id: "vhs",             name: "VHS",             unit: "mm/h",         category: "Inflamação",
     labRange: { M: [0, 15], F: [0, 20] },
     refRange: { M: [0, 10], F: [0, 15] }, panel: "Padrão" },
 
@@ -839,10 +839,14 @@ export function getMarkersByCategory(category: string): MarkerDef[] {
  * Returns { operator, numericValue } or null if no operator found
  */
 export function parseOperatorValue(textValue: string): { operator: string; numericValue: number } | null {
-  const match = textValue.match(/^([<>]=?)\s*(\d+[.,]?\d*)/);
+  const match = textValue.match(/^([<>≤≥]=?)\s*(\d+[.,]?\d*)/);
   if (!match) return null;
+  // Normalize Unicode operators to ASCII
+  let op = match[1];
+  if (op === "≤") op = "<=";
+  else if (op === "≥") op = ">=";
   return {
-    operator: match[1],
+    operator: op,
     numericValue: parseFloat(match[2].replace(",", ".")),
   };
 }

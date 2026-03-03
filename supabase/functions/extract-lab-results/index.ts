@@ -692,7 +692,7 @@ function validateAndFixValues(results: any[]): any[] {
     plaquetas: { min: 50, max: 700, fix: (v) => v > 1000 ? v / 1000 : v },
     // Hormônios
     progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v, label: "progesterona ÷100" },
-    estradiol: { min: 5, max: 5000, fix: (v) => v > 5000 ? v / 10 : v < 5 ? v * 100 : v < 50 ? v * 10 : v },
+    estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 100 : v < 50 ? v * 10 : v > 5000 ? v / 10 : v },
     prolactina: { min: 0.5, max: 200, fix: (v) => v > 200 ? v / 100 : v },
     insulina_jejum: { min: 0.5, max: 100, fix: (v) => v > 100 ? v / 100 : v },
     // Eixo GH
@@ -701,7 +701,7 @@ function validateAndFixValues(results: any[]): any[] {
     igfbp3: { min: 0.5, max: 15, fix: (v) => v > 100 ? v / 1000 : v > 15 ? v / 10 : v, label: "igfbp3 ng/mL→µg/mL" },
     igf1: { min: 20, max: 1000 },
     // Andrógenos
-    dihidrotestosterona: { min: 50, max: 2000, fix: (v) => v < 50 ? v * 10 : v, label: "DHT ×10" },
+    dihidrotestosterona: { min: 0, max: 2000 },
     // Testosterona Livre: expected ng/dL.
     // Faixa funcional feminina: 0.10–0.50 ng/dL. Faixa funcional masculina: 5.0–21.0 ng/dL.
     // Se AI retornar pmol/L (ex: 2–70 pmol/L para mulheres, 170–2400 pmol/L para homens) → ÷34.7.
@@ -829,7 +829,7 @@ function validateAndFixValues(results: any[]): any[] {
   // (except for operator values)
   for (const r of results) {
     if (r.text_value && typeof r.value === "number" && !QUALITATIVE_IDS.has(r.marker_id)) {
-      if (!/^[<>]=?\s*\d/.test(r.text_value.trim())) {
+      if (!/^[<>≤≥]=?\s*\d/.test(r.text_value.trim())) {
         console.log(`Stripped non-operator text_value from ${r.marker_id}: "${r.text_value}"`);
         delete r.text_value;
       }
@@ -1474,7 +1474,7 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
       c = c.replace(',', '.');
       return parseFloat(c);
     }
-    if (/^\d+\.\d{3}$/.test(c)) {
+    if (/^\d{2,}(\.\d{3})+$/.test(c)) {
       c = c.replace('.', '');
       return parseFloat(c);
     }
@@ -2368,7 +2368,17 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     // Post-process: calculate derived values if AI missed them
     validResults = postProcessResults(validResults);
     // Regex fallback for markers the AI frequently misses
+    const beforeFallbackIds = new Set(validResults.map((r: any) => r.marker_id));
     validResults = regexFallback(pdfText, validResults);
+    // Validate fallback-added markers
+    const fallbackAdded = validResults.filter((r: any) => !beforeFallbackIds.has(r.marker_id));
+    if (fallbackAdded.length > 0) {
+      console.log(`Regex fallback added ${fallbackAdded.length} markers: ${fallbackAdded.map((r: any) => r.marker_id).join(', ')}`);
+      // Re-run validation only on fallback markers, then merge back
+      const fallbackValidated = validateAndFixValues(fallbackAdded);
+      // Re-run derived calculations with full set (e.g. bilirrubina indireta, HOMA-IR)
+      validResults = postProcessResults(validResults);
+    }
     // Parse lab_ref_text into numeric min/max fields
     validResults = parseLabRefRanges(validResults);
     // Convert lab_ref units to match the stored value units (e.g. pmol/L → ng/dL for testosterona_livre)
