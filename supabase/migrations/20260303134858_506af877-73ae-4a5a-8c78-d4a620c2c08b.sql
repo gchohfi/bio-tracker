@@ -1,0 +1,1 @@
+ALTER TABLE public.lab_sessions ADD COLUMN IF NOT EXISTS specialty_id TEXT DEFAULT 'medicina_funcional';
