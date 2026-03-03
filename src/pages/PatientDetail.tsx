@@ -793,7 +793,7 @@ export default function PatientDetail() {
       : "";
 
     const { data, error } = await supabase.functions.invoke("extract-lab-results", {
-      body: { pdfText: cleanedText + aliasHint },
+      body: { pdfText: cleanedText + aliasHint, patientSex: patient?.sex },
     });
 
     if (error) throw error;

@@ -683,8 +683,15 @@ function deduplicateResults(results: any[]): any[] {
 }
 
 // Post-processing: validate values and fix common decimal/unit errors
-function validateAndFixValues(results: any[]): any[] {
+function validateAndFixValues(results: any[], patientSex?: string): any[] {
   // Sanity ranges with auto-fix functions for common Brazilian decimal/unit errors
+  // Sex-aware fix for testosterona_livre:
+  // - Mulheres (F): max lab range is 0.68 ng/dL. Values > 1.0 are suspect pmol/L.
+  // - Homens (M) ou desconhecido: valid range 3–24 ng/dL, only convert > 25.
+  const testosteronaLivreFix = patientSex === 'F'
+    ? (v: number) => v > 1.0 && v <= 700 ? v / 34.7 : v > 700 ? v / 1000 : v
+    : (v: number) => v > 25.0 && v <= 700 ? v / 34.7 : v > 700 ? v / 1000 : (v > 1.5 && v <= 3.0) ? v / 34.7 : v;
+
   const sanityRanges: Record<string, { min: number; max: number; fix?: (v: number) => number; label?: string }> = {
     // Hemograma
     leucocitos: { min: 1000, max: 30000, fix: (v) => v < 100 ? v * 1000 : v < 1000 ? v * 1000 : v, label: "leucocitos ×1000" },
@@ -710,7 +717,7 @@ function validateAndFixValues(results: any[]): any[] {
     // Testosterona Livre fix: valores > 1.5 ng/dL são suspeitos para mulheres (max normal é 1.07 ng/dL).
     // Se entre 1.5 e 700 → provavelmente pmol/L ÷ 34.7. Se > 700 → pg/mL ÷ 1000.
     // Nota: valores masculinos normais são 3-24 ng/dL, então não converter se 3 < v < 25.
-    testosterona_livre: { min: 0.01, max: 25.0, fix: (v) => v > 25.0 && v <= 700 ? v / 34.7 : v > 700 ? v / 1000 : (v > 1.5 && v <= 3.0) ? v / 34.7 : v, label: "testosterona_livre pmol→ng/dL" },
+    testosterona_livre: { min: 0.01, max: patientSex === 'F' ? 1.0 : 25.0, fix: testosteronaLivreFix, label: "testosterona_livre pmol→ng/dL (sex-aware)" },
     // Estrona: expected pg/mL (5–200). If AI returned ng/dL (~0.5–20) → ×10 to get pg/mL.
     estrona: { min: 5, max: 500, fix: (v) => v < 5 ? v * 10 : v, label: "estrona ng/dL→pg/mL" },
     // Tireoide
@@ -2200,7 +2207,7 @@ serve(async (req) => {
   }
 
   try {
-    const { pdfText } = await req.json();
+    const { pdfText, patientSex } = await req.json();
     if (!pdfText || typeof pdfText !== "string") {
       return new Response(JSON.stringify({ error: "pdfText is required" }), {
         status: 400,
@@ -2364,7 +2371,7 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     // Deduplicate (prefer calculated values over operator values for same marker)
     validResults = deduplicateResults(validResults);
     // Validate and fix common decimal/unit errors
-    validResults = validateAndFixValues(validResults);
+    validResults = validateAndFixValues(validResults, patientSex);
     // Post-process: calculate derived values if AI missed them
     validResults = postProcessResults(validResults);
     // Regex fallback for markers the AI frequently misses
@@ -2375,7 +2382,7 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     if (fallbackAdded.length > 0) {
       console.log(`Regex fallback added ${fallbackAdded.length} markers: ${fallbackAdded.map((r: any) => r.marker_id).join(', ')}`);
       // Re-run validation only on fallback markers, then merge back
-      const fallbackValidated = validateAndFixValues(fallbackAdded);
+      const fallbackValidated = validateAndFixValues(fallbackAdded, patientSex);
       // Re-run derived calculations with full set (e.g. bilirrubina indireta, HOMA-IR)
       validResults = postProcessResults(validResults);
     }
