@@ -233,18 +233,21 @@ export type Database = {
           id: string
           patient_id: string
           session_date: string
+          specialty_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           patient_id: string
           session_date?: string
+          specialty_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           patient_id?: string
           session_date?: string
+          specialty_id?: string | null
         }
         Relationships: [
           {
