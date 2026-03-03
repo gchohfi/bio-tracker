@@ -112,6 +112,77 @@ export type Database = {
         }
         Relationships: []
       }
+      doctor_specialty_notes: {
+        Row: {
+          adesao_tratamento: string | null
+          conduta_planejada: string | null
+          created_at: string | null
+          exames_em_dia: boolean | null
+          foco_consulta: string | null
+          hipoteses_diagnosticas: string | null
+          id: string
+          impressao_clinica: string | null
+          medicamentos_prescritos: string | null
+          motivacao_paciente: string | null
+          notas_livres: string | null
+          observacoes_exames: string | null
+          patient_id: string
+          pontos_atencao: string | null
+          proximos_passos: string | null
+          resposta_tratamento: string | null
+          specialty_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          adesao_tratamento?: string | null
+          conduta_planejada?: string | null
+          created_at?: string | null
+          exames_em_dia?: boolean | null
+          foco_consulta?: string | null
+          hipoteses_diagnosticas?: string | null
+          id?: string
+          impressao_clinica?: string | null
+          medicamentos_prescritos?: string | null
+          motivacao_paciente?: string | null
+          notas_livres?: string | null
+          observacoes_exames?: string | null
+          patient_id: string
+          pontos_atencao?: string | null
+          proximos_passos?: string | null
+          resposta_tratamento?: string | null
+          specialty_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          adesao_tratamento?: string | null
+          conduta_planejada?: string | null
+          created_at?: string | null
+          exames_em_dia?: boolean | null
+          foco_consulta?: string | null
+          hipoteses_diagnosticas?: string | null
+          id?: string
+          impressao_clinica?: string | null
+          medicamentos_prescritos?: string | null
+          motivacao_paciente?: string | null
+          notas_livres?: string | null
+          observacoes_exames?: string | null
+          patient_id?: string
+          pontos_atencao?: string | null
+          proximos_passos?: string | null
+          resposta_tratamento?: string | null
+          specialty_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_specialty_notes_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lab_results: {
         Row: {
           created_at: string
@@ -246,6 +317,92 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "patient_analyses_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_anamneses: {
+        Row: {
+          atividade_fisica: string | null
+          ciclo_regular: string | null
+          comorbidades: string | null
+          created_at: string | null
+          evacuacoes_por_dia: string | null
+          expectativa_consulta: string | null
+          id: string
+          intolerancias_alimentares: string | null
+          medicamentos_continuos: string | null
+          nivel_estresse: number | null
+          nota_saude: number | null
+          objetivos: string | null
+          patient_id: string
+          peso_altura: string | null
+          queixas_principais: string | null
+          recordatorio_alimentar: string | null
+          sintomas_atuais: string[] | null
+          specialty_data: Json | null
+          specialty_id: string
+          suplementacao: string | null
+          tipo_fezes: string | null
+          tipo_sanguineo: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          atividade_fisica?: string | null
+          ciclo_regular?: string | null
+          comorbidades?: string | null
+          created_at?: string | null
+          evacuacoes_por_dia?: string | null
+          expectativa_consulta?: string | null
+          id?: string
+          intolerancias_alimentares?: string | null
+          medicamentos_continuos?: string | null
+          nivel_estresse?: number | null
+          nota_saude?: number | null
+          objetivos?: string | null
+          patient_id: string
+          peso_altura?: string | null
+          queixas_principais?: string | null
+          recordatorio_alimentar?: string | null
+          sintomas_atuais?: string[] | null
+          specialty_data?: Json | null
+          specialty_id: string
+          suplementacao?: string | null
+          tipo_fezes?: string | null
+          tipo_sanguineo?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          atividade_fisica?: string | null
+          ciclo_regular?: string | null
+          comorbidades?: string | null
+          created_at?: string | null
+          evacuacoes_por_dia?: string | null
+          expectativa_consulta?: string | null
+          id?: string
+          intolerancias_alimentares?: string | null
+          medicamentos_continuos?: string | null
+          nivel_estresse?: number | null
+          nota_saude?: number | null
+          objetivos?: string | null
+          patient_id?: string
+          peso_altura?: string | null
+          queixas_principais?: string | null
+          recordatorio_alimentar?: string | null
+          sintomas_atuais?: string[] | null
+          specialty_data?: Json | null
+          specialty_id?: string
+          suplementacao?: string | null
+          tipo_fezes?: string | null
+          tipo_sanguineo?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_anamneses_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
