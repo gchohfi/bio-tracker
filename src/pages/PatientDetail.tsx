@@ -40,6 +40,7 @@ import {
   Brain,
   Syringe,
   Sliders,
+  ClipboardList,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
 import ImportVerification from "@/components/ImportVerification";
@@ -47,6 +48,7 @@ import EditExtractionDialog from "@/components/EditExtractionDialog";
 import EditReportDialog from "@/components/EditReportDialog";
 import AliasConfigDialog, { loadCustomAliases } from "@/components/AliasConfigDialog";
 import { PatientProfileDialog } from "@/components/PatientProfileDialog";
+import { AnamneseTab } from "@/components/AnamneseTab";
 import { generatePatientReport } from "@/lib/generateReport";
 import { exportPrescriptionCSV } from "@/lib/exportPrescriptionCSV";
 import {
@@ -240,7 +242,7 @@ export default function PatientDetail() {
   const [activeCategory, setActiveCategory] = useState<Category>("Hemograma");
   const [markerValues, setMarkerValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [detailTab, setDetailTab] = useState<"sessions" | "evolution" | "analysis">("sessions");
+  const [detailTab, setDetailTab] = useState<"sessions" | "evolution" | "analysis" | "anamnese">("sessions");
   const [savedAnalyses, setSavedAnalyses] = useState<any[]>([]);
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
   const [extracting, setExtracting] = useState(false);
@@ -1275,7 +1277,7 @@ export default function PatientDetail() {
         </div>
 
         {/* Tabs for Sessions, Evolution and AI Analysis */}
-        <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "sessions" | "evolution" | "analysis")}>
+        <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "sessions" | "evolution" | "analysis" | "anamnese")}>
           <TabsList>
             <TabsTrigger value="sessions" className="gap-1.5">
               <FlaskConical className="h-3.5 w-3.5" />
@@ -1291,6 +1293,10 @@ export default function PatientDetail() {
               {savedAnalyses.length > 0 && (
                 <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{savedAnalyses.length}</Badge>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="anamnese" className="gap-1.5">
+              <ClipboardList className="h-3.5 w-3.5" />
+              Anamnese
             </TabsTrigger>
           </TabsList>
 
@@ -1641,6 +1647,9 @@ export default function PatientDetail() {
                 )}
               </div>
             )}
+          </TabsContent>
+          <TabsContent value="anamnese" className="mt-4">
+            {patient && <AnamneseTab patient={patient} />}
           </TabsContent>
         </Tabs>
       </div>
