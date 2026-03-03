@@ -60,6 +60,7 @@ export const CATEGORY_CONFIG = {
   "Lipídios":          cat("340 70% 55%", "Lipídios"),
   Tireoide:            cat("170 60% 40%", "Tireoide"),
   "Hormônios":         cat("300 50% 50%", "Hormônios"),
+  "Andrógenos":        cat("320 55% 48%", "Andrógenos"),
   "Eixo GH":           cat("260 55% 55%", "Eixo GH"),
   "Eixo Adrenal":      cat("25 65% 50%",  "Eixo Adrenal"),
   "Inflamação":        cat("5 70% 50%",   "Inflamação"),

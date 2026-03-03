@@ -1794,7 +1794,29 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   tryGeneric('glicemia_media_estimada', [/(?:GLICEMIA\s+M[EÉ]DIA\s+ESTIMADA|eAG|Estimated\s+Average\s+Glucose)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('glicose_jejum', [/(?:GLICOSE|GLICEMIA)[\s:.\-]*?(\d{2,3})\s*mg/i]);
   tryGeneric('insulina_jejum', [/(?:INSULINA)[\s,]*(?:soro|BASAL)?[\s\S]*?(?:RESULTADO|:)\s*(\d+[.,]?\d*)/i]);
-  tryGeneric('acido_folico', [/(?:[ÁAáa]cido\s+F[óoÓO]lico|Folato)[\s:.\-]*?(superior\s+a\s+[\d,\.]+|inferior\s+a\s+[\d,\.]+|[<>]?\s*\d+[.,]?\d*)/i]);
+  tryGeneric('acido_folico', [
+    /(?:Vitamina\s+B9\s*\([^)]*\)|[ÁAáa]cido\s+F[óoÓO]lico|Folato)[\s\S]{0,50}?(\d+[.,]?\d*)\s*ng\/mL/i,
+    /(?:[ÁAáa]cido\s+F[óoÓO]lico|Folato)[\s:.\-]*?(superior\s+a\s+[\d,\.]+|inferior\s+a\s+[\d,\.]+|[<>]?\s*\d+[.,]?\d*)/i
+  ]);
+  // IGF-1 generic fallback (non-Fleury labs)
+  if (!found.has('igf1')) {
+    const igf1Patterns = [
+      /(?:IGF[- ]?1|Somatomedina\s+C)[\s\S]{0,80}?(\d{2,3}[.,]?\d*)\s*ng\/mL/i,
+      /(?:IGF[- ]?1|IGF\s+I|FATOR\s+DE\s+CRESCIMENTO\s+INSULINO)[\s:.\-]*?(\d{2,3}[.,]?\d*)/i,
+    ];
+    for (const pat of igf1Patterns) {
+      const m = pdfText.match(pat);
+      if (m) {
+        const num = parseBrNum(m[1]);
+        if (!isNaN(num) && num >= 20 && num <= 1000) {
+          additional.push({ marker_id: 'igf1', value: num });
+          found.add('igf1');
+          console.log(`Regex fallback igf1 (generic): ${num}`);
+          break;
+        }
+      }
+    }
+  }
   tryGeneric('homocisteina', [/(?:Homociste[íi]na)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('pth', [/(?:PTH|PARATORM[OÔ]NIO)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   
