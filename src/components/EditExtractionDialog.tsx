@@ -111,7 +111,7 @@ export default function EditExtractionDialog({
           />
         </div>
 
-        <ScrollArea className="flex-1 pr-2">
+        <ScrollArea className="flex-1 min-h-0 pr-2">
           <div className="space-y-1.5">
             {filtered.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-6">
