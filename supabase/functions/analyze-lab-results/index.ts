@@ -1086,27 +1086,46 @@ serve(async (req) => {
     const MAX_TOKENS_BY_MODE: Record<string, number> = {
       analysis_only: 6000,
       protocols_only: 8000,
-      full: 16384,
+      full: 12000,
     };
-    const maxTokens = MAX_TOKENS_BY_MODE[effectiveMode] ?? 16384;
+    const maxTokens = MAX_TOKENS_BY_MODE[effectiveMode] ?? 12000;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        temperature: 0.25,
-        max_tokens: maxTokens,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: activeSystemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
+    // ── AbortController with 90s timeout ──
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90_000);
+
+    let response: Response;
+    try {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          temperature: 0.25,
+          max_tokens: maxTokens,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: activeSystemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+        }),
+      });
+    } catch (fetchErr: unknown) {
+      clearTimeout(timeoutId);
+      if (fetchErr instanceof DOMException && fetchErr.name === "AbortError") {
+        console.error("AI gateway timeout after 90s");
+        return new Response(JSON.stringify({ error: "A análise excedeu o tempo limite (90s). Tente novamente ou use o modo 'Análise Rápida'." }), {
+          status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      throw fetchErr;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       const errText = await response.text();
