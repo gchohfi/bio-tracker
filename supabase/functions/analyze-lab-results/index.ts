@@ -1001,60 +1001,10 @@ serve(async (req) => {
             .single();
           if (anamneseData) {
             const a = anamneseData as Record<string, unknown>;
-            const lines: string[] = [];
-            if (a.expectativa_consulta) lines.push(`Expectativa: ${a.expectativa_consulta}`);
-            if (a.queixas_principais) lines.push(`Queixas principais: ${a.queixas_principais}`);
-            if (a.objetivos) lines.push(`Objetivos: ${a.objetivos}`);
-            if (a.nota_saude !== null && a.nota_saude !== undefined) lines.push(`Nota de saude (0-10): ${a.nota_saude}`);
-            if (a.o_que_melhoraria) lines.push(`O que melhoraria: ${a.o_que_melhoraria}`);
-            if (a.fase_melhor) lines.push(`Fase melhor: ${a.fase_melhor}`);
-            if (a.evento_marcante) lines.push(`Evento marcante: ${a.evento_marcante}`);
-            if (a.comorbidades) lines.push(`Comorbidades/historico: ${a.comorbidades}`);
-            if (a.peso_altura) lines.push(`Peso/Altura: ${a.peso_altura}`);
-            if (a.tipo_sanguineo) lines.push(`Tipo sanguineo: ${a.tipo_sanguineo}`);
-            if (a.suplementacao) lines.push(`Suplementacao atual: ${a.suplementacao}`);
-            if (a.medicamentos_continuos) lines.push(`Medicamentos continuos: ${a.medicamentos_continuos}`);
-            if (a.estado_pele) lines.push(`Pele: ${a.estado_pele}`);
-            if (a.estado_cabelos) lines.push(`Cabelos: ${a.estado_cabelos}`);
-            if (a.estado_unhas) lines.push(`Unhas: ${a.estado_unhas}`);
-            if (a.memoria_concentracao) lines.push(`Memoria/concentracao: ${a.memoria_concentracao}`);
-            if (a.imunidade) lines.push(`Imunidade: ${a.imunidade}`);
-            if (a.consumo_cafe) lines.push(`Consumo de cafe: ${a.consumo_cafe}`);
-            if (Array.isArray(a.habitos) && (a.habitos as string[]).length > 0) lines.push(`Habitos: ${(a.habitos as string[]).join(", ")}`);
-            if (Array.isArray(a.sintomas_atuais) && (a.sintomas_atuais as string[]).length > 0) lines.push(`Sintomas atuais: ${(a.sintomas_atuais as string[]).join(", ")}`);
-            if (a.evacuacoes_por_dia) lines.push(`Evacuacoes/dia: ${a.evacuacoes_por_dia}`);
-            if (a.tipo_fezes) lines.push(`Tipo de fezes (Bristol): ${a.tipo_fezes}`);
-            if (a.uso_antibiotico_2anos) lines.push(`Antibiotico ultimos 2 anos: ${a.uso_antibiotico_2anos}`);
-            if (a.estufamento_gases) lines.push(`Estufamento/gases: ${a.estufamento_gases}`);
-            if (a.litros_agua_dia) lines.push(`Agua/dia: ${a.litros_agua_dia}`);
-            if (a.dorme_bem) lines.push(`Dorme bem: ${a.dorme_bem}`);
-            if (a.horario_sono) lines.push(`Horario de sono: ${a.horario_sono}`);
-            if (a.acorda_cansado) lines.push(`Acorda: ${a.acorda_cansado}`);
-            if (a.dificuldade_dormir) lines.push(`Dificuldade de dormir: ${a.dificuldade_dormir}`);
-            if (a.nivel_estresse !== null && a.nivel_estresse !== undefined) lines.push(`Nivel de estresse (0-10): ${a.nivel_estresse}`);
-            if (a.faz_terapia) lines.push(`Terapia: ${a.faz_terapia}`);
-            if (a.atividade_relaxamento) lines.push(`Relaxamento: ${a.atividade_relaxamento}`);
-            if (a.hobbies) lines.push(`Hobbies: ${a.hobbies}`);
-            if (a.atividade_fisica) lines.push(`Atividade fisica: ${a.atividade_fisica}`);
-            if (a.recordatorio_alimentar) lines.push(`Recordatorio alimentar: ${a.recordatorio_alimentar}`);
-            if (a.intolerancias_alimentares) lines.push(`Intolerancias alimentares: ${a.intolerancias_alimentares}`);
-            if (a.episodios_compulsao) lines.push(`Compulsao alimentar: ${a.episodios_compulsao}`);
-            if (a.culpa_apos_comer) lines.push(`Culpa apos comer: ${a.culpa_apos_comer}`);
-            if (a.preferencias_alimentares) lines.push(`Preferencias alimentares: ${a.preferencias_alimentares}`);
-            if (a.aversoes_alimentares) lines.push(`Aversoes alimentares: ${a.aversoes_alimentares}`);
-            if (a.ciclo_regular) lines.push(`Ciclo menstrual: ${a.ciclo_regular}`);
-            if (a.metodo_contraceptivo) lines.push(`Contraceptivo: ${a.metodo_contraceptivo}`);
-            if (a.deseja_engravidar) lines.push(`Deseja engravidar: ${a.deseja_engravidar}`);
-            if (a.tem_tpm) lines.push(`TPM: ${a.tem_tpm}`);
-            if (a.specialty_data && typeof a.specialty_data === "object") {
-              const sd = a.specialty_data as Record<string, string>;
-              for (const [k, v] of Object.entries(sd)) {
-                if (v) lines.push(`${k.replace(/_/g, " ")}: ${v}`);
-              }
-            }
-            if (lines.length > 0) {
-              anamneseContext = `\nANAMNESE DO PACIENTE (${specialtyId.replace(/_/g, " ")}):\n` + lines.map(l => `- ${l}`).join("\n") + "\n";
-              console.log(`Anamnese loaded: ${lines.length} fields for patient ${body.patient_id}`);
+            const text = a.anamnese_text as string | null;
+            if (text && text.trim().length > 0) {
+              anamneseContext = `\nANAMNESE DO PACIENTE (${specialtyId.replace(/_/g, " ")}):\n${text.trim()}\n`;
+              console.log(`Anamnese loaded: ${text.length} chars for patient ${body.patient_id}`);
             }
           }
         }
