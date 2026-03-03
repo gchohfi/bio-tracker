@@ -570,14 +570,14 @@ function validateAndFixValues(results: any[]): any[] {
     plaquetas: { min: 50, max: 700, fix: (v) => v > 1000 ? v / 1000 : v },
     // Hormônios
     progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v, label: "progesterona ÷100" },
-    estradiol: { min: 5, max: 5000, fix: (v) => v > 5000 ? v / 10 : v < 5 ? v * 100 : v < 50 ? v * 10 : v },
+    estradiol: { min: 1, max: 5000, fix: (v) => v > 5000 ? v / 10 : v },
     prolactina: { min: 0.5, max: 200, fix: (v) => v > 200 ? v / 100 : v },
     insulina_jejum: { min: 0.5, max: 100, fix: (v) => v > 100 ? v / 100 : v },
     // Eixo GH
     igfbp3: { min: 0.5, max: 15, fix: (v) => v > 100 ? v / 1000 : v, label: "igfbp3 ÷1000 (ng→µg)" },
     igf1: { min: 20, max: 1000 },
     // Andrógenos
-    dihidrotestosterona: { min: 50, max: 2000, fix: (v) => v < 50 ? v * 10 : v, label: "DHT ×10" },
+    dihidrotestosterona: { min: 1, max: 2000 },
     // Tireoide
     tsh: { min: 0.01, max: 100 },
     t4_livre: { min: 0.1, max: 5 },
