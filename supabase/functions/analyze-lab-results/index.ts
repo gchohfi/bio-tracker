@@ -1174,7 +1174,7 @@ serve(async (req) => {
             finish_reason: finishReason,
             success: true,
             duration_ms: durationMs,
-          }).then(() => {}).catch((e: any) => console.warn("ai_call_logs insert failed:", e));
+          }).then((_res: unknown) => {}, (e: unknown) => console.warn("ai_call_logs insert failed:", e));
         }
       }
     } catch (logErr) {
