@@ -370,7 +370,7 @@ export default function PatientDetail() {
       const marker = MARKERS.find(m => m.id === r.marker_id);
       if (marker?.qualitative) {
         vals[r.marker_id] = r.text_value || "";
-      } else if (r.text_value && /^[<>]=?\s*\d/.test(r.text_value.trim())) {
+      } else if (r.text_value && /^[<>≤≥]=?\s*\d/.test(r.text_value.trim())) {
         vals[r.marker_id] = r.text_value.trim();
       } else {
         vals[r.marker_id] = String(r.value ?? "");
@@ -809,7 +809,7 @@ export default function PatientDetail() {
       const marker = MARKERS.find(m => m.id === r.marker_id);
       if (marker?.qualitative) {
         if (r.text_value) newValues[r.marker_id] = r.text_value;
-      } else if (r.text_value && /^[<>]=?\s*\d/.test(r.text_value.trim())) {
+      } else if (r.text_value && /^[<>≤≥]=?\s*\d/.test(r.text_value.trim())) {
         newValues[r.marker_id] = r.text_value.trim();
       } else if (r.value !== undefined && r.value !== null) {
         newValues[r.marker_id] = String(r.value);
