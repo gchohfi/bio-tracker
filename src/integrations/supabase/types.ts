@@ -326,78 +326,27 @@ export type Database = {
       }
       patient_anamneses: {
         Row: {
-          atividade_fisica: string | null
-          ciclo_regular: string | null
-          comorbidades: string | null
+          anamnese_text: string | null
           created_at: string | null
-          evacuacoes_por_dia: string | null
-          expectativa_consulta: string | null
           id: string
-          intolerancias_alimentares: string | null
-          medicamentos_continuos: string | null
-          nivel_estresse: number | null
-          nota_saude: number | null
-          objetivos: string | null
           patient_id: string
-          peso_altura: string | null
-          queixas_principais: string | null
-          recordatorio_alimentar: string | null
-          sintomas_atuais: string[] | null
-          specialty_data: Json | null
           specialty_id: string
-          suplementacao: string | null
-          tipo_fezes: string | null
-          tipo_sanguineo: string | null
           updated_at: string | null
         }
         Insert: {
-          atividade_fisica?: string | null
-          ciclo_regular?: string | null
-          comorbidades?: string | null
+          anamnese_text?: string | null
           created_at?: string | null
-          evacuacoes_por_dia?: string | null
-          expectativa_consulta?: string | null
           id?: string
-          intolerancias_alimentares?: string | null
-          medicamentos_continuos?: string | null
-          nivel_estresse?: number | null
-          nota_saude?: number | null
-          objetivos?: string | null
           patient_id: string
-          peso_altura?: string | null
-          queixas_principais?: string | null
-          recordatorio_alimentar?: string | null
-          sintomas_atuais?: string[] | null
-          specialty_data?: Json | null
           specialty_id: string
-          suplementacao?: string | null
-          tipo_fezes?: string | null
-          tipo_sanguineo?: string | null
           updated_at?: string | null
         }
         Update: {
-          atividade_fisica?: string | null
-          ciclo_regular?: string | null
-          comorbidades?: string | null
+          anamnese_text?: string | null
           created_at?: string | null
-          evacuacoes_por_dia?: string | null
-          expectativa_consulta?: string | null
           id?: string
-          intolerancias_alimentares?: string | null
-          medicamentos_continuos?: string | null
-          nivel_estresse?: number | null
-          nota_saude?: number | null
-          objetivos?: string | null
           patient_id?: string
-          peso_altura?: string | null
-          queixas_principais?: string | null
-          recordatorio_alimentar?: string | null
-          sintomas_atuais?: string[] | null
-          specialty_data?: Json | null
           specialty_id?: string
-          suplementacao?: string | null
-          tipo_fezes?: string | null
-          tipo_sanguineo?: string | null
           updated_at?: string | null
         }
         Relationships: [

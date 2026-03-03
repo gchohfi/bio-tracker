@@ -30,11 +30,10 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Carrega anamneses existentes do banco
   useEffect(() => {
     const loadAnamneses = async () => {
       setLoading(true);
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("patient_anamneses")
         .select("id, specialty_id, anamnese_text")
         .eq("patient_id", patient.id);
@@ -43,7 +42,7 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
         const textsMap: Record<string, string> = {};
         const idsMap: Record<string, string> = {};
         for (const row of data) {
-          textsMap[row.specialty_id] = row.anamnese_text ?? "";
+          textsMap[row.specialty_id] = (row as any).anamnese_text ?? "";
           idsMap[row.specialty_id] = row.id;
         }
         setTexts(textsMap);
@@ -61,11 +60,18 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
 
     try {
       if (existingId) {
-        const { error } = await (supabase as any)
+        const { error } = await supabase
+          .from("patient_anamneses")
+          .update({ updated_at: new Date().toISOString() } as any)
+          .eq("id", existingId);
+        
+        // Also update anamnese_text via raw update
+        const { error: error2 } = await (supabase as any)
           .from("patient_anamneses")
           .update({ anamnese_text: text, updated_at: new Date().toISOString() })
           .eq("id", existingId);
-        if (error) throw error;
+        
+        if (error || error2) throw error || error2;
       } else {
         const { data, error } = await (supabase as any)
           .from("patient_anamneses")
@@ -89,8 +95,8 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
-        <span className="ml-2 text-gray-500">Carregando anamnese...</span>
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Carregando anamnese...</span>
       </div>
     );
   }
@@ -98,10 +104,10 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-2">
-        <ClipboardList className="h-5 w-5 text-purple-600" />
-        <h2 className="text-lg font-semibold text-gray-800">Anamnese do Paciente</h2>
+        <ClipboardList className="h-5 w-5 text-primary" />
+        <h2 className="text-lg font-semibold text-foreground">Anamnese do Paciente</h2>
       </div>
-      <p className="text-sm text-gray-500 mb-4">
+      <p className="text-sm text-muted-foreground mb-4">
         Cole aqui as informações que o paciente já preencheu (Google Forms, e-mail, WhatsApp, etc.).
         Esses dados serão usados automaticamente pela IA na análise dos exames.
       </p>
@@ -118,9 +124,9 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
 
         {SPECIALTIES.map(specialty => (
           <TabsContent key={specialty.id} value={specialty.id}>
-            <Card className="border border-purple-100">
+            <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2 text-purple-700">
+                <CardTitle className="text-base flex items-center gap-2 text-primary">
                   {specialty.icon}
                   Anamnese — {specialty.label}
                   {savedIds[specialty.id] && (
@@ -130,16 +136,16 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                  <Label className="text-sm font-medium mb-2 block">
                     Informações do paciente
                   </Label>
                   <Textarea
                     placeholder={`Cole aqui as respostas do paciente para ${specialty.label}.\n\nExemplo: queixas, histórico, medicamentos, hábitos, sintomas, objetivos, etc.`}
                     value={texts[specialty.id] ?? ""}
                     onChange={e => setTexts(prev => ({ ...prev, [specialty.id]: e.target.value }))}
-                    className="min-h-[320px] font-mono text-sm resize-y border-purple-200 focus:border-purple-400"
+                    className="min-h-[320px] font-mono text-sm resize-y"
                   />
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {(texts[specialty.id] ?? "").length} caracteres
                   </p>
                 </div>
@@ -147,7 +153,7 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
                 <Button
                   onClick={() => handleSave(specialty.id)}
                   disabled={saving}
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                  className="w-full"
                 >
                   {saving ? (
                     <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Salvando...</>
