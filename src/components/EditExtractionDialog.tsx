@@ -88,31 +88,33 @@ export default function EditExtractionDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Pencil className="h-4 w-4 text-primary" />
-            Revisar Exames Extraídos
-          </DialogTitle>
-          <p className="text-xs text-muted-foreground">
-            Corrija valores extraídos incorretamente antes de salvar.
-            Clique no ícone de lápis para editar, ou no X para remover um exame.
-          </p>
-        </DialogHeader>
+      <DialogContent className="max-w-xl w-full p-0 gap-0 overflow-hidden flex flex-col" style={{maxHeight: '85vh'}}>
+        <div className="px-6 pt-6 pb-3 border-b shrink-0">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-4 w-4 text-primary" />
+              Revisar Exames Extraídos
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              Corrija valores extraídos incorretamente antes de salvar.
+              Clique no ícone de lápis para editar, ou no X para remover um exame.
+            </p>
+          </DialogHeader>
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-8 h-8 text-sm"
-            placeholder="Buscar exame..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          {/* Search */}
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-8 h-8 text-sm"
+              placeholder="Buscar exame..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
 
-        <ScrollArea className="flex-1 min-h-0 pr-2">
-          <div className="space-y-1.5">
+        <ScrollArea className="flex-1 overflow-y-auto min-h-0">
+          <div className="space-y-1.5 px-6 py-3">
             {filtered.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-6">
                 Nenhum exame encontrado.
@@ -184,7 +186,7 @@ export default function EditExtractionDialog({
           </div>
         </ScrollArea>
 
-        <DialogFooter className="gap-2 pt-2 border-t">
+        <DialogFooter className="gap-2 px-6 py-4 border-t shrink-0">
           <span className="text-xs text-muted-foreground mr-auto">
             {Object.values(localValues).filter(Boolean).length} exames confirmados
           </span>
