@@ -388,15 +388,15 @@ export default function PatientDetail() {
       let sessionId = editingSessionId;
 
       if (editingSessionId) {
-        await (supabase as any)
+        await supabase
           .from("lab_sessions")
-          .update({ session_date: format(sessionDate, "yyyy-MM-dd"), specialty_id: sessionSpecialty })
+          .update({ session_date: format(sessionDate, "yyyy-MM-dd") })
           .eq("id", editingSessionId);
         await supabase.from("lab_results").delete().eq("session_id", editingSessionId);
       } else {
-        const { data, error } = await (supabase as any)
+        const { data, error } = await supabase
           .from("lab_sessions")
-          .insert({ patient_id: patient.id, session_date: format(sessionDate, "yyyy-MM-dd"), specialty_id: sessionSpecialty })
+          .insert({ patient_id: patient.id, session_date: format(sessionDate, "yyyy-MM-dd") })
           .select()
           .single();
         if (error) throw error;
