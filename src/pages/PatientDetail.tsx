@@ -270,6 +270,8 @@ export default function PatientDetail() {
   const [reportResults, setReportResults] = useState<any[]>([]);
   const [reportWithAI, setReportWithAI] = useState(false);
   const [selectedSpecialty, setSelectedSpecialty] = useState("medicina_funcional");
+  // Especialidade selecionada na tela de Nova Sessão (para referências funcionais)
+  const [sessionSpecialty, setSessionSpecialty] = useState("medicina_funcional");
   const [availableSpecialties, setAvailableSpecialties] = useState<Array<{ specialty_id: string; specialty_name: string; specialty_icon: string; has_protocols: boolean }>>([]);
 
   // ── Carregar análises salvas ─────────────────────────────────────────
@@ -388,13 +390,13 @@ export default function PatientDetail() {
       if (editingSessionId) {
         await supabase
           .from("lab_sessions")
-          .update({ session_date: format(sessionDate, "yyyy-MM-dd") })
+          .update({ session_date: format(sessionDate, "yyyy-MM-dd"), specialty_id: sessionSpecialty })
           .eq("id", editingSessionId);
         await supabase.from("lab_results").delete().eq("session_id", editingSessionId);
       } else {
         const { data, error } = await supabase
           .from("lab_sessions")
-          .insert({ patient_id: patient.id, session_date: format(sessionDate, "yyyy-MM-dd") })
+          .insert({ patient_id: patient.id, session_date: format(sessionDate, "yyyy-MM-dd"), specialty_id: sessionSpecialty })
           .select()
           .single();
         if (error) throw error;
@@ -479,7 +481,9 @@ export default function PatientDetail() {
       const session = sessions.find((s) => s.id === r.session_id);
       const status = marker ? getMarkerStatus(r.value ?? 0, marker, sex, r.text_value ?? undefined) : "normal";
       // Referências funcionais apenas para Nutrologia; demais usam ref. do laboratório
-      const isNutrologia = selectedSpecialty === "nutrologia";
+      // Usa a especialidade da sessão se disponível, caso contrário usa a especialidade selecionada na tela principal
+      const sessionSpecialtyId = (session as any)?.specialty_id ?? selectedSpecialty;
+      const isNutrologia = sessionSpecialtyId === "nutrologia";
       return {
         marker_id: r.marker_id,
         marker_name: marker?.name ?? r.marker_id,
@@ -1022,6 +1026,36 @@ export default function PatientDetail() {
               <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 border border-teal-200 px-2.5 py-0.5 text-xs font-medium text-teal-700">
                 <Check className="h-3 w-3" />
                 Data extraída do laudo
+              </span>
+            )}
+            <Label className="ml-4">Especialidade:</Label>
+            <Select value={sessionSpecialty} onValueChange={setSessionSpecialty}>
+              <SelectTrigger className="w-[220px] h-9 text-sm">
+                <SelectValue placeholder="Selecione a especialidade" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableSpecialties.length > 0 ? (
+                  availableSpecialties.map((sp) => (
+                    <SelectItem key={sp.specialty_id} value={sp.specialty_id}>
+                      <span className="flex items-center gap-2">
+                        <span>{sp.specialty_icon}</span>
+                        <span>{sp.specialty_name}</span>
+                      </span>
+                    </SelectItem>
+                  ))
+                ) : (
+                  <>
+                    <SelectItem value="medicina_funcional">🦠 Medicina Funcional</SelectItem>
+                    <SelectItem value="nutrologia">🥬 Nutrologia</SelectItem>
+                    <SelectItem value="endocrinologia">🧬 Endocrinologia</SelectItem>
+                    <SelectItem value="cardiologia">❤️ Cardiologia</SelectItem>
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+            {sessionSpecialty === "nutrologia" && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-green-50 border border-green-200 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                ✅ Referências funcionais ativas
               </span>
             )}
           </div>
