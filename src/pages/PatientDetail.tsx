@@ -150,15 +150,30 @@ export default function PatientDetail() {
         // Delete old results to replace
         await supabase.from("lab_results").delete().eq("session_id", editingSessionId);
       } else {
-        // Create new session
-        const { data, error } = await supabase
+        // Check if session already exists for this date (avoid duplicates)
+        const formattedDate = format(sessionDate, "yyyy-MM-dd");
+        const { data: existingSession } = await supabase
           .from("lab_sessions")
-          .insert({ patient_id: patient.id, session_date: format(sessionDate, "yyyy-MM-dd") })
-          .select()
-          .single();
+          .select("id")
+          .eq("patient_id", patient.id)
+          .eq("session_date", formattedDate)
+          .maybeSingle();
 
-        if (error) throw error;
-        sessionId = data.id;
+        if (existingSession) {
+          // Merge: reuse existing session, replace results
+          sessionId = existingSession.id;
+          await supabase.from("lab_results").delete().eq("session_id", existingSession.id);
+        } else {
+          // Create new session
+          const { data, error } = await supabase
+            .from("lab_sessions")
+            .insert({ patient_id: patient.id, session_date: formattedDate })
+            .select()
+            .single();
+
+          if (error) throw error;
+          sessionId = data.id;
+        }
       }
 
       // Insert results for filled markers

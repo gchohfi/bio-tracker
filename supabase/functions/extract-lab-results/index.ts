@@ -497,6 +497,29 @@ Only set text_value for: qualitative markers OR operator values.
 - mcg = µg = microg = microgramas. mcg/dL = µg/dL, mcg/L = µg/L = microg/L = microgramas/L. micromol/L = µmol/L.
 - DO NOT filter by material type — extract from blood, urine, and stool sections.
 
+=== CRITICAL UNIT CONVERSIONS (MUST CHECK PDF REFERENCE RANGE!) ===
+
+These 3 markers are commonly reported in ng/dL in Brazilian labs. You MUST detect the unit from the PDF reference range and convert to our standard unit. DO NOT return the raw value without converting!
+
+1. Estradiol → stored as pg/mL
+   - If PDF reference range shows values like "1,2 – 23,3 ng/dL" or "Até 16,0 ng/dL" → the value is in ng/dL
+   - Conversion: value × 10. Example: 4,4 ng/dL × 10 = 44 pg/mL
+   - If reference range is already in pg/mL (e.g., "12,4 – 233,0 pg/mL") → no conversion needed
+   - WRONG: returning 4.4 when PDF says "4,4 ng/dL" (must return 44)
+
+2. Progesterona → stored as ng/mL
+   - If PDF reference range shows values like "Até 89 ng/dL" or "12 – 89 ng/dL" → the value is in ng/dL
+   - Conversion: value ÷ 100. Example: 19 ng/dL ÷ 100 = 0.19 ng/mL
+   - If reference range is already in ng/mL (e.g., "0,2 – 1,5 ng/mL") → no conversion needed
+   - WRONG: returning 19 when PDF says "19 ng/dL" with ref "Até 89 ng/dL" (must return 0.19)
+
+3. DHT (Dihidrotestosterona) → stored as pg/mL
+   - If PDF reference range shows values like "5 – 46 ng/dL" → the value is in ng/dL
+   - Conversion: value × 10. Example: 13 ng/dL × 10 = 130 pg/mL
+   - WRONG: returning 13 when PDF says "13 ng/dL" with ref "5 – 46 ng/dL" (must return 130)
+
+HOW TO DETECT THE UNIT: Look at the reference range printed next to the result in the PDF. If it says "ng/dL", convert. If it says "pg/mL" or "ng/mL", no conversion needed.
+
 === DISAMBIGUATION RULES (Fleury-specific) ===
 
 8. T4 Total vs T4 Livre (Fleury uses "TIROXINA (T4)" format):
@@ -565,19 +588,19 @@ function validateAndFixValues(results: any[]): any[] {
   // Sanity ranges with auto-fix functions for common Brazilian decimal/unit errors
   const sanityRanges: Record<string, { min: number; max: number; fix?: (v: number) => number; label?: string }> = {
     // Hemograma
-    leucocitos: { min: 1000, max: 30000, fix: (v) => v < 100 ? v * 1000 : v < 1000 ? v * 1000 : v, label: "leucocitos ×1000" },
+    leucocitos: { min: 1000, max: 30000, fix: (v) => v < 30 ? v * 1000 : v, label: "leucocitos ×1000" },
     eritrocitos: { min: 1, max: 10, fix: (v) => v > 1000 ? v / 1000000 : v > 10 ? v / 10 : v },
     plaquetas: { min: 50, max: 700, fix: (v) => v > 1000 ? v / 1000 : v },
     // Hormônios
     progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v, label: "progesterona ÷100" },
-    estradiol: { min: 1, max: 5000, fix: (v) => v > 5000 ? v / 10 : v },
+    estradiol: { min: 5, max: 5000, fix: (v) => v > 5000 ? v / 10 : v < 5 ? v * 10 : v },
     prolactina: { min: 0.5, max: 200, fix: (v) => v > 200 ? v / 100 : v },
     insulina_jejum: { min: 0.5, max: 100, fix: (v) => v > 100 ? v / 100 : v },
     // Eixo GH
     igfbp3: { min: 0.5, max: 15, fix: (v) => v > 100 ? v / 1000 : v, label: "igfbp3 ÷1000 (ng→µg)" },
     igf1: { min: 20, max: 1000 },
     // Andrógenos
-    dihidrotestosterona: { min: 1, max: 2000 },
+    dihidrotestosterona: { min: 40, max: 2000, fix: (v) => v < 40 ? v * 10 : v },
     // Tireoide
     tsh: { min: 0.01, max: 100 },
     t4_livre: { min: 0.1, max: 5 },
