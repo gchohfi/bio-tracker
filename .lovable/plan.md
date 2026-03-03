@@ -1,31 +1,25 @@
 
 
-# Melhorias no Pipeline de IA -- Implementacao Iterativa
+## Migration Plan: Create Anamnese & Doctor Notes Tables
 
-## Status Atual (TUDO IMPLEMENTADO ✅)
+### Issue Found
+The SQL provided for `doctor_specialty_notes` is **missing columns** that `DoctorNotesTab.tsx` already uses:
+- `observacoes_exames` (text)
+- `proximos_passos` (text)
+- `exames_em_dia` (boolean, default false)
+- `adesao_tratamento` (text)
+- `motivacao_paciente` (text)
 
-### Já existia antes
-- `response_format: { type: "json_object" }` para forcar JSON
-- Verificacao de `finish_reason` com log de warning
-- `tryFixTruncatedJson` + `extractPartialAnalysis` como fallback
-- Validacao de `enrichedResults.length === 0` antes de chamar a IA
-- Tratamento de erros 429 e 402 na edge function
+Without these columns, the Doctor Notes tab will fail at runtime.
 
-### Iteracao 1 ✅: max_tokens dinamico por modo
-- `analysis_only` -> 6000
-- `protocols_only` -> 8000
-- `full` -> 16384
+### Plan
+1. **Run the migration** with the user's SQL **plus** the 5 missing columns added to `doctor_specialty_notes`.
+2. Also fix `specialty_data` default — `chr(39)||chr(123)||chr(125)||chr(39)` produces `'{}'` (a string), not a JSONB object. Will use `'{}'::jsonb` instead.
 
-### Iteracao 2 ✅: Flag `_truncated` no response
-- `_truncated: true` quando `finish_reason === 'length'`
-- `_diagnostics` inclui `max_tokens`, `mode`, `duration_ms`
+### Final SQL (adjusted)
+- `patient_anamneses`: as provided, with `specialty_data DEFAULT '{}'::jsonb`
+- `doctor_specialty_notes`: as provided + `observacoes_exames TEXT`, `proximos_passos TEXT`, `exames_em_dia BOOLEAN DEFAULT false`, `adesao_tratamento TEXT`, `motivacao_paciente TEXT`
+- RLS policies: as provided, using practitioner_id check via patients table
 
-### Iteracao 3 ✅: Mapeamento de erros no frontend
-- `handleAiError()` mapeia 429 e 402 para toasts especificos
-- Truncamento gera toast warning sugerindo modo Somente Analise
-- `_diagnostics` logado no console
+No code changes needed — the components already reference the correct column names.
 
-### Iteracao 4 ✅: Tabela ai_call_logs
-- Tabela criada com RLS (practitioner ve apenas seus logs)
-- Edge function insere registro fire-and-forget apos cada chamada
-- Campos: practitioner_id, patient_id, specialty_id, mode, input_tokens, output_tokens, finish_reason, success, error_type, duration_ms
