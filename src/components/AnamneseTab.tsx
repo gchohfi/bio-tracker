@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { Save, ClipboardList, Heart, Leaf, Activity, Microscope, Loader2, CheckCircle2 } from "lucide-react";
+import { Save, ClipboardList, Heart, Leaf, Activity, Microscope, Loader2, CheckCircle2, Upload, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Anamnese = Tables<"patient_anamneses">;
@@ -111,6 +111,10 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
   const [savedIds, setSavedIds] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Importação de anamnese do paciente
+  const [importTexts, setImportTexts] = useState<Record<string, string>>({});
+  const [importing, setImporting] = useState<Record<string, boolean>>({});
+  const [showImport, setShowImport] = useState<Record<string, boolean>>({});
 
   // Carrega anamneses existentes do banco
   useEffect(() => {
@@ -164,6 +168,43 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
       ? current.filter(h => h !== habito)
       : [...current, habito];
     updateField(specialtyId, "habitos", updated);
+  };
+
+  const handleImportAnamnese = async (specialtyId: string) => {
+    const text = importTexts[specialtyId]?.trim();
+    if (!text) {
+      toast({ title: "Campo vazio", description: "Cole o texto da anamnese do paciente antes de importar.", variant: "destructive" });
+      return;
+    }
+    setImporting(prev => ({ ...prev, [specialtyId]: true }));
+    try {
+      const { data, error } = await supabase.functions.invoke("parse-patient-anamnese", {
+        body: { text, specialty_id: specialtyId },
+      });
+      if (error) throw error;
+      if (data?.fields) {
+        const parsed = data.fields as Partial<AnamneseForm>;
+        setForms(prev => ({
+          ...prev,
+          [specialtyId]: {
+            ...(prev[specialtyId] ?? emptyForm(patient.id, specialtyId)),
+            ...parsed,
+            patient_id: patient.id,
+            specialty_id: specialtyId,
+          },
+        }));
+        toast({
+          title: "✅ Anamnese importada!",
+          description: `${Object.keys(parsed).length} campos preenchidos automaticamente. Revise e salve.`,
+        });
+        setShowImport(prev => ({ ...prev, [specialtyId]: false }));
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro ao processar";
+      toast({ title: "Erro na importação", description: message, variant: "destructive" });
+    } finally {
+      setImporting(prev => ({ ...prev, [specialtyId]: false }));
+    }
   };
 
   const handleSave = async (specialtyId: string) => {
@@ -238,16 +279,74 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
                     </Badge>
                   )}
                 </div>
-                <Button
-                  onClick={() => handleSave(sp.id)}
-                  disabled={saving}
-                  size="sm"
-                  className="gap-1.5"
-                >
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Salvar Anamnese
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => setShowImport(prev => ({ ...prev, [sp.id]: !prev[sp.id] }))}
+                  >
+                    <FileText className="h-4 w-4" />
+                    Importar do Paciente
+                    {showImport[sp.id] ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  </Button>
+                  <Button
+                    onClick={() => handleSave(sp.id)}
+                    disabled={saving}
+                    size="sm"
+                    className="gap-1.5"
+                  >
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Salvar Anamnese
+                  </Button>
+                </div>
               </div>
+
+              {/* ── IMPORTAÇÃO DE ANAMNESE DO PACIENTE ── */}
+              {showImport[sp.id] && (
+                <Card className="border-blue-200 bg-blue-50/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold text-blue-700 flex items-center gap-2">
+                      <Upload className="h-4 w-4" />
+                      Importar Anamnese Preenchida pelo Paciente
+                    </CardTitle>
+                    <p className="text-xs text-blue-600 mt-1">
+                      Cole abaixo o texto das respostas do paciente (Google Forms, e-mail, WhatsApp, etc.).
+                      A IA irá extrair e preencher os campos automaticamente. Você poderá revisar antes de salvar.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Textarea
+                      placeholder="Cole aqui as respostas do paciente...\n\nExemplo:\nNome: Maria Silva\nQueixas: cansaço, queda de cabelo, dificuldade para emagrecer\nNota de saúde: 6\nDorme bem: não, acordo às 3h da manhã\n..."
+                      value={importTexts[sp.id] ?? ""}
+                      onChange={e => setImportTexts(prev => ({ ...prev, [sp.id]: e.target.value }))}
+                      rows={8}
+                      className="bg-white font-mono text-xs"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowImport(prev => ({ ...prev, [sp.id]: false }))}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="gap-1.5 bg-blue-600 hover:bg-blue-700"
+                        onClick={() => handleImportAnamnese(sp.id)}
+                        disabled={importing[sp.id] || !importTexts[sp.id]?.trim()}
+                      >
+                        {importing[sp.id] ? (
+                          <><Loader2 className="h-4 w-4 animate-spin" /> Processando...</>
+                        ) : (
+                          <><Upload className="h-4 w-4" /> Extrair e Preencher com IA</>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* ── SEÇÃO 1: Objetivos e Queixas ── */}
               <Card>
