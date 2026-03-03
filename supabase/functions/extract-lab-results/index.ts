@@ -755,7 +755,7 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   // Parse a Brazilian number: "1.234,56" → 1234.56, "4,5" → 4.5
   function parseBrNum(s: string): number {
     let cleaned = s.trim();
-    if (/^\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(cleaned)) {
+    if (/^[1-9]\d{0,2}(\.\d{3})+(,\d{1,2})?$/.test(cleaned)) {
       cleaned = cleaned.replace(/\./g, '').replace(',', '.');
       return parseFloat(cleaned);
     }
