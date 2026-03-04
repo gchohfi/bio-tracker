@@ -266,6 +266,8 @@ export default function PatientDetail() {
   const [importedPdfCount, setImportedPdfCount] = useState(0);
   // Date extracted automatically from the PDF
   const [extractedExamDate, setExtractedExamDate] = useState<string | null>(null);
+  const [lastQualityScore, setLastQualityScore] = useState<number | null>(null);
+  const [lastExtractionIssues, setLastExtractionIssues] = useState<any[]>([]);
   const [reportEditOpen, setReportEditOpen] = useState(false);
   const [reportResults, setReportResults] = useState<any[]>([]);
   const [reportWithAI, setReportWithAI] = useState(false);
