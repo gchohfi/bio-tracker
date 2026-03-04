@@ -280,14 +280,21 @@ export function generatePatientReport(
   // Build result map
   const resultMap: Record<string, Record<string, number>> = {};
   const textResultMap: Record<string, Record<string, string>> = {};
-  // Lab reference map: most recent reference per marker
+  // Lab reference map: most recent reference per marker (for display in "Ref. Lab." column)
   const labRefByMarker: Record<string, { min?: number; max?: number; text?: string }> = {};
+  // Per-session lab reference text (for per-session status classification)
+  const labRefBySession: Record<string, Record<string, string>> = {};
   results.forEach((r) => {
     if (!resultMap[r.marker_id]) resultMap[r.marker_id] = {};
     if (!textResultMap[r.marker_id]) textResultMap[r.marker_id] = {};
     resultMap[r.marker_id][r.session_id] = r.value;
     if (r.text_value) textResultMap[r.marker_id][r.session_id] = r.text_value;
-    // Capture lab reference (last write wins — results are sorted oldest→newest so newest is kept)
+    // Per-session lab_ref_text for accurate per-session classification
+    if (r.lab_ref_text) {
+      if (!labRefBySession[r.marker_id]) labRefBySession[r.marker_id] = {};
+      labRefBySession[r.marker_id][r.session_id] = r.lab_ref_text;
+    }
+    // Capture lab reference for display (last write wins — results are sorted oldest→newest so newest is kept)
     if (r.lab_ref_text || r.lab_ref_min != null || r.lab_ref_max != null) {
       labRefByMarker[r.marker_id] = {
         text: r.lab_ref_text ?? undefined,
@@ -448,7 +455,7 @@ export function generatePatientReport(
         [sparkColIdx]: { cellWidth: 26 },
       },
       didParseCell(data) {
-        // Color code result values
+        // Color code result values — use per-session reference for accurate classification
         if (data.section === "body" && data.column.index >= dataColStart && data.column.index < trendColIdx) {
           const rawStr = String(data.cell.raw || "");
           const operatorParsed = parseOperatorValue(rawStr);
@@ -456,8 +463,13 @@ export function generatePatientReport(
             if (!isNaN(val)) {
               const marker = markersWithData[data.row.index];
               if (marker) {
-                const labRef = labRefByMarker[marker.id];
-                const ref = resolveReference(marker, sex, labRef?.text);
+                // Determine which session this column corresponds to
+                const sessionIndex = data.column.index - dataColStart;
+                const sessionId = sorted[sessionIndex]?.id;
+                // Use per-session lab_ref_text if available, otherwise fall back to most recent
+                const labRefText = (sessionId && labRefBySession[marker.id]?.[sessionId])
+                  || labRefByMarker[marker.id]?.text;
+                const ref = resolveReference(marker, sex, labRefText);
                 const status = getMarkerStatusFromRef(val, ref);
                 data.cell.styles.fontStyle = "bold";
                 if (status === "normal") {
@@ -528,8 +540,8 @@ export function generatePatientReport(
       }
       const val = resultMap[m.id]?.[latestSession.id];
       if (val !== undefined) {
-        const labRef = labRefByMarker[m.id];
-        const ref = resolveReference(m, sex, labRef?.text);
+        const labRefText = labRefBySession[m.id]?.[latestSession.id] || labRefByMarker[m.id]?.text;
+        const ref = resolveReference(m, sex, labRefText);
         if (getMarkerStatusFromRef(val, ref) !== "normal") alertCount++;
         else normalCount++;
       }
