@@ -230,22 +230,28 @@ export type Database = {
       lab_sessions: {
         Row: {
           created_at: string
+          extraction_issues: Json | null
           id: string
           patient_id: string
+          quality_score: number | null
           session_date: string
           specialty_id: string | null
         }
         Insert: {
           created_at?: string
+          extraction_issues?: Json | null
           id?: string
           patient_id: string
+          quality_score?: number | null
           session_date?: string
           specialty_id?: string | null
         }
         Update: {
           created_at?: string
+          extraction_issues?: Json | null
           id?: string
           patient_id?: string
+          quality_score?: number | null
           session_date?: string
           specialty_id?: string | null
         }
