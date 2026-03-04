@@ -528,7 +528,9 @@ export function generatePatientReport(
       }
       const val = resultMap[m.id]?.[latestSession.id];
       if (val !== undefined) {
-        if (getMarkerStatus(val, m, sex) !== "normal") alertCount++;
+        const labRef = labRefByMarker[m.id];
+        const ref = resolveReference(m, sex, labRef?.text);
+        if (getMarkerStatusFromRef(val, ref) !== "normal") alertCount++;
         else normalCount++;
       }
     });
