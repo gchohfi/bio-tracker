@@ -2630,10 +2630,6 @@ function crossCheckAllMarkers(results: any[], pdfText: string, beforeFallbackIds
   }
   return checked;
 }
-    return true;
-  });
-  return filtered;
-}
 
 // ── Structural Validator ──
 // Markers that can legitimately have negative values
