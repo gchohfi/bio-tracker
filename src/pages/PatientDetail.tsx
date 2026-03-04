@@ -920,6 +920,8 @@ export default function PatientDetail() {
       setLastPdfText(lastCleanedText);
       setLastRawPdfText(lastFullText);
       setImportedPdfCount((prev) => prev + files.length);
+      setLastQualityScore(lastQuality);
+      setLastExtractionIssues(allIssues);
 
       // Auto-fill session date if extracted from PDF
       if (firstExamDate) {
