@@ -439,7 +439,7 @@ export function generatePatientReport(
         0: { cellWidth: 30, fontStyle: "bold", textColor: [BRAND.r, BRAND.g, BRAND.b] },
         1: { cellWidth: 12, textColor: [GRAY.r, GRAY.g, GRAY.b] },
         2: { cellWidth: 16, textColor: [37, 99, 235], fontStyle: "bold" },
-        3: { cellWidth: 16, textColor: [130, 80, 200], fontStyle: "italic", fontSize: 6.5 },
+        3: { cellWidth: 16, textColor: [GRAY.r, GRAY.g, GRAY.b], fontStyle: "italic", fontSize: 6.5 },
         // Session date columns: fixed width so they don't stretch with few sessions
         ...Object.fromEntries(
           sorted.map((_, i) => [dataColStart + i, { cellWidth: 18, halign: "center" as const, fontStyle: "bold" as const }])
