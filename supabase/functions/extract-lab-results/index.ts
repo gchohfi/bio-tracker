@@ -293,10 +293,11 @@ When you encounter a value with an operator:
 1. EXTRACT the numeric part as "value"
 2. ALSO set "text_value" to the FULL string including operator: e.g. "< 34", "< 1.0", "> 90"
 3. Examples:
-   - Anti-TPO: "< 34" → { marker_id: "anti_tpo", value: 34, text_value: "< 34" }
-   - TRAb: "< 1.0" → { marker_id: "trab", value: 1.0, text_value: "< 1.0" }
-   - Anti-TG: "< 1.3" → { marker_id: "anti_tg", value: 1.3, text_value: "< 1.3" }
-   - Calcitonina: "< 1.0" → { marker_id: "calcitonina", value: 1.0, text_value: "< 1.0" }
+   - Anti-TPO: result "< 34" → { marker_id: "anti_tpo", value: 34, text_value: "< 34" }
+   - TRAb: result "< 1.0" → { marker_id: "trab", value: 1.0, text_value: "< 1.0" }
+   - Anti-TG: result "< 1.3" → { marker_id: "anti_tg", value: 1.3, text_value: "< 1.3" }
+   - Anti-TG: result "1.7" (reference says "Inferior a 1,3") → { marker_id: "anti_tg", value: 1.7 } — DO NOT confuse the RESULT with the REFERENCE
+   - Calcitonina: result "< 1.0" → { marker_id: "calcitonina", value: 1.0, text_value: "< 1.0" }
    - CA 72-4: "< 2.5" → { marker_id: "ca_72_4", value: 2.5, text_value: "< 2.5" }
    - "Inferior a 10" → { value: 10, text_value: "< 10" }
    - "Superior a 90" → { value: 90, text_value: "> 90" }
