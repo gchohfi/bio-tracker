@@ -2900,7 +2900,7 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     // Post-process: calculate derived values if AI missed them
     validResults = postProcessResults(validResults);
     // Regex fallback for markers the AI frequently misses
-    const beforeFallbackIds = new Set(validResults.map((r: any) => r.marker_id));
+    const beforeFallbackIds = new Set<string>(validResults.map((r: any) => r.marker_id));
     validResults = regexFallback(pdfText, validResults);
     // Validate fallback-added markers
     const fallbackAdded = validResults.filter((r: any) => !beforeFallbackIds.has(r.marker_id));
