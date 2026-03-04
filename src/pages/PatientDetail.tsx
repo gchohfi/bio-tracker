@@ -452,6 +452,14 @@ export default function PatientDetail() {
         if (error) throw error;
       }
 
+      // Persist quality metrics if available from PDF extraction
+      if (sessionId && (lastQualityScore !== null || lastExtractionIssues.length > 0)) {
+        await (supabase as any).from("lab_sessions").update({
+          quality_score: lastQualityScore,
+          extraction_issues: lastExtractionIssues,
+        }).eq("id", sessionId);
+      }
+
       toast({ title: editingSessionId ? "Sessão atualizada!" : "Sessão criada!" });
       setFormOpen(false);
       fetchData();
