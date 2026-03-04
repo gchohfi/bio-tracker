@@ -385,17 +385,17 @@ export function generatePatientReport(
 
       const row: any[] = [
         marker.name,
-        isQualitative ? "—" : marker.unit,
+        isQualitative ? "-" : marker.unit,
         labRefStr,
         ...sorted.map((s, i) => {
           if (isQualitative) {
-            return textValues[i] || "—";
+            return sanitizeForPdf(textValues[i] || "-");
           }
           // Show operator text_value (e.g. "< 34") if available, otherwise raw number
           if (textValues[i] && parseOperatorValue(textValues[i])) {
-            return textValues[i];
+            return sanitizeForPdf(textValues[i]);
           }
-          return values[i] !== undefined ? String(values[i]) : "—";
+          return values[i] !== undefined ? String(values[i]) : "-";
         }),
         isQualitative ? "" : trendSymbol(trend),
         "", // placeholder for sparkline
