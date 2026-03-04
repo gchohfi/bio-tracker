@@ -215,7 +215,8 @@ const MARKER_LIST = [
   // PSA
   { id: "psa_total", name: "PSA Total", unit: "ng/mL" },
   { id: "psa_livre", name: "PSA Livre", unit: "ng/mL" },
-  
+  { id: "psa_ratio", name: "Relação PSA Livre/Total", unit: "%" },
+
   // Glicemia Média Estimada
   { id: "glicemia_media_estimada", name: "Glicemia Média Estimada", unit: "mg/dL" },
 ];
@@ -822,7 +823,8 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     // PSA
     psa_total:             { min: 0, max: 100 },
     psa_livre:             { min: 0, max: 20 },
-    
+    psa_ratio:             { min: 0, max: 100 },
+
     // Glicemia Média Estimada
     glicemia_media_estimada: { min: 50, max: 400 },
     // Urina quantitativos
@@ -1507,6 +1509,19 @@ function postProcessResults(results: any[]): any[] {
       console.log(`Calculated urina_acr: ${alb} mg/L ÷ ${crea} mg/dL × 100 = ${acr} mg/g`);
     }
   }
+
+  // Calculate Relação PSA Livre/Total (%)
+  // Interpretação clínica: ≥ 15% = risco baixo de câncer de próstata
+  if (!resultMap.has("psa_ratio") && resultMap.has("psa_livre") && resultMap.has("psa_total")) {
+    const psaLivre = resultMap.get("psa_livre").value;
+    const psaTotal = resultMap.get("psa_total").value;
+    if (typeof psaLivre === "number" && typeof psaTotal === "number" && psaTotal > 0) {
+      const ratio = Math.round((psaLivre / psaTotal) * 100 * 10) / 10; // 1 casa decimal
+      results.push({ marker_id: "psa_ratio", value: ratio });
+      console.log(`Calculated psa_ratio: (${psaLivre} / ${psaTotal}) * 100 = ${ratio}%`);
+    }
+  }
+
   return results;
 }
 

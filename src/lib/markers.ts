@@ -662,6 +662,12 @@ export const MARKERS: MarkerDef[] = [
   { id: "psa_livre",       name: "PSA Livre",         unit: "ng/mL",        category: "Hormônios",
     labRange: { M: [0, 1.0], F: [0, 0] }, panel: "Adicional" },
 
+  // Relação PSA Livre/Total (%): risco baixo quando ≥ 15%.
+  // Quanto maior a porcentagem, menor o risco de câncer de próstata.
+  // Calculado automaticamente em postProcessResults quando psa_livre e psa_total estão presentes.
+  { id: "psa_ratio",       name: "Relação PSA Livre/Total", unit: "%",           category: "Hormônios",
+    labRange: { M: [15, 100], F: [0, 0] }, panel: "Adicional" },
+
 ];
 
 /**

@@ -120,6 +120,16 @@ function postProcessResults(results: any[]): any[] {
     }
   }
 
+  // Calculate Relação PSA Livre/Total (%)
+  if (!resultMap.has("psa_ratio") && resultMap.has("psa_livre") && resultMap.has("psa_total")) {
+    const psaLivre = resultMap.get("psa_livre").value;
+    const psaTotal = resultMap.get("psa_total").value;
+    if (typeof psaLivre === "number" && typeof psaTotal === "number" && psaTotal > 0) {
+      const ratio = Math.round((psaLivre / psaTotal) * 100 * 10) / 10;
+      results.push({ marker_id: "psa_ratio", value: ratio });
+    }
+  }
+
   return results;
 }
 
@@ -424,6 +434,50 @@ describe("postProcessResults — cálculos derivados automáticos", () => {
       const results = [mkResult("tibc", 350)];
       const out = postProcessResults(results);
       expect(getCalculated(out, "fixacao_latente_ferro")).toBeUndefined();
+    });
+  });
+
+  // ── 10. Relação PSA Livre/Total (───────────────────────────────────────────────────
+  describe("Relação PSA Livre/Total = (psa_livre / psa_total) * 100", () => {
+    it("calcula corretamente: (0.19 / 0.69) * 100 = 27.5% (caso Dener)", () => {
+      const results = [mkResult("psa_livre", 0.19), mkResult("psa_total", 0.69)];
+      const out = postProcessResults(results);
+      expect(getCalculated(out, "psa_ratio")).toBe(27.5);
+    });
+
+    it("calcula risco baixo: (0.5 / 1.0) * 100 = 50%", () => {
+      const results = [mkResult("psa_livre", 0.5), mkResult("psa_total", 1.0)];
+      const out = postProcessResults(results);
+      expect(getCalculated(out, "psa_ratio")).toBe(50.0);
+    });
+
+    it("calcula limiar de risco: (0.15 / 1.0) * 100 = 15%", () => {
+      const results = [mkResult("psa_livre", 0.15), mkResult("psa_total", 1.0)];
+      const out = postProcessResults(results);
+      expect(getCalculated(out, "psa_ratio")).toBe(15.0);
+    });
+
+    it("não calcula se psa_total = 0 (divisão por zero)", () => {
+      const results = [mkResult("psa_livre", 0.1), mkResult("psa_total", 0)];
+      const out = postProcessResults(results);
+      expect(getCalculated(out, "psa_ratio")).toBeUndefined();
+    });
+
+    it("não calcula se psa_livre está ausente", () => {
+      const results = [mkResult("psa_total", 1.5)];
+      const out = postProcessResults(results);
+      expect(getCalculated(out, "psa_ratio")).toBeUndefined();
+    });
+
+    it("não sobrescreve se psa_ratio já existe no laudo", () => {
+      const results = [
+        mkResult("psa_livre", 0.19),
+        mkResult("psa_total", 0.69),
+        mkResult("psa_ratio", 30), // já extraído do laudo
+      ];
+      const out = postProcessResults(results);
+      const vals = out.filter(r => r.marker_id === "psa_ratio").map(r => r.value);
+      expect(vals).toEqual([30]);
     });
   });
 });
