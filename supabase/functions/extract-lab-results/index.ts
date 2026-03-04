@@ -215,7 +215,7 @@ const MARKER_LIST = [
   // PSA
   { id: "psa_total", name: "PSA Total", unit: "ng/mL" },
   { id: "psa_livre", name: "PSA Livre", unit: "ng/mL" },
-  { id: "psa_relacao", name: "PSA Livre/Total", unit: "%" },
+  
   // Glicemia Média Estimada
   { id: "glicemia_media_estimada", name: "Glicemia Média Estimada", unit: "mg/dL" },
 ];
@@ -537,7 +537,7 @@ URINA TIPO 1 / EAS:
 - Sub-items: urina_cor, urina_aspecto, urina_densidade, urina_ph, urina_proteinas, urina_glicose, urina_hemoglobina, urina_leucocitos, urina_hemacias, urina_bacterias, urina_celulas, urina_cilindros, urina_cristais, urina_nitritos, urina_bilirrubina, urina_urobilinogenio, urina_cetona, urina_muco, urina_albumina, urina_creatinina
 - urina_albumina: numeric value in mg/L (microalbuminuria section, e.g. 10 mg/L or 0.01 g/L → store as 10). If the value is in g/L (e.g. 0.01), multiply by 1000 to get mg/L. Do NOT confuse with serum albumin.
 - urina_creatinina: numeric value in mg/dL from urine creatinine (e.g. 200 mg/dL). Do NOT confuse with serum creatinine.
-- PSA: extract psa_total (ng/mL), psa_livre (ng/mL), and psa_relacao (% = PSA Livre/PSA Total × 100) when present.
+- PSA: extract psa_total (ng/mL) and psa_livre (ng/mL) when present.
 - SEDIMENTO QUANTITATIVO section (Fleury): extract numeric /mL values:
   - "Leucócitos" with value in /mL → urina_leucocitos_quant (numeric, NOT qualitative)
   - "Hemácias" / "Eritrócitos" with value in /mL → urina_hemacias_quant (numeric, NOT qualitative)
@@ -805,7 +805,7 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     // PSA
     psa_total:             { min: 0, max: 100 },
     psa_livre:             { min: 0, max: 20 },
-    psa_relacao:           { min: 0, max: 100, fix: (v) => v > 0 && v < 1 ? Math.round(v * 10000) / 100 : v, label: 'psa_relacao ratio→%' },
+    
     // Glicemia Média Estimada
     glicemia_media_estimada: { min: 50, max: 400 },
     // Urina quantitativos
@@ -1991,7 +1991,7 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   tryGeneric('anti_hbs', [/(?:Anti[- ]?HBs)[\s:.\-]*?([<>]?\s*\d+[.,]?\d*)/i]);
   tryGeneric('psa_total', [/(?:PSA\s+Total)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('psa_livre', [/(?:PSA\s+Livre)[\s:.\-]*?(\d+[.,]?\d*)/i]);
-  tryGeneric('psa_relacao', [/(?:PSA\s+Livre\s*\/\s*Total|Rela[çc][ãa]o\s+PSA)[\s:.\-]*?(\d+[.,]?\d*)/i]);
+  
   tryGeneric('urina_albumina', [/(?:Albumina\s*(?:\(urina\)|urin[áa]ria)|Microalbumin[úu]ria)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('urina_creatinina', [/(?:Creatinina\s*(?:\(urina\)|urin[áa]ria))[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('urina_acr', [/(?:Raz[ãa]o\s+Albumina\s*\/\s*Creatinina|RAC|ACR)[\s:.\-]*?(\d+[.,]?\d*)/i]);
