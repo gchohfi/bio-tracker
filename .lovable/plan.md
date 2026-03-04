@@ -1,98 +1,86 @@
 
 
-# Correção de Conversões de Unidade: Estradiol, Progesterona e DHT
+# Plano: Correção dos 5 Bugs do LabTrack (Apresentação Dener)
 
-## Problemas Identificados
+## Bugs Identificados
 
-Os 3 erros têm a mesma causa raiz: **conflito entre conversão da IA e sanity checks no pós-processamento**.
+| # | Severidade | Descrição |
+|---|-----------|-----------|
+| 1 | Crítico | Hemoglobina/Hemácias do hemograma sendo associadas ao grupo Urina |
+| 2 | Médio | Referências incorretas/ausentes nos marcadores de urina |
+| 3 | Médio | Ícones na coluna de referência do relatório PDF |
+| 4 | Médio | Sessão de exames duplicada (mesmo paciente, mesma data) |
+| 5 | Baixo | Leucócitos (urina) exibidos como numérico sem referência correta |
 
-### Erro 1 — Estradiol (4.4 ng/dL → 440 pg/mL, deveria ser 44)
-- A IA converte corretamente: 4.4 × 10 = 44 pg/mL
-- Mas o sanity check (linha 702) vê `44 < 50` e aplica `× 10` novamente → 440
-- **Bug**: dupla conversão no sanity fix
+---
 
-### Erro 2 — Progesterona (19 ng/dL → 19 ng/mL, deveria ser 0.19)  
-- A IA não converteu (manteve 19)
-- O sanity check (linha 701) só corrige se `> 50`, então 19 passa direto
-- **Bug**: threshold do sanity muito alto + IA falhou em converter
+## Correções
 
-### Erro 3 — DHT (13 ng/dL → 13 pg/mL, deveria ser 130)
-- A IA não converteu (manteve 13)
-- O sanity check para DHT (linha 711) não tem função `fix`
-- **Bug**: sem fallback de conversão
+### Bug 1 — Hemograma mapeado para Urina
 
-## Correções Propostas
+O código em `extract-lab-results/index.ts` (linhas 893-947) já tem anti-alucinação para `urina_hemoglobina` e `urina_hemacias`, mas ela falha quando o Gemini retorna valores do hemograma com unidades corretas de urina (ex: valor=16.3 mas sem "g/dL" no text_value).
 
-### 1. Estradiol — remover branch que causa dupla conversão
-```typescript
-// ANTES (bugado):
-estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 100 : v < 50 ? v * 10 : v > 5000 ? v / 10 : v }
+**Correção:** Reforçar a anti-alucinação para verificar também `lab_ref_text` e `lab_ref_min/max`:
+- `urina_hemoglobina`: se `lab_ref_min/max` formam um range numérico típico de hemograma (ex: 11.7-16.5), remover
+- `urina_hemacias`: se `lab_ref_max > 10` (típico hemograma, ref milhões/µL), e valor > 1 milhão-like, remover
+- Adicionar validação cruzada: se `hemoglobina` (sangue) já foi extraída com valor similar a `urina_hemoglobina`, remover a urinária
 
-// DEPOIS:
-estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 10 : v > 5000 ? v / 10 : v }
-```
-- `v < 5` (valor em ng/dL não convertido, ex: 4.4) → `× 10` = 44 ✓
-- Valores 5–5000 já estão em pg/mL, não mexer
+**Arquivo:** `supabase/functions/extract-lab-results/index.ts`
 
-### 2. Progesterona — adicionar detecção de ng/dL não convertido
-```typescript
-// ANTES:
-progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v }
+### Bug 2 — Referências de urina ausentes
 
-// DEPOIS (sex-aware):
-progesterona: { min: 0, max: 50, fix: (v) => {
-  // Labs brasileiros reportam ng/dL (ex: 19, 89). Nosso target é ng/mL.
-  // Fase folicular: 0.1-1.5 ng/mL = 10-150 ng/dL
-  // Fase lútea: 5-25 ng/mL = 500-2500 ng/dL  
-  // Se > 5 para mulher ou > 1.5 para homem, provavelmente ng/dL não convertido
-  if (v > 5) return v / 100;  // ng/dL → ng/mL
-  return v;
-}}
-```
-- 19 ng/dL → `19 > 5` → `÷ 100` = 0.19 ng/mL ✓
-- Valor já convertido (0.19 ng/mL) → não mexe ✓
+Os marcadores de urina no `markers.ts` têm `labRange: { M: [0, 0], F: [0, 0] }` para qualitativos, o que resulta em "0–0" ou "—" como referência.
 
-### 3. DHT — adicionar fix para conversão ng/dL → pg/mL
-```typescript
-// ANTES:
-dihidrotestosterona: { min: 0, max: 2000 }
+**Correção:** Atualizar `labRange` em `src/lib/markers.ts` com os valores corretos do laudo Fleury:
+- `urina_ph`: `[5.0, 8.0]`
+- `urina_densidade`: `[1.010, 1.030]`
+- `urina_proteinas`: text_ref "< 0,10 g/L" (qualitativo, manter labRange [0,0] mas garantir text)
+- `urina_glicose`: text_ref "< 0,3 g/L"
+- etc.
 
-// DEPOIS:
-dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 5 ? v * 10 : v }
-```
-- 13 ng/dL → `13 ≥ 5` → passa (já no range se AI converteu) ... não, 13 está no range.
+Para qualitativos, o `labRange [0,0]` é esperado — o problema é que `lab_ref_text` não está sendo extraído/persistido pelo Gemini. Reforçar o prompt para capturar referências de urina.
 
-Melhor abordagem: checar contra referência do lab. Se `lab_ref_max` está em ng/dL (ex: 46), o valor está em ng/dL e precisa `× 10`.
+**Arquivos:** `src/lib/markers.ts`, `supabase/functions/extract-lab-results/index.ts` (prompt)
 
-Na verdade, a solução mais robusta é **adicionar conversão determinística no pós-processamento** para estes 3 marcadores, usando o `lab_ref_text` como sinal da unidade fonte:
+### Bug 3 — Ícones na coluna de referência do relatório PDF
 
-### 4. Pós-processamento determinístico (abordagem principal)
-Adicionar uma etapa após a extração que detecta a unidade fonte pelo `lab_ref_text` e converte deterministicamente:
+No relatório PDF (`generateReport.ts`), a coluna "Ref. Lab." mostra o texto da referência. Se o `labRefStr` contém caracteres especiais ou unicode (como ≤, ≥), o jsPDF pode renderizá-los como ícones/caixas.
 
-```typescript
-// No postProcessResults ou equivalente:
-const UNIT_CONVERSIONS = {
-  estradiol:    { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10,   detectRef: (max) => max < 100 },
-  progesterona: { sourceUnit: 'ng/dL', targetUnit: 'ng/mL', factor: 0.01, detectRef: (max) => max > 50 },
-  dihidrotestosterona: { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10, detectRef: (max) => max < 100 },
-};
-```
-Se o `lab_ref_max` indica unidade ng/dL (ex: estradiol ref max 23.3, progesterona ref max 89, DHT ref max 46), aplicar conversão e também converter as referências.
+**Correção:** Sanitizar o `labRefStr` no `generateReport.ts` (linha ~366-378) para substituir caracteres unicode por equivalentes ASCII:
+- `≤` → `<=`
+- `≥` → `>=`
+- `–` (en-dash) → `-`
+- Remover qualquer caractere non-latin1 que jsPDF não suporte
 
-### 5. Corrigir dados existentes no banco
-Migration SQL para corrigir os 3 valores da paciente atual.
+**Arquivo:** `src/lib/generateReport.ts`
 
-## Arquivos a alterar
+### Bug 4 — Sessão duplicada
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `supabase/functions/extract-lab-results/index.ts` | Corrigir sanity fixes + adicionar pós-processamento determinístico |
-| Migration SQL | Corrigir os 3 valores errados no banco |
+O fluxo de importação (`PatientDetail.tsx` linhas 383-404) sempre cria uma nova sessão via `insert` quando `editingSessionId` é null. Se o usuário importa dois PDFs na mesma data, duas sessões são criadas.
 
-## Resumo
-- Estradiol: corrigir sanity para não duplicar conversão
-- Progesterona: baixar threshold do sanity
-- DHT: adicionar fix de conversão
-- Adicionar detecção determinística por lab_ref como camada extra de segurança
-- Corrigir dados existentes via migration
+**Correção:** Antes de criar uma nova sessão, verificar se já existe uma sessão para o mesmo `patient_id` + `session_date`. Se existir, reutilizar (merge dos resultados) em vez de criar duplicata.
+
+**Arquivo:** `src/pages/PatientDetail.tsx`
+
+### Bug 5 — Leucócitos (urina) sem referência
+
+O marcador `urina_leucocitos` está marcado como `qualitative: true` com `labRange: [0, 5]`. O Gemini pode extrair o valor quantitativo (/mL do sedimento) e mapear para o qualitativo, perdendo a referência.
+
+**Correção:** 
+- Garantir que `urina_leucocitos_quant` (numérico, /mL) tenha `labRange: [0, 10000]` (já está correto)
+- No prompt, reforçar que leucócitos em /mL vão para `urina_leucocitos_quant`, e "Leucócito Esterase" qualitativo vai para `urina_leucocitos`
+- Verificar que a referência "< 25.000 /mL" do Fleury é capturada no `lab_ref_text`
+
+**Arquivos:** `supabase/functions/extract-lab-results/index.ts`, `src/lib/markers.ts`
+
+---
+
+## Resumo de Arquivos
+
+| Arquivo | Bugs |
+|---------|------|
+| `supabase/functions/extract-lab-results/index.ts` | 1, 2, 5 |
+| `src/lib/markers.ts` | 2, 5 |
+| `src/lib/generateReport.ts` | 3 |
+| `src/pages/PatientDetail.tsx` | 4 |
 
