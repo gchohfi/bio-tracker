@@ -22,8 +22,12 @@ const MARKER_LIST = [
   { id: "linfocitos", name: "Linfócitos", unit: "%" },
   { id: "linfocitos_abs", name: "Linfócitos (absoluto)", unit: "/mm³" },
   { id: "monocitos", name: "Monócitos", unit: "%" },
+  { id: "monocitos_abs", name: "Monócitos (absoluto)", unit: "/mm³" },
   { id: "eosinofilos", name: "Eosinófilos", unit: "%" },
+  { id: "eosinofilos_abs", name: "Eosinófilos (absoluto)", unit: "/mm³" },
   { id: "basofilos", name: "Basófilos", unit: "%" },
+  { id: "basofilos_abs", name: "Basófilos (absoluto)", unit: "/mm³" },
+  { id: "neutrofilos_abs", name: "Neutrófilos (absoluto)", unit: "/mm³" },
   { id: "plaquetas", name: "Plaquetas", unit: "mil/µL" },
   { id: "vpm", name: "VPM (Volume Plaquetário Médio)", unit: "fL" },
   { id: "ferro_serico", name: "Ferro Sérico", unit: "µg/dL" },
@@ -321,12 +325,17 @@ HEMOGRAMA:
   - lab_ref_range: use ONLY the percentage reference interval (e.g. "45,0 a 70,0"), NEVER the absolute count (/mm³ or /µL)
   - If the lab shows both % and absolute count columns, use ONLY the % column for both value and lab_ref_range
   - If only absolute count reference is available, set lab_ref_range to null/empty
-⚠️ ABSOLUTE LYMPHOCYTE COUNT:
-  - In ADDITION to linfocitos (%), also extract linfocitos_abs with the ABSOLUTE count value in /mm³
+⚠️ ABSOLUTE WBC DIFFERENTIAL COUNTS:
+  - In ADDITION to the % markers, also extract the ABSOLUTE count for each WBC differential:
+    - linfocitos_abs: absolute lymphocyte count in /mm³ (e.g. 3250, ref "1.120 a 2.950")
+    - neutrofilos_abs: absolute neutrophil count in /mm³ (e.g. 2140, ref "1.590 a 4.770")
+    - monocitos_abs: absolute monocyte count in /mm³ (e.g. 430, ref "260 a 730")
+    - eosinofilos_abs: absolute eosinophil count in /mm³ (e.g. 100, ref "34 a 420")
+    - basofilos_abs: absolute basophil count in /mm³ (e.g. 20, ref "10 a 80")
   - e.g. if lab shows "Linfócitos: 54,7% ... 3.250 /mm³", extract BOTH:
     - linfocitos: value=54.7, unit="%"
     - linfocitos_abs: value=3250, unit="/mm³", lab_ref_text="1.120 a 2.950"
-  - This is critical: elevated absolute lymphocytes (>2950) indicate lymphocytosis even when % looks normal
+  - This is critical: elevated absolute counts indicate cytopenias/cytoses even when % looks normal
 - "PLAQUETOGRAMA" / "PLT" / "TROMBÓCITOS" / "Contagem de Plaquetas" → plaquetas
 - "VPM" / "V.P.M." / "MPV" / "Volume Plaquetário Médio" / "MEAN PLATELET VOLUME" → vpm
 
