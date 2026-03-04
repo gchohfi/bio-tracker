@@ -933,6 +933,20 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
           r._remove = true;
         }
       }
+      // Case 2b: text_value containing hemograma units (defense-in-depth)
+      if (typeof r.text_value === 'string') {
+        const tv = r.text_value;
+        if (
+          /g\/[dD]?[lL]/i.test(tv) ||
+          /milh[õo]es/i.test(tv) ||
+          /mm[³3]/i.test(tv) ||
+          /µL/i.test(tv) ||
+          (/\d{2,}[,.]\d+/.test(tv) && /\d+[,.]\d+\s+a\s+\d+[,.]\d+/.test(tv))
+        ) {
+          console.log(`ANTI-HALLUCINATION: removed urina_hemoglobina text_value "${tv}" (hemograma in text_value)`);
+          r._remove = true;
+        }
+      }
       // Case 3: lab_ref_text contains hemograma-like reference (g/dL, "11,7 a 14,9", etc.)
       const refText = r.lab_ref_text || r.lab_ref_range || '';
       if (/g\/dL/i.test(refText) || /\d{2,}[,.]\d+\s*a\s*\d{2,}[,.]\d+/.test(refText)) {
@@ -974,6 +988,20 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
           /\d+[,.]\d+\s+a\s+\d+[,.]\d+/.test(v)
         ) {
           console.log(`ANTI-HALLUCINATION: removed urina_hemacias string "${v}" (likely from hemograma)`);
+          r._remove = true;
+        }
+      }
+      // Case 2b: text_value containing hemograma units (defense-in-depth)
+      if (typeof r.text_value === 'string') {
+        const tv = r.text_value;
+        if (
+          /milh[õo]es/i.test(tv) ||
+          /mm[³3]/i.test(tv) ||
+          /µL/i.test(tv) ||
+          /g\/[dD]?[lL]/i.test(tv) ||
+          (/\d+[,.]\d+\s+a\s+\d+[,.]\d+/.test(tv) && /\d{2,}[,.]\d+/.test(tv))
+        ) {
+          console.log(`ANTI-HALLUCINATION: removed urina_hemacias text_value "${tv}" (hemograma in text_value)`);
           r._remove = true;
         }
       }
