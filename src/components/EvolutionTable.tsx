@@ -306,7 +306,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="max-h-[70vh] overflow-auto">
           <div className="flex items-center justify-between px-4 py-2 text-xs text-muted-foreground sm:hidden">
             <span>← Deslize para ver os valores →</span>
           </div>
