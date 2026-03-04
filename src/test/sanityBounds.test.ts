@@ -101,6 +101,12 @@ describe("resolveReference sanity bounds", () => {
       expect(ref.operator).toBe(">");
       expect(ref.min).toBe(60);
     });
+
+    it("HDL: '> 40' deve ser aceito (labRange M: 40-999)", () => {
+      const ref = resolveReference(find("hdl"), "M", "> 40");
+      expect(ref.operator).toBe(">");
+      expect(ref.min).toBe(40);
+    });
   });
 
   // Fluxo completo: valor + referência → status correto
