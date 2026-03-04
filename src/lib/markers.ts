@@ -57,10 +57,7 @@ export const MARKERS: MarkerDef[] = [
   { id: "leucocitos",      name: "Leucócitos",      unit: "/µL",          category: "Hemograma",
     labRange: { M: [4000, 11000], F: [4000, 11000] }, panel: "Padrão" },
 
-  { id: "neutrofilos",     name: "Neutrófilos",     unit: "%",            category: "Hemograma",
-    labRange: { M: [45, 70], F: [45, 70] }, panel: "Adicional" },
-
-  { id: "neutrofilos_abs", name: "Neutrófilos (abs)", unit: "/mm³",       category: "Hemograma",
+  { id: "neutrofilos_abs", name: "Neutrófilos",     unit: "/mm³",         category: "Hemograma",
     labRange: { M: [1590, 4770], F: [1590, 4770] }, panel: "Adicional" },
 
   { id: "bastonetes",      name: "Bastonetes",      unit: "%",            category: "Hemograma",
@@ -69,10 +66,7 @@ export const MARKERS: MarkerDef[] = [
   { id: "segmentados",     name: "Segmentados",     unit: "%",            category: "Hemograma",
     labRange: { M: [45, 70], F: [45, 70] }, panel: "Adicional" },
 
-  { id: "linfocitos",      name: "Linfócitos",      unit: "%",            category: "Hemograma",
-    labRange: { M: [20, 45], F: [20, 45] }, panel: "Adicional" },
-
-  { id: "linfocitos_abs",  name: "Linfócitos (abs)", unit: "/mm³",         category: "Hemograma",
+  { id: "linfocitos_abs",  name: "Linfócitos",      unit: "/mm³",         category: "Hemograma",
     labRange: { M: [1120, 2950], F: [1120, 2950] }, panel: "Adicional" },
 
   { id: "monocitos",       name: "Monócitos",       unit: "%",            category: "Hemograma",
