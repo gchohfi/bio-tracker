@@ -97,6 +97,23 @@ describe("getMarkerStatusFromRef", () => {
     it("Fator Reumatoide < 14: valor 20 deve ser high", () => {
       expect(getMarkerStatusFromRef(20, { min: null, max: 14, operator: "<" })).toBe("high");
     });
+
+    // ── Boundary: floating-point near-limit values ──
+    it("< 34: valor 34.000001 deve ser high (float boundary)", () => {
+      expect(getMarkerStatusFromRef(34.000001, { min: null, max: 34, operator: "<" })).toBe("high");
+    });
+
+    it("< 34: valor 33.999999 deve ser normal (float boundary)", () => {
+      expect(getMarkerStatusFromRef(33.999999, { min: null, max: 34, operator: "<" })).toBe("normal");
+    });
+
+    it("< 1.3: valor 1.3000001 deve ser high (Anti-TG float boundary)", () => {
+      expect(getMarkerStatusFromRef(1.3000001, { min: null, max: 1.3, operator: "<" })).toBe("high");
+    });
+
+    it("< 1.0: valor 1.0000001 deve ser high (TRAb float boundary)", () => {
+      expect(getMarkerStatusFromRef(1.0000001, { min: null, max: 1.0, operator: "<" })).toBe("high");
+    });
   });
 
   // Operador <= 
