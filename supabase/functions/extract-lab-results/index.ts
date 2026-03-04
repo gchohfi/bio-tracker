@@ -991,6 +991,20 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
           r._remove = true;
         }
       }
+      // Case 2b: text_value containing hemograma units (defense-in-depth)
+      if (typeof r.text_value === 'string') {
+        const tv = r.text_value;
+        if (
+          /milh[õo]es/i.test(tv) ||
+          /mm[³3]/i.test(tv) ||
+          /µL/i.test(tv) ||
+          /g\/[dD]?[lL]/i.test(tv) ||
+          (/\d+[,.]\d+\s+a\s+\d+[,.]\d+/.test(tv) && /\d{2,}[,.]\d+/.test(tv))
+        ) {
+          console.log(`ANTI-HALLUCINATION: removed urina_hemacias text_value "${tv}" (hemograma in text_value)`);
+          r._remove = true;
+        }
+      }
       // Case 3: lab_ref_min/max form a hemograma-like range (e.g. 3.83-4.99 milhões/µL)
       if (r.lab_ref_min != null && r.lab_ref_max != null) {
         const refMin = parseFloat(r.lab_ref_min);
