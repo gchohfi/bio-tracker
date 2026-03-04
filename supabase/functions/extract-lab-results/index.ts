@@ -788,7 +788,7 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     bilirrubina_total: { min: 0.01, max: 20 },
     // Renal
     creatinina: { min: 0.1, max: 15 },
-    acido_urico: { min: 0.5, max: 15 },
+    acido_urico: { min: 0.5, max: 15, fix: (v: number) => v > 15 ? v / 10 : v, label: "acido_urico decimal fix" },
     ureia: { min: 5, max: 200 },
     // Eletrólitos
     calcio_total: { min: 5, max: 15 },
@@ -2605,7 +2605,8 @@ const MARKER_TEXT_TERMS: Record<string, string[]> = {
 };
 
 function crossCheckAllMarkers(results: any[], pdfText: string, beforeFallbackIds: Set<string>): any[] {
-  const pdfLower = pdfText.toLowerCase();
+  // Normalize hyphens between letters and digits so "B-12"→"B12", "IGF-1"→"IGF1", "CA-125"→"CA125"
+  const pdfLower = pdfText.toLowerCase().replace(/([a-z])-(\d)/gi, '$1$2');
   let discardCount = 0;
   
   const checked = results.filter(r => {
@@ -2783,6 +2784,18 @@ For EVERY marker, include lab_ref_text. Examples:
 - leucocitos: lab_ref_text = "3.470 a 8.290"
 - anti_tpo: lab_ref_text = "Inferior a 34"
 
+DATE FORMAT (CRITICAL): Brazilian dates are ALWAYS DD/MM/YYYY (day first, month second).
+"05/11/2025" = November 5, 2025 (NOT May 11, 2025). "24/02/2026" = February 24, 2026.
+When converting to YYYY-MM-DD, the SECOND pair of digits is the MONTH, NOT the first.
+
+LIPID REFERENCE RANGES WITH CATEGORIES (Colesterol Total, LDL, Não-HDL, Triglicerídeos):
+When a lab report shows multiple risk categories (Ótimo, Desejável, Limítrofe, Alto, Muito Alto):
+- ALWAYS use the upper bound of "Desejável" as lab_ref_max (NOT "Ótimo" which is more restrictive).
+- Example: LDL categories "Ótimo < 100, Desejável 100-129, Limítrofe 130-159, Alto 160-189"
+  → use lab_ref_text = "< 130" (upper bound of Desejável range)
+- Example: Colesterol Total "Desejável < 200" → lab_ref_text = "< 200"
+- If only "Desejável < X" is shown, use that value directly.
+
 Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSend}`,
           },
         ],
@@ -2895,6 +2908,13 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     }
     // Parse lab_ref_text into numeric min/max fields
     validResults = parseLabRefRanges(validResults);
+    // VLDL guard: discard inverted references (">=" or ">" is nonsensical for VLDL — lower is better)
+    for (const r of validResults) {
+      if (r.marker_id === 'vldl' && r.lab_ref_text && /^[>≥]/i.test(String(r.lab_ref_text).trim())) {
+        console.log(`[VLDL-guard] Discarding inverted VLDL ref: "${r.lab_ref_text}"`);
+        delete r.lab_ref_text; delete r.lab_ref_min; delete r.lab_ref_max;
+      }
+    }
     // Convert lab_ref units to match the stored value units (e.g. pmol/L → ng/dL for testosterona_livre)
     validResults = convertLabRefUnits(validResults);
     // Cross-check ALL markers against PDF text (anti-hallucination)
