@@ -7,7 +7,8 @@ import {
   CATEGORY_COLORS,
   MARKERS,
   getMarkersByCategory,
-  getMarkerStatus,
+  resolveReference,
+  getMarkerStatusFromRef,
   parseOperatorValue,
   getCategoryRgb,
   type Category,
@@ -402,8 +403,8 @@ export function generatePatientReport(
 
     const sparkColIdx = head[0].length - 1;
     const trendColIdx = head[0].length - 2;
-    // With the new "Ref. Lab." column, data columns start at index 4 (was 3)
-    const dataColStart = 4;
+    // Data columns start at index 3: [Marcador(0), Un.(1), Ref.Lab.(2), Session1(3), ...]
+    const dataColStart = 3;
     const catColor = getCategoryRGB(cat);
 
     // Tint: mistura 90% branco + 10% cor da categoria para fundo suave
@@ -439,7 +440,6 @@ export function generatePatientReport(
         0: { cellWidth: 30, fontStyle: "bold", textColor: [BRAND.r, BRAND.g, BRAND.b] },
         1: { cellWidth: 12, textColor: [GRAY.r, GRAY.g, GRAY.b] },
         2: { cellWidth: 16, textColor: [37, 99, 235], fontStyle: "bold" },
-        3: { cellWidth: 16, textColor: [GRAY.r, GRAY.g, GRAY.b], fontStyle: "italic", fontSize: 6.5 },
         // Session date columns: fixed width so they don't stretch with few sessions
         ...Object.fromEntries(
           sorted.map((_, i) => [dataColStart + i, { cellWidth: 18, halign: "center" as const, fontStyle: "bold" as const }])
@@ -448,16 +448,17 @@ export function generatePatientReport(
         [sparkColIdx]: { cellWidth: 26 },
       },
       didParseCell(data) {
-        // Color code result values (data columns start at index 4 now, after Ref. Lab. column)
+        // Color code result values
         if (data.section === "body" && data.column.index >= dataColStart && data.column.index < trendColIdx) {
           const rawStr = String(data.cell.raw || "");
-          // Check for operator values like "< 34"
           const operatorParsed = parseOperatorValue(rawStr);
           const val = operatorParsed ? operatorParsed.numericValue : parseFloat(rawStr);
             if (!isNaN(val)) {
               const marker = markersWithData[data.row.index];
               if (marker) {
-                const status = getMarkerStatus(val, marker, sex, operatorParsed?.operator);
+                const labRef = labRefByMarker[marker.id];
+                const ref = resolveReference(marker, sex, labRef?.text);
+                const status = getMarkerStatusFromRef(val, ref);
                 data.cell.styles.fontStyle = "bold";
                 if (status === "normal") {
                   data.cell.styles.textColor = [GREEN.r, GREEN.g, GREEN.b];
