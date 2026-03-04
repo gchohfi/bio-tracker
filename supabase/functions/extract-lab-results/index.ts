@@ -618,6 +618,7 @@ Examples:
 - Ferritina feminino: lab_ref_text = "15 a 149"
 - Vitamina D: lab_ref_text = "Acima de 20"
 If the lab shows sex-specific or age-specific ranges, use the one matching the patient (or the female range if unknown).
+⚠️ AGE-SPECIFIC REFERENCE RANGES: When the lab report shows multiple reference ranges by age group (e.g. "20-29 anos: 127 a 424 / 30-39 anos: 88 a 400 / 40-44 anos: 71 a 382"), you MUST select ONLY the range that matches the patient's age. The patient's age will be provided in the user message. If no age is provided, use the broadest adult range available. NEVER return the age range numbers as the reference — return only the value interval.
 If no reference range is found for a marker, set lab_ref_text to "" (empty string) — but TRY HARD to find it.
 
 - For T3 Livre: the standard unit is ng/dL. Do NOT convert. Most Brazilian labs report in ng/dL.
@@ -2449,7 +2450,7 @@ serve(async (req) => {
   }
 
   try {
-    const { pdfText, patientSex } = await req.json();
+    const { pdfText, patientSex, patientAge } = await req.json();
     if (!pdfText || typeof pdfText !== "string") {
       return new Response(JSON.stringify({ error: "pdfText is required" }), {
         status: 400,
@@ -2477,6 +2478,7 @@ serve(async (req) => {
           {
             role: "user",
             content: `Extract ALL lab results from this Brazilian lab report. Target: 95+ markers. Be EXHAUSTIVE — do not skip ANY marker.
+${patientAge != null ? `\nPATIENT AGE: ${patientAge} years old. Use this to select the correct age-specific reference range when multiple ranges are listed.\n` : ''}
 
 ⚠️ MANDATORY: For EVERY marker, you MUST include lab_ref_text with the reference range from the report!
 Example: hemoglobina value=13.4, lab_ref_text="11.7 a 14.9"
