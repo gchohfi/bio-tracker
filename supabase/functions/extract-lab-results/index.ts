@@ -224,9 +224,13 @@ const QUALITATIVE_IDS = new Set(MARKER_LIST.filter(m => (m as any).qualitative).
 
 const systemPrompt = `You are an expert lab result extraction assistant for Brazilian labs (Fleury, DASA, Hermes Pardini, Confiance, Einstein, Lavoisier, DB, Oswaldo Cruz, etc.).
 
-Your task: extract ALL values (numeric AND qualitative) from the PDF text and map them to known marker IDs. Be EXHAUSTIVE.
+Your task: extract lab values (numeric AND qualitative) from the PDF text and map them to known marker IDs. Extract ONLY markers that are EXPLICITLY PRESENT in the document.
 
-CRITICAL ANTI-HALLUCINATION RULE: NEVER invent, fabricate, or assume results. Only extract a marker if it is EXPLICITLY PRESENT in the PDF text with a visible numeric or qualitative result clearly associated with it. If you are unsure whether a result exists in the document, do NOT include it. When in doubt, omit.
+CRITICAL ANTI-HALLUCINATION RULES:
+1. NEVER invent, fabricate, or assume results. Only extract a marker if it is EXPLICITLY PRESENT in the PDF text with a visible numeric or qualitative result clearly associated with it. If you are unsure whether a result exists in the document, do NOT include it. When in doubt, omit.
+2. It is MUCH BETTER to miss a real result than to fabricate a phantom value.
+3. If a test was NOT ordered or NOT performed, it will NOT appear in the PDF — do NOT extract it.
+4. Do NOT extract a marker just because it is in the known list — only extract if you can see the actual test name AND its result value printed in the document.
 
 Known markers (id | name | unit):
 ${MARKER_LIST.map((m) => `${m.id} | ${m.name} | ${m.unit}`).join("\n")}
@@ -2511,7 +2515,7 @@ serve(async (req) => {
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `Extract ALL lab results from this Brazilian lab report. Target: 95+ markers. Be EXHAUSTIVE — do not skip ANY marker.
+            content: `Extract lab results from this Brazilian lab report. Extract ONLY markers that are EXPLICITLY PRESENT in this document with a clear result value. Do NOT guess or infer values for markers not shown.
 ${patientAge != null ? `\nPATIENT AGE: ${patientAge} years old. Use this to select the correct age-specific reference range when multiple ranges are listed.\n` : ''}
 
 ⚠️ MANDATORY: For EVERY marker, you MUST include lab_ref_text with the reference range from the report!
@@ -2527,27 +2531,7 @@ STEP-BY-STEP APPROACH:
 7. CRITICAL: For values with "<" or ">" operators, set BOTH value AND text_value
 8. CRITICAL: For EVERY marker, capture the lab reference range in lab_ref_text!
 
-COMMONLY MISSED — search EXPLICITLY for each of these:
-- Hemograma: Bastonetes/Bastões, Segmentados, VPM/V.P.M./MPV
-- Coagulação: Fibrinogênio (may say "CLAUSS" or "g/L"→×100)
-- Pancreáticos: Amilase/α-Amilase, Lipase
-- Lipídios avançados: Apo A-1, Apo B, Lp(a), Colesterol Não-HDL, CT/HDL, TG/HDL, ApoB/ApoA1
-- Ferro: TIBC/CTFF/Capacidade Ferropéxica Total, Transferrina, Sat. Transferrina
-- Tireoide: T4 Total, T3 Total, TRAb (often "< 1.0")
-- Hormônios: Estrona (E1), AMH
-- Eletrólitos: Calcitonina (often "< 1.0")
-- Marcadores Tumorais: CA 19-9, CA-125, CA 72-4 (often "< 2.5"), CA 15-3, AFP, CEA
-- Eixo GH: IGF-1/Somatomedina C, IGFBP-3 (ng/mL÷1000=µg/mL)
-- Eixo Adrenal: ACTH/A.C.T.H., Cortisol Urina 24h, Aldosterona
-- Andrógenos: DHT/D.H.T./Dihidrotestosterona, Androstenediona
-- Vitaminas: 25-OH Vit D (vitamina_d) AND 1,25-Dihidroxi (vitamina_d_125) — TWO DIFFERENT markers!
-- Renal: TFGe/eGFR (often sub-item of Creatinina), Cistatina C
-- Hepático: Bilirrubina Indireta (may be calculated), LDH, Fosfatase Alcalina
-- Toxicologia: Chumbo/Plumbemia, Mercúrio, Cádmio, Alumínio
-- Imunologia: FAN (qualitative — text_value!)
-- Eletroforese: ALL fractions (Albumina%, Alfa1%, Alfa2%, Beta1%, Beta2%, Gama%, A/G)
-- Urina Tipo 1/EAS: ALL sub-items as qualitative
-- Coprológico: ALL sub-items as qualitative
+Check all sections of the document including panels (Hemograma, Lipídios, Bilirrubinas, Ferro, Eletroforese, Urina, Fezes, Marcadores Tumorais, etc.) and standalone exams. Only extract markers you can actually see with a clear result value. Do NOT invent values for markers not present in the document.
 
 OPERATOR VALUES (CRITICAL):
 - Anti-TPO often comes as "< 34" → value=34, text_value="< 34"
