@@ -375,6 +375,9 @@ export const MARKERS: MarkerDef[] = [
   { id: "ldh",             name: "LDH",              unit: "U/L",          category: "Hepático",
     labRange: { M: [120, 246], F: [120, 246] }, panel: "Adicional" },
 
+  { id: "ck",              name: "CK Total",          unit: "U/L",          category: "Hepático",
+    labRange: { M: [38, 174], F: [26, 140] }, panel: "Adicional" },
+
   // ── Renal ─────────────────────────────────────────────────────────────────
   { id: "creatinina",      name: "Creatinina",       unit: "mg/dL",        category: "Renal",
     labRange: { M: [0.7, 1.3], F: [0.5, 1.1] }, panel: "Padrão" },
