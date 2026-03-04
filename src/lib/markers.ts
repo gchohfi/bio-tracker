@@ -668,23 +668,31 @@ export const MARKERS: MarkerDef[] = [
 
 /**
  * Determine marker status using the CONVENTIONAL LAB reference range (labRange).
- *
- * - operator "<": if the numeric value <= upper lab limit, classify as "normal"
- * - operator ">": if the numeric value >= lower lab limit, classify as "high"
+ * 
+ * This function delegates to resolveReference + getMarkerStatusFromRef for consistency.
+ * The optional `operator` parameter is kept for backward compatibility but the
+ * lab_ref_text-based resolution in resolveReference is more robust.
  */
 export function getMarkerStatus(value: number, marker: MarkerDef, sex: "M" | "F", operator?: string): "normal" | "low" | "high" {
-  const [min, max] = marker.labRange[sex];
+  // Use resolveReference with no lab_ref_text (falls back to labRange)
+  const ref = resolveReference(marker, sex, undefined);
+  
+  // For operator values like "< 34", override with operator-aware logic
   if (operator === "<" || operator === "<=") {
-    if (value <= max) return "normal";
-    return "normal"; // indeterminate, default to normal
-  }
-  if (operator === ">" || operator === ">=") {
-    if (value >= min) return "high";
+    // Value reported as "< X" means the actual value is below X
+    // If X (the numeric value) is below the max threshold, it's normal
+    if (ref.max != null && value > ref.max) return "high";
+    if (ref.min != null && value < ref.min) return "low";
     return "normal";
   }
-  if (value < min) return "low";
-  if (value > max) return "high";
-  return "normal";
+  if (operator === ">" || operator === ">=") {
+    // Value reported as "> X" means the actual value is above X
+    if (ref.max != null && value > ref.max) return "high";
+    if (ref.min != null && value < ref.min) return "low";
+    return "normal";
+  }
+  
+  return getMarkerStatusFromRef(value, ref);
 }
 
 export function getMarkersByCategory(category: string): MarkerDef[] {
