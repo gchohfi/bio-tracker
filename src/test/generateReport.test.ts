@@ -215,9 +215,9 @@ describe("Consistência do MARKERS", () => {
     }
   });
 
-  it("todos os marcadores devem ter refRange definido", () => {
+  it("todos os marcadores devem ter labRange definido", () => {
     for (const marker of MARKERS) {
-      expect(marker.refRange, `Marker ${marker.id} deve ter refRange`).toBeDefined();
+      expect(marker.labRange, `Marker ${marker.id} deve ter labRange`).toBeDefined();
     }
   });
 

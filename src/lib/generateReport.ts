@@ -333,7 +333,7 @@ export function generatePatientReport(
     );
 
     const head = [
-      ["Marcador", "Un.", "Ref. Lab.", "Ref. Funcional", ...sessionDateHeaders, "Tend.", "Evolução"],
+      ["Marcador", "Un.", "Ref. Lab.", ...sessionDateHeaders, "Tend.", "Evolução"],
     ];
 
     const body: any[][] = [];
@@ -346,7 +346,7 @@ export function generatePatientReport(
     markersWithData.forEach((marker, idx) => {
       const isQualitative = marker.qualitative === true;
       const [min, max] = marker.labRange[sex];   // referência laboratorial convencional
-      const [fMin, fMax] = marker.refRange[sex]; // referência funcional (descritiva)
+      // refRange removido — apenas labRange
       const values = sorted.map((s) => resultMap[marker.id]?.[s.id]);
       const textValues = sorted.map((s) => textResultMap[marker.id]?.[s.id]);
       const numericValues = values.filter((v) => v !== undefined) as number[];
@@ -374,15 +374,12 @@ export function generatePatientReport(
         // Se só tem texto descritivo sem valores numéricos, usar labRange do markers.ts
         return `${min} – ${max}`;
       })();
-      // Ref. Funcional = refRange (descritiva, secundária)
-      const funcRefStr = isQualitative ? "Qualitativo" :
-        (fMin !== fMax ? `${fMin} – ${fMax}` : "—");
+      // Ref. Funcional removida
 
       const row: any[] = [
         marker.name,
         isQualitative ? "—" : marker.unit,
         labRefStr,
-        funcRefStr,
         ...sorted.map((s, i) => {
           if (isQualitative) {
             return textValues[i] || "—";

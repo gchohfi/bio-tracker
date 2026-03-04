@@ -358,7 +358,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                         const resolvedRef = resolveReference(marker, sex, labRefText);
                         const min = resolvedRef.min ?? marker.labRange[sex][0];
                         const max = resolvedRef.max ?? marker.labRange[sex][1];
-                        const [fMin, fMax] = marker.refRange[sex];  // ref. funcional (descritiva)
+                        // refRange removido — apenas labRange é usado
                         const isQualitative = marker.qualitative;
                         const markerPanel = (marker as any).panel as string | undefined;
                         return (
@@ -391,15 +391,7 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                                   <div className="text-[10px] font-semibold text-foreground/80" title="Referência laboratorial convencional (SBPC/ML)">
                                     {min}–{max}
                                   </div>
-                                  {/* Referência funcional (descritiva, secundária) */}
-                                  {fMin !== fMax && (
-                                    <div
-                                      className="text-[9px] text-violet-500/80"
-                                      title="Faixa funcional/ótima (medicina integrativa) — apenas informativa"
-                                    >
-                                      Func: {fMin}–{fMax}
-                                    </div>
-                                  )}
+                                  {/* Referência funcional removida — apenas labRange */}
                                 </div>
                               )}
                             </td>
