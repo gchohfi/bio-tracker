@@ -280,14 +280,21 @@ export function generatePatientReport(
   // Build result map
   const resultMap: Record<string, Record<string, number>> = {};
   const textResultMap: Record<string, Record<string, string>> = {};
-  // Lab reference map: most recent reference per marker
+  // Lab reference map: most recent reference per marker (for display in "Ref. Lab." column)
   const labRefByMarker: Record<string, { min?: number; max?: number; text?: string }> = {};
+  // Per-session lab reference text (for per-session status classification)
+  const labRefBySession: Record<string, Record<string, string>> = {};
   results.forEach((r) => {
     if (!resultMap[r.marker_id]) resultMap[r.marker_id] = {};
     if (!textResultMap[r.marker_id]) textResultMap[r.marker_id] = {};
     resultMap[r.marker_id][r.session_id] = r.value;
     if (r.text_value) textResultMap[r.marker_id][r.session_id] = r.text_value;
-    // Capture lab reference (last write wins — results are sorted oldest→newest so newest is kept)
+    // Per-session lab_ref_text for accurate per-session classification
+    if (r.lab_ref_text) {
+      if (!labRefBySession[r.marker_id]) labRefBySession[r.marker_id] = {};
+      labRefBySession[r.marker_id][r.session_id] = r.lab_ref_text;
+    }
+    // Capture lab reference for display (last write wins — results are sorted oldest→newest so newest is kept)
     if (r.lab_ref_text || r.lab_ref_min != null || r.lab_ref_max != null) {
       labRefByMarker[r.marker_id] = {
         text: r.lab_ref_text ?? undefined,
