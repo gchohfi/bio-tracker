@@ -86,6 +86,10 @@ export const MARKERS: MarkerDef[] = [
     labRange: { M: [20, 45], F: [20, 45] },
     refRange: { M: [25, 40], F: [25, 40] }, panel: "Adicional" },
 
+  { id: "linfocitos_abs",  name: "Linfócitos (abs)", unit: "/mm³",         category: "Hemograma",
+    labRange: { M: [1120, 2950], F: [1120, 2950] },
+    refRange: { M: [1500, 2800], F: [1500, 2800] }, panel: "Adicional" },
+
   { id: "monocitos",       name: "Monócitos",       unit: "%",            category: "Hemograma",
     labRange: { M: [2, 10], F: [2, 10] },
     refRange: { M: [4, 8],  F: [4, 8]  }, panel: "Adicional" },
