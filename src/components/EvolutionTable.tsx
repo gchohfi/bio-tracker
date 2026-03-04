@@ -383,8 +383,8 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                               </div>
                             </td>
                             <td className="px-1 py-1.5 text-[10px] text-muted-foreground whitespace-nowrap">
-                              {isQualitative ? (
-                                "—"
+                            {isQualitative ? (
+                                labRefText || "—"
                               ) : (
                                 <div className="space-y-0.5">
                                   {/* Referência laboratorial convencional (principal) */}
