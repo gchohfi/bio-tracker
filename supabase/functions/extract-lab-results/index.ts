@@ -2394,6 +2394,10 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
     if (maxPlausible !== undefined && r.value !== undefined && r.value !== null && r.value > maxPlausible) {
       console.log(`Plausibility filter: discarding ${r.marker_id} = ${r.value} (max plausible: ${maxPlausible})`);
       return false;
+    }
+    return true;
+  });
+  return filtered;
 }
 
 // ── Global Cross-Validation: verify marker names exist in PDF text ──
