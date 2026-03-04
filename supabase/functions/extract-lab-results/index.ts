@@ -1009,26 +1009,42 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     const tv: string | undefined = r.text_value;
     if (!tv || typeof tv !== 'string') continue;
 
-    // Caso 1: text_value contém valor hemograma + unidade (ex: "13,4 g/dL 11,7 a 14,9")
-    // Detectar padrão: número + g/dL ou milhões → alucinação do hemograma → remover
-    if (/[\d.,]+\s*(?:g\/dL|milh[õo]es|mm[³3]|µL)/i.test(tv)) {
+    // Caso 1: text_value contém valor hemograma + unidade (ex: "13,4 g/dL 11,7 a 14,9", "5,09 milhões/mm3 4,32 a 5,67")
+    // Detectar padrão: número + g/dL ou g/L ou milhões ou mm³ ou µL → alucinação do hemograma → remover
+    if (/[\d.,]+\s*(?:g\/[dD]?[lL]|milh[õo]es|mm[³3]|µL)/i.test(tv)) {
       console.log(`ANTI-HALLUCINATION: removed ${r.marker_id} text_value "${tv}" (hemograma hallucination)`);
       r._remove = true;
       continue;
     }
 
-    // Caso 2: text_value contém número + referência (ex: "15.900 /mL Até 25.000 /mL", "1.000/mL inferior a 30.000/mL")
-    // Extrai apenas a primeira parte (até o primeiro "Até", "inferior", "superior", "menor", "maior", "Ref", "<", ">" ou número grande)
-    const cleanMatch = tv.match(/^(\d[\d.,]*)\s*(?:\/mL)?\s*(?:Até|até|inferior|superior|menor|maior|Ref|ref|<|>|\d{4,})/i);
-    if (cleanMatch) {
-      const cleanVal = cleanMatch[1].replace(/[.,](\d{3})$/g, '$1').replace(',', '.');
-      const num = parseFloat(cleanVal);
-      if (!isNaN(num) && num > 0) {
-        r.text_value = `${Math.round(num)} /mL`;
-        console.log(`Cleaned urina qualitative text_value for ${r.marker_id}: "${tv}" → "${r.text_value}"`);
+    // Caso 2: text_value contém resultado + referência concatenados
+    // Ex: "15.900 /mL Até 25.000 /mL", "3.600 /mL até 23.000 /mL", "1.000/mL inferior a 30.000/mL"
+    // Separar resultado da referência: extrair valor antes do delimitador e mover o resto para lab_ref_text
+    const splitMatch = tv.match(/^(\d[\d.,]*\s*(?:\/mL|\/campo)?)\s+(Até|até|inferior\s+a|superior\s+a|menor\s+que|maior\s+que|Ref\.?|ref\.?|[<>≤≥]=?\s*)\s*(.+)$/i);
+    if (splitMatch) {
+      const resultPart = splitMatch[1].trim();
+      const refPart = `${splitMatch[2].trim()} ${splitMatch[3].trim()}`;
+      console.log(`Split text_value for ${r.marker_id}: "${tv}" → result="${resultPart}", ref="${refPart}"`);
+      r.text_value = resultPart;
+      if (!r.lab_ref_text) {
+        r.lab_ref_text = refPart;
       }
+      continue;
     }
-    // Caso 3: text_value é um texto qualitativo válido (ex: "Negativo", "Positivo", "1+")
+
+    // Caso 3: text_value contém "VALOR a VALOR" sem unidade — provavelmente resultado + referência juntos
+    // Ex: "14,9 13,3 a 16,5" (valor seguido de referência sem separador claro)
+    const numRefMatch = tv.match(/^(\d+[.,]?\d*)\s+(\d+[.,]?\d*\s+a\s+\d+[.,]?\d*)$/i);
+    if (numRefMatch) {
+      console.log(`Split num+ref text_value for ${r.marker_id}: "${tv}" → result="${numRefMatch[1]}", ref="${numRefMatch[2]}"`);
+      r.text_value = numRefMatch[1];
+      if (!r.lab_ref_text) {
+        r.lab_ref_text = numRefMatch[2];
+      }
+      continue;
+    }
+
+    // Caso 4: text_value é um texto qualitativo válido (ex: "Negativo", "Positivo", "1+", "AUSENTE")
     // Não fazer nada — manter como está
   }
 
