@@ -223,13 +223,11 @@ describe("parseLabRefRanges — textos etários e descritivos", () => {
     expect(r.lab_ref_max).toBeUndefined();
   });
 
-  it("'Acima de 20 anos: 0,23 a 0,42 ng/dL' → descartado (texto etário com anos)", () => {
-    // 'Acima de X anos' não é removido pelos prefixos etários (não tem gênero nem faixa)
-    // Após normalização vira '> 20 anos: ...' que contém 'anos' → descartado
+  it("'Acima de 20 anos: 0,23 a 0,42 ng/dL' → extrai range 0.23–0.42 (prefixo etário removido)", () => {
+    // Com o fix, 'Acima de 20 anos:' é removido, restando '0,23 a 0,42 ng/dL' → range
     const [r] = parseLabRefRanges([{ marker_id: "shbg", lab_ref_text: "Acima de 20 anos: 0,23 a 0,42 ng/dL" }]);
-    expect(r.lab_ref_min).toBeUndefined();
-    expect(r.lab_ref_max).toBeUndefined();
-    expect(r.lab_ref_text).toBeUndefined();
+    expect(r.lab_ref_min).toBeCloseTo(0.23);
+    expect(r.lab_ref_max).toBeCloseTo(0.42);
   });
 
   it("'Nao reagente' → mantém apenas lab_ref_text (qualitativo)", () => {
