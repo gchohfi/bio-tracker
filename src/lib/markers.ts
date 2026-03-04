@@ -74,6 +74,10 @@ export const MARKERS: MarkerDef[] = [
     labRange: { M: [45, 70], F: [45, 70] },
     refRange: { M: [40, 60], F: [40, 60] }, panel: "Adicional" },
 
+  { id: "neutrofilos_abs", name: "Neutrófilos (abs)", unit: "/mm³",       category: "Hemograma",
+    labRange: { M: [1590, 4770], F: [1590, 4770] },
+    refRange: { M: [1800, 4500], F: [1800, 4500] }, panel: "Adicional" },
+
   { id: "bastonetes",      name: "Bastonetes",      unit: "%",            category: "Hemograma",
     labRange: { M: [0, 5], F: [0, 5] },
     refRange: { M: [0, 5], F: [0, 5] }, panel: "Adicional" },
@@ -94,13 +98,25 @@ export const MARKERS: MarkerDef[] = [
     labRange: { M: [2, 10], F: [2, 10] },
     refRange: { M: [4, 8],  F: [4, 8]  }, panel: "Adicional" },
 
+  { id: "monocitos_abs",   name: "Monócitos (abs)", unit: "/mm³",         category: "Hemograma",
+    labRange: { M: [260, 730], F: [260, 730] },
+    refRange: { M: [300, 700], F: [300, 700] }, panel: "Adicional" },
+
   { id: "eosinofilos",     name: "Eosinófilos",     unit: "%",            category: "Hemograma",
     labRange: { M: [1, 5], F: [1, 5] },
     refRange: { M: [1, 3], F: [1, 3] }, panel: "Padrão" },
 
+  { id: "eosinofilos_abs", name: "Eosinófilos (abs)", unit: "/mm³",       category: "Hemograma",
+    labRange: { M: [34, 420], F: [34, 420] },
+    refRange: { M: [50, 400], F: [50, 400] }, panel: "Adicional" },
+
   { id: "basofilos",       name: "Basófilos",       unit: "%",            category: "Hemograma",
     labRange: { M: [0, 2], F: [0, 2] },
     refRange: { M: [0, 1], F: [0, 1] }, panel: "Adicional" },
+
+  { id: "basofilos_abs",   name: "Basófilos (abs)", unit: "/mm³",         category: "Hemograma",
+    labRange: { M: [10, 80], F: [10, 80] },
+    refRange: { M: [10, 80], F: [10, 80] }, panel: "Adicional" },
 
   { id: "plaquetas",       name: "Plaquetas",       unit: "mil/µL",       category: "Hemograma",
     labRange: { M: [150, 400], F: [150, 400] },
