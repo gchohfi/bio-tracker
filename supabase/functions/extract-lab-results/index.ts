@@ -549,6 +549,18 @@ URINA TIPO 1 / EAS:
 - ⚠️ "ERITRÓCITOS" inside urina section = urina_hemacias (NOT eritrocitos from hemograma!)
 - ⚠️ "LEUCÓCITOS" inside urina section = urina_leucocitos (NOT leucocitos from hemograma!)
 - ⚠️ In Fleury PDFs, all urina sub-items are inside ONE block, not separate exams. Extract EACH line.
+- ⚠️ CRITICAL: For ALL urina sub-items (including qualitative ones like proteinas, glicose, hemoglobina, nitritos), you MUST capture the lab_ref_text. Examples:
+  - urina_proteinas: lab_ref_text = "Inferior a 0,10 g/L" or "Negativa"
+  - urina_glicose: lab_ref_text = "Inferior a 0,30 g/L" or "Normal"
+  - urina_hemoglobina: lab_ref_text = "Negativa" (NEVER a hemograma range like "11,7 a 14,9")
+  - urina_leucocitos: lab_ref_text = "Até 5 /campo" or "Negativo"
+  - urina_hemacias: lab_ref_text = "Até 3 /campo" or "< 3"
+  - urina_leucocitos_quant: lab_ref_text = "Inferior a 25.000 /mL" or "Até 25.000 /mL"
+  - urina_hemacias_quant: lab_ref_text = "Inferior a 10.000 /mL" or "Até 10.000 /mL"
+  - urina_ph: lab_ref_text = "5,0 a 8,0"
+  - urina_densidade: lab_ref_text = "1,005 a 1,030"
+- ⚠️ CRITICAL ANTI-HALLUCINATION for urina_hemoglobina: This marker is QUALITATIVE ("Negativa"/"Positiva"/"Traços"). It is NOT the hemoglobina from hemograma (13.4 g/dL). If you see a numeric value like 13.4 or 16.3 with reference "11,7 a 14,9", that is hemograma hemoglobina — do NOT map it to urina_hemoglobina.
+- ⚠️ CRITICAL ANTI-HALLUCINATION for urina_hemacias: This marker is QUALITATIVE ("Raras"/"Ausentes"/"0-3/campo"). It is NOT eritrocitos from hemograma (4.51 milhões/µL). If you see a numeric value like 4.51 with reference "3,83 a 4,99", that is hemograma eritrocitos — do NOT map it to urina_hemacias.
 
 COPROLÓGICO:
 - "COPROLÓGICO FUNCIONAL" / "COPROGRAMA" / "EXAME DE FEZES" / "PROVA FUNCIONAL DAS FEZES" / "PARASITOLÓGICO DE FEZES" / "EPF" → extract ALL sub-items as qualitative
@@ -894,6 +906,11 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
   // Gemini sometimes copies hemoglobina/eritrocitos from hemograma into urina fields.
   // Urina hemoglobina is QUALITATIVE (negativo/positivo/traços) — never a numeric like 13.4.
   // Urina hemacias qualitative is /campo (0-50), quantitative is /mL (0-50000).
+
+  // Build lookup for cross-validation: blood hemoglobina and eritrocitos values
+  const bloodHemoglobina = results.find((r: any) => r.marker_id === 'hemoglobina' && typeof r.value === 'number');
+  const bloodEritrocitos = results.find((r: any) => r.marker_id === 'eritrocitos' && typeof r.value === 'number');
+
   for (const r of results) {
     // --- urina_hemoglobina ---
     if (r.marker_id === 'urina_hemoglobina') {
@@ -922,6 +939,23 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
         console.log(`ANTI-HALLUCINATION: removed urina_hemoglobina with hemograma ref "${refText}"`);
         r._remove = true;
       }
+      // Case 4: lab_ref_min/max form a hemograma-like range (e.g. 11.7-16.5 g/dL)
+      if (r.lab_ref_min != null && r.lab_ref_max != null) {
+        const refMin = parseFloat(r.lab_ref_min);
+        const refMax = parseFloat(r.lab_ref_max);
+        if (!isNaN(refMin) && !isNaN(refMax) && refMin >= 5 && refMax <= 20 && refMax > refMin) {
+          console.log(`ANTI-HALLUCINATION: removed urina_hemoglobina with hemograma-like lab_ref range ${refMin}-${refMax}`);
+          r._remove = true;
+        }
+      }
+      // Case 5: cross-validation — if blood hemoglobina exists with similar value
+      if (!r._remove && bloodHemoglobina && !isNaN(numVal)) {
+        const bloodVal = bloodHemoglobina.value;
+        if (Math.abs(numVal - bloodVal) < 1) {
+          console.log(`ANTI-HALLUCINATION: removed urina_hemoglobina ${numVal} (matches blood hemoglobina ${bloodVal})`);
+          r._remove = true;
+        }
+      }
     }
     // --- urina_hemacias ---
     if (r.marker_id === 'urina_hemacias') {
@@ -940,6 +974,24 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
           /\d+[,.]\d+\s+a\s+\d+[,.]\d+/.test(v)
         ) {
           console.log(`ANTI-HALLUCINATION: removed urina_hemacias string "${v}" (likely from hemograma)`);
+          r._remove = true;
+        }
+      }
+      // Case 3: lab_ref_min/max form a hemograma-like range (e.g. 3.83-4.99 milhões/µL)
+      if (r.lab_ref_min != null && r.lab_ref_max != null) {
+        const refMin = parseFloat(r.lab_ref_min);
+        const refMax = parseFloat(r.lab_ref_max);
+        // Hemograma eritrocitos ref is typically 3.5-5.5 milhões/µL; urina hemacias ref is 0-3 /campo
+        if (!isNaN(refMin) && !isNaN(refMax) && refMin > 1 && refMax > 3 && refMax < 10) {
+          console.log(`ANTI-HALLUCINATION: removed urina_hemacias with hemograma-like lab_ref range ${refMin}-${refMax}`);
+          r._remove = true;
+        }
+      }
+      // Case 4: cross-validation — if blood eritrocitos exists with similar value
+      if (!r._remove && bloodEritrocitos && typeof r.value === 'number') {
+        const bloodVal = bloodEritrocitos.value;
+        if (Math.abs(r.value - bloodVal) < 0.5) {
+          console.log(`ANTI-HALLUCINATION: removed urina_hemacias ${r.value} (matches blood eritrocitos ${bloodVal})`);
           r._remove = true;
         }
       }
