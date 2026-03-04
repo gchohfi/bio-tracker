@@ -1401,7 +1401,7 @@ export default function PatientDetail() {
             )}
           </TabsContent>
 
-          <TabsContent value="evolution" className="mt-4">
+          <TabsContent value="evolution" className="mt-4 overflow-hidden">
             <EvolutionTable patientId={patient.id} sessions={sessions} sex={sex} />
           </TabsContent>
 
