@@ -26,11 +26,6 @@ export interface MarkerDef {
    * Usada para calcular status (normal/baixo/alto), cores e alertas.
    */
   labRange: { M: [number, number]; F: [number, number] };
-  /**
-   * refRange: faixa funcional/ótima (medicina funcional e integrativa)
-   * Exibida apenas como informação descritiva secundária para o médico.
-   */
-  refRange: { M: [number, number]; F: [number, number] };
   qualitative?: boolean; // true for text-only results (FAN, Urina, Coprológico)
   panel?: "Padrão" | "Adicional"; // Padrão = painel rotineiro da médica
 }

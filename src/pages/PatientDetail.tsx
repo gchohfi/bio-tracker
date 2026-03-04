@@ -499,9 +499,7 @@ export default function PatientDetail() {
         // Referência laboratorial convencional (usada para status)
         lab_min: marker?.labRange?.[sex]?.[0] ?? marker?.labRange?.M?.[0],
         lab_max: marker?.labRange?.[sex]?.[1] ?? marker?.labRange?.M?.[1],
-        // Referência funcional/ótima: apenas para Nutrologia
-        functional_min: isNutrologia ? (marker?.refRange?.[sex]?.[0] ?? marker?.refRange?.M?.[0]) : undefined,
-        functional_max: isNutrologia ? (marker?.refRange?.[sex]?.[1] ?? marker?.refRange?.M?.[1]) : undefined,
+        // Referência funcional removida — apenas labRange usado
         status,
         session_date: session?.session_date ?? "",
       };
@@ -1764,7 +1762,7 @@ function MarkerInput({
   }
 
   const [min, max] = marker.labRange[sex];  // referência laboratorial convencional
-  const [fMin, fMax] = marker.refRange[sex]; // referência funcional (descritiva)
+  // refRange removido — apenas labRange
   const operatorMatch = value.match(/^([<>]=?)\s*(\d+[.,]?\d*)$/);
   const isOperatorValue = !!operatorMatch;
   const numVal = isOperatorValue ? parseFloat(operatorMatch![2].replace(",", ".")) : Number(value);
@@ -1816,11 +1814,7 @@ function MarkerInput({
             </Badge>
           )}
         </div>
-        {fMin !== fMax && (
-          <span className="text-[9px] text-violet-500" title="Faixa funcional/ótima (medicina integrativa)">
-            Funcional: {fMin} – {fMax}
-          </span>
-        )}
+        {/* Referência funcional removida */}
       </div>
     </div>
   );
