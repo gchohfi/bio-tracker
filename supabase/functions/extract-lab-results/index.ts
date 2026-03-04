@@ -57,6 +57,7 @@ const MARKER_LIST = [
   { id: "anti_tpo", name: "Anti-TPO", unit: "UI/mL" },
   { id: "anti_tg", name: "Anti-TG", unit: "UI/mL" },
   { id: "trab", name: "TRAb", unit: "UI/L" },
+  { id: "tiroglobulina", name: "Tiroglobulina", unit: "ng/mL" },
   { id: "testosterona_total", name: "Testosterona Total", unit: "ng/dL" },
   { id: "testosterona_livre", name: "Testosterona Livre", unit: "ng/dL" },
   { id: "testosterona_biodisponivel", name: "Testosterona Biodisponível", unit: "ng/dL" },
@@ -292,10 +293,11 @@ When you encounter a value with an operator:
 1. EXTRACT the numeric part as "value"
 2. ALSO set "text_value" to the FULL string including operator: e.g. "< 34", "< 1.0", "> 90"
 3. Examples:
-   - Anti-TPO: "< 34" → { marker_id: "anti_tpo", value: 34, text_value: "< 34" }
-   - TRAb: "< 1.0" → { marker_id: "trab", value: 1.0, text_value: "< 1.0" }
-   - Anti-TG: "< 1.3" → { marker_id: "anti_tg", value: 1.3, text_value: "< 1.3" }
-   - Calcitonina: "< 1.0" → { marker_id: "calcitonina", value: 1.0, text_value: "< 1.0" }
+   - Anti-TPO: result "< 34" → { marker_id: "anti_tpo", value: 34, text_value: "< 34" }
+   - TRAb: result "< 1.0" → { marker_id: "trab", value: 1.0, text_value: "< 1.0" }
+   - Anti-TG: result "< 1.3" → { marker_id: "anti_tg", value: 1.3, text_value: "< 1.3" }
+   - Anti-TG: result "1.7" (reference says "Inferior a 1,3") → { marker_id: "anti_tg", value: 1.7 } — DO NOT confuse the RESULT with the REFERENCE
+   - Calcitonina: result "< 1.0" → { marker_id: "calcitonina", value: 1.0, text_value: "< 1.0" }
    - CA 72-4: "< 2.5" → { marker_id: "ca_72_4", value: 2.5, text_value: "< 2.5" }
    - "Inferior a 10" → { value: 10, text_value: "< 10" }
    - "Superior a 90" → { value: 90, text_value: "> 90" }
@@ -357,6 +359,7 @@ TIREOIDE:
 - "ANTICORPO ANTI TPO" / "Anti-TPO" / "ANTI TPO" / "ANTICORPOS ANTI-PEROXIDASE TIREOIDIANA" / "ANTI-PEROXIDASE" / "TPO-Ab" / "ATPO" / "ANTICORPOS ANTI-PEROXIDASE TIROIDIANA" / "ANTI-PEROXIDASE TIROIDIANA" → anti_tpo
 - "ANTICORPOS ANTI TIREOGLOBULINA" / "Anti-TG" / "ANTICORPOS ANTI-TIREOGLOBULINA" / "ATG" / "TgAb" / "ANTI TIREOGLOBULINA" / "ANTITIROGLOBULINA" / "ANTICORPOS ANTITIROGLOBULINA" / "ANTI-TIROGLOBULINA" → anti_tg
 - "TRAb" / "TRAB" / "Anticorpo Anti-Receptor de TSH" / "Anti-receptor de TSH" / "Anti receptor TSH" / "Anticorpos Anti Receptores de TSH" → trab
+- "TIREOGLOBULINA" / "Tireoglobulina" / "Tiroglobulina" / "TG" (quando no contexto tireoidiano, NÃO confundir com Anti-TG) → tiroglobulina
 
 HORMÔNIOS:
 - "Testosterona Total" / "TESTOSTERONA, SORO" / "TESTOSTERONA SÉRICA" → testosterona_total
@@ -1407,11 +1410,18 @@ function parseLabRefRanges(results: any[]): any[] {
     t = t.replace(/\d+\s*[-–]\s*\d+\s*h(?:oras?)?/gi, '').trim();
     t = t.replace(/^(?:horas?\s+d[ao]\s+)?(?:manh[aã]|tarde|noite|vesper[ae])\s*:?\s*/gi, '').trim();
     // Faixa etária por sexo
-    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*\d+\s*[-–]\s*\d+\s*anos?\s*:?\s*/gi, '').trim();
-    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*>=?\s*\d+\s*anos?\s*:?\s*/gi, '').trim();
-    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*<=?\s*\d+\s*anos?\s*:?\s*/gi, '').trim();
-    t = t.replace(/\d+\s*[-–]\s*\d+\s*anos?\s*:/gi, '').trim();
-    t = t.replace(/>=?\s*\d+\s*anos?\s*:/gi, '').trim();
+    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*\d+\s*[-–]\s*\d+\s*(?:anos?|a)\s*:?\s*/gi, '').trim();
+    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*>=?\s*\d+\s*(?:anos?|a)\s*:?\s*/gi, '').trim();
+    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*<=?\s*\d+\s*(?:anos?|a)\s*:?\s*/gi, '').trim();
+    // Faixa etária sem sexo: "20-59 a:", "30 a 39 anos:", "De 20 a 34 anos:"
+    t = t.replace(/^(?:de\s+)?\d+\s*(?:a|[-–])\s*\d+\s*(?:anos?|a)\s*:/gi, '').trim();
+    // Operadores textuais + idade: "Acima de 12 anos:", "maior que 2 anos:"
+    t = t.replace(/^(?:acima|maior|superior)\s+(?:de|que)\s+\d+\s*(?:anos?|a)(?:\s+e\s+adultos?)?\s*:?\s*/gi, '').trim();
+    t = t.replace(/^(?:abaixo|menor|inferior)\s+(?:de|que)\s+\d+\s*(?:anos?|a)\s*:?\s*/gi, '').trim();
+    // Faixas genéricas
+    t = t.replace(/\d+\s*[-–]\s*\d+\s*(?:anos?|a)\s*:/gi, '').trim();
+    t = t.replace(/>=?\s*\d+\s*(?:anos?|a)\s*:/gi, '').trim();
+    t = t.replace(/<=?\s*\d+\s*(?:anos?|a)\s*:/gi, '').trim();
     // Fases de vida
     t = t.replace(/^(?:pr[eé]-?p[uú]beres?|p[oó]s-?menopausa|menopausa|adultos?)\s*:?\s*/gi, '').trim();
 
@@ -1613,6 +1623,7 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   tryFleury('anti_tpo', 'ANTICORPOS?\\s+ANTI[- ]?PEROXIDASE(?:\\s+TI(?:R|REOI)DIANA)?|ANTI[- ]?PEROXIDASE', OP_NUM);
   tryFleury('anti_tg', 'ANTICORPOS?\\s+ANTI[- ]?TIREOGLOBULINA|ANTICORPOS?\\s+ANTITIROGLOBULINA|ANTITIROGLOBULINA', OP_NUM);
   tryFleury('trab', 'ANTI[- ]?RECEPTOR\\s+DE\\s+TSH', OP_NUM);
+  tryFleury('tiroglobulina', 'TIREOGLOBULINA(?!\\s*ANTI)|TIROGLOBULINA(?!\\s*ANTI)', NUM);
   tryFleury('glicose_jejum', 'GLICOSE[\\s,]{0,20}(?:plasma|soro)', NUM);
   tryFleury('glicemia_media_estimada', 'GLICEMIA\\s+M[EÉ]DIA\\s+ESTIMADA|eAG', NUM);
   tryFleury('insulina_jejum', 'INSULINA[\\s,]{0,20}soro', NUM);
@@ -1850,6 +1861,9 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
     /(?:Anti[- ]?TG|ANTICORPOS?\s+ANTI[- ]?TIREOGLOBULINA|ANTICORPOS?\s+ANTITIROGLOBULINA|ANTITIROGLOBULINA|ATG|TgAb)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i,
   ]);
   tryGeneric('trab', [/(?:TRAb|TRAB)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i]);
+  tryGeneric('tiroglobulina', [
+    /(?:TIREOGLOBULINA|TIROGLOBULINA)(?!\s*(?:ANTI|anti))[\s:.\-]*?(\d+[.,]?\d*)/i,
+  ]);
   tryGeneric('hba1c', [/(?:HEMOGLOBINA\s+GLICADA|HbA1c)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('glicemia_media_estimada', [/(?:GLICEMIA\s+M[EÉ]DIA\s+ESTIMADA|eAG|Estimated\s+Average\s+Glucose)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('glicose_jejum', [/(?:GLICOSE|GLICEMIA)[\s:.\-]*?(\d{2,3})\s*mg/i]);

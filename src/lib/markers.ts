@@ -250,6 +250,10 @@ export const MARKERS: MarkerDef[] = [
     labRange: { M: [0, 1.0], F: [0, 1.0] },
     refRange: { M: [0, 1.0], F: [0, 1.0] }, panel: "Padrão" },
 
+  { id: "tiroglobulina",   name: "Tiroglobulina",   unit: "ng/mL",        category: "Tireoide",
+    labRange: { M: [1.1, 130], F: [1.1, 130] },
+    refRange: { M: [1.1, 130], F: [1.1, 130] }, panel: "Padrão" },
+
   // ── Hormônios ─────────────────────────────────────────────────────────────
   { id: "testosterona_total", name: "Testosterona Total", unit: "ng/dL",  category: "Hormônios",
     labRange: { M: [241, 827], F: [15, 70] },
