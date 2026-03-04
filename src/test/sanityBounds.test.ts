@@ -44,6 +44,34 @@ describe("resolveReference sanity bounds", () => {
       // labMin=0 → operador >= não pode ser validado → rejeitado
       expect(ref.operator).toBe("range");
     });
+
+    // ── Fix 2: operador > com valor muito baixo vs labMin ──
+    it("HDL: '> 20' deve ser rejeitado (labRange M: 40-999, parsedVal < labMin*0.8)", () => {
+      const ref = resolveReference(find("hdl"), "M", "> 20");
+      expect(ref.operator).toBe("range"); // fallback para labRange
+      expect(ref.min).toBe(40);
+    });
+
+    it("Colesterol Total: '> 20' deve ser rejeitado (labMin=0)", () => {
+      const ref = resolveReference(find("colesterol_total"), "M", "> 20");
+      expect(ref.operator).toBe("range");
+      expect(ref.min).toBe(0);
+      expect(ref.max).toBe(200);
+    });
+
+    it("Triglicerídeos: '> 20' deve ser rejeitado (labMin=0)", () => {
+      const ref = resolveReference(find("triglicerides"), "M", "> 20");
+      expect(ref.operator).toBe("range");
+      expect(ref.min).toBe(0);
+      expect(ref.max).toBe(150);
+    });
+
+    it("Colesterol Não-HDL: '> 20' deve ser rejeitado (labMin=0)", () => {
+      const ref = resolveReference(find("colesterol_nao_hdl"), "M", "> 20");
+      expect(ref.operator).toBe("range");
+      expect(ref.min).toBe(0);
+      expect(ref.max).toBe(160);
+    });
   });
 
   // Casos que DEVEM ser aceitos (lab_ref_text válido)
@@ -72,6 +100,12 @@ describe("resolveReference sanity bounds", () => {
       const ref = resolveReference(find("tfg"), "M", "> 60");
       expect(ref.operator).toBe(">");
       expect(ref.min).toBe(60);
+    });
+
+    it("HDL: '> 40' deve ser aceito (labRange M: 40-999)", () => {
+      const ref = resolveReference(find("hdl"), "M", "> 40");
+      expect(ref.operator).toBe(">");
+      expect(ref.min).toBe(40);
     });
   });
 

@@ -756,10 +756,15 @@ export function resolveReference(
         // porque ignora o limite superior — provavelmente lixo da extração
         if (labMax < 9000 && labMin > 0) {
           // Comparar contra labMin — deve ser próximo
-          const ratio = parsedVal > 0 && labMin > 0
-            ? Math.max(parsedVal / labMin, labMin / parsedVal)
-            : Infinity;
-          sane = ratio <= 5;
+          // Rejeitar se parsedVal < 80% do labMin (ex: "> 20" para HDL com labMin=40)
+          if (parsedVal < labMin * 0.8) {
+            sane = false;
+          } else {
+            const ratio = parsedVal > 0 && labMin > 0
+              ? Math.max(parsedVal / labMin, labMin / parsedVal)
+              : Infinity;
+            sane = ratio <= 5;
+          }
         } else if (labMax >= 9000 && labMin > 0) {
           // Marcador do tipo "sem limite superior" (ex: TFG > 60, HDL >= 40)
           const ratio = parsedVal > 0
