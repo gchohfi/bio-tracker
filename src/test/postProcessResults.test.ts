@@ -427,3 +427,29 @@ describe("postProcessResults — cálculos derivados automáticos", () => {
     });
   });
 });
+
+// ─── Sanity fix: PSA Livre/Total ratio→% ─────────────────────────────────────
+describe("Sanity fix — PSA Livre/Total ratio→%", () => {
+  // Replicate the sanity fix from the edge function
+  const psaRelacaoFix = (v: number) => v > 0 && v < 1 ? v * 100 : v;
+
+  it("converte razão decimal 0.28 → 28%", () => {
+    expect(psaRelacaoFix(0.28)).toBe(28);
+  });
+
+  it("converte razão decimal 0.15 → 15%", () => {
+    expect(psaRelacaoFix(0.15)).toBeCloseTo(15);
+  });
+
+  it("não mexe em valor já em % (28)", () => {
+    expect(psaRelacaoFix(28)).toBe(28);
+  });
+
+  it("não mexe em valor 0 (ausente)", () => {
+    expect(psaRelacaoFix(0)).toBe(0);
+  });
+
+  it("não mexe em valor 1 (100% em razão = edge case, mas 1% é implausível)", () => {
+    expect(psaRelacaoFix(1)).toBe(1);
+  });
+});
