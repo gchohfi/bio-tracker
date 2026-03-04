@@ -21,11 +21,19 @@ function parseLabRefRanges(results: any[]): any[] {
     t = t.replace(/\(\s*\d+\s*[-–]\s*\d+\s*h(?:oras?)?\s*\)/gi, '').trim();
     t = t.replace(/\d+\s*[-–]\s*\d+\s*h(?:oras?)?/gi, '').trim();
     t = t.replace(/^(?:horas?\s+d[ao]\s+)?(?:manh[aã]|tarde|noite)\s*:?\s*/gi, '').trim();
-    // Remover padrões de faixa etária
-    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*\d+\s*[-–]\s*\d+\s*anos?\s*:?\s*/gi, '').trim();
-    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*>=?\s*\d+\s*anos?\s*:?\s*/gi, '').trim();
-    t = t.replace(/\d+\s*[-–]\s*\d+\s*anos?\s*:/gi, '').trim();
-    t = t.replace(/>=?\s*\d+\s*anos?\s*:/gi, '').trim();
+    // Remover padrões de faixa etária COM sexo
+    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*\d+\s*[-–]\s*\d+\s*(?:anos?|a)\s*:?\s*/gi, '').trim();
+    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*>=?\s*\d+\s*(?:anos?|a)\s*:?\s*/gi, '').trim();
+    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*<=?\s*\d+\s*(?:anos?|a)\s*:?\s*/gi, '').trim();
+    // Faixa etária sem sexo: "20-59 a:", "30 a 39 anos:", "De 20 a 34 anos:"
+    t = t.replace(/^(?:de\s+)?\d+\s*(?:a|[-–])\s*\d+\s*(?:anos?|a)\s*:/gi, '').trim();
+    // Operadores textuais + idade: "Acima de 12 anos:", "maior que 2 anos:"
+    t = t.replace(/^(?:acima|maior|superior)\s+(?:de|que)\s+\d+\s*(?:anos?|a)(?:\s+e\s+adultos?)?\s*:?\s*/gi, '').trim();
+    t = t.replace(/^(?:abaixo|menor|inferior)\s+(?:de|que)\s+\d+\s*(?:anos?|a)\s*:?\s*/gi, '').trim();
+    // Faixas genéricas
+    t = t.replace(/\d+\s*[-–]\s*\d+\s*(?:anos?|a)\s*:/gi, '').trim();
+    t = t.replace(/>=?\s*\d+\s*(?:anos?|a)\s*:/gi, '').trim();
+    t = t.replace(/<=?\s*\d+\s*(?:anos?|a)\s*:/gi, '').trim();
     // Remover prefixos de fase
     t = t.replace(/^(?:pr[eé]-?p[uú]beres?|p[oó]s-?menopausa|menopausa|adultos?)\s*:?\s*/gi, '').trim();
     // Normalizar operadores em português
@@ -261,10 +269,58 @@ describe("parseLabRefRanges — textos etários e descritivos", () => {
   });
 
   it("'Mulheres 20-49 anos: 15 a 149' → extrai min=15, max=149 (prefixo etário removido)", () => {
-    // O prefixo 'Mulheres 20-49 anos:' é removido pelo regex etário, restando '15 a 149'
     const [r] = parseLabRefRanges([{ marker_id: "ferritina", lab_ref_text: "Mulheres 20-49 anos: 15 a 149" }]);
     expect(r.lab_ref_min).toBe(15);
     expect(r.lab_ref_max).toBe(149);
+  });
+
+  it("'Acima de 12 anos: 0,70 a 1,30' → extrai range 0.70–1.30 (prefixo etário sem sexo)", () => {
+    const [r] = parseLabRefRanges([{ marker_id: "creatinina", lab_ref_text: "Acima de 12 anos: 0,70 a 1,30" }]);
+    expect(r.lab_ref_min).toBeCloseTo(0.70);
+    expect(r.lab_ref_max).toBeCloseTo(1.30);
+  });
+
+  it("'maior que 2 anos: até 40 U/L' → extrai max=40 (prefixo etário 'maior que')", () => {
+    const [r] = parseLabRefRanges([{ marker_id: "tgo_ast", lab_ref_text: "maior que 2 anos: até 40 U/L" }]);
+    // Após remover prefixo, fica "até 40 U/L" → operador "< " com max=40
+    expect(r.lab_ref_max).toBe(40);
+    expect(r.lab_ref_min).toBeUndefined();
+  });
+
+  it("'20-59 a: 0,45 a 4,5 mUI/L' → extrai range 0.45–4.5 (faixa etária abreviada)", () => {
+    const [r] = parseLabRefRanges([{ marker_id: "tsh", lab_ref_text: "20-59 a: 0,45 a 4,5 mUI/L" }]);
+    expect(r.lab_ref_min).toBeCloseTo(0.45);
+    expect(r.lab_ref_max).toBeCloseTo(4.5);
+  });
+
+  it("'De 20 a 34 anos: 160 a 492' → extrai range 160–492 (prefixo 'De X a Y anos')", () => {
+    const [r] = parseLabRefRanges([{ marker_id: "dhea_s", lab_ref_text: "De 20 a 34 anos: 160 a 492" }]);
+    expect(r.lab_ref_min).toBe(160);
+    expect(r.lab_ref_max).toBe(492);
+  });
+
+  it("'30 a 39 anos: 19 a 64 pg/mL' → extrai range 19–64 (faixa etária genérica)", () => {
+    const [r] = parseLabRefRanges([{ marker_id: "pth", lab_ref_text: "30 a 39 anos: 19 a 64 pg/mL" }]);
+    expect(r.lab_ref_min).toBe(19);
+    expect(r.lab_ref_max).toBe(64);
+  });
+
+  it("'Acima de 13 anos: 2,5 a 4,5' → extrai range 2.5–4.5 (Fósforo)", () => {
+    const [r] = parseLabRefRanges([{ marker_id: "fosforo", lab_ref_text: "Acima de 13 anos: 2,5 a 4,5" }]);
+    expect(r.lab_ref_min).toBeCloseTo(2.5);
+    expect(r.lab_ref_max).toBeCloseTo(4.5);
+  });
+
+  it("'Acima de 20 anos: 1,6 a 2,6' → extrai range 1.6–2.6 (Magnésio)", () => {
+    const [r] = parseLabRefRanges([{ marker_id: "magnesio", lab_ref_text: "Acima de 20 anos: 1,6 a 2,6" }]);
+    expect(r.lab_ref_min).toBeCloseTo(1.6);
+    expect(r.lab_ref_max).toBeCloseTo(2.6);
+  });
+
+  it("'maior que 1 ano: até 41 U/L' → extrai max=41 (TGP)", () => {
+    const [r] = parseLabRefRanges([{ marker_id: "tgp_alt", lab_ref_text: "maior que 1 ano: até 41 U/L" }]);
+    expect(r.lab_ref_max).toBe(41);
+    expect(r.lab_ref_min).toBeUndefined();
   });
 });
 
