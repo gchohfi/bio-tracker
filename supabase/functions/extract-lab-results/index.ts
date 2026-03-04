@@ -2625,9 +2625,19 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     const fallbackAdded = validResults.filter((r: any) => !beforeFallbackIds.has(r.marker_id));
     if (fallbackAdded.length > 0) {
       console.log(`Regex fallback added ${fallbackAdded.length} markers: ${fallbackAdded.map((r: any) => r.marker_id).join(', ')}`);
-      // Re-run validation only on fallback markers, then merge back
+      // Validate fallback markers (anti-hallucination, sanity checks)
       const fallbackValidated = validateAndFixValues(fallbackAdded, patientSex);
-      // Re-run derived calculations with full set (e.g. bilirrubina indireta, HOMA-IR)
+      const fallbackValidatedIds = new Set(fallbackValidated.map((r: any) => r.marker_id));
+      // Remove unvalidated fallback markers, keep only those that passed validation
+      validResults = validResults.filter((r: any) => beforeFallbackIds.has(r.marker_id) || fallbackValidatedIds.has(r.marker_id));
+      // Replace fallback entries with their validated versions
+      validResults = validResults.map((r: any) => {
+        if (!beforeFallbackIds.has(r.marker_id)) {
+          return fallbackValidated.find((fv: any) => fv.marker_id === r.marker_id) || r;
+        }
+        return r;
+      });
+      // Re-run derived calculations with full set
       validResults = postProcessResults(validResults);
     }
     // Parse lab_ref_text into numeric min/max fields
