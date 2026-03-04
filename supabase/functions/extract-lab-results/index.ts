@@ -57,6 +57,7 @@ const MARKER_LIST = [
   { id: "anti_tpo", name: "Anti-TPO", unit: "UI/mL" },
   { id: "anti_tg", name: "Anti-TG", unit: "UI/mL" },
   { id: "trab", name: "TRAb", unit: "UI/L" },
+  { id: "tiroglobulina", name: "Tiroglobulina", unit: "ng/mL" },
   { id: "testosterona_total", name: "Testosterona Total", unit: "ng/dL" },
   { id: "testosterona_livre", name: "Testosterona Livre", unit: "ng/dL" },
   { id: "testosterona_biodisponivel", name: "Testosterona Biodisponível", unit: "ng/dL" },
@@ -357,6 +358,7 @@ TIREOIDE:
 - "ANTICORPO ANTI TPO" / "Anti-TPO" / "ANTI TPO" / "ANTICORPOS ANTI-PEROXIDASE TIREOIDIANA" / "ANTI-PEROXIDASE" / "TPO-Ab" / "ATPO" / "ANTICORPOS ANTI-PEROXIDASE TIROIDIANA" / "ANTI-PEROXIDASE TIROIDIANA" → anti_tpo
 - "ANTICORPOS ANTI TIREOGLOBULINA" / "Anti-TG" / "ANTICORPOS ANTI-TIREOGLOBULINA" / "ATG" / "TgAb" / "ANTI TIREOGLOBULINA" / "ANTITIROGLOBULINA" / "ANTICORPOS ANTITIROGLOBULINA" / "ANTI-TIROGLOBULINA" → anti_tg
 - "TRAb" / "TRAB" / "Anticorpo Anti-Receptor de TSH" / "Anti-receptor de TSH" / "Anti receptor TSH" / "Anticorpos Anti Receptores de TSH" → trab
+- "TIREOGLOBULINA" / "Tireoglobulina" / "Tiroglobulina" / "TG" (quando no contexto tireoidiano, NÃO confundir com Anti-TG) → tiroglobulina
 
 HORMÔNIOS:
 - "Testosterona Total" / "TESTOSTERONA, SORO" / "TESTOSTERONA SÉRICA" → testosterona_total
@@ -1857,6 +1859,9 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
     /(?:Anti[- ]?TG|ANTICORPOS?\s+ANTI[- ]?TIREOGLOBULINA|ANTICORPOS?\s+ANTITIROGLOBULINA|ANTITIROGLOBULINA|ATG|TgAb)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i,
   ]);
   tryGeneric('trab', [/(?:TRAb|TRAB)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i]);
+  tryGeneric('tiroglobulina', [
+    /(?:TIREOGLOBULINA|TIROGLOBULINA)(?!\s*(?:ANTI|anti))[\s:.\-]*?(\d+[.,]?\d*)/i,
+  ]);
   tryGeneric('hba1c', [/(?:HEMOGLOBINA\s+GLICADA|HbA1c)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('glicemia_media_estimada', [/(?:GLICEMIA\s+M[EÉ]DIA\s+ESTIMADA|eAG|Estimated\s+Average\s+Glucose)[\s:.\-]*?(\d+[.,]?\d*)/i]);
   tryGeneric('glicose_jejum', [/(?:GLICOSE|GLICEMIA)[\s:.\-]*?(\d{2,3})\s*mg/i]);
