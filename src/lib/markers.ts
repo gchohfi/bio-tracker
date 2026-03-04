@@ -741,17 +741,28 @@ export function resolveReference(
     }
     const labParsed = parseLabReference(labRefText, sex);
     if (labParsed.min !== null || labParsed.max !== null) {
+      // Marcadores qualitativos (labRange [0,0] placeholder): aceitar referência do lab diretamente
+      if (marker.qualitative) {
+        return {
+          min: labParsed.min,
+          max: labParsed.max,
+          operator: labParsed.operator,
+          source: 'lab',
+        };
+      }
+
       // Validação de sanity bounds: comparar com labRange esperado
       const [labMin, labMax] = marker.labRange[sex];
       const op = labParsed.operator;
       let sane = false;
+      const SANITY_THRESHOLD = 100000;
 
       if (op === '>' || op === '>=') {
         // Operador "maior que": comparar bound contra labRange min
         const parsedVal = labParsed.min ?? 0;
-        // Se o labRange tem um max finito (< 9000), um operador >= é suspeito
+        // Se o labRange tem um max finito (< threshold), um operador >= é suspeito
         // porque ignora o limite superior — provavelmente lixo da extração
-        if (labMax < 9000 && labMin > 0) {
+        if (labMax < SANITY_THRESHOLD && labMin > 0) {
           // Comparar contra labMin — deve ser próximo
           // Rejeitar se parsedVal < 80% do labMin (ex: "> 20" para HDL com labMin=40)
           if (parsedVal < labMin * 0.8) {
@@ -762,7 +773,7 @@ export function resolveReference(
               : Infinity;
             sane = ratio <= 5;
           }
-        } else if (labMax >= 9000 && labMin > 0) {
+        } else if (labMax >= SANITY_THRESHOLD && labMin > 0) {
           // Marcador do tipo "sem limite superior" (ex: TFG > 60, HDL >= 40)
           const ratio = parsedVal > 0
             ? Math.max(parsedVal / labMin, labMin / parsedVal)
@@ -773,13 +784,13 @@ export function resolveReference(
       } else if (op === '<' || op === '<=') {
         // Operador "menor que": comparar bound contra labRange max
         const parsedVal = labParsed.max ?? 0;
-        if (labMax > 0 && labMax < 9000) {
+        if (labMax > 0 && labMax < SANITY_THRESHOLD) {
           const ratio = parsedVal > 0
             ? Math.max(parsedVal / labMax, labMax / parsedVal)
             : Infinity;
           sane = ratio <= 5;
         }
-        // labMax >= 9000 ou 0 → impossível validar, rejeitar
+        // labMax >= threshold ou 0 → impossível validar, rejeitar
       } else {
         // Range: comparar midpoints com ratio 5x
         const parsedMin = labParsed.min ?? labParsed.max ?? 0;
@@ -787,7 +798,7 @@ export function resolveReference(
         const expectedMid = (labMin + labMax) / 2;
         const parsedMid = (parsedMin + parsedMax) / 2;
         // Para ranges com labMax sentinel, comparar só os mins
-        if (labMax >= 9000) {
+        if (labMax >= SANITY_THRESHOLD) {
           const ratio = parsedMin > 0 && labMin > 0
             ? Math.max(parsedMin / labMin, labMin / parsedMin)
             : Infinity;
