@@ -1,43 +1,98 @@
 
 
-## Diagnóstico: Classificação Errada de Cores na Tabela de Evolução
+# Correção de Conversões de Unidade: Estradiol, Progesterona e DHT
 
-### Causa Raiz
+## Problemas Identificados
 
-Analisei os dados reais do banco e encontrei o problema principal: o `lab_ref_text` extraído dos PDFs do Fleury contém referências erradas que estão sendo aceitas pelo filtro de segurança (sanity bounds) porque o limite atual é muito frouxo (20x). Exemplos concretos do Dener:
+Os 3 erros têm a mesma causa raiz: **conflito entre conversão da IA e sanity checks no pós-processamento**.
 
-| Marcador | lab_ref_text (errado) | Valor | labRange correto | Status atual | Status correto |
-|---|---|---|---|---|---|
-| Creatinina | `> 12` | 1.24 | 0.7–1.3 | **LOW** (vermelho) | NORMAL (verde) |
-| Fósforo | `> 13` | 3.8 | 2.5–4.5 | **LOW** (vermelho) | NORMAL (verde) |
-| Magnésio | `> 20` | 2.2 | 1.6–2.6 | **LOW** (vermelho) | NORMAL (verde) |
-| T4 Livre | `> 20` | 1.4 | 0.7–1.8 | **LOW** (vermelho) | NORMAL (verde) |
-| TSH | `20 a 59` (faixa etária!) | 4.0 | 0.27–4.20 | **LOW** (vermelho) | NORMAL (verde) |
-| DHEA-S | `35 a 44` (faixa etária!) | 96 | 80–560 | **HIGH** (vermelho) | NORMAL (verde) |
-| LDL | `>= 20` | 148 | 0–130 | **NORMAL** (verde) | HIGH (vermelho) |
-| Col. Não-HDL | `>= 20` | 170 | 0–160 | **NORMAL** (verde) | HIGH (vermelho) |
+### Erro 1 — Estradiol (4.4 ng/dL → 440 pg/mL, deveria ser 44)
+- A IA converte corretamente: 4.4 × 10 = 44 pg/mL
+- Mas o sanity check (linha 702) vê `44 < 50` e aplica `× 10` novamente → 440
+- **Bug**: dupla conversão no sanity fix
 
-O Fleury inclui textos como `>= 20` para HDL (que é correto para HDL) mas a extração por IA acaba aplicando esse mesmo texto para LDL e Colesterol, onde é completamente errado.
+### Erro 2 — Progesterona (19 ng/dL → 19 ng/mL, deveria ser 0.19)  
+- A IA não converteu (manteve 19)
+- O sanity check (linha 701) só corrige se `> 50`, então 19 passa direto
+- **Bug**: threshold do sanity muito alto + IA falhou em converter
 
-### Solução
+### Erro 3 — DHT (13 ng/dL → 13 pg/mL, deveria ser 130)
+- A IA não converteu (manteve 13)
+- O sanity check para DHT (linha 711) não tem função `fix`
+- **Bug**: sem fallback de conversão
 
-Reescrever a validação de sanidade (sanity bounds) no `resolveReference` em `src/lib/markers.ts`, substituindo a comparação simples de midpoints por uma validação inteligente por tipo de operador:
+## Correções Propostas
 
-**Para referências com operador (`>`, `>=`, `<`, `<=`):**
-- Comparar o bound do operador contra o bound correspondente do labRange (min para `>`, max para `<`)
-- Se o labRange correspondente é 0 ou sentinel (>= 9000), rejeitar a referência do laudo (impossível validar)
-- Ratio máximo: 5x
+### 1. Estradiol — remover branch que causa dupla conversão
+```typescript
+// ANTES (bugado):
+estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 100 : v < 50 ? v * 10 : v > 5000 ? v / 10 : v }
 
-**Para referências de range (`X a Y`):**
-- Comparar midpoints como hoje, mas com ratio reduzido de 20x para 5x
+// DEPOIS:
+estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 10 : v > 5000 ? v / 10 : v }
+```
+- `v < 5` (valor em ng/dL não convertido, ex: 4.4) → `× 10` = 44 ✓
+- Valores 5–5000 já estão em pg/mL, não mexer
 
-**Validação adicional para operadores `>=`:**
-- Se o labRange tem um max finito (< 9000) e a ref é `>= X`, a ref é suspeita porque ignora o limite superior. Rejeitar.
+### 2. Progesterona — adicionar detecção de ng/dL não convertido
+```typescript
+// ANTES:
+progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v }
 
-### Arquivos a Alterar
-- `src/lib/markers.ts` — função `resolveReference` (linhas ~723-766): reescrever validação de sanity bounds
+// DEPOIS (sex-aware):
+progesterona: { min: 0, max: 50, fix: (v) => {
+  // Labs brasileiros reportam ng/dL (ex: 19, 89). Nosso target é ng/mL.
+  // Fase folicular: 0.1-1.5 ng/mL = 10-150 ng/dL
+  // Fase lútea: 5-25 ng/mL = 500-2500 ng/dL  
+  // Se > 5 para mulher ou > 1.5 para homem, provavelmente ng/dL não convertido
+  if (v > 5) return v / 100;  // ng/dL → ng/mL
+  return v;
+}}
+```
+- 19 ng/dL → `19 > 5` → `÷ 100` = 0.19 ng/mL ✓
+- Valor já convertido (0.19 ng/mL) → não mexe ✓
 
-### Sobre Regressões
+### 3. DHT — adicionar fix para conversão ng/dL → pg/mL
+```typescript
+// ANTES:
+dihidrotestosterona: { min: 0, max: 2000 }
 
-O motivo de "quando corrijo uma coisa, outra desconfigurar" é exatamente porque a validação de segurança estava frouxa (20x). Ao apertar para 5x com lógica específica por operador, o sistema passará a descartar referências absurdas da extração e usar o labRange correto como fallback, evitando classificações erradas.
+// DEPOIS:
+dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 5 ? v * 10 : v }
+```
+- 13 ng/dL → `13 ≥ 5` → passa (já no range se AI converteu) ... não, 13 está no range.
+
+Melhor abordagem: checar contra referência do lab. Se `lab_ref_max` está em ng/dL (ex: 46), o valor está em ng/dL e precisa `× 10`.
+
+Na verdade, a solução mais robusta é **adicionar conversão determinística no pós-processamento** para estes 3 marcadores, usando o `lab_ref_text` como sinal da unidade fonte:
+
+### 4. Pós-processamento determinístico (abordagem principal)
+Adicionar uma etapa após a extração que detecta a unidade fonte pelo `lab_ref_text` e converte deterministicamente:
+
+```typescript
+// No postProcessResults ou equivalente:
+const UNIT_CONVERSIONS = {
+  estradiol:    { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10,   detectRef: (max) => max < 100 },
+  progesterona: { sourceUnit: 'ng/dL', targetUnit: 'ng/mL', factor: 0.01, detectRef: (max) => max > 50 },
+  dihidrotestosterona: { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10, detectRef: (max) => max < 100 },
+};
+```
+Se o `lab_ref_max` indica unidade ng/dL (ex: estradiol ref max 23.3, progesterona ref max 89, DHT ref max 46), aplicar conversão e também converter as referências.
+
+### 5. Corrigir dados existentes no banco
+Migration SQL para corrigir os 3 valores da paciente atual.
+
+## Arquivos a alterar
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `supabase/functions/extract-lab-results/index.ts` | Corrigir sanity fixes + adicionar pós-processamento determinístico |
+| Migration SQL | Corrigir os 3 valores errados no banco |
+
+## Resumo
+- Estradiol: corrigir sanity para não duplicar conversão
+- Progesterona: baixar threshold do sanity
+- DHT: adicionar fix de conversão
+- Adicionar detecção determinística por lab_ref como camada extra de segurança
+- Corrigir dados existentes via migration
 

@@ -738,14 +738,59 @@ export function resolveReference(
     if (labParsed.min !== null || labParsed.max !== null) {
       // Validação de sanity bounds: comparar com labRange esperado
       const [labMin, labMax] = marker.labRange[sex];
-      const parsedMin = labParsed.min ?? labParsed.max ?? 0;
-      const parsedMax = labParsed.max ?? labParsed.min ?? 0;
-      const expectedMid = (labMin + labMax) / 2;
-      const parsedMid = (parsedMin + parsedMax) / 2;
-      const ratio = expectedMid > 0 && parsedMid > 0
-        ? Math.max(expectedMid / parsedMid, parsedMid / expectedMid)
-        : 1;
-      if (ratio <= 20) {
+      const op = labParsed.operator;
+      let sane = false;
+
+      if (op === '>' || op === '>=') {
+        // Operador "maior que": comparar bound contra labRange min
+        const parsedVal = labParsed.min ?? 0;
+        // Se o labRange tem um max finito (< 9000), um operador >= é suspeito
+        // porque ignora o limite superior — provavelmente lixo da extração
+        if (labMax < 9000 && labMin > 0) {
+          // Comparar contra labMin — deve ser próximo
+          const ratio = parsedVal > 0 && labMin > 0
+            ? Math.max(parsedVal / labMin, labMin / parsedVal)
+            : Infinity;
+          sane = ratio <= 5;
+        } else if (labMax >= 9000 && labMin > 0) {
+          // Marcador do tipo "sem limite superior" (ex: TFG > 60, HDL >= 40)
+          const ratio = parsedVal > 0
+            ? Math.max(parsedVal / labMin, labMin / parsedVal)
+            : Infinity;
+          sane = ratio <= 5;
+        }
+        // labMin === 0 → impossível validar operador >, rejeitar
+      } else if (op === '<' || op === '<=') {
+        // Operador "menor que": comparar bound contra labRange max
+        const parsedVal = labParsed.max ?? 0;
+        if (labMax > 0 && labMax < 9000) {
+          const ratio = parsedVal > 0
+            ? Math.max(parsedVal / labMax, labMax / parsedVal)
+            : Infinity;
+          sane = ratio <= 5;
+        }
+        // labMax >= 9000 ou 0 → impossível validar, rejeitar
+      } else {
+        // Range: comparar midpoints com ratio 5x
+        const parsedMin = labParsed.min ?? labParsed.max ?? 0;
+        const parsedMax = labParsed.max ?? labParsed.min ?? 0;
+        const expectedMid = (labMin + labMax) / 2;
+        const parsedMid = (parsedMin + parsedMax) / 2;
+        // Para ranges com labMax sentinel, comparar só os mins
+        if (labMax >= 9000) {
+          const ratio = parsedMin > 0 && labMin > 0
+            ? Math.max(parsedMin / labMin, labMin / parsedMin)
+            : Infinity;
+          sane = ratio <= 5;
+        } else {
+          const ratio = expectedMid > 0 && parsedMid > 0
+            ? Math.max(expectedMid / parsedMid, parsedMid / expectedMid)
+            : Infinity;
+          sane = ratio <= 5;
+        }
+      }
+
+      if (sane) {
         return {
           min: labParsed.min,
           max: labParsed.max,
@@ -755,7 +800,7 @@ export function resolveReference(
       }
       console.warn(
         `[resolveReference] Descartando lab_ref_text "${labRefText}" para ${marker.id}: ` +
-        `ratio=${ratio.toFixed(1)}x vs labRange [${labMin}, ${labMax}]. Usando labRange padrão.`
+        `sanity check falhou vs labRange [${labMin}, ${labMax}]. Usando labRange padrão.`
       );
     }
   }
