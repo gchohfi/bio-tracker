@@ -455,7 +455,7 @@ export function generatePatientReport(
         [sparkColIdx]: { cellWidth: 26 },
       },
       didParseCell(data) {
-        // Color code result values
+        // Color code result values — use per-session reference for accurate classification
         if (data.section === "body" && data.column.index >= dataColStart && data.column.index < trendColIdx) {
           const rawStr = String(data.cell.raw || "");
           const operatorParsed = parseOperatorValue(rawStr);
@@ -463,8 +463,13 @@ export function generatePatientReport(
             if (!isNaN(val)) {
               const marker = markersWithData[data.row.index];
               if (marker) {
-                const labRef = labRefByMarker[marker.id];
-                const ref = resolveReference(marker, sex, labRef?.text);
+                // Determine which session this column corresponds to
+                const sessionIndex = data.column.index - dataColStart;
+                const sessionId = sorted[sessionIndex]?.id;
+                // Use per-session lab_ref_text if available, otherwise fall back to most recent
+                const labRefText = (sessionId && labRefBySession[marker.id]?.[sessionId])
+                  || labRefByMarker[marker.id]?.text;
+                const ref = resolveReference(marker, sex, labRefText);
                 const status = getMarkerStatusFromRef(val, ref);
                 data.cell.styles.fontStyle = "bold";
                 if (status === "normal") {
