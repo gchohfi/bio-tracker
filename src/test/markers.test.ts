@@ -274,3 +274,91 @@ describe("Fluxo completo TFG (operador >)", () => {
     expect(status).toBe("low");
   });
 });
+
+// ─── Clinical Edge Cases ─────────────────────────────────────────────────────
+describe("clinical edge cases — extreme values", () => {
+  const find = (id: string) => MARKERS.find((m) => m.id === id)!;
+
+  // TSH supression (hyperthyroidism)
+  it("TSH 0.01 com ref '0,27 a 4,2' deve ser low", () => {
+    const ref = resolveReference(find("tsh"), "F", "0,27 a 4,2");
+    expect(getMarkerStatusFromRef(0.01, ref)).toBe("low");
+  });
+
+  it("TSH 0.001 (supressão profunda) deve ser low", () => {
+    const ref = resolveReference(find("tsh"), "F", "0,27 a 4,2");
+    expect(getMarkerStatusFromRef(0.001, ref)).toBe("low");
+  });
+
+  // TSH very elevated (hypothyroidism)
+  it("TSH 80.0 (hipotireoidismo grave) deve ser high", () => {
+    const ref = resolveReference(find("tsh"), "F", "0,27 a 4,2");
+    expect(getMarkerStatusFromRef(80.0, ref)).toBe("high");
+  });
+
+  it("TSH 150.0 (extremo) deve ser high", () => {
+    const ref = resolveReference(find("tsh"), "F", "0,27 a 4,2");
+    expect(getMarkerStatusFromRef(150.0, ref)).toBe("high");
+  });
+
+  // Vitamina D toxic levels
+  it("Vitamina D 150 ng/mL (tóxica) com ref '> 20' deve ser normal (acima do mínimo)", () => {
+    const ref = resolveReference(find("vitamina_d"), "F", "Acima de 20");
+    expect(getMarkerStatusFromRef(150, ref)).toBe("normal");
+  });
+
+  it("Vitamina D 8 ng/mL (deficiência grave) com ref '> 20' deve ser low", () => {
+    const ref = resolveReference(find("vitamina_d"), "F", "Acima de 20");
+    expect(getMarkerStatusFromRef(8, ref)).toBe("low");
+  });
+
+  // TFG critical low (kidney failure)
+  it("TFG 15 (insuficiência renal grave) deve ser low", () => {
+    const ref = resolveReference(find("tfg"), "F", "> 60");
+    expect(getMarkerStatusFromRef(15, ref)).toBe("low");
+  });
+
+  it("TFG 0 (anúria) deve ser low", () => {
+    const ref = resolveReference(find("tfg"), "F", "> 60");
+    expect(getMarkerStatusFromRef(0, ref)).toBe("low");
+  });
+
+  // Anti-TPO very elevated
+  it("Anti-TPO 1000 (Hashimoto ativo) com ref '< 34' deve ser high", () => {
+    const ref = resolveReference(find("anti_tpo"), "F", "Inferior a 34");
+    expect(getMarkerStatusFromRef(1000, ref)).toBe("high");
+  });
+
+  // Hemoglobina critical
+  it("Hemoglobina 4.0 g/dL (anemia grave) deve ser low", () => {
+    const ref = resolveReference(find("hemoglobina"), "F", "11,7 a 14,9");
+    expect(getMarkerStatusFromRef(4.0, ref)).toBe("low");
+  });
+
+  it("Hemoglobina 20.0 g/dL (policitemia) deve ser high", () => {
+    const ref = resolveReference(find("hemoglobina"), "F", "11,7 a 14,9");
+    expect(getMarkerStatusFromRef(20.0, ref)).toBe("high");
+  });
+
+  // Glicose extreme
+  it("Glicose 30 mg/dL (hipoglicemia severa) deve ser low", () => {
+    const ref = resolveReference(find("glicose_jejum"), "M", "70 a 99");
+    expect(getMarkerStatusFromRef(30, ref)).toBe("low");
+  });
+
+  it("Glicose 500 mg/dL (emergência diabética) deve ser high", () => {
+    const ref = resolveReference(find("glicose_jejum"), "M", "70 a 99");
+    expect(getMarkerStatusFromRef(500, ref)).toBe("high");
+  });
+
+  // Potássio extremes (cardiac risk)
+  it("Potássio 2.5 mEq/L (hipocalemia severa) deve ser low", () => {
+    const ref = resolveReference(find("potassio"), "M", "3,5 a 5,1");
+    expect(getMarkerStatusFromRef(2.5, ref)).toBe("low");
+  });
+
+  it("Potássio 7.0 mEq/L (hipercalemia - risco cardíaco) deve ser high", () => {
+    const ref = resolveReference(find("potassio"), "M", "3,5 a 5,1");
+    expect(getMarkerStatusFromRef(7.0, ref)).toBe("high");
+  });
+});
