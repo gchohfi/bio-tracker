@@ -803,7 +803,7 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     // PSA
     psa_total:             { min: 0, max: 100 },
     psa_livre:             { min: 0, max: 20 },
-    psa_relacao:           { min: 0, max: 100 },
+    psa_relacao:           { min: 0, max: 100, fix: (v) => v > 0 && v < 1 ? Math.round(v * 10000) / 100 : v, label: 'psa_relacao ratio→%' },
     // Glicemia Média Estimada
     glicemia_media_estimada: { min: 50, max: 400 },
     // Urina quantitativos
