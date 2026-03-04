@@ -1407,11 +1407,18 @@ function parseLabRefRanges(results: any[]): any[] {
     t = t.replace(/\d+\s*[-–]\s*\d+\s*h(?:oras?)?/gi, '').trim();
     t = t.replace(/^(?:horas?\s+d[ao]\s+)?(?:manh[aã]|tarde|noite|vesper[ae])\s*:?\s*/gi, '').trim();
     // Faixa etária por sexo
-    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*\d+\s*[-–]\s*\d+\s*anos?\s*:?\s*/gi, '').trim();
-    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*>=?\s*\d+\s*anos?\s*:?\s*/gi, '').trim();
-    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*<=?\s*\d+\s*anos?\s*:?\s*/gi, '').trim();
-    t = t.replace(/\d+\s*[-–]\s*\d+\s*anos?\s*:/gi, '').trim();
-    t = t.replace(/>=?\s*\d+\s*anos?\s*:/gi, '').trim();
+    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*\d+\s*[-–]\s*\d+\s*(?:anos?|a)\s*:?\s*/gi, '').trim();
+    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*>=?\s*\d+\s*(?:anos?|a)\s*:?\s*/gi, '').trim();
+    t = t.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*<=?\s*\d+\s*(?:anos?|a)\s*:?\s*/gi, '').trim();
+    // Faixa etária sem sexo: "20-59 a:", "30 a 39 anos:", "De 20 a 34 anos:"
+    t = t.replace(/^(?:de\s+)?\d+\s*(?:a|[-–])\s*\d+\s*(?:anos?|a)\s*:/gi, '').trim();
+    // Operadores textuais + idade: "Acima de 12 anos:", "maior que 2 anos:"
+    t = t.replace(/^(?:acima|maior|superior)\s+(?:de|que)\s+\d+\s*(?:anos?|a)(?:\s+e\s+adultos?)?\s*:?\s*/gi, '').trim();
+    t = t.replace(/^(?:abaixo|menor|inferior)\s+(?:de|que)\s+\d+\s*(?:anos?|a)\s*:?\s*/gi, '').trim();
+    // Faixas genéricas
+    t = t.replace(/\d+\s*[-–]\s*\d+\s*(?:anos?|a)\s*:/gi, '').trim();
+    t = t.replace(/>=?\s*\d+\s*(?:anos?|a)\s*:/gi, '').trim();
+    t = t.replace(/<=?\s*\d+\s*(?:anos?|a)\s*:/gi, '').trim();
     // Fases de vida
     t = t.replace(/^(?:pr[eé]-?p[uú]beres?|p[oó]s-?menopausa|menopausa|adultos?)\s*:?\s*/gi, '').trim();
 

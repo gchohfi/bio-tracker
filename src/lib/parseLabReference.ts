@@ -170,11 +170,19 @@ export function parseLabReference(text: string, sex?: 'M' | 'F'): ParsedReferenc
   input = input.replace(/^(?:horas?\s+d[ao]\s+)?(?:manh[aã]|tarde|noite|vesper[ae])\s*:?\s*/gi, '').trim();
   // 3.5c. Remover padrões de faixa etária: "Homens 20-49 anos:", "Mulheres >= 50 anos:", "20-49 anos:"
   // Isso evita que "Homens 20-49 anos: 5,7 a 17,83" seja parseado como range 20-49
-  input = input.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*\d+\s*[-–]\s*\d+\s*anos?\s*:?\s*/gi, '').trim();
-  input = input.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*>=?\s*\d+\s*anos?\s*:?\s*/gi, '').trim();
-  input = input.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*<=?\s*\d+\s*anos?\s*:?\s*/gi, '').trim();
-  input = input.replace(/\d+\s*[-–]\s*\d+\s*anos?\s*:/gi, '').trim();
-  input = input.replace(/>=?\s*\d+\s*anos?\s*:/gi, '').trim();
+  // Com prefixo de sexo
+  input = input.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*\d+\s*[-–]\s*\d+\s*(?:anos?|a)\s*:?\s*/gi, '').trim();
+  input = input.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*>=?\s*\d+\s*(?:anos?|a)\s*:?\s*/gi, '').trim();
+  input = input.replace(/(?:homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\s*<=?\s*\d+\s*(?:anos?|a)\s*:?\s*/gi, '').trim();
+  // Sem prefixo de sexo — age ranges: "20-59 a:", "30 a 39 anos:", "De 20 a 34 anos:"
+  input = input.replace(/^(?:de\s+)?\d+\s*(?:a|[-–])\s*\d+\s*(?:anos?|a)\s*:/gi, '').trim();
+  // Operadores textuais + idade: "Acima de 12 anos:", "maior que 2 anos:", "Abaixo de 5 anos:"
+  input = input.replace(/^(?:acima|maior|superior)\s+(?:de|que)\s+\d+\s*(?:anos?|a)(?:\s+e\s+adultos?)?\s*:?\s*/gi, '').trim();
+  input = input.replace(/^(?:abaixo|menor|inferior)\s+(?:de|que)\s+\d+\s*(?:anos?|a)\s*:?\s*/gi, '').trim();
+  // Faixas genéricas: "20-49 anos:", ">= 50 anos:"
+  input = input.replace(/\d+\s*[-–]\s*\d+\s*(?:anos?|a)\s*:/gi, '').trim();
+  input = input.replace(/>=?\s*\d+\s*(?:anos?|a)\s*:/gi, '').trim();
+  input = input.replace(/<=?\s*\d+\s*(?:anos?|a)\s*:/gi, '').trim();
   // 3.5d. Remover prefixos de sexo+idade restantes (ex: "Pré-púberes:", "Pós-menopausa:")
   input = input.replace(/^(?:pr[eé]-?p[uú]beres?|p[oó]s-?menopausa|menopausa|adultos?)\s*:?\s*/gi, '').trim();
 
