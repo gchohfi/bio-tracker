@@ -1077,6 +1077,40 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     // Não fazer nada — manter como está
   }
 
+  // === DEDUP: redirecionar marcadores qualitativos de urina que receberam valores quantitativos ===
+  // Gemini às vezes coloca "1.000/mL" no urina_leucocitos (qualitativo) ao invés de urina_leucocitos_quant.
+  // Mesma situação para urina_hemacias vs urina_hemacias_quant.
+  const QUALITATIVE_TO_QUANT_MAP: Record<string, string> = {
+    'urina_leucocitos': 'urina_leucocitos_quant',
+    'urina_hemacias': 'urina_hemacias_quant',
+  };
+
+  for (const r of results) {
+    const quantId = QUALITATIVE_TO_QUANT_MAP[r.marker_id];
+    if (!quantId) continue;
+
+    // Detect quantitative value in qualitative marker: text_value contains /mL or numeric value > 50
+    const hasMLUnit = typeof r.text_value === 'string' && /\/mL/i.test(r.text_value);
+    const hasHighNumeric = typeof r.value === 'number' && r.value > 50;
+
+    if (hasMLUnit || hasHighNumeric) {
+      // Check if the quantitative marker already exists
+      const quantExists = results.some((q: any) => q.marker_id === quantId && !q._remove);
+      if (quantExists) {
+        // Quantitative version already present — just remove the qualitative duplicate
+        console.log(`DEDUP: removed ${r.marker_id} (quantitative data "${r.text_value || r.value}"; ${quantId} already exists)`);
+        r._remove = true;
+      } else {
+        // Redirect: convert qualitative to quantitative
+        const numVal = hasHighNumeric ? r.value : parseFloat(String(r.text_value).replace(/[.\s]/g, '').replace(',', '.').replace(/\/mL/i, ''));
+        console.log(`DEDUP: redirected ${r.marker_id} → ${quantId} (value: ${numVal})`);
+        r.marker_id = quantId;
+        r.value = isNaN(numVal) ? r.value : numVal;
+        delete r.text_value;
+      }
+    }
+  }
+
    return results.filter((r: any) => !r._remove);
 }
 
