@@ -823,8 +823,17 @@ export default function PatientDetail() {
       ? "\n\nCUSTOM ALIASES (user-defined):\n" + customAliases.map(a => `${a.alias} → ${a.markerId}`).join("\n")
       : "";
 
+    // Calculate patient age for age-specific reference range selection
+    let patientAge: number | undefined;
+    if (patient?.birth_date) {
+      const today = new Date();
+      const birth = new Date(patient.birth_date);
+      patientAge = today.getFullYear() - birth.getFullYear() -
+        (today < new Date(today.getFullYear(), birth.getMonth(), birth.getDate()) ? 1 : 0);
+    }
+
     const { data, error } = await supabase.functions.invoke("extract-lab-results", {
-      body: { pdfText: cleanedText + aliasHint, patientSex: patient?.sex },
+      body: { pdfText: cleanedText + aliasHint, patientSex: patient?.sex, patientAge },
     });
 
     if (error) throw error;
