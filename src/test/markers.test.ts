@@ -144,6 +144,15 @@ describe("getMarkerStatusFromRef", () => {
     it("classifica como low quando valor < limite (> 60 com valor 45)", () => {
       expect(getMarkerStatusFromRef(45, { min: 60, max: null, operator: ">" })).toBe("low");
     });
+
+    // ── Boundary: floating-point near-limit values ──
+    it("> 60: valor 59.999999 deve ser low (TFG float boundary)", () => {
+      expect(getMarkerStatusFromRef(59.999999, { min: 60, max: null, operator: ">" })).toBe("low");
+    });
+
+    it("> 60: valor 60.000001 deve ser normal (TFG float boundary)", () => {
+      expect(getMarkerStatusFromRef(60.000001, { min: 60, max: null, operator: ">" })).toBe("normal");
+    });
   });
 
   // Operador >=
