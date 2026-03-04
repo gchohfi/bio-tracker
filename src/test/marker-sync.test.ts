@@ -10,6 +10,10 @@ const __dirname = dirname(__filename);
 describe("Marker ID synchronization", () => {
   const frontendIds = new Set(MARKERS.map((m) => m.id));
 
+  // IDs that exist only in the edge function for extraction purposes
+  // (e.g., percentage differentials used to derive absolute counts)
+  const EXTRACTION_ONLY_IDS = new Set(["neutrofilos", "linfocitos"]);
+
   // Parse MARKER_LIST IDs from edge function source
   const edgeFnPath = resolve(__dirname, "../../supabase/functions/extract-lab-results/index.ts");
   const edgeFnSource = readFileSync(edgeFnPath, "utf-8");
@@ -30,12 +34,12 @@ describe("Marker ID synchronization", () => {
     expect(missingInEdge, `Frontend markers missing in edge function: ${missingInEdge.join(", ")}`).toEqual([]);
   });
 
-  it("frontend should have all edge function marker IDs", () => {
-    const missingInFrontend = [...edgeIds].filter((id) => !frontendIds.has(id));
+  it("frontend should have all edge function marker IDs (excluding extraction-only)", () => {
+    const missingInFrontend = [...edgeIds].filter((id) => !frontendIds.has(id) && !EXTRACTION_ONLY_IDS.has(id));
     expect(missingInFrontend, `Edge function markers missing in frontend: ${missingInFrontend.join(", ")}`).toEqual([]);
   });
 
-  it("should have the same total count", () => {
-    expect(frontendIds.size).toBe(edgeIds.size);
+  it("should have the same total count (excluding extraction-only)", () => {
+    expect(frontendIds.size).toBe(edgeIds.size - EXTRACTION_ONLY_IDS.size);
   });
 });

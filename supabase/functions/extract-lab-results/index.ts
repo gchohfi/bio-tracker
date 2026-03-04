@@ -110,6 +110,7 @@ const MARKER_LIST = [
   { id: "albumina", name: "Albumina", unit: "g/dL" },
   { id: "proteinas_totais", name: "Proteínas Totais", unit: "g/dL" },
   { id: "ldh", name: "LDH", unit: "U/L" },
+  { id: "ck", name: "CK Total (Creatinoquinase)", unit: "U/L" },
   { id: "creatinina", name: "Creatinina", unit: "mg/dL" },
   { id: "ureia", name: "Ureia", unit: "mg/dL" },
   { id: "acido_urico", name: "Ácido Úrico", unit: "mg/dL" },
@@ -458,6 +459,7 @@ HEPÁTICO:
 - "Albumina" / "ALBUMINA, SORO" / "ALBUMINA SÉRICA" / "ALB" (standalone, not electrophoresis) → albumina
 - "Proteínas Totais" → proteinas_totais
 - "LDH" / "Desidrogenase Láctica" / "LACTATO DESIDROGENASE" / "DESIDROGENASE LÁTICA" / "LDH, SORO" → ldh
+- "CK" / "CK TOTAL" / "CREATINOQUINASE" / "CREATINOQUINASE TOTAL" / "CPK" / "CREATINOFOSFOQUINASE" / "CK-TOTAL" / "CREATINA QUINASE" / "CREATINA FOSFOQUINASE" / "CK NAC" → ck
 
 RENAL:
 - "Creatinina" / "CREATININA, SORO" / "CREATININA SÉRICA" → creatinina

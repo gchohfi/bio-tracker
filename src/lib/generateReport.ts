@@ -363,7 +363,7 @@ export function generatePatientReport(
       // Ref. Lab. = usar resolveReference para consistência entre display e classificação
       const labRef = labRefByMarker[marker.id];
       const displayRef = resolveReference(marker, sex, labRef?.text);
-      const labRefStr = isQualitative ? "—" : (() => {
+      const labRefStr = isQualitative ? (labRef?.text || "—") : (() => {
         const op = displayRef.operator;
         if (op === '<' || op === '<=') {
           return displayRef.max != null ? `${op} ${displayRef.max}` : `${min} – ${max}`;
