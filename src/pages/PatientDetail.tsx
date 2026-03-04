@@ -266,6 +266,8 @@ export default function PatientDetail() {
   const [importedPdfCount, setImportedPdfCount] = useState(0);
   // Date extracted automatically from the PDF
   const [extractedExamDate, setExtractedExamDate] = useState<string | null>(null);
+  const [lastQualityScore, setLastQualityScore] = useState<number | null>(null);
+  const [lastExtractionIssues, setLastExtractionIssues] = useState<any[]>([]);
   const [reportEditOpen, setReportEditOpen] = useState(false);
   const [reportResults, setReportResults] = useState<any[]>([]);
   const [reportWithAI, setReportWithAI] = useState(false);
@@ -448,6 +450,14 @@ export default function PatientDetail() {
       if (allResults.length > 0) {
         const { error } = await supabase.from("lab_results").insert(allResults as any);
         if (error) throw error;
+      }
+
+      // Persist quality metrics if available from PDF extraction
+      if (sessionId && (lastQualityScore !== null || lastExtractionIssues.length > 0)) {
+        await (supabase as any).from("lab_sessions").update({
+          quality_score: lastQualityScore,
+          extraction_issues: lastExtractionIssues,
+        }).eq("id", sessionId);
       }
 
       toast({ title: editingSessionId ? "Sessão atualizada!" : "Sessão criada!" });
@@ -798,6 +808,8 @@ export default function PatientDetail() {
     cleanedText: string;
     count: number;
     examDate: string | null;
+    qualityScore: number | null;
+    extractionIssues: any[];
   }> => {
     const { fullText, cleanedText } = await extractPdfText(file);
 
@@ -874,7 +886,11 @@ export default function PatientDetail() {
       }
     }
 
-    return { newValues, newLabRefs, fullText, cleanedText, count: results.length, examDate };
+    // Capture quality metrics from edge function
+    const qualityScore = data?.quality_score ?? null;
+    const extractionIssues = data?.issues ?? [];
+
+    return { newValues, newLabRefs, fullText, cleanedText, count: results.length, examDate, qualityScore, extractionIssues };
   };
 
   const handlePdfImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -891,6 +907,9 @@ export default function PatientDetail() {
       let totalCount = 0;
       let firstExamDate: string | null = null;
 
+      let lastQuality: number | null = null;
+      let allIssues: any[] = [];
+
       for (const file of files) {
         toast({ title: `Processando ${file.name}...`, description: `${files.indexOf(file) + 1} de ${files.length}` });
         const result = await processPdfFile(file, currentValues, currentLabRefs);
@@ -899,8 +918,9 @@ export default function PatientDetail() {
         lastFullText = result.fullText;
         lastCleanedText = result.cleanedText;
         totalCount += result.count;
-        // Use the date from the first PDF that returns one
         if (!firstExamDate && result.examDate) firstExamDate = result.examDate;
+        if (result.qualityScore !== null) lastQuality = result.qualityScore;
+        allIssues = allIssues.concat(result.extractionIssues);
       }
 
       setMarkerValues(currentValues);
@@ -908,6 +928,8 @@ export default function PatientDetail() {
       setLastPdfText(lastCleanedText);
       setLastRawPdfText(lastFullText);
       setImportedPdfCount((prev) => prev + files.length);
+      setLastQualityScore(lastQuality);
+      setLastExtractionIssues(allIssues);
 
       // Auto-fill session date if extracted from PDF
       if (firstExamDate) {
