@@ -60,7 +60,7 @@ describe("resolveReference sanity bounds", () => {
     });
 
     it("Triglicerídeos: '> 20' deve ser rejeitado (labMin=0)", () => {
-      const ref = resolveReference(find("triglicerideos"), "M", "> 20");
+      const ref = resolveReference(find("triglicerides"), "M", "> 20");
       expect(ref.operator).toBe("range");
       expect(ref.min).toBe(0);
       expect(ref.max).toBe(150);
