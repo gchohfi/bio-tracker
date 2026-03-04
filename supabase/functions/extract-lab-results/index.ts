@@ -2333,6 +2333,87 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   return filtered;
 }
 
+// ── Structural Validator ──
+// Markers that can legitimately have negative values
+const ALLOW_NEGATIVE = new Set<string>([]);
+
+function validateExtraction(results: any[]): {
+  results: any[];
+  quality_score: number;
+  issues: { level: string; marker_id?: string; message: string }[];
+} {
+  const issues: { level: string; marker_id?: string; message: string }[] = [];
+  const validResults: any[] = [];
+  const seenMarkers = new Map<string, any>();
+
+  for (const r of results) {
+    // 1. marker_id must be present
+    if (!r.marker_id || typeof r.marker_id !== "string" || r.marker_id.trim() === "") {
+      issues.push({ level: "error", message: "Item sem marker_id — removido" });
+      continue;
+    }
+
+    const isQual = QUALITATIVE_IDS.has(r.marker_id);
+
+    // 2. Must have value OR text_value
+    const hasValue = typeof r.value === "number";
+    const hasTextValue = typeof r.text_value === "string" && r.text_value.trim().length > 0;
+    if (!hasValue && !hasTextValue) {
+      issues.push({ level: "error", marker_id: r.marker_id, message: `${r.marker_id}: sem value nem text_value — removido` });
+      continue;
+    }
+
+    // 3. Reject NaN / Infinity
+    if (hasValue && (!Number.isFinite(r.value))) {
+      issues.push({ level: "error", marker_id: r.marker_id, message: `${r.marker_id}: valor ${r.value} inválido (NaN/Infinity) — removido` });
+      continue;
+    }
+
+    // 4. Reject negative values where clinically impossible
+    if (hasValue && r.value < 0 && !ALLOW_NEGATIVE.has(r.marker_id) && !isQual) {
+      issues.push({ level: "warning", marker_id: r.marker_id, message: `${r.marker_id}: valor negativo ${r.value} — zerado` });
+      r.value = 0;
+    }
+
+    // 5. Duplicate detection — keep the one with lab_ref_text or higher value (more likely real)
+    if (seenMarkers.has(r.marker_id)) {
+      const existing = seenMarkers.get(r.marker_id);
+      const existingHasRef = typeof existing.lab_ref_text === "string" && existing.lab_ref_text.length > 0;
+      const newHasRef = typeof r.lab_ref_text === "string" && r.lab_ref_text.length > 0;
+
+      if (newHasRef && !existingHasRef) {
+        // Replace existing with this one
+        const idx = validResults.indexOf(existing);
+        if (idx !== -1) validResults[idx] = r;
+        seenMarkers.set(r.marker_id, r);
+        issues.push({ level: "warning", marker_id: r.marker_id, message: `${r.marker_id}: duplicata — mantido o com referência` });
+      } else {
+        issues.push({ level: "warning", marker_id: r.marker_id, message: `${r.marker_id}: duplicata descartada` });
+      }
+      continue;
+    }
+
+    seenMarkers.set(r.marker_id, r);
+    validResults.push(r);
+  }
+
+  // Quality score
+  const totalExtracted = results.length || 1;
+  const validCount = validResults.length;
+  const withRefCount = validResults.filter(
+    (r) => typeof r.lab_ref_text === "string" && r.lab_ref_text.trim().length > 0
+  ).length;
+
+  const validRatio = validCount / totalExtracted;
+  const refRatio = validCount > 0 ? withRefCount / validCount : 0;
+  const quality_score = Math.round((validRatio * 0.7 + refRatio * 0.3) * 100) / 100;
+
+  if (quality_score < 0.5) {
+    issues.push({ level: "warning", message: `Quality score baixo: ${quality_score}` });
+  }
+
+  return { results: validResults, quality_score, issues };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

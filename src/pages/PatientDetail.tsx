@@ -874,7 +874,11 @@ export default function PatientDetail() {
       }
     }
 
-    return { newValues, newLabRefs, fullText, cleanedText, count: results.length, examDate };
+    // Capture quality metrics from edge function
+    const qualityScore = data?.quality_score ?? null;
+    const extractionIssues = data?.issues ?? [];
+
+    return { newValues, newLabRefs, fullText, cleanedText, count: results.length, examDate, qualityScore, extractionIssues };
   };
 
   const handlePdfImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
