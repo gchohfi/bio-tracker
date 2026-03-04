@@ -2523,6 +2523,11 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     validResults = parseLabRefRanges(validResults);
     // Convert lab_ref units to match the stored value units (e.g. pmol/L → ng/dL for testosterona_livre)
     validResults = convertLabRefUnits(validResults);
+
+    // ── Structural Validator ──
+    const validation = validateExtraction(validResults);
+    validResults = validation.results;
+
     // Extract exam_date from parsed response
     let examDate: string | null = (typeof parsed.exam_date === "string" && parsed.exam_date.match(/^\d{4}-\d{2}-\d{2}$/))
       ? parsed.exam_date
@@ -2549,8 +2554,9 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     }
 
     console.log(`Extracted ${validResults.length} valid markers:`, validResults.map((r: any) => r.marker_id).join(', '));
+    console.log(`Quality score: ${validation.quality_score}, issues: ${validation.issues.length}`);
     if (examDate) console.log(`Exam date extracted: ${examDate}`);
-    return new Response(JSON.stringify({ results: validResults, exam_date: examDate }), {
+    return new Response(JSON.stringify({ results: validResults, exam_date: examDate, quality_score: validation.quality_score, issues: validation.issues }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
