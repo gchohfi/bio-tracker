@@ -394,13 +394,28 @@ export default function PatientDetail() {
           .eq("id", editingSessionId);
         await supabase.from("lab_results").delete().eq("session_id", editingSessionId);
       } else {
-        const { data, error } = await (supabase as any)
+        // Check for existing session on the same date to prevent duplicates
+        const formattedDate = format(sessionDate, "yyyy-MM-dd");
+        const { data: existingSession } = await (supabase as any)
           .from("lab_sessions")
-          .insert({ patient_id: patient.id, session_date: format(sessionDate, "yyyy-MM-dd"), specialty_id: sessionSpecialty })
-          .select()
-          .single();
-        if (error) throw error;
-        sessionId = data.id;
+          .select("id")
+          .eq("patient_id", patient.id)
+          .eq("session_date", formattedDate)
+          .maybeSingle();
+
+        if (existingSession) {
+          // Reuse existing session — merge results into it (don't delete existing results)
+          sessionId = existingSession.id;
+          console.log(`Reusing existing session ${sessionId} for date ${formattedDate}`);
+        } else {
+          const { data, error } = await (supabase as any)
+            .from("lab_sessions")
+            .insert({ patient_id: patient.id, session_date: formattedDate, specialty_id: sessionSpecialty })
+            .select()
+            .single();
+          if (error) throw error;
+          sessionId = data.id;
+        }
       }
 
       const allResults: { session_id: string; marker_id: string; value: number; text_value?: string; lab_ref_text?: string; lab_ref_min?: number; lab_ref_max?: number }[] = [];
