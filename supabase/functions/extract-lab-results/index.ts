@@ -20,6 +20,7 @@ const MARKER_LIST = [
   { id: "bastonetes", name: "Bastonetes", unit: "%" },
   { id: "segmentados", name: "Segmentados", unit: "%" },
   { id: "linfocitos", name: "Linfócitos", unit: "%" },
+  { id: "linfocitos_abs", name: "Linfócitos (absoluto)", unit: "/mm³" },
   { id: "monocitos", name: "Monócitos", unit: "%" },
   { id: "eosinofilos", name: "Eosinófilos", unit: "%" },
   { id: "basofilos", name: "Basófilos", unit: "%" },
@@ -320,6 +321,12 @@ HEMOGRAMA:
   - lab_ref_range: use ONLY the percentage reference interval (e.g. "45,0 a 70,0"), NEVER the absolute count (/mm³ or /µL)
   - If the lab shows both % and absolute count columns, use ONLY the % column for both value and lab_ref_range
   - If only absolute count reference is available, set lab_ref_range to null/empty
+⚠️ ABSOLUTE LYMPHOCYTE COUNT:
+  - In ADDITION to linfocitos (%), also extract linfocitos_abs with the ABSOLUTE count value in /mm³
+  - e.g. if lab shows "Linfócitos: 54,7% ... 3.250 /mm³", extract BOTH:
+    - linfocitos: value=54.7, unit="%"
+    - linfocitos_abs: value=3250, unit="/mm³", lab_ref_text="1.120 a 2.950"
+  - This is critical: elevated absolute lymphocytes (>2950) indicate lymphocytosis even when % looks normal
 - "PLAQUETOGRAMA" / "PLT" / "TROMBÓCITOS" / "Contagem de Plaquetas" → plaquetas
 - "VPM" / "V.P.M." / "MPV" / "Volume Plaquetário Médio" / "MEAN PLATELET VOLUME" → vpm
 
@@ -879,24 +886,30 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
   for (const r of results) {
     // --- urina_hemoglobina ---
     if (r.marker_id === 'urina_hemoglobina') {
-      // Case 1: numeric value > 5 → hemograma hallucination
-      if (typeof r.value === 'number' && r.value > 5) {
+      // Case 1: numeric value > 5 → hemograma hallucination (urina hemoglobina is qualitative)
+      const numVal = typeof r.value === 'number' ? r.value : (typeof r.value === 'string' ? parseFloat(String(r.value).replace(',', '.')) : NaN);
+      if (!isNaN(numVal) && numVal > 5) {
         console.log(`ANTI-HALLUCINATION: removed urina_hemoglobina numeric ${r.value} (likely from hemograma)`);
         r._remove = true;
       }
       // Case 2: string containing 'g/dL' or 'milhões' or a reference range like '11,7 a 14,9'
-      // These are hallucinations where Gemini returned the hemograma value as a string
       if (typeof r.value === 'string') {
         const v = r.value as string;
         if (
           /g\/dL/i.test(v) ||
           /milh[õo]es/i.test(v) ||
           /\d+[,.]\d+\s+a\s+\d+[,.]\d+/.test(v) ||
-          /\d{2,}[,.]\d+/.test(v) // e.g. "13,4" — hemograma-like numeric string
+          /\d{2,}[,.]\d+/.test(v)
         ) {
           console.log(`ANTI-HALLUCINATION: removed urina_hemoglobina string "${v}" (likely from hemograma)`);
           r._remove = true;
         }
+      }
+      // Case 3: lab_ref_text contains hemograma-like reference (g/dL, "11,7 a 14,9", etc.)
+      const refText = r.lab_ref_text || r.lab_ref_range || '';
+      if (/g\/dL/i.test(refText) || /\d{2,}[,.]\d+\s*a\s*\d{2,}[,.]\d+/.test(refText)) {
+        console.log(`ANTI-HALLUCINATION: removed urina_hemoglobina with hemograma ref "${refText}"`);
+        r._remove = true;
       }
     }
     // --- urina_hemacias ---
