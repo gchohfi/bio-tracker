@@ -434,7 +434,7 @@ describe("Sanity fix — PSA Livre/Total ratio→%", () => {
   const psaRelacaoFix = (v: number) => v > 0 && v < 1 ? v * 100 : v;
 
   it("converte razão decimal 0.28 → 28%", () => {
-    expect(psaRelacaoFix(0.28)).toBe(28);
+    expect(psaRelacaoFix(0.28)).toBeCloseTo(28);
   });
 
   it("converte razão decimal 0.15 → 15%", () => {
