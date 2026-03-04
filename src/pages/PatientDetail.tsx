@@ -899,6 +899,9 @@ export default function PatientDetail() {
       let totalCount = 0;
       let firstExamDate: string | null = null;
 
+      let lastQuality: number | null = null;
+      let allIssues: any[] = [];
+
       for (const file of files) {
         toast({ title: `Processando ${file.name}...`, description: `${files.indexOf(file) + 1} de ${files.length}` });
         const result = await processPdfFile(file, currentValues, currentLabRefs);
@@ -907,8 +910,9 @@ export default function PatientDetail() {
         lastFullText = result.fullText;
         lastCleanedText = result.cleanedText;
         totalCount += result.count;
-        // Use the date from the first PDF that returns one
         if (!firstExamDate && result.examDate) firstExamDate = result.examDate;
+        if (result.qualityScore !== null) lastQuality = result.qualityScore;
+        allIssues = allIssues.concat(result.extractionIssues);
       }
 
       setMarkerValues(currentValues);
