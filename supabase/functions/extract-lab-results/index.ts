@@ -224,9 +224,13 @@ const QUALITATIVE_IDS = new Set(MARKER_LIST.filter(m => (m as any).qualitative).
 
 const systemPrompt = `You are an expert lab result extraction assistant for Brazilian labs (Fleury, DASA, Hermes Pardini, Confiance, Einstein, Lavoisier, DB, Oswaldo Cruz, etc.).
 
-Your task: extract ALL values (numeric AND qualitative) from the PDF text and map them to known marker IDs. Be EXHAUSTIVE.
+Your task: extract lab values (numeric AND qualitative) from the PDF text and map them to known marker IDs. Extract ONLY markers that are EXPLICITLY PRESENT in the document.
 
-CRITICAL ANTI-HALLUCINATION RULE: NEVER invent, fabricate, or assume results. Only extract a marker if it is EXPLICITLY PRESENT in the PDF text with a visible numeric or qualitative result clearly associated with it. If you are unsure whether a result exists in the document, do NOT include it. When in doubt, omit.
+CRITICAL ANTI-HALLUCINATION RULES:
+1. NEVER invent, fabricate, or assume results. Only extract a marker if it is EXPLICITLY PRESENT in the PDF text with a visible numeric or qualitative result clearly associated with it. If you are unsure whether a result exists in the document, do NOT include it. When in doubt, omit.
+2. It is MUCH BETTER to miss a real result than to fabricate a phantom value.
+3. If a test was NOT ordered or NOT performed, it will NOT appear in the PDF — do NOT extract it.
+4. Do NOT extract a marker just because it is in the known list — only extract if you can see the actual test name AND its result value printed in the document.
 
 Known markers (id | name | unit):
 ${MARKER_LIST.map((m) => `${m.id} | ${m.name} | ${m.unit}`).join("\n")}
@@ -2390,7 +2394,242 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
     if (maxPlausible !== undefined && r.value !== undefined && r.value !== null && r.value > maxPlausible) {
       console.log(`Plausibility filter: discarding ${r.marker_id} = ${r.value} (max plausible: ${maxPlausible})`);
       return false;
+}
+
+// ── Global Cross-Validation: verify marker names exist in PDF text ──
+// Markers that are calculated/derived and don't need to appear in the PDF text
+const CALCULATED_MARKERS = new Set([
+  'bilirrubina_indireta', 'colesterol_nao_hdl', 'relacao_ct_hdl', 'relacao_tg_hdl',
+  'relacao_apob_apoa1', 'homa_ir', 'neutrofilos', 'fixacao_latente_ferro', 'urina_acr',
+  'glicemia_media_estimada', 'neutrofilos_abs',
+]);
+
+// Search terms for each marker — at least one must appear in pdfText for the marker to be accepted
+const MARKER_TEXT_TERMS: Record<string, string[]> = {
+  hemoglobina: ['hemoglobina', 'hb ', 'hgb', 'hemograma'],
+  hematocrito: ['hematócrito', 'hematocrito', 'hct', 'hemograma'],
+  eritrocitos: ['eritrócitos', 'eritrocitos', 'hemácias', 'hemacias', 'rbc', 'glóbulos vermelhos', 'hemograma', 'eritrograma'],
+  vcm: ['vcm', 'v.c.m', 'volume corpuscular', 'hemograma'],
+  hcm: ['hcm', 'h.c.m', 'hemoglobina corpuscular', 'hemograma'],
+  chcm: ['chcm', 'c.h.c.m', 'concentração de hemoglobina', 'hemograma'],
+  rdw: ['rdw', 'r.d.w', 'amplitude', 'hemograma'],
+  leucocitos: ['leucócitos', 'leucocitos', 'wbc', 'glóbulos brancos', 'leucograma', 'hemograma', 'série branca'],
+  linfocitos: ['linfócitos', 'linfocitos', 'linf', 'lymph', 'leucograma', 'hemograma'],
+  linfocitos_abs: ['linfócitos', 'linfocitos', 'linf', 'lymph', 'leucograma', 'hemograma'],
+  monocitos: ['monócitos', 'monocitos', 'mono', 'leucograma', 'hemograma'],
+  monocitos_abs: ['monócitos', 'monocitos', 'mono', 'leucograma', 'hemograma'],
+  eosinofilos: ['eosinófilos', 'eosinofilos', 'eos', 'leucograma', 'hemograma'],
+  eosinofilos_abs: ['eosinófilos', 'eosinofilos', 'eos', 'leucograma', 'hemograma'],
+  basofilos: ['basófilos', 'basofilos', 'baso', 'leucograma', 'hemograma'],
+  basofilos_abs: ['basófilos', 'basofilos', 'baso', 'leucograma', 'hemograma'],
+  bastonetes: ['bastonetes', 'bastões', 'bastoes', 'band', 'stab', 'leucograma', 'hemograma'],
+  segmentados: ['segmentados', 'segs', 'leucograma', 'hemograma'],
+  plaquetas: ['plaquetas', 'plt', 'trombócitos', 'trombocitos', 'plaquetograma', 'hemograma'],
+  vpm: ['vpm', 'v.p.m', 'mpv', 'volume plaquetário', 'plaquetograma', 'hemograma'],
+  ferro_serico: ['ferro', 'fe ', 'iron'],
+  ferritina: ['ferritina', 'ferritin'],
+  transferrina: ['transferrina', 'transferrin'],
+  sat_transferrina: ['saturação de transferrina', 'saturacao de transferrina', 'sat. transferrina', 'sat transferrina', 'índice de saturação', 'ist '],
+  tibc: ['tibc', 'ctff', 'capacidade ferropéxica', 'capacidade ferroxica', 'capacidade total de ligação', 'ctlf'],
+  ferro_metabolismo: ['metabolismo do ferro', 'ferro sérico', 'ferro serico'],
+  glicose_jejum: ['glicose', 'glicemia', 'glucose', 'glycemia'],
+  hba1c: ['hba1c', 'hemoglobina glicada', 'hemoglobina glicosilada', 'a1c', 'hb glicada'],
+  insulina_jejum: ['insulina', 'insulin'],
+  colesterol_total: ['colesterol total', 'colesterol, soro', 'colesterol sérico', 'colesterol serico', 'perfil lipídico', 'perfil lipidico'],
+  hdl: ['hdl', 'colesterol hdl'],
+  ldl: ['ldl', 'colesterol ldl'],
+  vldl: ['vldl', 'colesterol vldl'],
+  triglicerides: ['triglicérides', 'triglicerides', 'triglicerídeos', 'triglicerideos', 'triglicerídios', 'trigliceridios'],
+  apo_a1: ['apolipoproteína a', 'apolipoproteina a', 'apo a', 'apo a1', 'apo a-1'],
+  apo_b: ['apolipoproteína b', 'apolipoproteina b', 'apo b', 'apo b100'],
+  lipoproteina_a: ['lipoproteína(a)', 'lipoproteina(a)', 'lp(a)', 'lpa', 'lipoproteína (a)', 'lipoproteina (a)'],
+  tsh: ['tsh', 'tirotropina', 'tireotropina', 'tiroestimulante'],
+  t4_livre: ['t4 livre', 't4l', 'tiroxina livre', 'ft4', 'free t4'],
+  t4_total: ['t4 total', 'tiroxina total', 'tiroxina (t4)', 'tt4'],
+  t3_livre: ['t3 livre', 't3l', 'triiodotironina livre', 'ft3', 'free t3'],
+  t3_total: ['t3 total', 'triiodotironina total', 'triiodotironina (t3)', 'tt3'],
+  t3_reverso: ['t3 reverso', 't3r', 'reverse t3', 'triiodotironina reversa', 'rt3'],
+  anti_tpo: ['anti-tpo', 'anti tpo', 'anticorpo anti tpo', 'anti-peroxidase', 'atpo', 'peroxidase tireoidiana', 'peroxidase tiroidiana'],
+  anti_tg: ['anti-tg', 'anti tg', 'anti-tireoglobulina', 'anti tireoglobulina', 'antitiroglobulina', 'atg', 'tgab'],
+  trab: ['trab', 'anti-receptor de tsh', 'anti receptor tsh', 'anti receptor de tsh', 'anticorpos anti receptores de tsh'],
+  tiroglobulina: ['tireoglobulina', 'tiroglobulina'],
+  testosterona_total: ['testosterona total', 'testosterona, soro', 'testosterona sérica', 'testosterona soro'],
+  testosterona_livre: ['testosterona livre', 'testosterona livre calculada', 'fte'],
+  testosterona_biodisponivel: ['testosterona biodisponível', 'testosterona biodisponivel'],
+  estradiol: ['estradiol', '17-beta-estradiol', '17β-estradiol', 'e2'],
+  estrona: ['estrona', 'e1'],
+  progesterona: ['progesterona', 'p4'],
+  dhea_s: ['dhea', 'sdhea', 's-dhea', 'dehidroepiandrosterona', 'deidroepiandrosterona'],
+  cortisol: ['cortisol'],
+  shbg: ['shbg', 's h b g', 'globulina ligadora de hormônios', 'globulina ligadora de hormonios', 'sex hormone binding'],
+  fsh: ['fsh', 'folículo estimulante', 'foliculo estimulante', 'foliculoestimulante', 'folitropina'],
+  lh: ['lh', 'luteinizante', 'lutropina'],
+  prolactina: ['prolactina', 'prl'],
+  amh: ['amh', 'anti-mülleriano', 'anti-mulleriano', 'antimülleriano', 'antimulleriano', 'ham'],
+  igf1: ['igf-1', 'igf1', 'igf 1', 'igf i', 'somatomedina', 'fator de crescimento insulina'],
+  igfbp3: ['igfbp-3', 'igfbp3', 'igfbp 3'],
+  acth: ['acth', 'a.c.t.h', 'corticotropina', 'corticotrofina', 'adrenocorticotrófico', 'adrenocorticotrofico'],
+  cortisol_livre_urina: ['cortisol', 'urina 24h', 'urina de 24 horas'],
+  aldosterona: ['aldosterona'],
+  dihidrotestosterona: ['dihidrotestosterona', 'dht', 'd.h.t', 'dihydrotestosterone', '5α-dht', '5-alfa-dihidrotestosterona'],
+  androstenediona: ['androstenediona', 'androstenedione'],
+  vitamina_d: ['vitamina d', '25-oh', '25-hidroxi', 'calcidiol', '25(oh)'],
+  vitamina_d_125: ['1,25', '1.25', 'calcitriol', 'dihidroxi'],
+  vitamina_b12: ['vitamina b12', 'b12', 'cianocobalamina', 'cobalamina'],
+  acido_folico: ['ácido fólico', 'acido folico', 'folato', 'folic acid'],
+  vitamina_a: ['vitamina a', 'retinol'],
+  vitamina_e: ['vitamina e', 'tocoferol'],
+  vitamina_c: ['vitamina c', 'ácido ascórbico', 'acido ascorbico'],
+  vitamina_b6: ['vitamina b6', 'piridoxina', 'piridoxal'],
+  vitamina_b1: ['vitamina b1', 'tiamina'],
+  magnesio: ['magnésio', 'magnesio', 'mg '],
+  zinco: ['zinco', 'zinc', 'zn '],
+  selenio: ['selênio', 'selenio', 'selenium', 'se '],
+  cobre: ['cobre', 'copper', 'cu '],
+  manganes: ['manganês', 'manganes', 'manganese', 'mn '],
+  cromo: ['cromo', 'chromium', 'cr '],
+  iodo_urinario: ['iodo', 'iodúria', 'ioduria'],
+  chumbo: ['chumbo', 'plumbemia', 'lead', 'pb '],
+  tgo_ast: ['tgo', 'ast', 'aspartato aminotransferase', 'transaminase oxalacética', 'transaminase oxalacetica'],
+  tgp_alt: ['tgp', 'alt', 'alanina aminotransferase', 'transaminase pirúvica', 'transaminase piruvica'],
+  ggt: ['ggt', 'gama glutamil', 'gama-glutamil', 'γ-glutamil', 'gamaglutamil'],
+  fosfatase_alcalina: ['fosfatase alcalina', 'alkaline phosphatase', 'fa '],
+  bilirrubina_total: ['bilirrubina total', 'bilirrubinas'],
+  bilirrubina_direta: ['bilirrubina direta', 'bilirrubinas'],
+  albumina: ['albumina', 'albumin'],
+  proteinas_totais: ['proteínas totais', 'proteinas totais', 'total protein'],
+  ldh: ['ldh', 'desidrogenase láctica', 'desidrogenase lactica', 'lactato desidrogenase'],
+  ck: ['ck ', 'ck-total', 'creatinoquinase', 'creatinofosfoquinase', 'cpk', 'creatina quinase'],
+  creatinina: ['creatinina', 'creatinine'],
+  ureia: ['ureia', 'uréia', 'bun', 'ureia sérica', 'ureia serica'],
+  acido_urico: ['ácido úrico', 'acido urico', 'uric acid'],
+  tfg: ['tfg', 'taxa de filtração', 'taxa de filtracao', 'ckd-epi', 'egfr', 'filtração glomerular', 'filtracao glomerular'],
+  cistatina_c: ['cistatina c', 'cistatina-c', 'cystatin'],
+  sodio: ['sódio', 'sodio', 'na+', 'na '],
+  potassio: ['potássio', 'potassio', 'k+', 'k '],
+  calcio_total: ['cálcio total', 'calcio total', 'cálcio sérico', 'calcio serico', 'ca total'],
+  calcio_ionico: ['cálcio iônico', 'calcio ionico', 'cálcio iónizado', 'ca++', 'ca2+', 'ca ionico'],
+  fosforo: ['fósforo', 'fosforo', 'phosphorus', 'p inorgânico'],
+  cloro: ['cloro', 'cloreto', 'chloride', 'cl '],
+  bicarbonato: ['bicarbonato', 'hco3', 'co2 total'],
+  pth: ['pth', 'paratormônio', 'paratormonio', 'paratireoidiano', 'parathormônio'],
+  calcitonina: ['calcitonina', 'calcitonin'],
+  pcr: ['pcr', 'proteína c reativa', 'proteina c reativa', 'proteina c-reativa', 'c-reactive', 'pcrhs', 'pcr-us', 'pcr ultra'],
+  vhs: ['vhs', 'v.h.s', 'velocidade de hemossedimentação', 'velocidade de eritrossedimentação', 'eritrossedimentacao'],
+  homocisteina: ['homocisteína', 'homocisteina', 'homocysteine'],
+  fibrinogenio: ['fibrinogênio', 'fibrinogenio', 'fator i', 'clauss'],
+  dimeros_d: ['dímeros d', 'dimeros d', 'd-dímero', 'd-dimero', 'dímero d', 'dimero d', 'fragmento d'],
+  amilase: ['amilase', 'amylase', 'α-amilase', 'alfa-amilase', 'ams'],
+  lipase: ['lipase', 'lps'],
+  mercurio: ['mercúrio', 'mercurio', 'mercury', 'hg sangue'],
+  cadmio: ['cádmio', 'cadmio', 'cadmium'],
+  aluminio: ['alumínio', 'aluminio', 'aluminum'],
+  cobalto: ['cobalto', 'cobalt'],
+  arsenico: ['arsênico', 'arsenico', 'arsenic'],
+  niquel: ['níquel', 'niquel', 'nickel'],
+  fan: ['fan', 'fator anti-núcleo', 'fator antinúcleo', 'fator antinucleo', 'anticorpo antinúcleo'],
+  fator_reumatoide: ['fator reumatoide', 'fator reumatóide', 'fr ', 'rheumatoid'],
+  anti_endomisio_iga: ['anti-endomísio', 'anti-endomisio', 'antiendomísio', 'antiendomisio'],
+  anti_transglutaminase_iga: ['anti-transglutaminase', 'transglutaminase', 'antitransglutaminase'],
+  g6pd: ['g6pd', 'glicose-6-fosfato', 'glicose 6 fosfato'],
+  hiv: ['hiv'],
+  hbsag: ['hbsag', 'antígeno austrália', 'antigeno australia', 'hepatite b'],
+  anti_hbs: ['anti-hbs', 'anti hbs', 'hepatite b'],
+  anti_hbc_total: ['anti-hbc', 'anti hbc', 'hepatite b'],
+  anti_hcv: ['anti-hcv', 'anti hcv', 'hepatite c'],
+  sifilis_treponemico: ['sífilis', 'sifilis', 'treponema', 't. pallidum', 'anti-t. pallidum'],
+  sifilis_vdrl: ['vdrl', 'cardiolipina', 'sífilis', 'sifilis'],
+  toxoplasma_igg: ['toxoplasma', 'toxoplasmose'],
+  toxoplasma_igm: ['toxoplasma', 'toxoplasmose'],
+  vzv_igg: ['varicela', 'varicella', 'vzv', 'zoster'],
+  vzv_igm: ['varicela', 'varicella', 'vzv', 'zoster'],
+  hsv_igm: ['herpes simplex', 'herpes simples', 'hsv'],
+  hsv1_igg: ['herpes simplex', 'herpes simples', 'hsv'],
+  hsv2_igg: ['herpes simplex', 'herpes simples', 'hsv'],
+  eletroforese_albumina: ['eletroforese', 'eletroforese de proteínas', 'eletroforese de proteinas'],
+  eletroforese_alfa1: ['eletroforese', 'alfa 1', 'alfa-1'],
+  eletroforese_alfa2: ['eletroforese', 'alfa 2', 'alfa-2'],
+  eletroforese_beta1: ['eletroforese', 'beta 1', 'beta-1'],
+  eletroforese_beta2: ['eletroforese', 'beta 2', 'beta-2'],
+  eletroforese_gama: ['eletroforese', 'gama'],
+  relacao_ag: ['eletroforese', 'relação a/g', 'relacao a/g', 'a/g'],
+  ca_19_9: ['ca 19-9', 'ca 19.9', 'ca19-9', 'ca-19-9'],
+  ca_125: ['ca-125', 'ca 125', 'ca125'],
+  ca_72_4: ['ca 72-4', 'ca 72.4', 'ca72-4', 'ca-72-4'],
+  ca_15_3: ['ca 15-3', 'ca 15.3', 'ca15-3', 'ca-15-3'],
+  afp: ['afp', 'alfafetoproteína', 'alfafetoproteina', 'alfa-fetoproteína', 'alfa fetoproteina'],
+  cea: ['cea', 'carcinoembrionário', 'carcinoembrionario', 'antígeno carcinoembrionário'],
+  psa_total: ['psa total', 'psa', 'antígeno prostático', 'antigeno prostatico'],
+  psa_livre: ['psa livre'],
+  urina_cor: ['urina', 'eas', 'sumário de urina', 'sumario de urina', 'urina tipo'],
+  urina_aspecto: ['urina', 'eas', 'sumário de urina', 'sumario de urina', 'urina tipo'],
+  urina_densidade: ['urina', 'eas', 'densidade', 'urina tipo'],
+  urina_ph: ['urina', 'eas', 'ph urin', 'urina tipo'],
+  urina_proteinas: ['urina', 'eas', 'proteínas', 'urina tipo'],
+  urina_glicose: ['urina', 'eas', 'glicose', 'urina tipo'],
+  urina_hemoglobina: ['urina', 'eas', 'hemoglobina', 'urina tipo'],
+  urina_leucocitos: ['urina', 'eas', 'leucócitos', 'leucocitos', 'urina tipo'],
+  urina_leucocitos_quant: ['urina', 'eas', 'leucócitos', 'leucocitos', 'urina tipo'],
+  urina_hemacias: ['urina', 'eas', 'hemácias', 'hemacias', 'urina tipo'],
+  urina_hemacias_quant: ['urina', 'eas', 'hemácias', 'hemacias', 'urina tipo'],
+  urina_bacterias: ['urina', 'eas', 'bactérias', 'bacterias', 'urina tipo'],
+  urina_celulas: ['urina', 'eas', 'células epiteliais', 'celulas epiteliais', 'urina tipo'],
+  urina_cilindros: ['urina', 'eas', 'cilindros', 'urina tipo'],
+  urina_cristais: ['urina', 'eas', 'cristais', 'urina tipo'],
+  urina_nitritos: ['urina', 'eas', 'nitritos', 'urina tipo'],
+  urina_bilirrubina: ['urina', 'eas', 'bilirrubina', 'urina tipo'],
+  urina_urobilinogenio: ['urina', 'eas', 'urobilinogênio', 'urobilinogenio', 'urina tipo'],
+  urina_cetona: ['urina', 'eas', 'cetonas', 'cetona', 'urina tipo'],
+  urina_muco: ['urina', 'eas', 'muco', 'filamento', 'urina tipo'],
+  urina_albumina: ['urina', 'albumina', 'microalbuminúria', 'microalbuminuria'],
+  urina_creatinina: ['urina', 'creatinina'],
+  copro_cor: ['coprológico', 'coprologico', 'coprograma', 'parasitológico', 'parasitologico', 'fezes'],
+  copro_consistencia: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'consistência'],
+  copro_muco: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'muco'],
+  copro_sangue: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'sangue oculto'],
+  copro_leucocitos: ['coprológico', 'coprologico', 'coprograma', 'fezes'],
+  copro_hemacias: ['coprológico', 'coprologico', 'coprograma', 'fezes'],
+  copro_parasitas: ['coprológico', 'coprologico', 'coprograma', 'parasitológico', 'parasitologico', 'fezes', 'parasita'],
+  copro_gordura: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'gordura'],
+  copro_gordura_quant: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'gordura'],
+  copro_fibras: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'fibras musculares'],
+  copro_amido: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'amido'],
+  copro_residuos: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'resíduos'],
+  copro_ac_graxos: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'ácidos graxos', 'acidos graxos'],
+  copro_flora: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'flora'],
+  copro_ph: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'ph'],
+};
+
+function crossCheckAllMarkers(results: any[], pdfText: string, beforeFallbackIds: Set<string>): any[] {
+  const pdfLower = pdfText.toLowerCase();
+  let discardCount = 0;
+  
+  const checked = results.filter(r => {
+    // Exempt: regex fallback markers (already matched text patterns)
+    if (!beforeFallbackIds.has(r.marker_id) && r._fromFallback) return true;
+    
+    // Exempt: calculated markers
+    if (CALCULATED_MARKERS.has(r.marker_id)) return true;
+    
+    // Exempt: markers without defined terms (accept by default — better safe than sorry)
+    const terms = MARKER_TEXT_TERMS[r.marker_id];
+    if (!terms) return true;
+    
+    // Check if at least one term appears in the PDF text
+    const found = terms.some(t => pdfLower.includes(t));
+    if (!found) {
+      console.log(`CROSS-CHECK: discarding ${r.marker_id} = ${r.value ?? r.text_value} — marker name NOT found in PDF text`);
+      discardCount++;
+      return false;
     }
+    return true;
+  });
+  
+  if (discardCount > 0) {
+    console.log(`CROSS-CHECK: discarded ${discardCount} phantom markers total`);
+  }
+  return checked;
+}
     return true;
   });
   return filtered;
@@ -2511,7 +2750,7 @@ serve(async (req) => {
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `Extract ALL lab results from this Brazilian lab report. Target: 95+ markers. Be EXHAUSTIVE — do not skip ANY marker.
+            content: `Extract lab results from this Brazilian lab report. Extract ONLY markers that are EXPLICITLY PRESENT in this document with a clear result value. Do NOT guess or infer values for markers not shown.
 ${patientAge != null ? `\nPATIENT AGE: ${patientAge} years old. Use this to select the correct age-specific reference range when multiple ranges are listed.\n` : ''}
 
 ⚠️ MANDATORY: For EVERY marker, you MUST include lab_ref_text with the reference range from the report!
@@ -2527,27 +2766,7 @@ STEP-BY-STEP APPROACH:
 7. CRITICAL: For values with "<" or ">" operators, set BOTH value AND text_value
 8. CRITICAL: For EVERY marker, capture the lab reference range in lab_ref_text!
 
-COMMONLY MISSED — search EXPLICITLY for each of these:
-- Hemograma: Bastonetes/Bastões, Segmentados, VPM/V.P.M./MPV
-- Coagulação: Fibrinogênio (may say "CLAUSS" or "g/L"→×100)
-- Pancreáticos: Amilase/α-Amilase, Lipase
-- Lipídios avançados: Apo A-1, Apo B, Lp(a), Colesterol Não-HDL, CT/HDL, TG/HDL, ApoB/ApoA1
-- Ferro: TIBC/CTFF/Capacidade Ferropéxica Total, Transferrina, Sat. Transferrina
-- Tireoide: T4 Total, T3 Total, TRAb (often "< 1.0")
-- Hormônios: Estrona (E1), AMH
-- Eletrólitos: Calcitonina (often "< 1.0")
-- Marcadores Tumorais: CA 19-9, CA-125, CA 72-4 (often "< 2.5"), CA 15-3, AFP, CEA
-- Eixo GH: IGF-1/Somatomedina C, IGFBP-3 (ng/mL÷1000=µg/mL)
-- Eixo Adrenal: ACTH/A.C.T.H., Cortisol Urina 24h, Aldosterona
-- Andrógenos: DHT/D.H.T./Dihidrotestosterona, Androstenediona
-- Vitaminas: 25-OH Vit D (vitamina_d) AND 1,25-Dihidroxi (vitamina_d_125) — TWO DIFFERENT markers!
-- Renal: TFGe/eGFR (often sub-item of Creatinina), Cistatina C
-- Hepático: Bilirrubina Indireta (may be calculated), LDH, Fosfatase Alcalina
-- Toxicologia: Chumbo/Plumbemia, Mercúrio, Cádmio, Alumínio
-- Imunologia: FAN (qualitative — text_value!)
-- Eletroforese: ALL fractions (Albumina%, Alfa1%, Alfa2%, Beta1%, Beta2%, Gama%, A/G)
-- Urina Tipo 1/EAS: ALL sub-items as qualitative
-- Coprológico: ALL sub-items as qualitative
+Check all sections of the document including panels (Hemograma, Lipídios, Bilirrubinas, Ferro, Eletroforese, Urina, Fezes, Marcadores Tumorais, etc.) and standalone exams. Only extract markers you can actually see with a clear result value. Do NOT invent values for markers not present in the document.
 
 OPERATOR VALUES (CRITICAL):
 - Anti-TPO often comes as "< 34" → value=34, text_value="< 34"
@@ -2678,7 +2897,8 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     validResults = parseLabRefRanges(validResults);
     // Convert lab_ref units to match the stored value units (e.g. pmol/L → ng/dL for testosterona_livre)
     validResults = convertLabRefUnits(validResults);
-
+    // Cross-check ALL markers against PDF text (anti-hallucination)
+    validResults = crossCheckAllMarkers(validResults, pdfText, beforeFallbackIds);
     // ── Structural Validator ──
     const validation = validateExtraction(validResults);
     validResults = validation.results;
