@@ -274,7 +274,7 @@ export const MARKERS: MarkerDef[] = [
 
   // ── Vitaminas ─────────────────────────────────────────────────────────────
   { id: "vitamina_d",      name: "Vitamina D (25-OH)", unit: "ng/mL",     category: "Vitaminas",
-    labRange: { M: [20, 100], F: [20, 100] }, panel: "Padrão" },
+    labRange: { M: [20, 99999], F: [20, 99999] }, panel: "Padrão" },
 
   { id: "vitamina_d_125",  name: "1,25-Dihidroxi Vitamina D", unit: "pg/mL", category: "Vitaminas",
     labRange: { M: [19.9, 79.3], F: [19.9, 79.3] }, panel: "Padrão" },
