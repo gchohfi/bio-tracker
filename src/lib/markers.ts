@@ -860,3 +860,24 @@ export function getMarkerStatusFromRef(
   if (max !== null && value > max) return 'high';
   return 'normal';
 }
+
+/**
+ * Formata a referência para exibição, detectando ranges "one-sided"
+ * (ex: [0, 190] → "< 190", [40, 9999] → "> 40").
+ */
+export function formatRefDisplay(
+  ref: { min: number | null; max: number | null; operator: string },
+  fallbackMin: number,
+  fallbackMax: number,
+): string {
+  const { operator, min: rMin, max: rMax } = ref;
+  // Explicit operators from lab_ref_text parsing
+  if ((operator === '<' || operator === '<=') && rMax != null) return `${operator} ${rMax}`;
+  if ((operator === '>' || operator === '>=') && rMin != null) return `${operator} ${rMin}`;
+  // Detect one-sided ranges even when operator is 'range'
+  const mn = rMin ?? fallbackMin;
+  const mx = rMax ?? fallbackMax;
+  if ((mn === 0 || mn == null) && mx != null && mx < 999) return `< ${mx}`;
+  if (mx != null && mx >= 999) return `> ${mn}`;
+  return `${mn}–${mx}`;
+}

@@ -10,6 +10,7 @@ import {
   resolveReference,
   getMarkerStatusFromRef,
   parseOperatorValue,
+  formatRefDisplay,
   getCategoryRgb,
   type Category,
   type MarkerDef,
@@ -368,19 +369,7 @@ export function generatePatientReport(
         str.replace(/≤/g, '<=').replace(/≥/g, '>=').replace(/–/g, '-').replace(/—/g, '-')
            .replace(/[^\x00-\xFF]/g, ''); // Remove any non-latin1 characters
 
-      const labRefStr = sanitizeForPdf(isQualitative ? (labRef?.text || "—") : (() => {
-        const op = displayRef.operator;
-        if (op === '<' || op === '<=') {
-          return displayRef.max != null ? `${op} ${displayRef.max}` : `${min} - ${max}`;
-        }
-        if (op === '>' || op === '>=') {
-          return displayRef.min != null ? `${op} ${displayRef.min}` : `${min} - ${max}`;
-        }
-        // Range
-        const rMin = displayRef.min ?? min;
-        const rMax = displayRef.max ?? max;
-        return `${rMin} - ${rMax}`;
-      })());
+      const labRefStr = sanitizeForPdf(isQualitative ? (labRef?.text || "—") : formatRefDisplay(displayRef, min, max));
       // Ref. Funcional removida
 
       const row: any[] = [
