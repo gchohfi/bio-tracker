@@ -1,98 +1,32 @@
 
 
-# Correção de Conversões de Unidade: Estradiol, Progesterona e DHT
+# Fix: DHEA-S Wrong Age-Specific Reference Range
 
-## Problemas Identificados
+## Root Cause
 
-Os 3 erros têm a mesma causa raiz: **conflito entre conversão da IA e sanity checks no pós-processamento**.
+The AI extracted `lab_ref_text = "89 a 427"` for DHEA-S, which is the **35-44 years** range. Patient Dener is 31 years old, so the correct range is **160-492** (20-34 years). The patient age IS being sent to the AI (line 2715), and the prompt already instructs age selection (line 635), but the AI picked the wrong bracket.
 
-### Erro 1 — Estradiol (4.4 ng/dL → 440 pg/mL, deveria ser 44)
-- A IA converte corretamente: 4.4 × 10 = 44 pg/mL
-- Mas o sanity check (linha 702) vê `44 < 50` e aplica `× 10` novamente → 440
-- **Bug**: dupla conversão no sanity fix
+This is an AI extraction error — not a code bug. The stored value "89 a 427" doesn't contain "anos", so `resolveReference` accepts it as valid.
 
-### Erro 2 — Progesterona (19 ng/dL → 19 ng/mL, deveria ser 0.19)  
-- A IA não converteu (manteve 19)
-- O sanity check (linha 701) só corrige se `> 50`, então 19 passa direto
-- **Bug**: threshold do sanity muito alto + IA falhou em converter
+## Fix (2 parts)
 
-### Erro 3 — DHT (13 ng/dL → 13 pg/mL, deveria ser 130)
-- A IA não converteu (manteve 13)
-- O sanity check para DHT (linha 711) não tem função `fix`
-- **Bug**: sem fallback de conversão
+### 1. Strengthen the prompt with an explicit DHEA-S example (line 635)
 
-## Correções Propostas
+Add a DHEA-S-specific example to the age-specific instruction since it's the most common marker with age-based ranges in Brazilian labs:
 
-### 1. Estradiol — remover branch que causa dupla conversão
-```typescript
-// ANTES (bugado):
-estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 100 : v < 50 ? v * 10 : v > 5000 ? v / 10 : v }
-
-// DEPOIS:
-estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 10 : v > 5000 ? v / 10 : v }
 ```
-- `v < 5` (valor em ng/dL não convertido, ex: 4.4) → `× 10` = 44 ✓
-- Valores 5–5000 já estão em pg/mL, não mexer
-
-### 2. Progesterona — adicionar detecção de ng/dL não convertido
-```typescript
-// ANTES:
-progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v }
-
-// DEPOIS (sex-aware):
-progesterona: { min: 0, max: 50, fix: (v) => {
-  // Labs brasileiros reportam ng/dL (ex: 19, 89). Nosso target é ng/mL.
-  // Fase folicular: 0.1-1.5 ng/mL = 10-150 ng/dL
-  // Fase lútea: 5-25 ng/mL = 500-2500 ng/dL  
-  // Se > 5 para mulher ou > 1.5 para homem, provavelmente ng/dL não convertido
-  if (v > 5) return v / 100;  // ng/dL → ng/mL
-  return v;
-}}
+⚠️ AGE-SPECIFIC REFERENCE RANGES: ... NEVER return the age range numbers as the reference — return only the value interval.
+Example: DHEA-S for a 31-year-old patient with ranges "20 a 34 anos: 160 a 492 / 35 a 44 anos: 89 a 427" → lab_ref_text = "160 a 492" (NOT "89 a 427").
 ```
-- 19 ng/dL → `19 > 5` → `÷ 100` = 0.19 ng/mL ✓
-- Valor já convertido (0.19 ng/mL) → não mexe ✓
 
-### 3. DHT — adicionar fix para conversão ng/dL → pg/mL
-```typescript
-// ANTES:
-dihidrotestosterona: { min: 0, max: 2000 }
+**File:** `supabase/functions/extract-lab-results/index.ts`, line 635
 
-// DEPOIS:
-dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 5 ? v * 10 : v }
-```
-- 13 ng/dL → `13 ≥ 5` → passa (já no range se AI converteu) ... não, 13 está no range.
+### 2. Fix the stored data for this patient
 
-Melhor abordagem: checar contra referência do lab. Se `lab_ref_max` está em ng/dL (ex: 46), o valor está em ng/dL e precisa `× 10`.
+Update the existing DHEA-S record to use the correct reference range for the patient's age.
 
-Na verdade, a solução mais robusta é **adicionar conversão determinística no pós-processamento** para estes 3 marcadores, usando o `lab_ref_text` como sinal da unidade fonte:
-
-### 4. Pós-processamento determinístico (abordagem principal)
-Adicionar uma etapa após a extração que detecta a unidade fonte pelo `lab_ref_text` e converte deterministicamente:
-
-```typescript
-// No postProcessResults ou equivalente:
-const UNIT_CONVERSIONS = {
-  estradiol:    { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10,   detectRef: (max) => max < 100 },
-  progesterona: { sourceUnit: 'ng/dL', targetUnit: 'ng/mL', factor: 0.01, detectRef: (max) => max > 50 },
-  dihidrotestosterona: { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10, detectRef: (max) => max < 100 },
-};
-```
-Se o `lab_ref_max` indica unidade ng/dL (ex: estradiol ref max 23.3, progesterona ref max 89, DHT ref max 46), aplicar conversão e também converter as referências.
-
-### 5. Corrigir dados existentes no banco
-Migration SQL para corrigir os 3 valores da paciente atual.
-
-## Arquivos a alterar
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `supabase/functions/extract-lab-results/index.ts` | Corrigir sanity fixes + adicionar pós-processamento determinístico |
-| Migration SQL | Corrigir os 3 valores errados no banco |
-
-## Resumo
-- Estradiol: corrigir sanity para não duplicar conversão
-- Progesterona: baixar threshold do sanity
-- DHT: adicionar fix de conversão
-- Adicionar detecção determinística por lab_ref como camada extra de segurança
-- Corrigir dados existentes via migration
+| # | What | Where |
+|---|------|-------|
+| 1 | Add DHEA-S age example to prompt | `supabase/functions/extract-lab-results/index.ts` line 635 |
+| 2 | Fix stored lab_ref_text/min/max | Database update via insert tool |
 
