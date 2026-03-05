@@ -770,9 +770,8 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     ferritina: { min: 1, max: 2000, fix: (v) => v > 2000 ? v / 10 : v },
     ferro_serico: { min: 10, max: 500 },
     ferro_metabolismo: { min: 10, max: 500 },
-    // Zinco: expected µg/dL (50–150). Fleury may report in µg/mL (0.8 µg/mL = 80 µg/dL) or mg/L (0.8 mg/L = 80 µg/dL).
-    // If value < 5 → likely µg/mL or mg/L → ×100 to get µg/dL.
-    zinco: { min: 40, max: 200, fix: (v) => v < 5 ? v * 100 : v, label: "zinco µg/mL→µg/dL" },
+    // Zinco: NO conversion — store as original unit from lab
+    zinco: { min: 0.5, max: 200 },
     // Vitaminas
     vitamina_d: { min: 3, max: 200 },
     vitamina_b12: { min: 50, max: 3000 },
