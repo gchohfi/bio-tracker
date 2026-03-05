@@ -369,7 +369,15 @@ export function generatePatientReport(
         str.replace(/≤/g, '<=').replace(/≥/g, '>=').replace(/–/g, '-').replace(/—/g, '-')
            .replace(/[^\x00-\xFF]/g, ''); // Remove any non-latin1 characters
 
-      const labRefStr = sanitizeForPdf(isQualitative ? (labRef?.text || "—") : formatRefDisplay(displayRef, min, max));
+      // For multi-phase references (cycle/posture), show full text; otherwise use formatted display
+      const isMultiPhase = labRef?.text && labRef.text.includes(" / ");
+      const labRefStr = sanitizeForPdf(
+        isQualitative
+          ? (labRef?.text || "—")
+          : isMultiPhase
+            ? labRef!.text!
+            : formatRefDisplay(displayRef, min, max)
+      );
       // Ref. Funcional removida
 
       const row: any[] = [
