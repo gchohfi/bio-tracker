@@ -275,6 +275,39 @@ describe("Fluxo completo TFG (operador >)", () => {
   });
 });
 
+// ─── Bug fix: Amilase 102 com ref 28-100 deve ser ALTO ───────────────────────
+describe("Amilase status (bug fix)", () => {
+  const amilaseMarker = MARKERS.find((m) => m.id === "amilase")!;
+
+  it("Amilase 102 com lab_ref_text '28 a 100' deve ser high", () => {
+    const ref = resolveReference(amilaseMarker, "F", "28 a 100");
+    expect(ref.min).toBe(28);
+    expect(ref.max).toBe(100);
+    expect(ref.operator).toBe("range");
+    expect(getMarkerStatusFromRef(102, ref)).toBe("high");
+  });
+
+  it("Amilase 100 com ref 28-100 deve ser normal (exatamente no limite)", () => {
+    const ref = resolveReference(amilaseMarker, "F", "28 a 100");
+    expect(getMarkerStatusFromRef(100, ref)).toBe("normal");
+  });
+
+  it("Amilase 100.1 com ref 28-100 deve ser high", () => {
+    const ref = resolveReference(amilaseMarker, "F", "28 a 100");
+    expect(getMarkerStatusFromRef(100.1, ref)).toBe("high");
+  });
+
+  it("Amilase 27 com ref 28-100 deve ser low", () => {
+    const ref = resolveReference(amilaseMarker, "F", "28 a 100");
+    expect(getMarkerStatusFromRef(27, ref)).toBe("low");
+  });
+
+  it("Amilase 75 com ref 28-100 deve ser normal", () => {
+    const ref = resolveReference(amilaseMarker, "F", "28 a 100");
+    expect(getMarkerStatusFromRef(75, ref)).toBe("normal");
+  });
+});
+
 // ─── Clinical Edge Cases ─────────────────────────────────────────────────────
 describe("clinical edge cases — extreme values", () => {
   const find = (id: string) => MARKERS.find((m) => m.id === id)!;

@@ -63,11 +63,21 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
   }, [sessions]);
 
   // Build lookup: resultMap[markerId][sessionId] = value
+  // Fallback: if value is 0/null but text_value contains a parseable number, use that
   const resultMap = useMemo(() => {
     const map: Record<string, Record<string, number>> = {};
     results.forEach((r) => {
       if (!map[r.marker_id]) map[r.marker_id] = {};
-      map[r.marker_id][r.session_id] = r.value ?? 0;
+      let val = r.value ?? 0;
+      // If value is 0 and text_value has a numeric value, parse it as fallback
+      if (val === 0 && r.text_value) {
+        const cleaned = r.text_value.replace(/[.\s]/g, '').replace(',', '.').replace(/[^0-9.\-]/g, '');
+        const parsed = parseFloat(cleaned);
+        if (!isNaN(parsed) && parsed > 0) {
+          val = parsed;
+        }
+      }
+      map[r.marker_id][r.session_id] = val;
     });
     return map;
   }, [results]);
@@ -135,9 +145,37 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
     return getMarkerStatusFromRef(val, ref);
   };
 
+  // Client-side dedup: hide qualitative markers when quantitative counterpart exists in same session
+  const QUAL_QUANT_PAIRS: [string, string][] = [
+    ['urina_hemacias', 'urina_hemacias_quant'],
+    ['urina_leucocitos', 'urina_leucocitos_quant'],
+  ];
+  const hiddenQualMarkers = useMemo(() => {
+    const hidden = new Set<string>();
+    for (const [qualId, quantId] of QUAL_QUANT_PAIRS) {
+      // If both qual and quant have data in any session, hide the qualitative one
+      const qualHasData = resultMap[qualId] || textMap[qualId];
+      const quantHasData = resultMap[quantId];
+      if (qualHasData && quantHasData) {
+        // Check if they share at least one session
+        const qualSessions = new Set([
+          ...Object.keys(resultMap[qualId] || {}),
+          ...Object.keys(textMap[qualId] || {}),
+        ]);
+        const quantSessions = Object.keys(quantHasData);
+        if (quantSessions.some(sid => qualSessions.has(sid))) {
+          hidden.add(qualId);
+        }
+      }
+    }
+    return hidden;
+  }, [resultMap, textMap]);
+
   // Filter markers
   const filteredMarkers = useMemo(() => {
     let markers = activeCategory === "Todos" ? MARKERS : getMarkersByCategory(activeCategory);
+    // Remove qualitative markers that are duplicated by their quantitative counterpart
+    markers = markers.filter(m => !hiddenQualMarkers.has(m.id));
 
     // Filter by panel
     if (panelFilter !== "all") {
