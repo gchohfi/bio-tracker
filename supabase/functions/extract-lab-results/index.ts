@@ -742,41 +742,19 @@ function deduplicateResults(results: any[]): any[] {
 // Post-processing: validate values and fix common decimal/unit errors
 function validateAndFixValues(results: any[], patientSex?: string): any[] {
   // Sanity ranges with auto-fix functions for common Brazilian decimal/unit errors
-  // Sex-aware fix for testosterona_livre:
-  // - Mulheres (F): max lab range is 0.68 ng/dL. Values > 1.0 are suspect pmol/L.
-  // - Homens (M) ou desconhecido: valid range 3–24 ng/dL, only convert > 25.
-  const testosteronaLivreFix = patientSex === 'F'
-    ? (v: number) => v > 1.0 && v <= 700 ? v / 34.7 : v > 700 ? v / 1000 : v
-    : (v: number) => v > 25.0 && v <= 700 ? v / 34.7 : v > 700 ? v / 1000 : (v > 1.5 && v <= 3.0) ? v / 34.7 : v;
+  // No unit conversion — values are stored exactly as the lab reports them.
+  // Only fix decimal errors (e.g., acido_urico 77 → 7.7) and thousands separator issues (e.g., leucocitos 4.65 → 4650).
 
   const sanityRanges: Record<string, { min: number; max: number; fix?: (v: number) => number; label?: string }> = {
     // Hemograma
     leucocitos: { min: 1000, max: 30000, fix: (v) => v < 100 ? v * 1000 : v < 1000 ? v * 1000 : v, label: "leucocitos ×1000" },
     eritrocitos: { min: 1, max: 10, fix: (v) => v > 1000 ? v / 1000000 : v > 10 ? v / 10 : v },
     plaquetas: { min: 50, max: 700, fix: (v) => v > 1000 ? v / 1000 : v },
-    // Hormônios
-    progesterona: { min: 0, max: 50, fix: (v) => v > 5 ? v / 100 : v > 50 ? v / 100 : v, label: "progesterona ng/dL→ng/mL" },
-    estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 10 : v > 5000 ? v / 10 : v, label: "estradiol ng/dL→pg/mL" },
+    // Hormônios — NO conversions, only decimal fixes
     prolactina: { min: 0.5, max: 200, fix: (v) => v > 200 ? v / 100 : v },
     insulina_jejum: { min: 0.5, max: 100, fix: (v) => v > 100 ? v / 100 : v },
     // Eixo GH
-    // IGFBP-3: expected µg/mL (0.5–15). Fleury reports in ng/mL (e.g. 6120 ng/mL = 6.12 µg/mL).
-    // If value > 100 → divide by 1000 (ng/mL → µg/mL). If value > 15 but ≤ 100 → divide by 10.
-    igfbp3: { min: 0.5, max: 15, fix: (v) => v > 100 ? v / 1000 : v > 15 ? v / 10 : v, label: "igfbp3 ng/mL→µg/mL" },
     igf1: { min: 20, max: 1000 },
-    // Andrógenos
-    dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 5 ? v * 10 : v, label: "DHT ng/dL→pg/mL" },
-    // Testosterona Livre: expected ng/dL.
-    // Faixa funcional feminina: 0.10–0.50 ng/dL. Faixa funcional masculina: 5.0–21.0 ng/dL.
-    // Se AI retornar pmol/L (ex: 2–70 pmol/L para mulheres, 170–2400 pmol/L para homens) → ÷34.7.
-    // Se AI retornar pg/mL (ex: 1–20 pg/mL para mulheres, 50–700 pg/mL para homens) → ÷10.
-    // Não converter valores já em ng/dL (0.01–25 ng/dL cobre ambos os sexos).
-    // Testosterona Livre fix: valores > 1.5 ng/dL são suspeitos para mulheres (max normal é 1.07 ng/dL).
-    // Se entre 1.5 e 700 → provavelmente pmol/L ÷ 34.7. Se > 700 → pg/mL ÷ 1000.
-    // Nota: valores masculinos normais são 3-24 ng/dL, então não converter se 3 < v < 25.
-    testosterona_livre: { min: 0.01, max: patientSex === 'F' ? 1.0 : 25.0, fix: testosteronaLivreFix, label: "testosterona_livre pmol→ng/dL (sex-aware)" },
-    // Estrona: expected pg/mL (5–200). If AI returned ng/dL (~0.5–20) → ×10 to get pg/mL.
-    estrona: { min: 5, max: 500, fix: (v) => v < 5 ? v * 10 : v, label: "estrona ng/dL→pg/mL" },
     // Tireoide
     tsh: { min: 0.01, max: 100 },
     t4_livre: { min: 0.1, max: 5 },
