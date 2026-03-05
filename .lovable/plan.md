@@ -1,75 +1,98 @@
 
 
-# Add 6 Missing Markers to MARKER_LIST
+# Correção de Conversões de Unidade: Estradiol, Progesterona e DHT
 
-## Analysis
+## Problemas Identificados
 
-Of the markers listed in BUG-5, most **already exist** in both `markers.ts` and the edge function:
+Os 3 erros têm a mesma causa raiz: **conflito entre conversão da IA e sanity checks no pós-processamento**.
 
-| Marker | Status |
-|--------|--------|
-| Relação A/G, Fibrinogênio, Amilase, Lipase | Already exist |
-| DHL (= LDH, id `ldh`) | Already exists |
-| Celulose, Amido, Gordura (Coprológico) | Amido + Gordura exist; **Celulose missing** |
-| Sangue Oculto (= `copro_sangue`) | Already exists |
-| FAN | Already exists |
-| Aldosterona, Cortisol urinário 24h, Chumbo | Already exist |
-| **Complemento C3/C4** | **Missing** |
-| **Anti-DNA, Anti-Sm** | **Missing** |
-| **Renina** | **Missing** |
-| **Celulose (copro)** | **Missing** |
+### Erro 1 — Estradiol (4.4 ng/dL → 440 pg/mL, deveria ser 44)
+- A IA converte corretamente: 4.4 × 10 = 44 pg/mL
+- Mas o sanity check (linha 702) vê `44 < 50` e aplica `× 10` novamente → 440
+- **Bug**: dupla conversão no sanity fix
 
-## 6 Markers to Add
+### Erro 2 — Progesterona (19 ng/dL → 19 ng/mL, deveria ser 0.19)  
+- A IA não converteu (manteve 19)
+- O sanity check (linha 701) só corrige se `> 50`, então 19 passa direto
+- **Bug**: threshold do sanity muito alto + IA falhou em converter
 
-### File 1: `src/lib/markers.ts`
+### Erro 3 — DHT (13 ng/dL → 13 pg/mL, deveria ser 130)
+- A IA não converteu (manteve 13)
+- O sanity check para DHT (linha 711) não tem função `fix`
+- **Bug**: sem fallback de conversão
 
-Add to the **Imunologia** section (after `fan`/`fator_reumatoide`):
+## Correções Propostas
+
+### 1. Estradiol — remover branch que causa dupla conversão
 ```typescript
-{ id: "complemento_c3",  name: "Complemento C3",  unit: "mg/dL",  category: "Imunologia",
-  labRange: { M: [90, 180], F: [90, 180] }, panel: "Adicional" },
-{ id: "complemento_c4",  name: "Complemento C4",  unit: "mg/dL",  category: "Imunologia",
-  labRange: { M: [10, 40], F: [10, 40] }, panel: "Adicional" },
-{ id: "anti_dna",        name: "Anti-DNA",        unit: "UI/mL",  category: "Imunologia",
-  labRange: { M: [0, 25], F: [0, 25] }, panel: "Adicional" },
-{ id: "anti_sm",         name: "Anti-Sm",         unit: "",       category: "Imunologia",
-  labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
-```
+// ANTES (bugado):
+estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 100 : v < 50 ? v * 10 : v > 5000 ? v / 10 : v }
 
-Add to the **Eixo Adrenal** section (near aldosterona):
+// DEPOIS:
+estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 10 : v > 5000 ? v / 10 : v }
+```
+- `v < 5` (valor em ng/dL não convertido, ex: 4.4) → `× 10` = 44 ✓
+- Valores 5–5000 já estão em pg/mL, não mexer
+
+### 2. Progesterona — adicionar detecção de ng/dL não convertido
 ```typescript
-{ id: "renina",          name: "Renina",          unit: "µUI/mL", category: "Eixo Adrenal",
-  labRange: { M: [2.8, 39.9], F: [2.8, 39.9] }, panel: "Adicional" },
-```
+// ANTES:
+progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v }
 
-Add to the **Fezes** section:
+// DEPOIS (sex-aware):
+progesterona: { min: 0, max: 50, fix: (v) => {
+  // Labs brasileiros reportam ng/dL (ex: 19, 89). Nosso target é ng/mL.
+  // Fase folicular: 0.1-1.5 ng/mL = 10-150 ng/dL
+  // Fase lútea: 5-25 ng/mL = 500-2500 ng/dL  
+  // Se > 5 para mulher ou > 1.5 para homem, provavelmente ng/dL não convertido
+  if (v > 5) return v / 100;  // ng/dL → ng/mL
+  return v;
+}}
+```
+- 19 ng/dL → `19 > 5` → `÷ 100` = 0.19 ng/mL ✓
+- Valor já convertido (0.19 ng/mL) → não mexe ✓
+
+### 3. DHT — adicionar fix para conversão ng/dL → pg/mL
 ```typescript
-{ id: "copro_celulose",  name: "Celulose",        unit: "",       category: "Fezes",
-  labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Padrão" },
+// ANTES:
+dihidrotestosterona: { min: 0, max: 2000 }
+
+// DEPOIS:
+dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 5 ? v * 10 : v }
 ```
+- 13 ng/dL → `13 ≥ 5` → passa (já no range se AI converteu) ... não, 13 está no range.
 
-### File 2: `supabase/functions/extract-lab-results/index.ts`
+Melhor abordagem: checar contra referência do lab. Se `lab_ref_max` está em ng/dL (ex: 46), o valor está em ng/dL e precisa `× 10`.
 
-**MARKER_LIST** — add 6 entries matching the above.
+Na verdade, a solução mais robusta é **adicionar conversão determinística no pós-processamento** para estes 3 marcadores, usando o `lab_ref_text` como sinal da unidade fonte:
 
-**AI prompt aliases section** — add alias mappings:
+### 4. Pós-processamento determinístico (abordagem principal)
+Adicionar uma etapa após a extração que detecta a unidade fonte pelo `lab_ref_text` e converte deterministicamente:
+
+```typescript
+// No postProcessResults ou equivalente:
+const UNIT_CONVERSIONS = {
+  estradiol:    { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10,   detectRef: (max) => max < 100 },
+  progesterona: { sourceUnit: 'ng/dL', targetUnit: 'ng/mL', factor: 0.01, detectRef: (max) => max > 50 },
+  dihidrotestosterona: { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10, detectRef: (max) => max < 100 },
+};
 ```
-IMUNOLOGIA:
-- "COMPLEMENTO C3" / "C3" / "COMPLEMENTO C3, SORO" → complemento_c3
-- "COMPLEMENTO C4" / "C4" / "COMPLEMENTO C4, SORO" → complemento_c4
-- "ANTI-DNA" / "ANTI-DNA NATIVO" / "ANTICORPO ANTI-DNA" / "Anti-dsDNA" → anti_dna
-- "ANTI-SM" / "ANTI-Sm" / "ANTICORPO ANTI-SM" → anti_sm (QUALITATIVE)
+Se o `lab_ref_max` indica unidade ng/dL (ex: estradiol ref max 23.3, progesterona ref max 89, DHT ref max 46), aplicar conversão e também converter as referências.
 
-EIXO ADRENAL:
-- "RENINA" / "ATIVIDADE DE RENINA PLASMÁTICA" / "RENINA DIRETA" / "ARP" → renina
+### 5. Corrigir dados existentes no banco
+Migration SQL para corrigir os 3 valores da paciente atual.
 
-COPROLÓGICO:
-- "CELULOSE" / "CELULOSE DIGERÍVEL" / "CELULOSE VEGETAL" → copro_celulose (QUALITATIVE)
-```
+## Arquivos a alterar
 
-**Cross-check aliases** (`CROSS_CHECK_ALIASES`) — add entries for the 6 new markers.
+| Arquivo | Alteração |
+|---------|-----------|
+| `supabase/functions/extract-lab-results/index.ts` | Corrigir sanity fixes + adicionar pós-processamento determinístico |
+| Migration SQL | Corrigir os 3 valores errados no banco |
 
-**Sanity bounds** — add bounds for quantitative markers (`complemento_c3`, `complemento_c4`, `anti_dna`, `renina`).
-
-### No database migration needed
-Marker IDs are just strings stored in `lab_results.marker_id`. No schema change required.
+## Resumo
+- Estradiol: corrigir sanity para não duplicar conversão
+- Progesterona: baixar threshold do sanity
+- DHT: adicionar fix de conversão
+- Adicionar detecção determinística por lab_ref como camada extra de segurança
+- Corrigir dados existentes via migration
 

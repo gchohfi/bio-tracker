@@ -81,6 +81,7 @@ const MARKER_LIST = [
   { id: "acth", name: "ACTH", unit: "pg/mL" },
   { id: "cortisol_livre_urina", name: "Cortisol Livre (urina 24h)", unit: "µg/24h" },
   { id: "aldosterona", name: "Aldosterona", unit: "ng/dL" },
+  { id: "renina", name: "Renina (Atividade de Renina Plasmática)", unit: "µUI/mL" },
   { id: "dihidrotestosterona", name: "Dihidrotestosterona", unit: "pg/mL" },
   { id: "androstenediona", name: "Androstenediona", unit: "ng/dL" },
   { id: "vitamina_d", name: "Vitamina D (25-OH)", unit: "ng/mL" },
@@ -140,6 +141,10 @@ const MARKER_LIST = [
   { id: "niquel", name: "Níquel", unit: "µg/L" },
   { id: "fan", name: "FAN (Fator Anti-Núcleo)", unit: "", qualitative: true },
   { id: "fator_reumatoide", name: "Fator Reumatoide", unit: "UI/mL" },
+  { id: "complemento_c3", name: "Complemento C3", unit: "mg/dL" },
+  { id: "complemento_c4", name: "Complemento C4", unit: "mg/dL" },
+  { id: "anti_dna", name: "Anti-DNA (Anti-dsDNA)", unit: "UI/mL" },
+  { id: "anti_sm", name: "Anti-Sm", unit: "", qualitative: true },
   { id: "anti_endomisio_iga", name: "Anti-Endomísio IgA", unit: "", qualitative: true },
   { id: "anti_transglutaminase_iga", name: "Anti-Transglutaminase IgA", unit: "U" },
   { id: "g6pd", name: "G6PD (Glicose-6-Fosfato Desidrogenase)", unit: "U/g Hb" },
@@ -208,6 +213,7 @@ const MARKER_LIST = [
   { id: "copro_gordura_quant", name: "Gordura Fecal (%)", unit: "%" },
   { id: "copro_fibras", name: "Fibras Musculares (fezes)", unit: "", qualitative: true },
   { id: "copro_amido", name: "Amido (fezes)", unit: "", qualitative: true },
+  { id: "copro_celulose", name: "Celulose (fezes)", unit: "", qualitative: true },
   { id: "copro_residuos", name: "Resíduos Alimentares (fezes)", unit: "", qualitative: true },
   { id: "copro_ac_graxos", name: "Ácidos Graxos (fezes)", unit: "", qualitative: true },
   { id: "copro_flora", name: "Flora Bacteriana (fezes)", unit: "", qualitative: true },
@@ -425,6 +431,7 @@ EIXO ADRENAL:
   ⚠️ Material is URINE not blood! mcg/24 HORAS = µg/24h.
 - "ALDOSTERONA" / "ALDOSTERONA SÉRICA" / "ALDOSTERONA - SENTADO" / "ALDOSTERONA - DEITADO" / "ALDOSTERONA - EM PÉ" / "ALDOSTERONA, SORO" / "ALDOSTERONA PLASMÁTICA" → aldosterona
   Units: ng/dL. Keep as-is (do NOT convert).
+- "RENINA" / "ATIVIDADE DE RENINA PLASMÁTICA" / "RENINA DIRETA" / "ARP" / "RENINA PLASMÁTICA" / "ATIVIDADE PLASMÁTICA DE RENINA" / "APR" / "RENINA, PLASMA" → renina (unit: µUI/mL, numeric)
 
 ANDRÓGENOS:
 - "DIHIDROTESTOSTERONA" / "DHT" / "D.H.T." / "5-ALFA-DIHIDROTESTOSTERONA" / "5α-DIHIDROTESTOSTERONA" / "DIIDROTESTOSTERONA" / "5α-DHT" / "5-ALFA-DHT" → dihidrotestosterona (use the original unit from the report — do NOT convert)
@@ -522,6 +529,11 @@ INFLAMAÇÃO:
 IMUNOLOGIA:
 - "FAN" / "FAN - FATOR ANTI-NÚCLEO" / "FATOR ANTINÚCLEO" / "ANA" / "FAN (HEP-2)" / "PESQUISA DE FAN" → fan
   QUALITATIVE! Use text_value. Set value=0.
+- "COMPLEMENTO C3" / "C3" / "COMPLEMENTO C3, SORO" / "C3 COMPLEMENTO" → complemento_c3 (unit: mg/dL, numeric)
+- "COMPLEMENTO C4" / "C4" / "COMPLEMENTO C4, SORO" / "C4 COMPLEMENTO" → complemento_c4 (unit: mg/dL, numeric)
+- "ANTI-DNA" / "ANTI-DNA NATIVO" / "ANTICORPO ANTI-DNA" / "Anti-dsDNA" / "ANTICORPOS ANTI-DNA NATIVO" / "ANTI DNA NATIVO" / "ANTI-DNA DE DUPLA HÉLICE" / "ANTI-dsDNA" → anti_dna (unit: UI/mL, numeric)
+- "ANTI-SM" / "ANTI-Sm" / "ANTICORPO ANTI-SM" / "ANTI SM" / "ANTICORPOS ANTI-SM" → anti_sm (QUALITATIVE! Use text_value. Set value=0.)
+- "FATOR REUMATOIDE" / "FR" / "LÁTEX" (in immunology context) → fator_reumatoide
 
 MARCADORES TUMORAIS:
 - "CA 19-9" / "CA 19.9" / "Antígeno CA 19-9" / "Antigeno Carboidrato 19-9" / "CA19-9" / "ANTÍGENO CARBOIDRATO 19.9" / "ANTÍGENO CA 19-9, SORO" → ca_19_9
@@ -578,9 +590,10 @@ URINA TIPO 1 / EAS:
 
 COPROLÓGICO:
 - "COPROLÓGICO FUNCIONAL" / "COPROGRAMA" / "EXAME DE FEZES" / "PROVA FUNCIONAL DAS FEZES" / "PARASITOLÓGICO DE FEZES" / "EPF" → extract ALL sub-items as qualitative
-- Sub-items: copro_cor, copro_consistencia, copro_muco, copro_sangue, copro_leucocitos, copro_hemacias, copro_parasitas, copro_gordura, copro_fibras, copro_amido, copro_residuos, copro_ac_graxos, copro_flora, copro_ph
+- Sub-items: copro_cor, copro_consistencia, copro_muco, copro_sangue, copro_leucocitos, copro_hemacias, copro_parasitas, copro_gordura, copro_fibras, copro_amido, copro_celulose, copro_residuos, copro_ac_graxos, copro_flora, copro_ph
 - "Resíduos Alimentares" / "Restos Alimentares" / "Resíduos Vegetais" → copro_residuos
 - "Ácidos Graxos" / "Ácidos Gordurosos" → copro_ac_graxos
+- "Celulose" / "Celulose Digerível" / "Celulose Vegetal" / "Celulose Não Digerível" → copro_celulose (QUALITATIVE)
 - "Flora Bacteriana" / "Flora Intestinal" → copro_flora
 - "Hemácias" (in fezes context) / "Eritrócitos" (fezes) → copro_hemacias
 
@@ -2563,6 +2576,12 @@ const MARKER_TEXT_TERMS: Record<string, string[]> = {
   copro_ac_graxos: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'ácidos graxos', 'acidos graxos'],
   copro_flora: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'flora'],
   copro_ph: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'ph'],
+  copro_celulose: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'celulose'],
+  complemento_c3: ['complemento c3', 'c3 complemento', 'c3'],
+  complemento_c4: ['complemento c4', 'c4 complemento', 'c4'],
+  anti_dna: ['anti-dna', 'anti dna', 'anti-dsdna', 'anticorpo anti-dna'],
+  anti_sm: ['anti-sm', 'anti sm', 'anticorpo anti-sm'],
+  renina: ['renina', 'atividade de renina', 'arp'],
 };
 
 function crossCheckAllMarkers(results: any[], pdfText: string, beforeFallbackIds: Set<string>): any[] {

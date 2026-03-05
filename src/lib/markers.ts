@@ -262,6 +262,9 @@ export const MARKERS: MarkerDef[] = [
   { id: "aldosterona",     name: "Aldosterona",     unit: "ng/dL",        category: "Eixo Adrenal",
     labRange: { M: [2.5, 39.2], F: [2.5, 39.2] }, panel: "Adicional" },
 
+  { id: "renina",           name: "Renina",          unit: "µUI/mL",       category: "Eixo Adrenal",
+    labRange: { M: [2.8, 39.9], F: [2.8, 39.9] }, panel: "Adicional" },
+
   // ── Andrógenos ────────────────────────────────────────────────────────────
   { id: "dihidrotestosterona", name: "Dihidrotestosterona", unit: "pg/mL", category: "Andrógenos",
     labRange: { M: [250, 990], F: [16, 79] }, panel: "Padrão" },
@@ -451,6 +454,18 @@ export const MARKERS: MarkerDef[] = [
 
   { id: "g6pd",            name: "G6PD (Glicose-6-Fosfato Desidrogenase)", unit: "U/g Hb", category: "Imunologia",
     labRange: { M: [6.7, 999], F: [6.7, 999] }, panel: "Adicional" },
+
+  { id: "complemento_c3",  name: "Complemento C3",  unit: "mg/dL",        category: "Imunologia",
+    labRange: { M: [90, 180], F: [90, 180] }, panel: "Adicional" },
+
+  { id: "complemento_c4",  name: "Complemento C4",  unit: "mg/dL",        category: "Imunologia",
+    labRange: { M: [10, 40], F: [10, 40] }, panel: "Adicional" },
+
+  { id: "anti_dna",         name: "Anti-DNA",        unit: "UI/mL",        category: "Imunologia",
+    labRange: { M: [0, 25], F: [0, 25] }, panel: "Adicional" },
+
+  { id: "anti_sm",          name: "Anti-Sm",         unit: "",             category: "Imunologia",
+    labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
 
   // ── Sorologia Infecciosa ──────────────────────────────────────────────────
   { id: "hiv",             name: "HIV 1/2 (Anticorpos e Antígeno)", unit: "", category: "Sorologia",
@@ -654,6 +669,9 @@ export const MARKERS: MarkerDef[] = [
 
   { id: "copro_ph",        name: "pH Fecal",          unit: "",             category: "Fezes",
     labRange: { M: [6.0, 7.5], F: [6.0, 7.5] }, panel: "Adicional" },
+
+  { id: "copro_celulose",  name: "Celulose",          unit: "",             category: "Fezes",
+    labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Padrão" },
 
   // ── PSA ───────────────────────────────────────────────────────────────────
   { id: "psa_total",       name: "PSA Total",         unit: "ng/mL",        category: "Hormônios",
