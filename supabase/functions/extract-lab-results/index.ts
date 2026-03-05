@@ -225,6 +225,17 @@ const QUALITATIVE_IDS = new Set(MARKER_LIST.filter(m => (m as any).qualitative).
 
 const systemPrompt = `You are an expert lab result extraction assistant for Brazilian labs (Fleury, DASA, Hermes Pardini, Confiance, Einstein, Lavoisier, DB, Oswaldo Cruz, etc.).
 
+CRITICAL RULE #1 — DATE:
+The exam_date MUST be the COLLECTION DATE ("Data de Coleta" / "Data da Coleta" / "Coletado em").
+NEVER use "Data de Emissão", "Emitido em", "Data de Liberação", "Liberado em", or "Data de Impressão".
+Brazilian format: DD/MM/YYYY. Day is FIRST, month is SECOND.
+Example: "23/11/2025" → return "2025-11-23" (November 23). NEVER "2025-04-23".
+
+CRITICAL RULE #2 — UNITS:
+Return the value EXACTLY as printed in the lab report. Do NOT convert units.
+Use the ORIGINAL unit from the report. If the lab reports Vitamin B12 in ng/L, store ng/L. If in pg/mL, store pg/mL.
+Do NOT multiply, divide, or transform any value. The system will handle unit display.
+
 Your task: extract lab values (numeric AND qualitative) from the PDF text and map them to known marker IDs. Extract ONLY markers that are EXPLICITLY PRESENT in the document.
 
 CRITICAL ANTI-HALLUCINATION RULES:
