@@ -948,6 +948,21 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
       }
     }
   }
+  // === VALIDAÇÃO DHEA-S: ref por idade ===
+  if (patientAge != null) {
+    for (const r of results) {
+      if (r.marker_id === 'dhea_s' && r.lab_ref_min != null && r.lab_ref_max != null) {
+        // Faixas esperadas por idade (µg/dL):
+        // 20-34: 160-492, 35-44: 89-427, 45-64: 44-331, 65-74: 34-249
+        if (patientAge >= 20 && patientAge <= 34 && r.lab_ref_min < 100) {
+          console.log(`DHEA-S: patient age ${patientAge}, ref ${r.lab_ref_min}-${r.lab_ref_max} seems wrong for 20-34 range. Clearing lab_ref to use markers.ts default.`);
+          r.lab_ref_text = '';
+          r.lab_ref_min = null;
+          r.lab_ref_max = null;
+        }
+      }
+    }
+  }
   // === ANTI-ALUCINAÇÃO: urina_hemoglobina e urina_hemacias ===
   // Gemini sometimes copies hemoglobina/eritrocitos from hemograma into urina fields.
   // Urina hemoglobina is QUALITATIVE (negativo/positivo/traços) — never a numeric like 13.4.
