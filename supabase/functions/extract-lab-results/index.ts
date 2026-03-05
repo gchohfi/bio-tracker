@@ -745,7 +745,7 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
   // No unit conversion — values are stored exactly as the lab reports them.
   // Only fix decimal errors (e.g., acido_urico 77 → 7.7) and thousands separator issues (e.g., leucocitos 4.65 → 4650).
 
-  const sanityRanges: Record<string, { min: number; max: number; fix?: (v: number) => number; label?: string }> = {
+  const sanityRanges: Record<string, { min: number; max: number; fix?: (v: number, unit?: string) => number; label?: string }> = {
     // Hemograma
     leucocitos: { min: 1000, max: 30000, fix: (v) => v < 100 ? v * 1000 : v < 1000 ? v * 1000 : v, label: "leucocitos ×1000" },
     eritrocitos: { min: 1, max: 10, fix: (v) => v > 1000 ? v / 1000000 : v > 10 ? v / 10 : v },
