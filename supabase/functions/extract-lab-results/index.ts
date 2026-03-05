@@ -880,6 +880,34 @@ function validateAndFixValues(results: any[], patientSex?: string, patientAge?: 
     transferrina:          { min: 100, max: 500, fix: (v) => v < 100 ? v * 10 : v, label: "transferrina ×10" },
   };
 
+  // ── Conversão de unidade PCR: mg/dL → mg/L ──
+  // PCR target unit é mg/L. Alguns labs reportam em mg/dL (10x menor).
+  // Detectar pela referência: se lab_ref_text menciona "mg/dL" ou ref_max <= 1 (indicando mg/dL), converter.
+  for (const r of results) {
+    if (r.marker_id !== 'pcr') continue;
+    if (typeof r.value !== 'number' || r.value === 0) continue;
+    const refText = (r.lab_ref_text || '').toLowerCase();
+    const isInMgDl = refText.includes('mg/dl') || 
+                     (r.value > 0 && r.value < 0.5 && !refText.includes('mg/l'));
+    if (isInMgDl) {
+      const original = r.value;
+      r.value = r.value * 10;
+      console.log(`PCR unit conversion mg/dL→mg/L: ${original} → ${r.value}`);
+      // Também converter lab_ref_min e lab_ref_max se existem e parecem mg/dL
+      if (typeof r.lab_ref_max === 'number' && r.lab_ref_max <= 10) {
+        console.log(`PCR ref conversion mg/dL→mg/L: max ${r.lab_ref_max} → ${r.lab_ref_max * 10}`);
+        r.lab_ref_max = r.lab_ref_max * 10;
+      }
+      if (typeof r.lab_ref_min === 'number' && r.lab_ref_min > 0 && r.lab_ref_min < 1) {
+        r.lab_ref_min = r.lab_ref_min * 10;
+      }
+      // Limpar lab_ref_text para usar mg/L
+      if (r.lab_ref_text) {
+        r.lab_ref_text = r.lab_ref_text.replace(/mg\/dL/gi, 'mg/L');
+      }
+    }
+  }
+
   for (const r of results) {
     if (typeof r.value !== "number") continue;
     if (QUALITATIVE_IDS.has(r.marker_id)) continue;
