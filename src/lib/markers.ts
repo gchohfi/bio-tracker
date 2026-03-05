@@ -267,7 +267,7 @@ export const MARKERS: MarkerDef[] = [
 
   // ── Andrógenos ────────────────────────────────────────────────────────────
   { id: "dihidrotestosterona", name: "Dihidrotestosterona", unit: "pg/mL", category: "Andrógenos",
-    labRange: { M: [250, 990], F: [16, 79] }, panel: "Padrão" },
+    labRange: { M: [250, 990], F: [0, 460] }, panel: "Padrão" },
 
   { id: "androstenediona", name: "Androstenediona",  unit: "ng/dL",        category: "Andrógenos",
     labRange: { M: [45, 157], F: [39, 165] }, panel: "Padrão" },
