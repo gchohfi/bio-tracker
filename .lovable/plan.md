@@ -1,98 +1,45 @@
 
 
-# Correção de Conversões de Unidade: Estradiol, Progesterona e DHT
+## Bugs Identificados
 
-## Problemas Identificados
+### Bug 1: Leucócitos absolutos (abs) — valores em mil/mm³ não multiplicados por 1000
 
-Os 3 erros têm a mesma causa raiz: **conflito entre conversão da IA e sanity checks no pós-processamento**.
+O laudo reporta em "mil/mm³" (ex: 0.27 mil/mm³ = 270 /mm³). O prompt já instrui a IA a extrair em /mm³ (ex: 3250), mas a IA está extraindo o valor bruto do laudo sem converter (ex: 0.27 em vez de 270).
 
-### Erro 1 — Estradiol (4.4 ng/dL → 440 pg/mL, deveria ser 44)
-- A IA converte corretamente: 4.4 × 10 = 44 pg/mL
-- Mas o sanity check (linha 702) vê `44 < 50` e aplica `× 10` novamente → 440
-- **Bug**: dupla conversão no sanity fix
+**Causa raiz**: Não há sanity check para os marcadores `_abs`. O `leucocitos` tem fix (`v < 100 → v * 1000`), mas `neutrofilos_abs`, `linfocitos_abs`, `monocitos_abs`, `eosinofilos_abs`, `basofilos_abs` não têm nenhuma entrada no `sanityRanges`.
 
-### Erro 2 — Progesterona (19 ng/dL → 19 ng/mL, deveria ser 0.19)  
-- A IA não converteu (manteve 19)
-- O sanity check (linha 701) só corrige se `> 50`, então 19 passa direto
-- **Bug**: threshold do sanity muito alto + IA falhou em converter
-
-### Erro 3 — DHT (13 ng/dL → 13 pg/mL, deveria ser 130)
-- A IA não converteu (manteve 13)
-- O sanity check para DHT (linha 711) não tem função `fix`
-- **Bug**: sem fallback de conversão
-
-## Correções Propostas
-
-### 1. Estradiol — remover branch que causa dupla conversão
+**Correção**: Adicionar sanity ranges para todos os 5 marcadores `_abs`:
 ```typescript
-// ANTES (bugado):
-estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 100 : v < 50 ? v * 10 : v > 5000 ? v / 10 : v }
-
-// DEPOIS:
-estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 10 : v > 5000 ? v / 10 : v }
+neutrofilos_abs: { min: 100, max: 15000, fix: (v) => v < 10 ? v * 1000 : v },
+linfocitos_abs:  { min: 100, max: 10000, fix: (v) => v < 10 ? v * 1000 : v },
+monocitos_abs:   { min: 10,  max: 3000,  fix: (v) => v < 1 ? v * 1000 : v },
+eosinofilos_abs: { min: 10,  max: 3000,  fix: (v) => v < 1 ? v * 1000 : v },
+basofilos_abs:   { min: 1,   max: 500,   fix: (v) => v < 1 ? v * 1000 : v },
 ```
-- `v < 5` (valor em ng/dL não convertido, ex: 4.4) → `× 10` = 44 ✓
-- Valores 5–5000 já estão em pg/mL, não mexer
 
-### 2. Progesterona — adicionar detecção de ng/dL não convertido
+Adicionalmente, reforçar a instrução no prompt para que a IA já multiplique por 1000 quando o laudo usar "mil/mm³".
+
+### Bug 2: Transferrina 280 → 28
+
+O valor 280 foi lido como 28. Isso é o bug clássico do separador de milhar brasileiro — o laudo provavelmente mostra "280" mas o ponto decimal no contexto do PDF pode ter causado perda do zero, ou a IA truncou.
+
+**Causa raiz**: Transferrina não tem entrada no `sanityRanges`. O range normal é 200-360 mg/dL, então 28 deveria ter sido detectado como anômalo.
+
+**Correção**: Adicionar sanity range para transferrina:
 ```typescript
-// ANTES:
-progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v }
-
-// DEPOIS (sex-aware):
-progesterona: { min: 0, max: 50, fix: (v) => {
-  // Labs brasileiros reportam ng/dL (ex: 19, 89). Nosso target é ng/mL.
-  // Fase folicular: 0.1-1.5 ng/mL = 10-150 ng/dL
-  // Fase lútea: 5-25 ng/mL = 500-2500 ng/dL  
-  // Se > 5 para mulher ou > 1.5 para homem, provavelmente ng/dL não convertido
-  if (v > 5) return v / 100;  // ng/dL → ng/mL
-  return v;
-}}
+transferrina: { min: 100, max: 500, fix: (v) => v < 100 ? v * 10 : v },
 ```
-- 19 ng/dL → `19 > 5` → `÷ 100` = 0.19 ng/mL ✓
-- Valor já convertido (0.19 ng/mL) → não mexe ✓
+Isso corrige 28 → 280.
 
-### 3. DHT — adicionar fix para conversão ng/dL → pg/mL
-```typescript
-// ANTES:
-dihidrotestosterona: { min: 0, max: 2000 }
-
-// DEPOIS:
-dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 5 ? v * 10 : v }
-```
-- 13 ng/dL → `13 ≥ 5` → passa (já no range se AI converteu) ... não, 13 está no range.
-
-Melhor abordagem: checar contra referência do lab. Se `lab_ref_max` está em ng/dL (ex: 46), o valor está em ng/dL e precisa `× 10`.
-
-Na verdade, a solução mais robusta é **adicionar conversão determinística no pós-processamento** para estes 3 marcadores, usando o `lab_ref_text` como sinal da unidade fonte:
-
-### 4. Pós-processamento determinístico (abordagem principal)
-Adicionar uma etapa após a extração que detecta a unidade fonte pelo `lab_ref_text` e converte deterministicamente:
-
-```typescript
-// No postProcessResults ou equivalente:
-const UNIT_CONVERSIONS = {
-  estradiol:    { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10,   detectRef: (max) => max < 100 },
-  progesterona: { sourceUnit: 'ng/dL', targetUnit: 'ng/mL', factor: 0.01, detectRef: (max) => max > 50 },
-  dihidrotestosterona: { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10, detectRef: (max) => max < 100 },
-};
-```
-Se o `lab_ref_max` indica unidade ng/dL (ex: estradiol ref max 23.3, progesterona ref max 89, DHT ref max 46), aplicar conversão e também converter as referências.
-
-### 5. Corrigir dados existentes no banco
-Migration SQL para corrigir os 3 valores da paciente atual.
-
-## Arquivos a alterar
+## Arquivo a alterar
 
 | Arquivo | Alteração |
-|---------|-----------|
-| `supabase/functions/extract-lab-results/index.ts` | Corrigir sanity fixes + adicionar pós-processamento determinístico |
-| Migration SQL | Corrigir os 3 valores errados no banco |
+|---|---|
+| `supabase/functions/extract-lab-results/index.ts` | Adicionar sanity ranges para 5 marcadores `_abs` + transferrina. Reforçar instrução de "mil/mm³" no prompt. |
 
-## Resumo
-- Estradiol: corrigir sanity para não duplicar conversão
-- Progesterona: baixar threshold do sanity
-- DHT: adicionar fix de conversão
-- Adicionar detecção determinística por lab_ref como camada extra de segurança
-- Corrigir dados existentes via migration
+## Resumo das mudanças
+
+1. **6 novas entradas em `sanityRanges`**: neutrofilos_abs, linfocitos_abs, monocitos_abs, eosinofilos_abs, basofilos_abs, transferrina
+2. **Reforço no prompt**: instruir explicitamente a multiplicar por 1000 quando a unidade for "mil/mm³" ou "x10³/mm³"
+3. Os dados existentes no banco precisarão ser reimportados (não corrigíveis via migration pois dependem do laudo específico)
 
