@@ -231,7 +231,7 @@ export const MARKERS: MarkerDef[] = [
     labRange: { M: [6.2, 19.4], F: [6.2, 19.4] }, panel: "Padrão" },
 
   { id: "shbg",            name: "SHBG",            unit: "nmol/L",       category: "Hormônios",
-    labRange: { M: [10, 57], F: [18, 144] }, panel: "Padrão" },
+    labRange: { M: [10, 57], F: [32.4, 128] }, panel: "Padrão" },
 
   { id: "fsh",             name: "FSH",             unit: "mUI/mL",       category: "Hormônios",
     labRange: { M: [1.5, 12.4], F: [3.5, 12.5] }, panel: "Padrão" },
