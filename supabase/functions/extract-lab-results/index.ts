@@ -1107,11 +1107,15 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     const quantId = QUALITATIVE_TO_QUANT_MAP[r.marker_id];
     if (!quantId) continue;
 
-    // Detect quantitative value in qualitative marker: text_value contains /mL or numeric value > 50
+    // Detect quantitative value in qualitative marker:
+    // - text_value contains /mL unit
+    // - text_value contains a numeric pattern (e.g., "23.500", "1300")
+    // - numeric value > 50
     const hasMLUnit = typeof r.text_value === 'string' && /\/mL/i.test(r.text_value);
+    const hasNumericTextValue = typeof r.text_value === 'string' && /^\d[\d.\s]*\s*\/?\s*m?L?$/i.test(r.text_value.trim());
     const hasHighNumeric = typeof r.value === 'number' && r.value > 50;
 
-    if (hasMLUnit || hasHighNumeric) {
+    if (hasMLUnit || hasNumericTextValue || hasHighNumeric) {
       // Check if the quantitative marker already exists
       const quantExists = results.some((q: any) => q.marker_id === quantId && !q._remove);
       if (quantExists) {

@@ -1,39 +1,98 @@
 
 
-## Correção de 2 Bugs: Amilase Status + Hemácias Urina Duplicadas
+# Correção de Conversões de Unidade: Estradiol, Progesterona e DHT
 
-### Bug 1 — Amilase 102 com ref 28-100 mostrando Normal
+## Problemas Identificados
 
-**Investigação**: Tracei toda a cadeia de cálculo de status (`resolveReference` → `getMarkerStatusFromRef`) e a lógica parece correta: 102 > 100 deveria retornar 'high'. O `parseLabReference("28 a 100")` retorna corretamente `{min: 28, max: 100, operator: 'range'}` e o sanity check passa.
+Os 3 erros têm a mesma causa raiz: **conflito entre conversão da IA e sanity checks no pós-processamento**.
 
-**Causa provável**: O problema pode estar na view que o usuário está vendo (há 3 caminhos distintos de cálculo de status: `EvolutionTable`, `PatientDetail`, `EditReportDialog` e `generateReport`). Cada um chama `getMarkerStatus` ou `getMarkerStatusFromRef` de forma ligeiramente diferente. Vou unificar e adicionar proteção.
+### Erro 1 — Estradiol (4.4 ng/dL → 440 pg/mL, deveria ser 44)
+- A IA converte corretamente: 4.4 × 10 = 44 pg/mL
+- Mas o sanity check (linha 702) vê `44 < 50` e aplica `× 10` novamente → 440
+- **Bug**: dupla conversão no sanity fix
 
-**Correções**:
-1. Em `EvolutionTable.tsx`: a função `getStatusWithOperator` (linha 123) recebe o valor do `resultMap` que usa `r.value ?? 0`. Se por algum motivo `r.value` é `null` e o valor real está em `text_value`, o status é calculado com 0 (que está dentro do range 28-100 → normal). Vou adicionar fallback para parsear `text_value` quando `val === 0` e text_value contém um número.
-2. Garantir que `getMarkerStatusFromRef` para operator `'range'` usa comparação estrita: `value > max → high`, `value < min → low`. (Já está assim, mas vou adicionar testes específicos para amilase).
-3. Adicionar teste unitário para amilase 102 vs ref 28-100.
+### Erro 2 — Progesterona (19 ng/dL → 19 ng/mL, deveria ser 0.19)  
+- A IA não converteu (manteve 19)
+- O sanity check (linha 701) só corrige se `> 50`, então 19 passa direto
+- **Bug**: threshold do sanity muito alto + IA falhou em converter
 
-### Bug 2 — Hemácias urina duplicadas
+### Erro 3 — DHT (13 ng/dL → 13 pg/mL, deveria ser 130)
+- A IA não converteu (manteve 13)
+- O sanity check para DHT (linha 711) não tem função `fix`
+- **Bug**: sem fallback de conversão
 
-**Causa confirmada via banco**: Ambos `urina_hemacias` e `urina_hemacias_quant` estão sendo salvos. Dados no banco mostram:
-- `urina_hemacias`: value=0, text_value="23.500 /mL", lab_ref_text="Até 23.000 /mL" 
-- `urina_hemacias_quant`: value=23500, lab_ref_text="Até 23.000 /mL"
+## Correções Propostas
 
-O `urina_hemacias` é qualitativo (deveria ter texto como "Raras"/"Ausentes"), mas recebeu valor quantitativo "23.500 /mL". O cross-dedup no edge function (linha 753-767) deveria remover o qualitativo quando ambos existem, mas aparentemente não está funcionando para todos os casos.
+### 1. Estradiol — remover branch que causa dupla conversão
+```typescript
+// ANTES (bugado):
+estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 100 : v < 50 ? v * 10 : v > 5000 ? v / 10 : v }
 
-**Correções**:
-1. Em `supabase/functions/extract-lab-results/index.ts`: fortalecer o `QUALITATIVE_TO_QUANT_MAP` redirect (linha 1098-1104) para garantir que quando `urina_hemacias` recebe um valor numérico (ex: "23.500 /mL"), ele é convertido para `urina_hemacias_quant` com o valor numérico parseado.
-2. Melhorar o cross-dedup para também comparar quando o qualitativo tem `value=0` mas `text_value` contém número (indicando que foi mapeado incorretamente).
-3. No frontend (`EvolutionTable.tsx`): adicionar dedup client-side como safety net — se ambos `urina_hemacias` e `urina_hemacias_quant` existem na mesma sessão, esconder o qualitativo.
+// DEPOIS:
+estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 10 : v > 5000 ? v / 10 : v }
+```
+- `v < 5` (valor em ng/dL não convertido, ex: 4.4) → `× 10` = 44 ✓
+- Valores 5–5000 já estão em pg/mL, não mexer
 
-### Arquivos a alterar
+### 2. Progesterona — adicionar detecção de ng/dL não convertido
+```typescript
+// ANTES:
+progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v }
+
+// DEPOIS (sex-aware):
+progesterona: { min: 0, max: 50, fix: (v) => {
+  // Labs brasileiros reportam ng/dL (ex: 19, 89). Nosso target é ng/mL.
+  // Fase folicular: 0.1-1.5 ng/mL = 10-150 ng/dL
+  // Fase lútea: 5-25 ng/mL = 500-2500 ng/dL  
+  // Se > 5 para mulher ou > 1.5 para homem, provavelmente ng/dL não convertido
+  if (v > 5) return v / 100;  // ng/dL → ng/mL
+  return v;
+}}
+```
+- 19 ng/dL → `19 > 5` → `÷ 100` = 0.19 ng/mL ✓
+- Valor já convertido (0.19 ng/mL) → não mexe ✓
+
+### 3. DHT — adicionar fix para conversão ng/dL → pg/mL
+```typescript
+// ANTES:
+dihidrotestosterona: { min: 0, max: 2000 }
+
+// DEPOIS:
+dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 5 ? v * 10 : v }
+```
+- 13 ng/dL → `13 ≥ 5` → passa (já no range se AI converteu) ... não, 13 está no range.
+
+Melhor abordagem: checar contra referência do lab. Se `lab_ref_max` está em ng/dL (ex: 46), o valor está em ng/dL e precisa `× 10`.
+
+Na verdade, a solução mais robusta é **adicionar conversão determinística no pós-processamento** para estes 3 marcadores, usando o `lab_ref_text` como sinal da unidade fonte:
+
+### 4. Pós-processamento determinístico (abordagem principal)
+Adicionar uma etapa após a extração que detecta a unidade fonte pelo `lab_ref_text` e converte deterministicamente:
+
+```typescript
+// No postProcessResults ou equivalente:
+const UNIT_CONVERSIONS = {
+  estradiol:    { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10,   detectRef: (max) => max < 100 },
+  progesterona: { sourceUnit: 'ng/dL', targetUnit: 'ng/mL', factor: 0.01, detectRef: (max) => max > 50 },
+  dihidrotestosterona: { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10, detectRef: (max) => max < 100 },
+};
+```
+Se o `lab_ref_max` indica unidade ng/dL (ex: estradiol ref max 23.3, progesterona ref max 89, DHT ref max 46), aplicar conversão e também converter as referências.
+
+### 5. Corrigir dados existentes no banco
+Migration SQL para corrigir os 3 valores da paciente atual.
+
+## Arquivos a alterar
 
 | Arquivo | Alteração |
-|---|---|
-| `supabase/functions/extract-lab-results/index.ts` | Fortalecer cross-dedup e QUALITATIVE_TO_QUANT_MAP para hemácias urina |
-| `src/components/EvolutionTable.tsx` | Dedup client-side + fallback de valor para text_value quando value=0 |
-| `src/test/markers.test.ts` | Adicionar teste para amilase 102 vs 28-100 |
+|---------|-----------|
+| `supabase/functions/extract-lab-results/index.ts` | Corrigir sanity fixes + adicionar pós-processamento determinístico |
+| Migration SQL | Corrigir os 3 valores errados no banco |
 
-### Sem migração necessária
-Os dados existentes de hemácias duplicadas serão resolvidos na próxima importação. A dedup client-side garante que não apareçam duplicados imediatamente.
+## Resumo
+- Estradiol: corrigir sanity para não duplicar conversão
+- Progesterona: baixar threshold do sanity
+- DHT: adicionar fix de conversão
+- Adicionar detecção determinística por lab_ref como camada extra de segurança
+- Corrigir dados existentes via migration
 
