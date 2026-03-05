@@ -934,6 +934,18 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
       }
     }
   }
+  // === VALIDAÇÃO DE REFERÊNCIA POR SEXO ===
+  if (patientSex) {
+    for (const r of results) {
+      if (!r.lab_ref_text) continue;
+      const text = String(r.lab_ref_text);
+      const hasBothSexes = /\b(homens?|masculino)\b/i.test(text) && /\b(mulheres?|feminino)\b/i.test(text);
+      if (hasBothSexes) {
+        console.log(`Clearing ambiguous sex-specific lab_ref_text for ${r.marker_id}: "${text}"`);
+        r.lab_ref_text = '';
+      }
+    }
+  }
   // === ANTI-ALUCINAÇÃO: urina_hemoglobina e urina_hemacias ===
   // Gemini sometimes copies hemoglobina/eritrocitos from hemograma into urina fields.
   // Urina hemoglobina is QUALITATIVE (negativo/positivo/traços) — never a numeric like 13.4.
