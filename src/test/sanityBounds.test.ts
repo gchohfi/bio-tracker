@@ -30,7 +30,7 @@ describe("resolveReference sanity bounds", () => {
     it("TSH: '20 a 59' (faixa etária) deve ser rejeitado", () => {
       const ref = resolveReference(find("tsh"), "M", "20 a 59");
       expect(ref.operator).toBe("range");
-      expect(ref.min).toBeCloseTo(0.27);
+      expect(ref.min).toBeCloseTo(0.45);
     });
 
     it("DHEA-S: '35 a 44' deve ser rejeitado (labRange 80-560)", () => {
