@@ -184,8 +184,8 @@ export const MARKERS: MarkerDef[] = [
   { id: "t4_total",        name: "T4 Total",        unit: "µg/dL",        category: "Tireoide",
     labRange: { M: [5.1, 14.1], F: [5.1, 14.1] }, panel: "Adicional" },
 
-  { id: "t3_livre",        name: "T3 Livre",        unit: "ng/dL",        category: "Tireoide",
-    labRange: { M: [0.20, 0.44], F: [0.20, 0.44] }, panel: "Padrão" },
+  { id: "t3_livre",        name: "T3 Livre",        unit: "pg/mL",        category: "Tireoide",
+    labRange: { M: [2.0, 4.4], F: [2.0, 4.4] }, panel: "Padrão" },
 
   { id: "t3_total",        name: "T3 Total",        unit: "ng/dL",        category: "Tireoide",
     labRange: { M: [80, 200], F: [80, 200] }, panel: "Padrão" },
