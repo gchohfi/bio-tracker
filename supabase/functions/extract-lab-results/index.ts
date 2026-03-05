@@ -893,6 +893,17 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     }
   }
 
+  // Fix lab references for absolute WBC markers that came in mil/mm³
+  const absWbcMarkers = new Set(['neutrofilos_abs', 'linfocitos_abs', 'monocitos_abs', 'eosinofilos_abs', 'basofilos_abs']);
+  for (const r of results) {
+    if (!absWbcMarkers.has(r.marker_id)) continue;
+    if (typeof r.lab_ref_max === 'number' && r.lab_ref_max < 20) {
+      console.log(`[wbc-ref-fix] Multiplying lab_ref for ${r.marker_id}: ${r.lab_ref_min}-${r.lab_ref_max} → ${(r.lab_ref_min || 0) * 1000}-${r.lab_ref_max * 1000}`);
+      if (typeof r.lab_ref_min === 'number') r.lab_ref_min = r.lab_ref_min * 1000;
+      r.lab_ref_max = r.lab_ref_max * 1000;
+    }
+  }
+
   // UNIT_CONVERSIONS removed — values are stored exactly as the lab reports them.
 
   // Round all numeric values to avoid floating point artifacts (e.g. 0.1270893371757925 → 0.1271)
