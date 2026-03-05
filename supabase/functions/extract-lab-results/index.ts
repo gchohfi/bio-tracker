@@ -513,6 +513,7 @@ FERRO:
 - "Ferritina" / "FERRITINA SÉRICA" / "FERRITINA, SORO" → ferritina. microg/L = ng/mL.
 - "Transferrina" / "TRANSFERRINA SÉRICA" / "TRANSFERRINA, SORO" → transferrina
 - "Saturação de Transferrina" / "Índice de Saturação" / "ÍNDICE DE SATURAÇÃO DA TRANSFERRINA" / "IST" / "SATURAÇÃO DA TRANSFERRINA" → sat_transferrina
+   ⚠️ ATENÇÃO para Transferrina vs Saturação de Transferrina: Transferrina é medida em mg/dL (valores normais 200-360). Saturação de Transferrina é medida em % (valores normais 15-50%). Se o valor extraído para 'transferrina' for menor que 50, provavelmente é a Saturação de Transferrina e deve ir no campo 'sat_transferrina' em vez de 'transferrina'.
 - "TIBC" / "Capacidade Total de Fixação do Ferro" / "CTFF" / "Capacidade Total de Ligação do Ferro" / "Capacidade Ferropéxica Total" / "CTLF" → tibc
   If µmol/L → ÷0.179.
 - "Capacidade de Fixação Latente do Ferro" / "UIBC" / "Capacidade livre de fixação" / "CLFF" → fixacao_latente_ferro (NOT tibc)
