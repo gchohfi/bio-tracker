@@ -485,15 +485,33 @@ describe("postProcessResults — cálculos derivados automáticos", () => {
       expect(getCalculated(out, "psa_ratio")).toBeUndefined();
     });
 
-    it("não sobrescreve se psa_ratio já existe no laudo", () => {
+    it("não sobrescreve se psa_ratio já existe no laudo com valor >= 1", () => {
       const results = [
         mkResult("psa_livre", 0.19),
         mkResult("psa_total", 0.69),
-        mkResult("psa_ratio", 30), // já extraído do laudo
+        mkResult("psa_ratio", 30), // já extraído do laudo como %
       ];
       const out = postProcessResults(results);
       const vals = out.filter(r => r.marker_id === "psa_ratio").map(r => r.value);
       expect(vals).toEqual([30]);
+    });
+
+    it("corrige psa_ratio extraído como fração 0.28 → recalcula 27.5%", () => {
+      const results = [
+        mkResult("psa_livre", 0.19),
+        mkResult("psa_total", 0.69),
+        mkResult("psa_ratio", 0.28), // fração em vez de %
+      ];
+      const out = postProcessResults(results);
+      expect(getCalculated(out, "psa_ratio")).toBe(27.5);
+    });
+
+    it("corrige psa_ratio fração mesmo sem psa_livre/psa_total: 0.50 → 50.0", () => {
+      const results = [
+        mkResult("psa_ratio", 0.50),
+      ];
+      const out = postProcessResults(results);
+      expect(getCalculated(out, "psa_ratio")).toBe(50.0);
     });
   });
 });
