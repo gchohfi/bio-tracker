@@ -1,41 +1,75 @@
 
 
-# Plan: Fix 7 Data Issues for Patient Dener (Session 05/11/2025)
+# Add 6 Missing Markers to MARKER_LIST
 
-## Current DB State (verified)
+## Analysis
 
-Session ID: `2f143fb9-37ff-46bb-83ac-652ddda28703` (2025-11-05), patient `8ec05970`
+Of the markers listed in BUG-5, most **already exist** in both `markers.ts` and the edge function:
 
-| Issue | Current in DB | Target |
-|-------|--------------|--------|
-| Neutrófilos abs | **Missing** (no record) | INSERT 2690 |
-| Linfócitos abs | **Missing** | INSERT 4020 |
-| Monócitos abs | **Missing** | INSERT 600 |
-| Eosinófilos abs | **Missing** | INSERT 150 |
-| Basófilos abs | **Missing** | INSERT 20 |
-| DHEA-S ref | `89 a 427`, min=89, max=427 | `160 a 492`, min=160, max=492 |
-| Vitamina D ref | `> 20`, min=20, max=null | `20 a 100`, min=20, max=100 |
-| Testosterona Livre | 13.7 | 13.8 |
-| PSA Ratio | 27.5 | 28 (match PDF) |
-| TFG | 77 (CKD-EPI 2009) | Needs discussion — CKD-EPI 2021 is a formula change, not a data fix |
+| Marker | Status |
+|--------|--------|
+| Relação A/G, Fibrinogênio, Amilase, Lipase | Already exist |
+| DHL (= LDH, id `ldh`) | Already exists |
+| Celulose, Amido, Gordura (Coprológico) | Amido + Gordura exist; **Celulose missing** |
+| Sangue Oculto (= `copro_sangue`) | Already exists |
+| FAN | Already exists |
+| Aldosterona, Cortisol urinário 24h, Chumbo | Already exist |
+| **Complemento C3/C4** | **Missing** |
+| **Anti-DNA, Anti-Sm** | **Missing** |
+| **Renina** | **Missing** |
+| **Celulose (copro)** | **Missing** |
 
-## Actions
+## 6 Markers to Add
 
-### 1. Insert 5 missing absolute WBC records
-Insert new `lab_results` rows for session `2f143fb9` with the absolute differential values and appropriate references (matching the 02/24 session format).
+### File 1: `src/lib/markers.ts`
 
-### 2. Update 4 existing records
-- DHEA-S (`bd9de102`): ref → `160 a 492`, min=160, max=492
-- Vitamina D (`b1c5bdf3`): ref → `20 a 100`, min=20, max=100
-- Testosterona Livre (`29f98bfa`): value → 13.8
-- PSA Ratio (`d282f001`): value → 28
+Add to the **Imunologia** section (after `fan`/`fator_reumatoide`):
+```typescript
+{ id: "complemento_c3",  name: "Complemento C3",  unit: "mg/dL",  category: "Imunologia",
+  labRange: { M: [90, 180], F: [90, 180] }, panel: "Adicional" },
+{ id: "complemento_c4",  name: "Complemento C4",  unit: "mg/dL",  category: "Imunologia",
+  labRange: { M: [10, 40], F: [10, 40] }, panel: "Adicional" },
+{ id: "anti_dna",        name: "Anti-DNA",        unit: "UI/mL",  category: "Imunologia",
+  labRange: { M: [0, 25], F: [0, 25] }, panel: "Adicional" },
+{ id: "anti_sm",         name: "Anti-Sm",         unit: "",       category: "Imunologia",
+  labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
+```
 
-### 3. TFG — requires separate decision
-CKD-EPI 2021 removes the race coefficient and gives slightly higher values. This would require either:
-- A code change to recalculate TFG in post-processing using CKD-EPI 2021
-- Or just a manual data fix for this one session
+Add to the **Eixo Adrenal** section (near aldosterona):
+```typescript
+{ id: "renina",          name: "Renina",          unit: "µUI/mL", category: "Eixo Adrenal",
+  labRange: { M: [2.8, 39.9], F: [2.8, 39.9] }, panel: "Adicional" },
+```
 
-Recommend discussing this separately since it affects future extractions too.
+Add to the **Fezes** section:
+```typescript
+{ id: "copro_celulose",  name: "Celulose",        unit: "",       category: "Fezes",
+  labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Padrão" },
+```
 
-## No code changes — all data fixes via the insert tool.
+### File 2: `supabase/functions/extract-lab-results/index.ts`
+
+**MARKER_LIST** — add 6 entries matching the above.
+
+**AI prompt aliases section** — add alias mappings:
+```
+IMUNOLOGIA:
+- "COMPLEMENTO C3" / "C3" / "COMPLEMENTO C3, SORO" → complemento_c3
+- "COMPLEMENTO C4" / "C4" / "COMPLEMENTO C4, SORO" → complemento_c4
+- "ANTI-DNA" / "ANTI-DNA NATIVO" / "ANTICORPO ANTI-DNA" / "Anti-dsDNA" → anti_dna
+- "ANTI-SM" / "ANTI-Sm" / "ANTICORPO ANTI-SM" → anti_sm (QUALITATIVE)
+
+EIXO ADRENAL:
+- "RENINA" / "ATIVIDADE DE RENINA PLASMÁTICA" / "RENINA DIRETA" / "ARP" → renina
+
+COPROLÓGICO:
+- "CELULOSE" / "CELULOSE DIGERÍVEL" / "CELULOSE VEGETAL" → copro_celulose (QUALITATIVE)
+```
+
+**Cross-check aliases** (`CROSS_CHECK_ALIASES`) — add entries for the 6 new markers.
+
+**Sanity bounds** — add bounds for quantitative markers (`complemento_c3`, `complemento_c4`, `anti_dna`, `renina`).
+
+### No database migration needed
+Marker IDs are just strings stored in `lab_results.marker_id`. No schema change required.
 
