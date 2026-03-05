@@ -268,6 +268,8 @@ HEMOGRAMA panel → extract ALL: hemoglobina, hematocrito, eritrocitos, vcm, hcm
 - "Bastões" = "Bastonetes" = bastonetes
 - "Segmentados" = segmentados (NOT neutrofilos total)
 - VPM/MPV/V.P.M. = vpm (in plaquetograma section)
+- ABSOLUTE LEUCOCYTE VALUES (neutrofilos_abs, linfocitos_abs, monocitos_abs, eosinofilos_abs, basofilos_abs):
+  When the lab reports in "mil/mm³" or "x10³/mm³" or "x10³/µL" (e.g., "1,29 mil/mm³"), you MUST multiply by 1000 to convert to /mm³ (e.g., 1.29 × 1000 = 1290). The target unit is /mm³ (absolute count).
 
 PERFIL LIPÍDICO panel → extract ALL: colesterol_total, hdl, ldl, vldl, triglicerides, colesterol_nao_hdl
 BILIRRUBINAS panel → extract ALL THREE: bilirrubina_total, bilirrubina_direta, bilirrubina_indireta
@@ -864,6 +866,14 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     urina_densidade:       { min: 1.001, max: 1.040 },
     // pH urinário: faixa normal 4.5–8.5
     urina_ph:              { min: 4, max: 9 },
+    // Leucograma absoluto — labs reportam em mil/mm³ (ex: 0.27 = 270 /mm³)
+    neutrofilos_abs:       { min: 100, max: 15000, fix: (v) => v < 10 ? v * 1000 : v, label: "neutrofilos_abs ×1000" },
+    linfocitos_abs:        { min: 100, max: 10000, fix: (v) => v < 10 ? v * 1000 : v, label: "linfocitos_abs ×1000" },
+    monocitos_abs:         { min: 10,  max: 3000,  fix: (v) => v < 1 ? v * 1000 : v, label: "monocitos_abs ×1000" },
+    eosinofilos_abs:       { min: 10,  max: 3000,  fix: (v) => v < 1 ? v * 1000 : v, label: "eosinofilos_abs ×1000" },
+    basofilos_abs:         { min: 1,   max: 500,   fix: (v) => v < 1 ? v * 1000 : v, label: "basofilos_abs ×1000" },
+    // Transferrina — 28 deveria ser 280 (separador perdido)
+    transferrina:          { min: 100, max: 500, fix: (v) => v < 100 ? v * 10 : v, label: "transferrina ×10" },
   };
 
   for (const r of results) {
