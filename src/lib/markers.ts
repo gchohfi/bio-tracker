@@ -280,7 +280,7 @@ export const MARKERS: MarkerDef[] = [
     labRange: { M: [19.9, 79.3], F: [19.9, 79.3] }, panel: "Padrão" },
 
   { id: "vitamina_b12",    name: "Vitamina B12",     unit: "pg/mL",        category: "Vitaminas",
-    labRange: { M: [300, 9999], F: [300, 9999] }, panel: "Padrão" },  // Ref. Lab.: "Normal: maior que 300 pg/mL"
+    labRange: { M: [197, 771], F: [197, 771] }, panel: "Padrão" },
 
   { id: "acido_folico",    name: "Ácido Fólico",     unit: "ng/mL",        category: "Vitaminas",
     labRange: { M: [3.9, 9999], F: [3.9, 9999] }, panel: "Padrão" },  // Ref. Lab.: "> 3,9 ng/mL"
@@ -895,7 +895,7 @@ export function formatRefDisplay(
   // Detect one-sided ranges even when operator is 'range'
   const mn = rMin ?? fallbackMin;
   const mx = rMax ?? fallbackMax;
-  if ((mn === 0 || mn == null) && mx != null && mx < 999) return `< ${mx}`;
-  if (mx == null || mx >= 99999) return `> ${mn}`;
+  if ((mn === 0 || mn == null) && mx != null && mx < 900) return `< ${mx}`;
+  if (mx == null || mx >= 900) return `> ${mn}`;
   return `${mn}–${mx}`;
 }
