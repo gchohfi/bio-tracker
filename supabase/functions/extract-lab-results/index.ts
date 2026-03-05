@@ -2798,7 +2798,7 @@ serve(async (req) => {
             role: "user",
             content: `Extract lab results from this Brazilian lab report. Extract ONLY markers that are EXPLICITLY PRESENT in this document with a clear result value. Do NOT guess or infer values for markers not shown.
 ${patientAge != null ? `\nPATIENT AGE: ${patientAge} years old. Use this to select the correct age-specific reference range when multiple ranges are listed.\n` : ''}
-${patientSex ? `\nPATIENT SEX: ${patientSex === 'F' ? 'Female (Feminino)' : 'Male (Masculino)'}. When the lab report shows separate reference ranges for each sex (e.g. "Homens: 3,4 a 7,0 / Mulheres: 2,4 a 6,0"), you MUST use ONLY the range matching this patient sex.\n` : ''}
+${patientSex ? `\nPATIENT SEX: ${patientSex}. Use this to select the correct sex-specific reference range when the lab shows separate ranges for males and females.\n` : ''}
 
 ⚠️ MANDATORY: For EVERY marker, you MUST include lab_ref_text with the reference range from the report!
 Example: hemoglobina value=13.4, lab_ref_text="11.7 a 14.9"
