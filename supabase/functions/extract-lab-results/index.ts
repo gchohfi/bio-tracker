@@ -56,7 +56,7 @@ const MARKER_LIST = [
   { id: "tsh", name: "TSH", unit: "mUI/L" },
   { id: "t4_livre", name: "T4 Livre", unit: "ng/dL" },
   { id: "t4_total", name: "T4 Total", unit: "µg/dL" },
-  { id: "t3_livre", name: "T3 Livre", unit: "ng/dL" },
+  { id: "t3_livre", name: "T3 Livre", unit: "pg/mL" },
   { id: "t3_total", name: "T3 Total", unit: "ng/dL" },
   { id: "t3_reverso", name: "T3 Reverso", unit: "ng/dL" },
   { id: "anti_tpo", name: "Anti-TPO", unit: "UI/mL" },
@@ -308,7 +308,7 @@ COPROLÓGICO / COPROGRAMA panel → extract ALL sub-items as qualitative
    - "AMILASE PANCREÁTICA" → also map to amilase (close enough)
 
 6. T3 Livre vs T3 Total:
-   - "T3 Livre" / "T3L" / "Triiodotironina Livre" → t3_livre (unit: ng/dL)
+   - "T3 Livre" / "T3L" / "Triiodotironina Livre" → t3_livre (unit: pg/mL)
    - "T3 Total" / "Triiodotironina Total" → t3_total (unit: ng/dL)
 
 7. T4 Livre vs T4 Total:
@@ -393,7 +393,7 @@ TIREOIDE:
 - "T4L" / "Tiroxina Livre" / "T4 LIVRE" / "TIROXINA LIVRE (T4L)" / "FT4" / "FREE T4" → t4_livre
 - "T4 Total" / "Tiroxina Total" / "Tiroxina (T4) - Total" / "TIROXINA (T4) - TOTAL" / "TT4" / "TIROXINA (T4)" / "TIROXINA (T4), SORO" → t4_total
     ⚠️ "TIROXINA (T4)" without "LIVRE" = T4 Total. "TIROXINA (T4) LIVRE" = t4_livre!
-- "T3L" / "Triiodotironina Livre" / "T3 LIVRE" / "TRIIODOTIRONINA LIVRE (T3L)" / "FT3" / "FREE T3" → t3_livre (unit: ng/dL — do NOT convert)
+- "T3L" / "Triiodotironina Livre" / "T3 LIVRE" / "TRIIODOTIRONINA LIVRE (T3L)" / "FT3" / "FREE T3" → t3_livre (unit: pg/mL — do NOT convert)
 - "T3 Total" / "Triiodotironina Total" / "Triiodotironina (T3) - Total" / "TRIIODOTIRONINA (T3) - TOTAL" / "TT3" / "TRIIODOTIRONINA (T3)" / "TRIIODOTIRONINA (T3), SORO" → t3_total
     ⚠️ "TRIIODOTIRONINA (T3)" without "LIVRE" = T3 Total. "TRIIODOTIRONINA (T3) LIVRE" = t3_livre!
 - "T3 Reverso" / "T3R" / "REVERSE T3" / "TRIIODOTIRONINA REVERSA" / "rT3" / "RT3" → t3_reverso
