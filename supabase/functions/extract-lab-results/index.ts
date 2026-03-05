@@ -2958,13 +2958,33 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     validResults = parseLabRefRanges(validResults);
     // === VALIDAÇÃO DHEA-S: ref por idade (após parseLabRefRanges para garantir min/max) ===
     if (patientAge != null) {
-      for (const r of validResults) {
-        if (r.marker_id === 'dhea_s' && r.lab_ref_min != null && r.lab_ref_max != null) {
-          if (patientAge >= 20 && patientAge <= 34 && r.lab_ref_min < 100) {
-            console.log(`DHEA-S: patient age ${patientAge}, ref ${r.lab_ref_min}-${r.lab_ref_max} seems wrong for 20-34 range. Clearing lab_ref to use markers.ts default.`);
-            r.lab_ref_text = '';
-            r.lab_ref_min = null;
-            r.lab_ref_max = null;
+      const dheaRangesByAge: { minAge: number; maxAge: number; M: [number, number]; F: [number, number] }[] = [
+        { minAge: 10, maxAge: 14, M: [24, 247],  F: [24, 247] },
+        { minAge: 15, maxAge: 19, M: [70, 492],  F: [63, 373] },
+        { minAge: 20, maxAge: 34, M: [160, 492], F: [65, 368] },
+        { minAge: 35, maxAge: 44, M: [89, 427],  F: [45, 320] },
+        { minAge: 45, maxAge: 54, M: [44, 331],  F: [32, 240] },
+        { minAge: 55, maxAge: 64, M: [44, 331],  F: [26, 200] },
+        { minAge: 65, maxAge: 74, M: [34, 249],  F: [20, 155] },
+        { minAge: 75, maxAge: 120, M: [16, 123], F: [15, 95] },
+      ];
+      const ageRange = dheaRangesByAge.find(r => patientAge! >= r.minAge && patientAge! <= r.maxAge);
+      if (ageRange) {
+        for (const r of validResults) {
+          if (r.marker_id === 'dhea_s') {
+            const sex = (patientSex === 'F') ? 'F' : 'M';
+            const [correctMin, correctMax] = ageRange[sex];
+            if (r.lab_ref_min != null && r.lab_ref_min !== correctMin) {
+              console.log(`DHEA-S: patient age ${patientAge}, sex ${sex}. Replacing ref ${r.lab_ref_min}-${r.lab_ref_max} with age-appropriate ${correctMin}-${correctMax}`);
+              r.lab_ref_min = correctMin;
+              r.lab_ref_max = correctMax;
+              r.lab_ref_text = `${correctMin}-${correctMax}`;
+            } else if (r.lab_ref_min == null) {
+              console.log(`DHEA-S: no ref extracted. Setting age-appropriate ref ${correctMin}-${correctMax} for age ${patientAge}`);
+              r.lab_ref_min = correctMin;
+              r.lab_ref_max = correctMax;
+              r.lab_ref_text = `${correctMin}-${correctMax}`;
+            }
           }
         }
       }
