@@ -490,6 +490,8 @@ RENAL:
 - "Ácido Úrico" / "ÁCIDO ÚRICO, SORO" / "URATO" → acido_urico
 - "Clearance" / "Filtração Glomerular" / "CKD-EPI" / "TFG ESTIMADA" / "TFGe" / "eGFR" / "MDRD" / "TAXA DE FILTRAÇÃO GLOMERULAR ESTIMADA" / "TFGe CKD-EPI 2021" / "RITMO DE FILTRAÇÃO GLOMERULAR" / "RFG" / "GFR" → tfg
   Often appears as sub-item of creatinine.
+
+  ⚠️ IMPORTANT: When the lab presents multiple GFR formulas (CKD-EPI 2009 afrodescendente, CKD-EPI 2009 não-afrodescendente, CKD-EPI 2021, MDRD), ALWAYS prefer the CKD-EPI 2021 value. This is the most modern formula recommended by current guidelines and does not use race adjustment. If CKD-EPI 2021 is not available, use the CKD-EPI 2009 "não-afrodescendente" value. If only "superior a 60" is shown, use value=60 and text_value="> 60".
 - "Cistatina C" → cistatina_c
 
 ELETRÓLITOS:
