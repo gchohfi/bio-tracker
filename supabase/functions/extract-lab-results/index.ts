@@ -358,7 +358,7 @@ HEMOGRAMA:
 
 COAGULAÇÃO:
 - "FIBRINOGÊNIO" / "FIBRINOGENIO" / "FIBRINOGÊNIO FUNCIONAL" / "FIBRINOGÊNIO - CLAUSS" / "FIBRINOGÊNIO DERIVADO" / "Fator I" / "FIBRINOGÊNIO, PLASMA" / "FIBRINOGÊNIO CLAUSS" / "FIBRINOGÊNIO POR CLAUSS" → fibrinogenio
-  Units: mg/dL. If g/L → ×100.
+  Units: mg/dL. Keep as-is (do NOT convert).
 - "DÍMEROS D" / "D-DÍMERO" / "D-Dímero" / "D-DÍMEROS" / "DÍMERO D" / "FRAGMENTO D" → dimeros_d
 
 PANCREÁTICOS:
@@ -375,7 +375,7 @@ LIPÍDIOS:
 - "APOLIPOPROTEÍNA A-1" / "APO A1" / "APO A-1" / "APO A-I" / "APO A" / "APOPROTEÍNA A1" → apo_a1
 - "APOLIPOPROTEÍNA B" / "APO B" / "APO B100" / "APO B-100" → apo_b
 - "LIPOPROTEINA(a)" / "Lp(a)" / "LP(A)" / "LPA" / "LIPOPROTEÍNA (a) QUANTITATIVA" / "Lp(a) massa" → lipoproteina_a
-  Units: nmol/L. If mg/dL → ×2.15.
+  Units: nmol/L. If mg/dL, keep as mg/dL (do NOT convert).
 - "CT/HDL" / "Índice de Castelli" → relacao_ct_hdl
 - "TG/HDL" → relacao_tg_hdl
 - "ApoB/ApoA1" / "Razão ApoB/ApoA1" / "Relação ApoB/ApoA-I" / "Apo B/Apo A1" / "Relação Apolipoproteína B / Apolipoproteína A-I" → relacao_apob_apoa1
@@ -396,13 +396,13 @@ TIREOIDE:
 
 HORMÔNIOS:
 - "Testosterona Total" / "TESTOSTERONA, SORO" / "TESTOSTERONA SÉRICA" → testosterona_total
-- "Testosterona Livre" / "TESTOSTERONA LIVRE CALCULADA" / "TESTOSTERONA LIVRE, SORO" / "Testosterona Livre Calculada" / "FTE" → testosterona_livre (unit: ng/dL). If pmol/L → ÷34.7 (i.e., ×0.02882) to get ng/dL. Example: 15.3 pmol/L ÷ 34.7 = 0.441 ng/dL. IMPORTANT: always convert to ng/dL before returning, regardless of patient sex.
+- "Testosterona Livre" / "TESTOSTERONA LIVRE CALCULADA" / "TESTOSTERONA LIVRE, SORO" / "Testosterona Livre Calculada" / "FTE" → testosterona_livre (use the original unit from the report — do NOT convert)
   ⚠️ Testosterona Livre has sex-specific references: Male ~5–21 ng/dL, Female ~0.1–0.5 ng/dL.
     If the patient value is > 5 ng/dL (male range) but the lab_ref_range max is ≤ 2.0 ng/dL (female range), the wrong sex reference was captured — set lab_ref_range to null.
 - "Testosterona Biodisponível" / "TESTOSTERONA BIODISPONIVEL" / "Testosterona Biodisponível Calculada" → testosterona_biodisponivel (unit: ng/dL)
-- "Estradiol" / "ESTRADIOL (E2)" / "17-BETA-ESTRADIOL" / "17β-ESTRADIOL" / "E2" → estradiol. If ng/dL → ×10 to get pg/mL.
+- "Estradiol" / "ESTRADIOL (E2)" / "17-BETA-ESTRADIOL" / "17β-ESTRADIOL" / "E2" → estradiol (use the original unit from the report — do NOT convert)
 - "Estrona" / "E1" / "Estrona (E1)" / "Estrona, soro" / "ESTRONA (E1)" → estrona
-- "Progesterona" / "PROGESTERONA, SORO" / "P4" → progesterona. If ng/dL → ÷100 to get ng/mL.
+- "Progesterona" / "PROGESTERONA, SORO" / "P4" → progesterona (use the original unit from the report — do NOT convert)
 - "DHEA-S" / "SDHEA" / "S-DHEA" / "Sulfato de Dehidroepiandrosterona" / "DHEA SULFATO" / "SULFATO DE DEIDROEPIANDROSTERONA" / "DEIDROEPIANDROSTERONA SULFATO" → dhea_s
 - "Cortisol" / "CORTISOL MATINAL" / "CORTISOL SÉRICO" / "CORTISOL, SORO" / "CORTISOL BASAL" / "CORTISOL (8h)" / "CORTISOL MATUTINO" (blood) → cortisol
 - "SHBG" / "Globulina Ligadora" / "S H B G" / "GLOBULINA LIGADORA DE HORMÔNIOS SEXUAIS" / "SEX HORMONE BINDING GLOBULIN" → shbg
@@ -417,20 +417,18 @@ EIXO GH:
     Example: "20 a 29 anos: 127 a 424" / "30 a 39 anos: 88 a 400" / "40 a 44 anos: 71 a 382"
     In this format, capture ONLY the value interval (e.g. "71 a 382"), NEVER the age range ("40 a 44").
     If the extracted lab_ref_range max is < 50 (e.g. "40 a 44"), it is an age range — set lab_ref_range to null.
-- "IGFBP-3" / "IGFBP3" / "IGF BP3" / "PROTEÍNA LIGADORA 3 DO IGF" / "PROTEINA LIGADORA DE IGF TIPO 3" / "IGFBP-3 PROTEÍNA LIGADORA -3 DO IGF" / "IGFBP-3 (PROTEÍNA LIGADORA -3 DO IGF)" / "PROTEÍNA TRANSPORTADORA 3 DO IGF" / "PROTEINA LIGADORA-3 DO FATOR DE CRESCIMENTO SIMILE A INSULINA" / "FATOR DE CRESCIMENTO SIMILE A INSULINA" / "PROTEINA LIGADORA-3 DO FATOR DE CRESCIMENTO" → igfbp3
-  ⚠️ If in ng/mL → ÷1000 to get µg/mL. Example: 6120 ng/mL → 6.12 µg/mL.
+- "IGFBP-3" / "IGFBP3" / "IGF BP3" / "PROTEÍNA LIGADORA 3 DO IGF" / "PROTEINA LIGADORA DE IGF TIPO 3" / "IGFBP-3 PROTEÍNA LIGADORA -3 DO IGF" / "IGFBP-3 (PROTEÍNA LIGADORA -3 DO IGF)" / "PROTEÍNA TRANSPORTADORA 3 DO IGF" / "PROTEINA LIGADORA-3 DO FATOR DE CRESCIMENTO SIMILE A INSULINA" / "FATOR DE CRESCIMENTO SIMILE A INSULINA" / "PROTEINA LIGADORA-3 DO FATOR DE CRESCIMENTO" → igfbp3 (use the original unit from the report — do NOT convert)
 
 EIXO ADRENAL:
 - "ACTH" / "A.C.T.H." / "HORMÔNIO ADRENOCORTICOTRÓFICO" / "HORMÔNIO ADRENOCORTICOTRÓFICO A.C.T.H." / "CORTICOTROFINA" / "ADRENOCORTICOTREFINA" / "HORMÔNIO ADRENOCORTICOTRÓFICO (ACTH)" / "HORMÔNIO ADRENOCORTICOTRÓFICO, PLASMA" → acth
 - "CORTISOL LIVRE, URINA DE 24 HORAS" / "CORTISOL LIVRE URINÁRIO" / "CORTISOL URINÁRIO" / "CORTISOL LIVRE - URINA 24H" / "CORTISOL, URINA" / "CLU" → cortisol_livre_urina
   ⚠️ Material is URINE not blood! mcg/24 HORAS = µg/24h.
 - "ALDOSTERONA" / "ALDOSTERONA SÉRICA" / "ALDOSTERONA - SENTADO" / "ALDOSTERONA - DEITADO" / "ALDOSTERONA - EM PÉ" / "ALDOSTERONA, SORO" / "ALDOSTERONA PLASMÁTICA" → aldosterona
-  Units: ng/dL. If pg/mL → ÷10.
+  Units: ng/dL. Keep as-is (do NOT convert).
 
 ANDRÓGENOS:
-- "DIHIDROTESTOSTERONA" / "DHT" / "D.H.T." / "5-ALFA-DIHIDROTESTOSTERONA" / "5α-DIHIDROTESTOSTERONA" / "DIIDROTESTOSTERONA" / "5α-DHT" / "5-ALFA-DHT" → dihidrotestosterona
-  Units: pg/mL. If ng/dL → ×10.
-- "ANDROSTENEDIONA" / "ANDROSTENEDIONA, SORO" / "DELTA 4 ANDROSTENEDIONA" / "Δ4-ANDROSTENEDIONA" / "4-ANDROSTENEDIONA" → androstenediona (ng/dL)
+- "DIHIDROTESTOSTERONA" / "DHT" / "D.H.T." / "5-ALFA-DIHIDROTESTOSTERONA" / "5α-DIHIDROTESTOSTERONA" / "DIIDROTESTOSTERONA" / "5α-DHT" / "5-ALFA-DHT" → dihidrotestosterona (use the original unit from the report — do NOT convert)
+- "ANDROSTENEDIONA" / "ANDROSTENEDIONA, SORO" / "DELTA 4 ANDROSTENEDIONA" / "Δ4-ANDROSTENEDIONA" / "4-ANDROSTENEDIONA" → androstenediona (use the original unit from the report — do NOT convert)
 
 VITAMINAS:
 - "25 HIDROXI VITAMINA D" / "25-OH" / "CALCIDIOL" / "25(OH)D" / "Vitamina D3" / "25-HIDROXIVITAMINA D" / "25-HIDROXI VITAMINA D3" / "VITAMINA D, 25-HIDROXI" / "25 OH VITAMINA D" → vitamina_d (ng/mL)
@@ -446,7 +444,7 @@ VITAMINAS:
 
 MINERAIS:
 - "Magnésio" / "MAGNÉSIO, SORO" / "MAGNÉSIO SÉRICO" / "Mg SÉRICO" → magnesio
-- "Zinco" / "ZINCO, SORO" / "ZINCO SÉRICO" / "Zn" → zinco. If µg/mL → ×100 to get µg/dL.
+- "Zinco" / "ZINCO, SORO" / "ZINCO SÉRICO" / "Zn" → zinco (use the original unit from the report — do NOT convert)
 - "Selênio" / "SELÊNIO, SORO" / "SELÊNIO SÉRICO" / "Se SÉRICO" → selenio
 - "Cobre" → cobre
 - "Manganês" → manganes
@@ -454,7 +452,7 @@ MINERAIS:
 - "Iodo Urinário" → iodo_urinario
 
 TOXICOLOGIA:
-- "CHUMBO" / "PLUMBEMIA" / "Pb SANGUE" / "CHUMBO (Pb)" / "LEAD" / "CHUMBO SANGUE" / "DOSAGEM DE CHUMBO" → chumbo. If µg/L → ÷10 to get µg/dL.
+- "CHUMBO" / "PLUMBEMIA" / "Pb SANGUE" / "CHUMBO (Pb)" / "LEAD" / "CHUMBO SANGUE" / "DOSAGEM DE CHUMBO" → chumbo (use the original unit from the report — do NOT convert)
 - "MERCURIO" / "Mercúrio" / "MERCÚRIO, SANGUE" / "MERCÚRIO TOTAL" → mercurio. IMPORTANT: Do NOT extract "Hg" alone — it is too short and causes false positives (e.g. from "mmHg"). Only extract if the FULL word "Mercúrio" or "MERCURIO" appears as the marker name with an associated numeric result value.
 - "CADMIO" / "Cádmio" / "CÁDMIO, SANGUE" → cadmio. Do NOT use "Cd" alone.
 - "ALUMINIO" / "Alumínio" / "ALUMÍNIO, SORO" → aluminio. Do NOT use "Al" alone.
@@ -518,7 +516,7 @@ GLICEMIA:
 - "HOMA-IR" / "ÍNDICE HOMA" / "HOMA" / "HOMA IR" / "HOMEOSTASIS MODEL ASSESSMENT" → homa_ir
 
 INFLAMAÇÃO:
-- "PCR ultra-sensível" / "PCR-us" / "Proteína C Reativa" / "hsCRP" / "PCR-AS" / "PROTEÍNA C REATIVA ULTRASSENSÍVEL" / "PROTEÍNA C REATIVA (ALTA SENSIBILIDADE)" / "PCR QUANTITATIVA" → pcr. If mg/dL → ×10 to get mg/L.
+- "PCR ultra-sensível" / "PCR-us" / "Proteína C Reativa" / "hsCRP" / "PCR-AS" / "PROTEÍNA C REATIVA ULTRASSENSÍVEL" / "PROTEÍNA C REATIVA (ALTA SENSIBILIDADE)" / "PCR QUANTITATIVA" → pcr (use the original unit from the report — do NOT convert)
 - "VHS" / "V.H.S." / "Velocidade de Hemossedimentação" / "VSG" / "ESR" / "VELOCIDADE DE SEDIMENTAÇÃO" / "Hemossedimentação" / "HEMOSSEDIMENTACAO" / "HEMOSSEDIMENTAÇÃO, SANGUE TOTAL" → vhs
 
 IMUNOLOGIA:
