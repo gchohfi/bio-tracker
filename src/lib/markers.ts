@@ -139,22 +139,22 @@ export const MARKERS: MarkerDef[] = [
 
   // ── Lipídios ──────────────────────────────────────────────────────────────
   { id: "colesterol_total", name: "Colesterol Total", unit: "mg/dL",      category: "Lipídios",
-    labRange: { M: [0, 200], F: [0, 200] }, panel: "Adicional" },
+    labRange: { M: [0, 190], F: [0, 190] }, panel: "Adicional" },
 
   { id: "hdl",             name: "HDL",             unit: "mg/dL",        category: "Lipídios",
     labRange: { M: [40, 999], F: [50, 999] }, panel: "Padrão" },
 
   { id: "ldl",             name: "LDL",             unit: "mg/dL",        category: "Lipídios",
-    labRange: { M: [0, 130], F: [0, 130] }, panel: "Padrão" },
+    labRange: { M: [100, 129], F: [100, 129] }, panel: "Padrão" },
 
   { id: "vldl",            name: "VLDL",            unit: "mg/dL",        category: "Lipídios",
-    labRange: { M: [5, 40], F: [5, 40] }, panel: "Padrão" },
+    labRange: { M: [0, 30], F: [0, 30] }, panel: "Padrão" },
 
   { id: "triglicerides",   name: "Triglicerídeos",  unit: "mg/dL",        category: "Lipídios",
     labRange: { M: [0, 150], F: [0, 150] }, panel: "Padrão" },
 
   { id: "colesterol_nao_hdl", name: "Colesterol Não-HDL", unit: "mg/dL",  category: "Lipídios",
-    labRange: { M: [0, 160], F: [0, 160] }, panel: "Adicional" },
+    labRange: { M: [0, 130], F: [0, 130] }, panel: "Adicional" },
 
   { id: "apo_a1",          name: "Apolipoproteína A-1", unit: "mg/dL",    category: "Lipídios",
     labRange: { M: [104, 202], F: [108, 225] }, panel: "Padrão" },
