@@ -633,6 +633,7 @@ Examples:
 - Vitamina D: lab_ref_text = "Acima de 20"
 If the lab shows sex-specific or age-specific ranges, use the one matching the patient (or the female range if unknown).
 ⚠️ AGE-SPECIFIC REFERENCE RANGES: When the lab report shows multiple reference ranges by age group (e.g. "20-29 anos: 127 a 424 / 30-39 anos: 88 a 400 / 40-44 anos: 71 a 382"), you MUST select ONLY the range that matches the patient's age. The patient's age will be provided in the user message. If no age is provided, use the broadest adult range available. NEVER return the age range numbers as the reference — return only the value interval.
+Example: DHEA-S for a 31-year-old patient with ranges "20 a 34 anos: 160 a 492 / 35 a 44 anos: 89 a 427" → lab_ref_text = "160 a 492" (NOT "89 a 427", which is for 35-44 years).
 If no reference range is found for a marker, set lab_ref_text to "" (empty string) — but TRY HARD to find it.
 
 - For T3 Livre: the standard unit is ng/dL. Do NOT convert. Most Brazilian labs report in ng/dL.
