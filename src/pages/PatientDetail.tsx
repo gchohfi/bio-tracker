@@ -233,6 +233,24 @@ export default function PatientDetail() {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // ── Auth guard: ensure valid session before critical operations ──────
+  const ensureAuthenticated = async (): Promise<boolean> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) return true;
+    // Try refreshing
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    if (refreshed?.session?.access_token) return true;
+    // No valid session
+    console.warn("[PatientDetail] No valid auth session — aborting operation");
+    toast({
+      title: "Sessão expirada",
+      description: "Faça login novamente para continuar.",
+      variant: "destructive",
+    });
+    navigate("/auth");
+    return false;
+  };
+
   const [patient, setPatient] = useState<Patient | null>(null);
   const [sessions, setSessions] = useState<LabSession[]>([]);
   const [loading, setLoading] = useState(true);
@@ -384,6 +402,7 @@ export default function PatientDetail() {
 
   const handleSaveSession = async () => {
     if (!patient) return;
+    if (!(await ensureAuthenticated())) return;
     setSaving(true);
 
     try {
@@ -907,6 +926,7 @@ export default function PatientDetail() {
     if (files.length === 0) return;
     e.target.value = "";
 
+    if (!(await ensureAuthenticated())) return;
     setExtracting(true);
     try {
       let currentValues = { ...markerValues };
