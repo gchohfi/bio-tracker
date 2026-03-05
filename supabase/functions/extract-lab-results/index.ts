@@ -2879,33 +2879,36 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
       ? parsed.exam_date
       : null;
 
-    // Regex fallback for exam date from raw PDF text — prioritize Data de Coleta
-    if (!examDate) {
-      const datePatterns = [
-        // Priority 1: Data de Coleta (collection date)
-        /(?:Data\s+d[aeo]\s+[Cc]olet[ao]|Colet(?:a|ado)\s*(?:em)?)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i,
-        // Priority 2: Data do Exame / Realizado em
-        /(?:Data\s+d[oe]\s+[Ee]xame|Realizado\s+em)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i,
-        // Priority 3: Data de Emissão (last resort)
-        /(?:Data\s+d[aeo]\s+[Ee]miss[aã]o|Emitido\s+em|Data\s+da\s+[Ff]icha|RECEBIDO.*?COLETADO)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i,
-        // Priority 4: Any date followed by time
-        /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})(?=\s+\d{1,2}:\d{2})/,
-      ];
-      for (const pattern of datePatterns) {
-        const match = pdfText.match(pattern);
-        if (match) {
-          const [, dd, mm, yyyy] = match;
-          const year = yyyy.length === 2 ? `20${yyyy}` : yyyy;
-          const monthNum = parseInt(mm, 10);
-          const dayNum = parseInt(dd, 10);
-          // Validate month (1-12) and day (1-31) to avoid DD/MM swap
-          if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) continue;
-          const candidate = `${year}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
-          if (/^\d{4}-\d{2}-\d{2}$/.test(candidate)) {
+    // Regex validation for exam date — ALWAYS run, even if AI returned a date.
+    // If regex finds "Data de Coleta" and it differs from AI's date, prefer regex.
+    const datePatterns = [
+      // Priority 1: Data de Coleta (collection date) — HIGH CONFIDENCE
+      { pattern: /(?:Data\s+d[aeo]\s+[Cc]olet[ao]|Colet(?:a|ado)\s*(?:em)?)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i, highConfidence: true },
+      // Priority 2: Data do Exame / Realizado em
+      { pattern: /(?:Data\s+d[oe]\s+[Ee]xame|Realizado\s+em)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i, highConfidence: false },
+      // Priority 3: Data de Emissão (last resort)
+      { pattern: /(?:Data\s+d[aeo]\s+[Ee]miss[aã]o|Emitido\s+em|Data\s+da\s+[Ff]icha|RECEBIDO.*?COLETADO)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i, highConfidence: false },
+      // Priority 4: Any date followed by time
+      { pattern: /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})(?=\s+\d{1,2}:\d{2})/, highConfidence: false },
+    ];
+    for (const { pattern, highConfidence } of datePatterns) {
+      const match = pdfText.match(pattern);
+      if (match) {
+        const [, dd, mm, yyyy] = match;
+        const year = yyyy.length === 2 ? `20${yyyy}` : yyyy;
+        const monthNum = parseInt(mm, 10);
+        const dayNum = parseInt(dd, 10);
+        if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) continue;
+        const candidate = `${year}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(candidate)) {
+          if (!examDate) {
             examDate = candidate;
             console.log(`[DATE-REGEX] Matched date from pattern: ${candidate}`);
-            break;
+          } else if (highConfidence && examDate !== candidate) {
+            console.log(`[DATE-REGEX] OVERRIDE: AI date ${examDate} → regex "Data de Coleta" ${candidate}`);
+            examDate = candidate;
           }
+          break;
         }
       }
     }
