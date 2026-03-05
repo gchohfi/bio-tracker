@@ -188,6 +188,59 @@ export function parseLabReference(text: string, sex?: 'M' | 'F'): ParsedReferenc
   // 3.5d. Remover prefixos de sexo+idade restantes (ex: "Pré-púberes:", "Pós-menopausa:")
   input = input.replace(/^(?:pr[eé]-?p[uú]beres?|p[oó]s-?menopausa|menopausa|adultos?)\s*:?\s*/gi, '').trim();
 
+  // ── 3.6. Textos com prefixos descritivos ou multi-categoria de risco ──
+  // Labs reportam colesterol/triglicerídeos com categorias de risco:
+  //   "Desejável: < 190 / Limítrofe: 190-239 / Alto: >= 240"
+  //   "Desejável (com ou sem jejum): < 190 mg/dL"
+  // Devemos extrair apenas a referência real (primeira categoria / referência com operador).
+  const riskCategoryPattern = /(?:desej[áa]vel|[oó]timo|normal|limit[ír]ofe|borderline|elevado|alto|muito\s+alto|baixo)/i;
+  if (riskCategoryPattern.test(input)) {
+    // Caso 1: múltiplas categorias separadas por "/" ou "\n"
+    const riskSegments = input.split(/[\/\n]/).map(s => s.trim()).filter(Boolean);
+    let cleanedInput: string | null = null;
+    if (riskSegments.length > 1) {
+      // Prioridade: Desejável > Ótimo > Normal > primeiro segmento
+      const desejavel = riskSegments.find(s => /desej[áa]vel/i.test(s));
+      const otimo = riskSegments.find(s => /[oó]timo/i.test(s));
+      const normal = riskSegments.find(s => /^normal\b/i.test(s.replace(/^\s*/, '')));
+      const chosen = desejavel || otimo || normal || riskSegments[0];
+      cleanedInput = chosen.replace(/^[^:]*:\s*/, '').trim();
+    } else {
+      // Caso 2: segmento único com prefixo descritivo (ex: "Desejável (...): < 190")
+      cleanedInput = input.replace(/^[^:]*:\s*/, '').trim();
+    }
+    if (cleanedInput && cleanedInput.length > 0) {
+      // Remover unidade no final (ex: "< 190 mg/dL" → "< 190")
+      cleanedInput = cleanedInput.replace(/\s*mg\/[dDlL][lL]?\s*$/i, '').trim();
+      // Re-tentar detecção de operador com o texto limpo
+      for (const { pattern, operator } of OPERATOR_PATTERNS) {
+        if (pattern.test(cleanedInput)) {
+          const numStr = cleanedInput.replace(pattern, '').trim();
+          const numMatch = numStr.match(/[\d.,]+/);
+          if (numMatch) {
+            const val = toFloat(numMatch[0]);
+            if (val !== null) {
+              if (operator === '<' || operator === '<=') {
+                return { min: null, max: val, operator: operator as ParsedReference['operator'], displayText: `${operator} ${val}` };
+              } else {
+                return { min: val, max: null, operator: operator as ParsedReference['operator'], displayText: `${operator} ${val}` };
+              }
+            }
+          }
+        }
+      }
+      // Se ainda não encontrou operador, tentar range no texto limpo
+      const rangeM = cleanedInput.match(/([\d.,]+)\s*(?:a|até|to|-|–|—)\s*([\d.,]+)/i);
+      if (rangeM) {
+        const rMin = toFloat(rangeM[1]);
+        const rMax = toFloat(rangeM[2]);
+        if (rMin !== null && rMax !== null) {
+          return { min: rMin, max: rMax, operator: 'range', displayText: `${rMin}–${rMax}` };
+        }
+      }
+    }
+  }
+
   // ── 4. Detecção de range (X a Y, X - Y, X–Y) ──
   // Padrão: número separador número
   const rangeMatch = input.match(

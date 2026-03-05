@@ -1661,6 +1661,58 @@ function parseLabRefRanges(results: any[]): any[] {
     }
     if (matched) continue;
 
+    // ── Textos com prefixos descritivos ou multi-categoria de risco ──
+    const riskCategoryPattern = /(?:desej[áa]vel|[oó]timo|normal|limit[ír]ofe|borderline|elevado|alto|muito\s+alto|baixo)/i;
+    if (riskCategoryPattern.test(t)) {
+      const riskSegments = t.split(/[\/\n]/).map(s => s.trim()).filter(Boolean);
+      let cleanedInput: string | null = null;
+      if (riskSegments.length > 1) {
+        const desejavel = riskSegments.find(s => /desej[áa]vel/i.test(s));
+        const otimo = riskSegments.find(s => /[oó]timo/i.test(s));
+        const normal = riskSegments.find(s => /^normal\b/i.test(s.replace(/^\s*/, '')));
+        const chosen = desejavel || otimo || normal || riskSegments[0];
+        cleanedInput = chosen.replace(/^[^:]*:\s*/, '').trim();
+      } else {
+        cleanedInput = t.replace(/^[^:]*:\s*/, '').trim();
+      }
+      if (cleanedInput && cleanedInput.length > 0) {
+        cleanedInput = cleanedInput.replace(/\s*mg\/[dDlL][lL]?\s*$/i, '').trim();
+        let riskMatched = false;
+        for (const { pattern: op, operator } of OPERATOR_PATTERNS) {
+          if (op.test(cleanedInput)) {
+            const numStr = cleanedInput.replace(op, '').trim();
+            const numMatch = numStr.match(/[\d.,]+/);
+            if (numMatch) {
+              const val = toFloat(numMatch[0]);
+              if (val !== null) {
+                if (operator === '<' || operator === '<=') {
+                  r.lab_ref_max = val;
+                  r.lab_ref_text = `${operator} ${val}`;
+                } else {
+                  r.lab_ref_min = val;
+                  r.lab_ref_text = `${operator} ${val}`;
+                }
+                riskMatched = true;
+                break;
+              }
+            }
+          }
+        }
+        if (riskMatched) continue;
+        const rangeM = cleanedInput.match(/([\d.,]+)\s*(?:a|até|to|-|–|—)\s*([\d.,]+)/i);
+        if (rangeM) {
+          const rMin = toFloat(rangeM[1]);
+          const rMax = toFloat(rangeM[2]);
+          if (rMin !== null && rMax !== null && rMin < rMax) {
+            r.lab_ref_min = rMin;
+            r.lab_ref_max = rMax;
+            r.lab_ref_text = `${rMin} a ${rMax}`;
+            continue;
+          }
+        }
+      }
+    }
+
     // ── Detecção de range (X a Y, X - Y, X–Y) ──
     const rangeMatch = t.match(
       /([\d.,]+)\s*(?:a|até|to|-|–|—)\s*([\d.,]+)/i
