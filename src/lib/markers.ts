@@ -210,7 +210,7 @@ export const MARKERS: MarkerDef[] = [
     labRange: { M: [241, 827], F: [8.4, 48.1] }, panel: "Padrão" },
 
   { id: "testosterona_livre", name: "Testosterona Livre", unit: "ng/dL",  category: "Hormônios",
-    labRange: { M: [3.0, 24.0], F: [0.06, 0.68] }, panel: "Padrão" },
+    labRange: { M: [3.0, 24.0], F: [0.086, 0.95] }, panel: "Padrão" },
 
   { id: "testosterona_biodisponivel", name: "Testosterona Biodisponível", unit: "ng/dL", category: "Hormônios",
     labRange: { M: [70, 250], F: [0.5, 8.5] }, panel: "Padrão" },
