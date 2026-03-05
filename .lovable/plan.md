@@ -1,98 +1,41 @@
 
 
-# Correção de Conversões de Unidade: Estradiol, Progesterona e DHT
+# Plan: Fix 7 Data Issues for Patient Dener (Session 05/11/2025)
 
-## Problemas Identificados
+## Current DB State (verified)
 
-Os 3 erros têm a mesma causa raiz: **conflito entre conversão da IA e sanity checks no pós-processamento**.
+Session ID: `2f143fb9-37ff-46bb-83ac-652ddda28703` (2025-11-05), patient `8ec05970`
 
-### Erro 1 — Estradiol (4.4 ng/dL → 440 pg/mL, deveria ser 44)
-- A IA converte corretamente: 4.4 × 10 = 44 pg/mL
-- Mas o sanity check (linha 702) vê `44 < 50` e aplica `× 10` novamente → 440
-- **Bug**: dupla conversão no sanity fix
+| Issue | Current in DB | Target |
+|-------|--------------|--------|
+| Neutrófilos abs | **Missing** (no record) | INSERT 2690 |
+| Linfócitos abs | **Missing** | INSERT 4020 |
+| Monócitos abs | **Missing** | INSERT 600 |
+| Eosinófilos abs | **Missing** | INSERT 150 |
+| Basófilos abs | **Missing** | INSERT 20 |
+| DHEA-S ref | `89 a 427`, min=89, max=427 | `160 a 492`, min=160, max=492 |
+| Vitamina D ref | `> 20`, min=20, max=null | `20 a 100`, min=20, max=100 |
+| Testosterona Livre | 13.7 | 13.8 |
+| PSA Ratio | 27.5 | 28 (match PDF) |
+| TFG | 77 (CKD-EPI 2009) | Needs discussion — CKD-EPI 2021 is a formula change, not a data fix |
 
-### Erro 2 — Progesterona (19 ng/dL → 19 ng/mL, deveria ser 0.19)  
-- A IA não converteu (manteve 19)
-- O sanity check (linha 701) só corrige se `> 50`, então 19 passa direto
-- **Bug**: threshold do sanity muito alto + IA falhou em converter
+## Actions
 
-### Erro 3 — DHT (13 ng/dL → 13 pg/mL, deveria ser 130)
-- A IA não converteu (manteve 13)
-- O sanity check para DHT (linha 711) não tem função `fix`
-- **Bug**: sem fallback de conversão
+### 1. Insert 5 missing absolute WBC records
+Insert new `lab_results` rows for session `2f143fb9` with the absolute differential values and appropriate references (matching the 02/24 session format).
 
-## Correções Propostas
+### 2. Update 4 existing records
+- DHEA-S (`bd9de102`): ref → `160 a 492`, min=160, max=492
+- Vitamina D (`b1c5bdf3`): ref → `20 a 100`, min=20, max=100
+- Testosterona Livre (`29f98bfa`): value → 13.8
+- PSA Ratio (`d282f001`): value → 28
 
-### 1. Estradiol — remover branch que causa dupla conversão
-```typescript
-// ANTES (bugado):
-estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 100 : v < 50 ? v * 10 : v > 5000 ? v / 10 : v }
+### 3. TFG — requires separate decision
+CKD-EPI 2021 removes the race coefficient and gives slightly higher values. This would require either:
+- A code change to recalculate TFG in post-processing using CKD-EPI 2021
+- Or just a manual data fix for this one session
 
-// DEPOIS:
-estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 10 : v > 5000 ? v / 10 : v }
-```
-- `v < 5` (valor em ng/dL não convertido, ex: 4.4) → `× 10` = 44 ✓
-- Valores 5–5000 já estão em pg/mL, não mexer
+Recommend discussing this separately since it affects future extractions too.
 
-### 2. Progesterona — adicionar detecção de ng/dL não convertido
-```typescript
-// ANTES:
-progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v }
-
-// DEPOIS (sex-aware):
-progesterona: { min: 0, max: 50, fix: (v) => {
-  // Labs brasileiros reportam ng/dL (ex: 19, 89). Nosso target é ng/mL.
-  // Fase folicular: 0.1-1.5 ng/mL = 10-150 ng/dL
-  // Fase lútea: 5-25 ng/mL = 500-2500 ng/dL  
-  // Se > 5 para mulher ou > 1.5 para homem, provavelmente ng/dL não convertido
-  if (v > 5) return v / 100;  // ng/dL → ng/mL
-  return v;
-}}
-```
-- 19 ng/dL → `19 > 5` → `÷ 100` = 0.19 ng/mL ✓
-- Valor já convertido (0.19 ng/mL) → não mexe ✓
-
-### 3. DHT — adicionar fix para conversão ng/dL → pg/mL
-```typescript
-// ANTES:
-dihidrotestosterona: { min: 0, max: 2000 }
-
-// DEPOIS:
-dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 5 ? v * 10 : v }
-```
-- 13 ng/dL → `13 ≥ 5` → passa (já no range se AI converteu) ... não, 13 está no range.
-
-Melhor abordagem: checar contra referência do lab. Se `lab_ref_max` está em ng/dL (ex: 46), o valor está em ng/dL e precisa `× 10`.
-
-Na verdade, a solução mais robusta é **adicionar conversão determinística no pós-processamento** para estes 3 marcadores, usando o `lab_ref_text` como sinal da unidade fonte:
-
-### 4. Pós-processamento determinístico (abordagem principal)
-Adicionar uma etapa após a extração que detecta a unidade fonte pelo `lab_ref_text` e converte deterministicamente:
-
-```typescript
-// No postProcessResults ou equivalente:
-const UNIT_CONVERSIONS = {
-  estradiol:    { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10,   detectRef: (max) => max < 100 },
-  progesterona: { sourceUnit: 'ng/dL', targetUnit: 'ng/mL', factor: 0.01, detectRef: (max) => max > 50 },
-  dihidrotestosterona: { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10, detectRef: (max) => max < 100 },
-};
-```
-Se o `lab_ref_max` indica unidade ng/dL (ex: estradiol ref max 23.3, progesterona ref max 89, DHT ref max 46), aplicar conversão e também converter as referências.
-
-### 5. Corrigir dados existentes no banco
-Migration SQL para corrigir os 3 valores da paciente atual.
-
-## Arquivos a alterar
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `supabase/functions/extract-lab-results/index.ts` | Corrigir sanity fixes + adicionar pós-processamento determinístico |
-| Migration SQL | Corrigir os 3 valores errados no banco |
-
-## Resumo
-- Estradiol: corrigir sanity para não duplicar conversão
-- Progesterona: baixar threshold do sanity
-- DHT: adicionar fix de conversão
-- Adicionar detecção determinística por lab_ref como camada extra de segurança
-- Corrigir dados existentes via migration
+## No code changes — all data fixes via the insert tool.
 
