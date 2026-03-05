@@ -647,6 +647,19 @@ Examples:
 If the lab shows sex-specific or age-specific ranges, use the one matching the patient (or the female range if unknown).
 ⚠️ AGE-SPECIFIC REFERENCE RANGES: When the lab report shows multiple reference ranges by age group (e.g. "20-29 anos: 127 a 424 / 30-39 anos: 88 a 400 / 40-44 anos: 71 a 382"), you MUST select ONLY the range that matches the patient's age. The patient's age will be provided in the user message. If no age is provided, use the broadest adult range available. NEVER return the age range numbers as the reference — return only the value interval.
 Example: DHEA-S for a 31-year-old patient with ranges "20 a 34 anos: 160 a 492 / 35 a 44 anos: 89 a 427" → lab_ref_text = "160 a 492" (NOT "89 a 427", which is for 35-44 years).
+
+⚠️ CYCLE-PHASE / POSTURE-BASED REFERENCE RANGES (CRITICAL!):
+For markers that have reference ranges split by MENSTRUAL CYCLE PHASE or BODY POSTURE (e.g. FSH, LH, Progesterona, Estradiol, Renina, Aldosterona, Cortisol), you MUST capture ALL phases/postures in lab_ref_text, separated by " / ".
+Do NOT pick just one phase — include the ENTIRE table.
+For lab_ref_min: use the LOWEST min across all phases.
+For lab_ref_max: use the HIGHEST max across all phases.
+Examples:
+- FSH female: lab_ref_text = "Fase folicular: 3,5 a 12,5 / Ovulatória: 4,7 a 21,5 / Lútea: 1,7 a 7,7 / Pós-menopausa: 25,8 a 134,8", lab_ref_min = 1.7, lab_ref_max = 134.8
+- LH female: lab_ref_text = "Fase folicular: 2,4 a 12,6 / Ovulatória: 14,0 a 95,6 / Lútea: 1,0 a 11,4 / Pós-menopausa: 7,7 a 58,5", lab_ref_min = 1.0, lab_ref_max = 95.6
+- Progesterona female: lab_ref_text = "Fase folicular: 0,2 a 1,5 / Ovulatória: 0,8 a 3,0 / Lútea: 1,7 a 27,0 / Pós-menopausa: 0,1 a 0,8", lab_ref_min = 0.1, lab_ref_max = 27.0
+- Renina: lab_ref_text = "Em pé: 2,8 a 39,9 / Deitado: 1,8 a 32,4", lab_ref_min = 1.8, lab_ref_max = 39.9
+- T3 Livre: lab_ref_text = "20 a 49 anos: 2,0 a 4,4 / 50 a 79 anos: 2,0 a 4,7", lab_ref_min = 2.0, lab_ref_max = 4.7
+This rule applies ONLY to cycle/posture markers. For other age-specific markers (DHEA-S, IGF-1, etc.), still pick the single matching age range as described above.
 If no reference range is found for a marker, set lab_ref_text to "" (empty string) — but TRY HARD to find it.
 
 - For T3 Livre: the standard unit is ng/dL. Do NOT convert. Most Brazilian labs report in ng/dL.

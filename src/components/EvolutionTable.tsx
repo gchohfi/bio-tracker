@@ -383,12 +383,22 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                                 {isQualitative ? "qualitativo" : marker.unit}
                               </div>
                             </td>
-                            <td className="px-1 py-1.5 text-[10px] text-muted-foreground whitespace-nowrap">
+                            <td className="px-1 py-1.5 text-[10px] text-muted-foreground">
                             {isQualitative ? (
                                 labRefText || "—"
+                              ) : labRefText && labRefText.includes(" / ") ? (
+                                <div className="relative group cursor-help max-w-[120px]">
+                                  <div className="text-[10px] font-semibold text-foreground/80 truncate" title={labRefText}>
+                                    {formatRefDisplay(resolvedRef, min, max)} *
+                                  </div>
+                                  <div className="absolute left-0 top-full z-50 hidden group-hover:block bg-popover border rounded-md shadow-lg p-2 min-w-[200px] max-w-[320px] whitespace-pre-wrap text-[10px] text-popover-foreground">
+                                    {labRefText.split(" / ").map((phase, i) => (
+                                      <div key={i} className="py-0.5">{phase}</div>
+                                    ))}
+                                  </div>
+                                </div>
                               ) : (
-                                <div className="space-y-0.5">
-                                  {/* Referência laboratorial convencional (principal) */}
+                                <div className="space-y-0.5 whitespace-nowrap">
                                   <div className="text-[10px] font-semibold text-foreground/80" title="Referência laboratorial convencional (SBPC/ML)">
                                     {formatRefDisplay(resolvedRef, min, max)}
                                   </div>
