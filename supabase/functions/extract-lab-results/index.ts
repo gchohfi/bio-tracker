@@ -393,7 +393,7 @@ TIREOIDE:
 - "T4L" / "Tiroxina Livre" / "T4 LIVRE" / "TIROXINA LIVRE (T4L)" / "FT4" / "FREE T4" → t4_livre
 - "T4 Total" / "Tiroxina Total" / "Tiroxina (T4) - Total" / "TIROXINA (T4) - TOTAL" / "TT4" / "TIROXINA (T4)" / "TIROXINA (T4), SORO" → t4_total
     ⚠️ "TIROXINA (T4)" without "LIVRE" = T4 Total. "TIROXINA (T4) LIVRE" = t4_livre!
-- "T3L" / "Triiodotironina Livre" / "T3 LIVRE" / "TRIIODOTIRONINA LIVRE (T3L)" / "FT3" / "FREE T3" → t3_livre (unit: pg/mL — do NOT convert)
+- "T3L" / "Triiodotironina Livre" / "T3 LIVRE" / "TRIIODOTIRONINA LIVRE (T3L)" / "FT3" / "FREE T3" → t3_livre (unit: pg/mL — if lab reports in ng/dL, multiply value by 10 to convert to pg/mL)
 - "T3 Total" / "Triiodotironina Total" / "Triiodotironina (T3) - Total" / "TRIIODOTIRONINA (T3) - TOTAL" / "TT3" / "TRIIODOTIRONINA (T3)" / "TRIIODOTIRONINA (T3), SORO" → t3_total
     ⚠️ "TRIIODOTIRONINA (T3)" without "LIVRE" = T3 Total. "TRIIODOTIRONINA (T3) LIVRE" = t3_livre!
 - "T3 Reverso" / "T3R" / "REVERSE T3" / "TRIIODOTIRONINA REVERSA" / "rT3" / "RT3" → t3_reverso
@@ -666,7 +666,7 @@ Examples:
 This rule applies ONLY to cycle/posture markers. For other age-specific markers (DHEA-S, IGF-1, etc.), still pick the single matching age range as described above.
 If no reference range is found for a marker, set lab_ref_text to "" (empty string) — but TRY HARD to find it.
 
-- For T3 Livre: the standard unit is ng/dL. Do NOT convert. Most Brazilian labs report in ng/dL.
+- For T3 Livre: the target unit is pg/mL. If the lab reports in ng/dL (common in Fleury), multiply the value by 10 to convert to pg/mL. Also convert lab_ref_min and lab_ref_max by multiplying by 10. Example: 0.32 ng/dL → 3.2 pg/mL, ref 0.23-0.42 ng/dL → 2.3-4.2 pg/mL.
 - CRITICAL: For values with operators ("<", ">", "<=", ">="): set BOTH "value" (numeric part) AND "text_value" (full string with operator).
 - "Inferior a X" → value=X, text_value="< X"
 - "Superior a X" → value=X, text_value="> X"
@@ -789,8 +789,8 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     // Tireoide
     tsh: { min: 0.01, max: 100 },
     t4_livre: { min: 0.1, max: 5 },
-    // T3 Livre: NO conversion — store as original unit from lab
-    t3_livre: { min: 0.15, max: 10 },
+    // T3 Livre: target unit is pg/mL; auto-convert ng/dL values (< 1.0) by multiplying by 10
+    t3_livre: { min: 0.15, max: 10, fix: (v) => v < 1.0 ? v * 10 : v },
     t3_total: { min: 30, max: 300 },
     // Lipídios
     colesterol_total: { min: 50, max: 500 },
