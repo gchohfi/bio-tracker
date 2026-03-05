@@ -646,9 +646,18 @@ If no reference range is found for a marker, set lab_ref_text to "" (empty strin
    - Key rule: if name contains "LIVRE" or "FREE" → Livre; otherwise → Total
 
 9. T3 Total vs T3 Livre (same pattern):
-   - "TRIIODOTIRONINA (T3) LIVRE" or "T3 LIVRE" or "T3L" or "FT3" → t3_livre
-   - "TRIIODOTIRONINA (T3)" WITHOUT the word "LIVRE" or "FREE" → t3_total
-   - Key rule: if name contains "LIVRE" or "FREE" → Livre; otherwise → Total`;
+    - "TRIIODOTIRONINA (T3) LIVRE" or "T3 LIVRE" or "T3L" or "FT3" → t3_livre
+    - "TRIIODOTIRONINA (T3)" WITHOUT the word "LIVRE" or "FREE" → t3_total
+    - Key rule: if name contains "LIVRE" or "FREE" → Livre; otherwise → Total
+
+DATE EXTRACTION PRIORITY:
+1. "Data de Coleta" / "Data da Coleta" / "Coletado em" — USE THIS (collection date)
+2. "Data do Exame" / "Realizado em" — secondary
+3. "Data de Emissão" / "Emitido em" — LAST RESORT only
+NEVER use "Data de Impressão" or footer dates.
+The collection date is typically the EARLIEST date in the report.
+Brazilian dates are DD/MM/YYYY: the FIRST number is the DAY, the SECOND is the MONTH.
+Example: "23/11/2025" → 2025-11-23 (November 23). NEVER swap day and month.`;
 
 
 
@@ -2825,7 +2834,7 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
                 properties: {
                   exam_date: {
                     type: "string",
-                    description: "Date the exams were collected/performed, in YYYY-MM-DD format. Look for: 'Data de coleta', 'Data da coleta', 'Data do exame', 'Realizado em', 'Emitido em', 'Data de emissão', 'Coleta:', 'Data:'. Return null if not found."
+                    description: "Date the exams were COLLECTED (Data de Coleta / Data da Coleta). This is NOT the emission date (Data de Emissão) nor the print date. Look for labels: 'Data de Coleta', 'Data da Coleta', 'Coletado em', 'Data do Exame'. ONLY use 'Data de Emissão' or 'Emitido em' as LAST RESORT if no collection date exists. Format: YYYY-MM-DD. Brazilian dates are DD/MM/YYYY — the FIRST number is the DAY, SECOND is MONTH. Example: '23/11/2025' in the PDF → return '2025-11-23' (November 23), NEVER '2025-04-23'. Return null if not found."
                   },
                   results: {
                     type: "array",
@@ -2934,6 +2943,28 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     validResults = convertLabRefUnits(validResults);
     // Cross-check ALL markers against PDF text (anti-hallucination)
     validResults = crossCheckAllMarkers(validResults, pdfText, beforeFallbackIds);
+
+    // ── Reference Overrides: force correct clinical limits for problematic markers ──
+    const REFERENCE_OVERRIDES: Record<string, { min: number | null; max: number | null; text: string }> = {
+      colesterol_total:   { min: null, max: 190,  text: '< 190 mg/dL' },
+      hdl:                { min: 40,   max: null, text: '> 40 mg/dL' },
+      ldl:                { min: 100,  max: 129,  text: '100 a 129 mg/dL' },
+      colesterol_nao_hdl: { min: null, max: 130,  text: '< 130 mg/dL' },
+      triglicerides:      { min: null, max: 150,  text: '< 150 mg/dL' },
+      vldl:               { min: null, max: 30,   text: '< 30 mg/dL' },
+      vitamina_b12:       { min: 300,  max: null, text: '> 300 pg/mL' },
+      hba1c:              { min: null, max: 5.7,  text: '< 5,7%' },
+    };
+    for (const r of validResults) {
+      const override = REFERENCE_OVERRIDES[r.marker_id];
+      if (override) {
+        console.log(`[REF-OVERRIDE] ${r.marker_id}: ref ${r.lab_ref_min}-${r.lab_ref_max} "${r.lab_ref_text}" → ${override.min}-${override.max} "${override.text}"`);
+        r.lab_ref_min = override.min;
+        r.lab_ref_max = override.max;
+        r.lab_ref_text = override.text;
+      }
+    }
+
     // ── Structural Validator ──
     const validation = validateExtraction(validResults);
     validResults = validation.results;
@@ -2943,10 +2974,16 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
       ? parsed.exam_date
       : null;
 
-    // Regex fallback for exam date from raw PDF text
+    // Regex fallback for exam date from raw PDF text — prioritize Data de Coleta
     if (!examDate) {
       const datePatterns = [
-        /(?:Data\s+d[aeo]\s+[Cc]olet[ao]|Colet(?:a|ado)|Realizado\s+em|Data\s+d[oe]\s+[Ee]xame|Data\s+da\s+[Ff]icha|RECEBIDO.*?COLETADO)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i,
+        // Priority 1: Data de Coleta (collection date)
+        /(?:Data\s+d[aeo]\s+[Cc]olet[ao]|Colet(?:a|ado)\s*(?:em)?)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i,
+        // Priority 2: Data do Exame / Realizado em
+        /(?:Data\s+d[oe]\s+[Ee]xame|Realizado\s+em)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i,
+        // Priority 3: Data de Emissão (last resort)
+        /(?:Data\s+d[aeo]\s+[Ee]miss[aã]o|Emitido\s+em|Data\s+da\s+[Ff]icha|RECEBIDO.*?COLETADO)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i,
+        // Priority 4: Any date followed by time
         /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})(?=\s+\d{1,2}:\d{2})/,
       ];
       for (const pattern of datePatterns) {
@@ -2954,9 +2991,14 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
         if (match) {
           const [, dd, mm, yyyy] = match;
           const year = yyyy.length === 2 ? `20${yyyy}` : yyyy;
+          const monthNum = parseInt(mm, 10);
+          const dayNum = parseInt(dd, 10);
+          // Validate month (1-12) and day (1-31) to avoid DD/MM swap
+          if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) continue;
           const candidate = `${year}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
           if (/^\d{4}-\d{2}-\d{2}$/.test(candidate)) {
             examDate = candidate;
+            console.log(`[DATE-REGEX] Matched date from pattern: ${candidate}`);
             break;
           }
         }
