@@ -2275,7 +2275,7 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
 
   // URINA TIPO I — formato em colunas do Fleury
   // =============================================
-  const urinaMatch = pdfText.match(/URINA\s+TIPO\s+I[\s\S]{0,5000}/i);
+  const urinaMatch = pdfText.match(/URINA\s+(?:TIPO\s+)?I(?:[\s,]|$)[\s\S]{0,5000}/i);
   if (urinaMatch) {
     const u = urinaMatch[0].substring(0, 3000);
 
