@@ -207,7 +207,7 @@ export const MARKERS: MarkerDef[] = [
 
   // ── Hormônios ─────────────────────────────────────────────────────────────
   { id: "testosterona_total", name: "Testosterona Total", unit: "ng/dL",  category: "Hormônios",
-    labRange: { M: [241, 827], F: [15, 70] }, panel: "Padrão" },
+    labRange: { M: [241, 827], F: [8.4, 48.1] }, panel: "Padrão" },
 
   { id: "testosterona_livre", name: "Testosterona Livre", unit: "ng/dL",  category: "Hormônios",
     labRange: { M: [3.0, 24.0], F: [0.06, 0.68] }, panel: "Padrão" },
