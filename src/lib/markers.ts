@@ -675,7 +675,7 @@ export const MARKERS: MarkerDef[] = [
 
   // ── PSA ───────────────────────────────────────────────────────────────────
   { id: "psa_total",       name: "PSA Total",         unit: "ng/mL",        category: "Hormônios",
-    labRange: { M: [0, 4.0], F: [0, 0] }, panel: "Padrão" },
+    labRange: { M: [0, 2.5], F: [0, 2.5] }, panel: "Padrão" },
 
   { id: "psa_livre",       name: "PSA Livre",         unit: "ng/mL",        category: "Hormônios",
     labRange: { M: [0, 1.0], F: [0, 0] }, panel: "Adicional" },
