@@ -42,6 +42,7 @@ import {
   Sliders,
   ClipboardList,
   Stethoscope,
+  Share2,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
 import ImportVerification from "@/components/ImportVerification";
@@ -51,6 +52,7 @@ import AliasConfigDialog, { loadCustomAliases } from "@/components/AliasConfigDi
 import { PatientProfileDialog } from "@/components/PatientProfileDialog";
 import { AnamneseTab } from "@/components/AnamneseTab";
 import { DoctorNotesTab } from "@/components/DoctorNotesTab";
+import { SharePatientDialog } from "@/components/SharePatientDialog";
 import { generatePatientReport } from "@/lib/generateReport";
 import { exportPrescriptionCSV } from "@/lib/exportPrescriptionCSV";
 import {
@@ -280,6 +282,7 @@ export default function PatientDetail() {
   const [cachedAiAnalysis, setCachedAiAnalysis] = useState<any>(null);
   const [cachedProtocols, setCachedProtocols] = useState<any[]>([]);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   // Track how many PDFs were imported in the current session
   const [importedPdfCount, setImportedPdfCount] = useState(0);
   // Date extracted automatically from the PDF
@@ -1303,6 +1306,20 @@ export default function PatientDetail() {
               {(patient?.objectives?.length ?? 0) > 0 ? `Perfil (${patient!.objectives!.length})` : "Perfil"}
             </Button>
 
+            {/* Compartilhar paciente – only the owner can share */}
+            {patient && user && patient.practitioner_id === user.id && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShareOpen(true)}
+                className="border-green-200 text-green-700 hover:bg-green-50"
+                title="Compartilhar este paciente com outro profissional"
+              >
+                <Share2 className="mr-1.5 h-4 w-4" />
+                Compartilhar
+              </Button>
+            )}
+
             {sessions.length > 0 && (
               <>
                 {/* Exportar PDF simples */}
@@ -1790,6 +1807,14 @@ export default function PatientDetail() {
             restrictions: patient.restrictions ?? null,
           }}
           onSave={handleSaveProfile}
+        />
+      )}
+      {patient && (
+        <SharePatientDialog
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          patientId={patient.id}
+          patientName={patient.name}
         />
       )}
     </AppLayout>

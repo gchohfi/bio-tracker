@@ -20,6 +20,7 @@ import {
   CalendarIcon,
   ArrowRight,
   XCircle,
+  Share2,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -45,6 +46,7 @@ export default function Index() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [sharedPatients, setSharedPatients] = useState<Patient[]>([]);
   const [search, setSearch] = useState("");
   const [newName, setNewName] = useState("");
   const [newSex, setNewSex] = useState<"M" | "F">("F");
@@ -68,6 +70,33 @@ export default function Index() {
     } else {
       setPatients(data || []);
     }
+
+    // Fetch patients shared with the current user
+    const { data: shareData, error: shareError } = await supabase
+      .from("patient_shares")
+      .select("patient_id")
+      .eq("shared_with_id", user.id);
+
+    if (shareError) {
+      console.error("Erro ao buscar pacientes compartilhados:", shareError.message);
+      setSharedPatients([]);
+    } else if (shareData && shareData.length > 0) {
+      const sharedIds = shareData.map((s) => s.patient_id);
+      const { data: sharedPats, error: sharedPatsError } = await supabase
+        .from("patients")
+        .select("*")
+        .in("id", sharedIds)
+        .order("created_at", { ascending: false });
+      if (sharedPatsError) {
+        console.error("Erro ao buscar dados dos pacientes compartilhados:", sharedPatsError.message);
+        setSharedPatients([]);
+      } else {
+        setSharedPatients(sharedPats || []);
+      }
+    } else {
+      setSharedPatients([]);
+    }
+
     setLoading(false);
   };
 
@@ -187,6 +216,10 @@ export default function Index() {
     p.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const filteredShared = sharedPatients.filter((p) =>
+    p.name.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -259,7 +292,7 @@ export default function Index() {
                 <Users className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{patients.length}</p>
+                <p className="text-2xl font-bold">{patients.length + sharedPatients.length}</p>
                 <p className="text-xs text-muted-foreground">Pacientes</p>
               </div>
             </CardContent>
@@ -380,41 +413,79 @@ export default function Index() {
             <div className="flex justify-center py-12">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
             </div>
-          ) : filtered.length === 0 ? (
+          ) : filtered.length === 0 && filteredShared.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                 <Users className="mb-4 h-12 w-12 text-muted-foreground/50" />
                 <p className="text-lg font-medium">Nenhum paciente encontrado</p>
                 <p className="text-sm text-muted-foreground">
-                  {patients.length === 0
+                  {patients.length === 0 && sharedPatients.length === 0
                     ? "Clique em 'Novo Paciente' para começar"
                     : "Tente outro termo de busca"}
                 </p>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((p) => (
-                <Card
-                  key={p.id}
-                  className="cursor-pointer transition-colors hover:bg-muted/50"
-                  onClick={() => navigate(`/patient/${p.id}`)}
-                >
-                  <CardContent className="flex items-center gap-3 p-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                      {p.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(p.created_at).toLocaleDateString("pt-BR")}
-                      </p>
-                    </div>
-                    <Badge variant="secondary">{p.sex === "M" ? "Masc" : "Fem"}</Badge>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <>
+              {filtered.length > 0 && (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {filtered.map((p) => (
+                    <Card
+                      key={p.id}
+                      className="cursor-pointer transition-colors hover:bg-muted/50"
+                      onClick={() => navigate(`/patient/${p.id}`)}
+                    >
+                      <CardContent className="flex items-center gap-3 p-4">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                          {p.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{p.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(p.created_at).toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
+                        <Badge variant="secondary">{p.sex === "M" ? "Masc" : "Fem"}</Badge>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {filteredShared.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+                    <Share2 className="h-4 w-4" />
+                    Compartilhados comigo
+                  </h3>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {filteredShared.map((p) => (
+                      <Card
+                        key={p.id}
+                        className="cursor-pointer transition-colors hover:bg-muted/50 border-green-200"
+                        onClick={() => navigate(`/patient/${p.id}`)}
+                      >
+                        <CardContent className="flex items-center gap-3 p-4">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 text-sm font-semibold text-green-700">
+                            {p.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{p.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(p.created_at).toLocaleDateString("pt-BR")}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Badge variant="secondary">{p.sex === "M" ? "Masc" : "Fem"}</Badge>
+                            <Share2 className="h-3.5 w-3.5 text-green-500" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
