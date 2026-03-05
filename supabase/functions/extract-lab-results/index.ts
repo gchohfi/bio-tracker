@@ -773,7 +773,7 @@ function deduplicateResults(results: any[]): any[] {
 }
 
 // Post-processing: validate values and fix common decimal/unit errors
-function validateAndFixValues(results: any[], patientSex?: string): any[] {
+function validateAndFixValues(results: any[], patientSex?: string, patientAge?: number | null): any[] {
   // Sanity ranges with auto-fix functions for common Brazilian decimal/unit errors
   // No unit conversion — values are stored exactly as the lab reports them.
   // Only fix decimal errors (e.g., acido_urico 77 → 7.7) and thousands separator issues (e.g., leucocitos 4.65 → 4650).
@@ -2944,7 +2944,7 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     // Deduplicate (prefer calculated values over operator values for same marker)
     validResults = deduplicateResults(validResults);
     // Validate and fix common decimal/unit errors
-    validResults = validateAndFixValues(validResults, patientSex);
+    validResults = validateAndFixValues(validResults, patientSex, patientAge);
     // Post-process: calculate derived values if AI missed them
     validResults = postProcessResults(validResults);
     // Regex fallback for markers the AI frequently misses
@@ -2955,7 +2955,7 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     if (fallbackAdded.length > 0) {
       console.log(`Regex fallback added ${fallbackAdded.length} markers: ${fallbackAdded.map((r: any) => r.marker_id).join(', ')}`);
       // Validate fallback markers (anti-hallucination, sanity checks)
-      const fallbackValidated = validateAndFixValues(fallbackAdded, patientSex);
+      const fallbackValidated = validateAndFixValues(fallbackAdded, patientSex, patientAge);
       const fallbackValidatedIds = new Set(fallbackValidated.map((r: any) => r.marker_id));
       // Remove unvalidated fallback markers, keep only those that passed validation
       validResults = validResults.filter((r: any) => beforeFallbackIds.has(r.marker_id) || fallbackValidatedIds.has(r.marker_id));
