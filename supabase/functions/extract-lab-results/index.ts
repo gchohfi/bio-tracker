@@ -431,6 +431,7 @@ EIXO ADRENAL:
   ⚠️ Material is URINE not blood! mcg/24 HORAS = µg/24h.
 - "ALDOSTERONA" / "ALDOSTERONA SÉRICA" / "ALDOSTERONA - SENTADO" / "ALDOSTERONA - DEITADO" / "ALDOSTERONA - EM PÉ" / "ALDOSTERONA, SORO" / "ALDOSTERONA PLASMÁTICA" → aldosterona
   Units: ng/dL. Keep as-is (do NOT convert).
+- "RENINA" / "ATIVIDADE DE RENINA PLASMÁTICA" / "RENINA DIRETA" / "ARP" / "RENINA PLASMÁTICA" / "ATIVIDADE PLASMÁTICA DE RENINA" / "APR" / "RENINA, PLASMA" → renina (unit: µUI/mL, numeric)
 
 ANDRÓGENOS:
 - "DIHIDROTESTOSTERONA" / "DHT" / "D.H.T." / "5-ALFA-DIHIDROTESTOSTERONA" / "5α-DIHIDROTESTOSTERONA" / "DIIDROTESTOSTERONA" / "5α-DHT" / "5-ALFA-DHT" → dihidrotestosterona (use the original unit from the report — do NOT convert)
@@ -528,6 +529,11 @@ INFLAMAÇÃO:
 IMUNOLOGIA:
 - "FAN" / "FAN - FATOR ANTI-NÚCLEO" / "FATOR ANTINÚCLEO" / "ANA" / "FAN (HEP-2)" / "PESQUISA DE FAN" → fan
   QUALITATIVE! Use text_value. Set value=0.
+- "COMPLEMENTO C3" / "C3" / "COMPLEMENTO C3, SORO" / "C3 COMPLEMENTO" → complemento_c3 (unit: mg/dL, numeric)
+- "COMPLEMENTO C4" / "C4" / "COMPLEMENTO C4, SORO" / "C4 COMPLEMENTO" → complemento_c4 (unit: mg/dL, numeric)
+- "ANTI-DNA" / "ANTI-DNA NATIVO" / "ANTICORPO ANTI-DNA" / "Anti-dsDNA" / "ANTICORPOS ANTI-DNA NATIVO" / "ANTI DNA NATIVO" / "ANTI-DNA DE DUPLA HÉLICE" / "ANTI-dsDNA" → anti_dna (unit: UI/mL, numeric)
+- "ANTI-SM" / "ANTI-Sm" / "ANTICORPO ANTI-SM" / "ANTI SM" / "ANTICORPOS ANTI-SM" → anti_sm (QUALITATIVE! Use text_value. Set value=0.)
+- "FATOR REUMATOIDE" / "FR" / "LÁTEX" (in immunology context) → fator_reumatoide
 
 MARCADORES TUMORAIS:
 - "CA 19-9" / "CA 19.9" / "Antígeno CA 19-9" / "Antigeno Carboidrato 19-9" / "CA19-9" / "ANTÍGENO CARBOIDRATO 19.9" / "ANTÍGENO CA 19-9, SORO" → ca_19_9
