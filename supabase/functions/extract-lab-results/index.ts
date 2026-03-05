@@ -758,10 +758,8 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     // Tireoide
     tsh: { min: 0.01, max: 100 },
     t4_livre: { min: 0.1, max: 5 },
-    // T3 Livre: expected ng/dL (faixa funcional 0.27–0.42 ng/dL).
-    // Fleury reporta em pg/mL (~2.0–4.4 pg/mL). Conversão: 1 pg/mL = 0.1 ng/dL (pois 1 ng/dL = 10 pg/mL).
-    // Se AI retornar pg/mL (>1.5) → ÷10 para ng/dL. Se pmol/L (>5) → ÷15.36 para ng/dL.
-    t3_livre: { min: 0.15, max: 0.8, fix: (v) => v > 1.5 && v <= 10 ? v / 10 : v > 10 ? v / 15.36 : v, label: "t3_livre pg/mL→ng/dL" },
+    // T3 Livre: NO conversion — store as original unit from lab
+    t3_livre: { min: 0.15, max: 10 },
     t3_total: { min: 30, max: 300 },
     // Lipídios
     colesterol_total: { min: 50, max: 500 },
