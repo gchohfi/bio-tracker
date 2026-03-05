@@ -526,7 +526,7 @@ GLICEMIA:
 - "HOMA-IR" / "ÍNDICE HOMA" / "HOMA" / "HOMA IR" / "HOMEOSTASIS MODEL ASSESSMENT" → homa_ir
 
 INFLAMAÇÃO:
-- "PCR ultra-sensível" / "PCR-us" / "Proteína C Reativa" / "hsCRP" / "PCR-AS" / "PROTEÍNA C REATIVA ULTRASSENSÍVEL" / "PROTEÍNA C REATIVA (ALTA SENSIBILIDADE)" / "PCR QUANTITATIVA" → pcr (use the original unit from the report — do NOT convert)
+- "PCR ultra-sensível" / "PCR-us" / "Proteína C Reativa" / "hsCRP" / "PCR-AS" / "PROTEÍNA C REATIVA ULTRASSENSÍVEL" / "PROTEÍNA C REATIVA (ALTA SENSIBILIDADE)" / "PCR QUANTITATIVA" → pcr (target unit: mg/L — if lab reports in mg/dL, multiply value by 10 to convert to mg/L. Also convert lab_ref_min and lab_ref_max.)
 - "VHS" / "V.H.S." / "Velocidade de Hemossedimentação" / "VSG" / "ESR" / "VELOCIDADE DE SEDIMENTAÇÃO" / "Hemossedimentação" / "HEMOSSEDIMENTACAO" / "HEMOSSEDIMENTAÇÃO, SANGUE TOTAL" → vhs
 
 IMUNOLOGIA:
@@ -835,8 +835,8 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     potassio: { min: 2, max: 8 },
     fosforo: { min: 1, max: 10 },
     magnesio: { min: 0.5, max: 5 },
-    // PCR: NO conversion — store as original unit from lab
-    pcr: { min: 0, max: 200 },
+    // PCR: target unit mg/L — auto-convert mg/dL values (< 0.5) by multiplying by 10
+    pcr: { min: 0, max: 200, fix: (v) => v < 0.5 && v > 0 ? v * 10 : v },
     // Glicemia
     glicose_jejum: { min: 40, max: 500 },
     hba1c: { min: 3, max: 15 },
