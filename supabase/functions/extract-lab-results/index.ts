@@ -396,11 +396,11 @@ TIREOIDE:
 
 HORMÔNIOS:
 - "Testosterona Total" / "TESTOSTERONA, SORO" / "TESTOSTERONA SÉRICA" → testosterona_total
-- "Testosterona Livre" / "TESTOSTERONA LIVRE CALCULADA" / "TESTOSTERONA LIVRE, SORO" / "Testosterona Livre Calculada" / "FTE" → testosterona_livre (use the original unit from the report — do NOT convert)
+- "Testosterona Livre" / "TESTOSTERONA LIVRE CALCULADA" / "TESTOSTERONA LIVRE, SORO" / "Testosterona Livre Calculada" / "FTE" → testosterona_livre (unit: ng/dL). CRITICAL: If the lab value is in pmol/L, DIVIDE by 34.7 to convert to ng/dL. Example: 477 pmol/L ÷ 34.7 = 13.7 ng/dL. Do NOT store pmol/L values.
   ⚠️ Testosterona Livre has sex-specific references: Male ~5–21 ng/dL, Female ~0.1–0.5 ng/dL.
     If the patient value is > 5 ng/dL (male range) but the lab_ref_range max is ≤ 2.0 ng/dL (female range), the wrong sex reference was captured — set lab_ref_range to null.
 - "Testosterona Biodisponível" / "TESTOSTERONA BIODISPONIVEL" / "Testosterona Biodisponível Calculada" → testosterona_biodisponivel (unit: ng/dL)
-- "Estradiol" / "ESTRADIOL (E2)" / "17-BETA-ESTRADIOL" / "17β-ESTRADIOL" / "E2" → estradiol (use the original unit from the report — do NOT convert)
+- "Estradiol" / "ESTRADIOL (E2)" / "17-BETA-ESTRADIOL" / "17β-ESTRADIOL" / "E2" → estradiol (unit: pg/mL). CRITICAL: If the lab value is in ng/dL, MULTIPLY by 10 to convert to pg/mL. Example: 2.7 ng/dL × 10 = 27 pg/mL. Do NOT store ng/dL values.
 - "Estrona" / "E1" / "Estrona (E1)" / "Estrona, soro" / "ESTRONA (E1)" → estrona
 - "Progesterona" / "PROGESTERONA, SORO" / "P4" → progesterona (use the original unit from the report — do NOT convert)
 - "DHEA-S" / "SDHEA" / "S-DHEA" / "Sulfato de Dehidroepiandrosterona" / "DHEA SULFATO" / "SULFATO DE DEIDROEPIANDROSTERONA" / "DEIDROEPIANDROSTERONA SULFATO" → dhea_s
@@ -444,7 +444,7 @@ VITAMINAS:
 
 MINERAIS:
 - "Magnésio" / "MAGNÉSIO, SORO" / "MAGNÉSIO SÉRICO" / "Mg SÉRICO" → magnesio
-- "Zinco" / "ZINCO, SORO" / "ZINCO SÉRICO" / "Zn" → zinco (use the original unit from the report — do NOT convert)
+- "Zinco" / "ZINCO, SORO" / "ZINCO SÉRICO" / "Zn" → zinco (unit: µg/dL). CRITICAL: If the lab value is in µg/mL, MULTIPLY by 100 to convert to µg/dL. Example: 0.9 µg/mL × 100 = 90 µg/dL. Do NOT store µg/mL values.
 - "Selênio" / "SELÊNIO, SORO" / "SELÊNIO SÉRICO" / "Se SÉRICO" → selenio
 - "Cobre" → cobre
 - "Manganês" → manganes
@@ -770,8 +770,21 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     ferritina: { min: 1, max: 2000, fix: (v) => v > 2000 ? v / 10 : v },
     ferro_serico: { min: 10, max: 500 },
     ferro_metabolismo: { min: 10, max: 500 },
-    zinco: { min: 30, max: 200, fix: (v: number) => v < 10 ? v * 100 : v, label: "zinco decimal fix" },
-    testosterona_livre: { min: 0.5, max: 100, fix: (v: number) => v > 1000 ? v / 100 : v > 100 ? v / 10 : v, label: "testosterona_livre decimal fix" },
+    zinco: { min: 30, max: 200, fix: (v: number, unit?: string) => {
+      if (unit && /ug\/m[lL]|µg\/m[lL]/i.test(unit)) return Math.round(v * 100 * 100) / 100;
+      if (v < 10) return v * 100;
+      return v;
+    }, label: "zinco µg/mL→µg/dL" },
+    testosterona_livre: { min: 0.5, max: 50, fix: (v: number, unit?: string) => {
+      if (unit && /pmol/i.test(unit)) return Math.round((v / 34.7) * 100) / 100;
+      if (v > 100) return Math.round((v / 34.7) * 100) / 100;
+      return v;
+    }, label: "testosterona_livre pmol→ng/dL" },
+    estradiol: { min: 5, max: 500, fix: (v: number, unit?: string) => {
+      if (unit && /ng\/d/i.test(unit)) return Math.round(v * 10 * 100) / 100;
+      if (v < 5) return Math.round(v * 10 * 100) / 100;
+      return v;
+    }, label: "estradiol ng/dL→pg/mL" },
     // Vitaminas
     vitamina_d: { min: 3, max: 200 },
     vitamina_b12: { min: 50, max: 3000 },
@@ -834,7 +847,7 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     if (!range || !range.fix) continue;
     if (r.value < range.min || r.value > range.max) {
       const original = r.value;
-      r.value = range.fix(r.value);
+      r.value = range.fix(r.value, r.unit);
       if (r.value < range.min * 0.3 || r.value > range.max * 3) {
         r.value = original; // revert — fix didn't help
       } else {
@@ -1315,6 +1328,24 @@ function postProcessResults(results: any[]): any[] {
   const resultMap = new Map<string, any>();
   for (const r of results) {
     resultMap.set(r.marker_id, r);
+  }
+
+  // Fix psa_ratio extracted as fraction (e.g. 0.28 instead of 27.5%)
+  if (resultMap.has("psa_ratio")) {
+    const existing = resultMap.get("psa_ratio");
+    if (typeof existing.value === "number" && existing.value < 1.0 && existing.value > 0) {
+      if (resultMap.has("psa_livre") && resultMap.has("psa_total")) {
+        const psaL = resultMap.get("psa_livre").value;
+        const psaT = resultMap.get("psa_total").value;
+        if (typeof psaL === "number" && typeof psaT === "number" && psaT > 0) {
+          existing.value = Math.round((psaL / psaT) * 100 * 10) / 10;
+          console.log(`[PSA] Recalculated psa_ratio from fraction: ${existing.value}%`);
+        }
+      } else {
+        existing.value = Math.round(existing.value * 100 * 10) / 10;
+        console.log(`[PSA] Converted psa_ratio from fraction: ${existing.value}%`);
+      }
+    }
   }
 
   // Calculate Bilirrubina Indireta = Total - Direta
