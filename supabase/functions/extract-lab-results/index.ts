@@ -1244,7 +1244,20 @@ function convertLabRefUnits(results: any[]): any[] {
     }
   }
 
-  // Bug 3 — Testosterona Livre: ref feminina capturada para paciente masculino.
+  // Bug: Homocisteína — ref capturando faixa etária (ex: "15 a 65 anos") em vez do valor de referência.
+  // Homocisteína normal: < 15 µmol/L. Se lab_ref_min >= 10 e lab_ref_max >= 40, é faixa etária — descartar.
+  for (const r of results) {
+    if (r.marker_id === 'homocisteina' && typeof r.lab_ref_min === 'number' && typeof r.lab_ref_max === 'number') {
+      if (r.lab_ref_min >= 10 && r.lab_ref_max >= 40) {
+        console.log(`Discarding age-range lab_ref for homocisteina: ${r.lab_ref_min}-${r.lab_ref_max}`);
+        r.lab_ref_min = null;
+        r.lab_ref_max = null;
+        r.lab_ref_text = '';
+      }
+    }
+  }
+
+
   // Detectado pelo cruzamento valor x ref: se valor > 5 ng/dL (masculino) mas ref max ≤ 2.0 ng/dL (feminino).
   for (const r of results) {
     if (r.marker_id === 'testosterona_livre'
