@@ -895,7 +895,8 @@ export function formatRefDisplay(
   // Detect one-sided ranges even when operator is 'range'
   const mn = rMin ?? fallbackMin;
   const mx = rMax ?? fallbackMax;
-  if ((mn === 0 || mn == null) && mx != null && mx < 900) return `< ${mx}`;
-  if (mx == null || mx >= 900) return `> ${mn}`;
+  const isSentinel = (v: number) => /^9+$/.test(String(v));
+  if ((mn === 0 || mn == null) && mx != null && !isSentinel(mx)) return `< ${mx}`;
+  if (mx == null || isSentinel(mx)) return `> ${mn}`;
   return `${mn}–${mx}`;
 }
