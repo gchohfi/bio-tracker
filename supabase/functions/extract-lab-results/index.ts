@@ -954,6 +954,26 @@ function validateAndFixValues(results: any[], patientSex?: string, patientAge?: 
     }
   }
 
+  // ── Remove urina_densidade e urina_ph com valores implausíveis ──
+  // Se a IA extraiu valor 0 ou fora do range fisiológico, marcar para remoção
+  // para permitir que o regex fallback re-extraia do PDF.
+  for (const r of results) {
+    if (r.marker_id === 'urina_densidade') {
+      if (typeof r.value === 'number' && (r.value === 0 || r.value > 2 || (r.value >= 900 && r.value <= 1100))) {
+        // Valor 0, ou > 2 (impossível), ou 900-1100 (parseBrNum interpretou 1.0XX como milhar)
+        console.log(`Removing implausible urina_densidade: ${r.value}`);
+        (r as any)._remove = true;
+      }
+    }
+    if (r.marker_id === 'urina_ph') {
+      if (typeof r.value === 'number' && (r.value === 0 || r.value > 14)) {
+        console.log(`Removing implausible urina_ph: ${r.value}`);
+        (r as any)._remove = true;
+      }
+    }
+  }
+  results = results.filter((r: any) => !r._remove);
+
   // Also strip text_value from numeric markers if AI incorrectly set it
   // (except for operator values)
   for (const r of results) {
@@ -2335,8 +2355,18 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   // Fallback genérico de urina para labs não-Fleury
   if (/(?:URINA\s+TIPO|EAS|URIN[ÁA]LISE|PARCIAL\s+DE\s+URINA|URINA\s+ROTINA|URINA\s+I\b)/i.test(pdfText)) {
     if (!found.has('urina_densidade')) {
-      const m = pdfText.match(/(?:Densidade)[\s:.\-]*?(1[.,]0\d{2})/i);
-      if (m) { processValue('urina_densidade', m[1]); }
+      const m = pdfText.match(/(?:Densidade)[\s:.\-]*?(1[.,]\d{3}|1[.,]0\d{2})/i);
+      if (m) {
+        // Tratamento especial: densidade urinária é sempre 1.0XX
+        // parseBrNum interpretaria "1.030" como 1030 (milhar), então parseamos manualmente
+        const densStr = m[1].replace(',', '.');
+        const densVal = parseFloat(densStr);
+        if (densVal >= 1.000 && densVal <= 1.060) {
+          additional.push({ marker_id: 'urina_densidade', value: densVal });
+          found.add('urina_densidade');
+          console.log(`Regex fallback urina_densidade: ${densVal}`);
+        }
+      }
     }
     if (!found.has('urina_ph')) {
       const m = pdfText.match(/(?:pH\s*(?:Urin[áa]rio)?)[\s:.\-]*?(\d[.,]?\d?)/i);
