@@ -843,32 +843,7 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     }
   }
 
-  // ── Deterministic unit conversion based on lab_ref_max ──
-  // If the lab reference max indicates the source unit is ng/dL, convert value + refs
-  const UNIT_CONVERSIONS: Record<string, { factor: number; detectSourceUnit: (refMax: number) => boolean; label: string }> = {
-    estradiol:           { factor: 10,   detectSourceUnit: (max) => max > 0 && max < 100,  label: 'estradiol ng/dL→pg/mL' },
-    progesterona:        { factor: 0.01, detectSourceUnit: (max) => max > 50,               label: 'progesterona ng/dL→ng/mL' },
-    dihidrotestosterona: { factor: 10,   detectSourceUnit: (max) => max > 0 && max < 100,  label: 'DHT ng/dL→pg/mL' },
-  };
-
-  for (const r of results) {
-    const conv = UNIT_CONVERSIONS[r.marker_id];
-    if (!conv) continue;
-    if (typeof r.value !== 'number') continue;
-    
-    const refMax = typeof r.lab_ref_max === 'number' ? r.lab_ref_max : null;
-    if (refMax !== null && conv.detectSourceUnit(refMax)) {
-      const origValue = r.value;
-      r.value = parseFloat((r.value * conv.factor).toFixed(4));
-      if (typeof r.lab_ref_min === 'number') {
-        r.lab_ref_min = parseFloat((r.lab_ref_min * conv.factor).toFixed(4));
-      }
-      if (typeof r.lab_ref_max === 'number') {
-        r.lab_ref_max = parseFloat((r.lab_ref_max * conv.factor).toFixed(4));
-      }
-      console.log(`DETERMINISTIC CONV ${conv.label}: value ${origValue}→${r.value}, ref_max ${refMax}→${r.lab_ref_max}`);
-    }
-  }
+  // UNIT_CONVERSIONS removed — values are stored exactly as the lab reports them.
 
   // Round all numeric values to avoid floating point artifacts (e.g. 0.1270893371757925 → 0.1271)
   for (const r of results) {
