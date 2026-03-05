@@ -466,7 +466,9 @@ export function generatePatientReport(
                 const labRefText = (sessionId && labRefBySession[marker.id]?.[sessionId])
                   || labRefByMarker[marker.id]?.text;
                 const ref = resolveReference(marker, sex, labRefText);
-                const status = getMarkerStatusFromRef(val, ref);
+                // Se a referência é multi-fase de ciclo (Folicular/Lútea/Ovulação/Pós-menopausa), não classificar
+                const isCyclePhaseRef = labRefText && /(?:folicular|l[uú]te[ao]|ovulat|menopausa|proliferat|secretor|ortostat|decubito)/i.test(labRefText) && labRefText.includes(' / ');
+                const status = isCyclePhaseRef ? 'normal' : getMarkerStatusFromRef(val, ref);
                 data.cell.styles.fontStyle = "bold";
                 if (status === "normal") {
                   data.cell.styles.textColor = [GREEN.r, GREEN.g, GREEN.b];
@@ -537,9 +539,14 @@ export function generatePatientReport(
       const val = resultMap[m.id]?.[latestSession.id];
       if (val !== undefined) {
         const labRefText = labRefBySession[m.id]?.[latestSession.id] || labRefByMarker[m.id]?.text;
-        const ref = resolveReference(m, sex, labRefText);
-        if (getMarkerStatusFromRef(val, ref) !== "normal") alertCount++;
-        else normalCount++;
+        const isCyclePhaseRef = labRefText && /(?:folicular|l[uú]te[ao]|ovulat|menopausa|proliferat|secretor|ortostat|decubito)/i.test(labRefText) && labRefText.includes(' / ');
+        if (!isCyclePhaseRef) {
+          const ref = resolveReference(m, sex, labRefText);
+          if (getMarkerStatusFromRef(val, ref) !== "normal") alertCount++;
+          else normalCount++;
+        } else {
+          normalCount++; // Multi-fase: não classificar como alerta
+        }
       }
     });
   }
