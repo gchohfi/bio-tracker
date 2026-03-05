@@ -1,44 +1,98 @@
 
 
-# Plan: TSH Reference Fix + Missing Exams Investigation
+# Correção de Conversões de Unidade: Estradiol, Progesterona e DHT
 
-## Issues Identified
+## Problemas Identificados
 
-### 1. TSH Reference (0.27-4.2 vs 0.45-4.5)
+Os 3 erros têm a mesma causa raiz: **conflito entre conversão da IA e sanity checks no pós-processamento**.
 
-The `labRange` in `src/lib/markers.ts` line 179 is `[0.27, 4.20]`. This is the fallback used when no `lab_ref_text` is stored. Most Brazilian labs (Fleury, Labi) use `0.45-4.5`. If the AI extracted the lab reference correctly, it should show the lab's value — so either the AI isn't extracting TSH's `lab_ref_text`, or the fallback is being used.
+### Erro 1 — Estradiol (4.4 ng/dL → 440 pg/mL, deveria ser 44)
+- A IA converte corretamente: 4.4 × 10 = 44 pg/mL
+- Mas o sanity check (linha 702) vê `44 < 50` e aplica `× 10` novamente → 440
+- **Bug**: dupla conversão no sanity fix
 
-**Fix**: Update the fallback `labRange` to match the most common Brazilian range: `[0.45, 4.50]`.
+### Erro 2 — Progesterona (19 ng/dL → 19 ng/mL, deveria ser 0.19)  
+- A IA não converteu (manteve 19)
+- O sanity check (linha 701) só corrige se `> 50`, então 19 passa direto
+- **Bug**: threshold do sanity muito alto + IA falhou em converter
 
-**File**: `src/lib/markers.ts` line 179
+### Erro 3 — DHT (13 ng/dL → 13 pg/mL, deveria ser 130)
+- A IA não converteu (manteve 13)
+- O sanity check para DHT (linha 711) não tem função `fix`
+- **Bug**: sem fallback de conversão
 
-### 2. Missing Exams (Cálcio, Cálcio Iônico, T3 Livre, T4 Livre)
+## Correções Propostas
 
-These markers exist in `MARKERS`, in `MARKER_LIST` (edge function), in `MARKER_TEXT_TERMS`, and in the prompt aliases. They are panel "Padrão" so they should display. The most likely cause is that the AI simply didn't extract them from the specific PDF, or `crossCheckAllMarkers` discarded them because the text terms didn't match the PDF text.
+### 1. Estradiol — remover branch que causa dupla conversão
+```typescript
+// ANTES (bugado):
+estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 100 : v < 50 ? v * 10 : v > 5000 ? v / 10 : v }
 
-**This is NOT a code bug** — it's an extraction miss for a specific PDF. No code change needed. The user should re-import the PDF and check if these appear. If not, they can manually add values.
+// DEPOIS:
+estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 10 : v > 5000 ? v / 10 : v }
+```
+- `v < 5` (valor em ng/dL não convertido, ex: 4.4) → `× 10` = 44 ✓
+- Valores 5–5000 já estão em pg/mL, não mexer
 
-**No code change for this item.**
+### 2. Progesterona — adicionar detecção de ng/dL não convertido
+```typescript
+// ANTES:
+progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v }
 
-### 3. PSA Ratio 27.5% vs 28%
+// DEPOIS (sex-aware):
+progesterona: { min: 0, max: 50, fix: (v) => {
+  // Labs brasileiros reportam ng/dL (ex: 19, 89). Nosso target é ng/mL.
+  // Fase folicular: 0.1-1.5 ng/mL = 10-150 ng/dL
+  // Fase lútea: 5-25 ng/mL = 500-2500 ng/dL  
+  // Se > 5 para mulher ou > 1.5 para homem, provavelmente ng/dL não convertido
+  if (v > 5) return v / 100;  // ng/dL → ng/mL
+  return v;
+}}
+```
+- 19 ng/dL → `19 > 5` → `÷ 100` = 0.19 ng/mL ✓
+- Valor já convertido (0.19 ng/mL) → não mexe ✓
 
-The plan already implemented recalculation: `(psa_livre / psa_total) * 100 = (0.19 / 0.69) * 100 = 27.536...` rounded to 1 decimal = 27.5%. The PDF shows 28% (lab's own rounding). This is a minor rounding difference — clinically insignificant.
+### 3. DHT — adicionar fix para conversão ng/dL → pg/mL
+```typescript
+// ANTES:
+dihidrotestosterona: { min: 0, max: 2000 }
 
-**No code change needed.** The recalculated value (27.5%) is mathematically correct from the component values.
+// DEPOIS:
+dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 5 ? v * 10 : v }
+```
+- 13 ng/dL → `13 ≥ 5` → passa (já no range se AI converteu) ... não, 13 está no range.
 
-### 4. TFG CKD-EPI Version
+Melhor abordagem: checar contra referência do lab. Se `lab_ref_max` está em ng/dL (ex: 46), o valor está em ng/dL e precisa `× 10`.
 
-The system extracts whatever TFG value the lab provides. It does NOT calculate TFG itself — it takes the lab's reported value. If the lab used CKD-EPI 2009, that's what gets stored. Changing the formula would require calculating TFG from creatinine + age + sex instead of using the lab value, which is a different feature request.
+Na verdade, a solução mais robusta é **adicionar conversão determinística no pós-processamento** para estes 3 marcadores, usando o `lab_ref_text` como sinal da unidade fonte:
 
-**No code change needed** — the system correctly stores the lab's reported value.
+### 4. Pós-processamento determinístico (abordagem principal)
+Adicionar uma etapa após a extração que detecta a unidade fonte pelo `lab_ref_text` e converte deterministicamente:
 
----
+```typescript
+// No postProcessResults ou equivalente:
+const UNIT_CONVERSIONS = {
+  estradiol:    { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10,   detectRef: (max) => max < 100 },
+  progesterona: { sourceUnit: 'ng/dL', targetUnit: 'ng/mL', factor: 0.01, detectRef: (max) => max > 50 },
+  dihidrotestosterona: { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10, detectRef: (max) => max < 100 },
+};
+```
+Se o `lab_ref_max` indica unidade ng/dL (ex: estradiol ref max 23.3, progesterona ref max 89, DHT ref max 46), aplicar conversão e também converter as referências.
 
-## Changes
+### 5. Corrigir dados existentes no banco
+Migration SQL para corrigir os 3 valores da paciente atual.
 
-| # | File | Change |
-|---|------|--------|
-| 1 | `src/lib/markers.ts` | Update TSH `labRange` from `[0.27, 4.20]` to `[0.45, 4.50]` |
+## Arquivos a alterar
 
-Single line change. All other items are either already correct or not code bugs.
+| Arquivo | Alteração |
+|---------|-----------|
+| `supabase/functions/extract-lab-results/index.ts` | Corrigir sanity fixes + adicionar pós-processamento determinístico |
+| Migration SQL | Corrigir os 3 valores errados no banco |
+
+## Resumo
+- Estradiol: corrigir sanity para não duplicar conversão
+- Progesterona: baixar threshold do sanity
+- DHT: adicionar fix de conversão
+- Adicionar detecção determinística por lab_ref como camada extra de segurança
+- Corrigir dados existentes via migration
 

@@ -176,7 +176,7 @@ export const MARKERS: MarkerDef[] = [
 
   // ── Tireoide ──────────────────────────────────────────────────────────────
   { id: "tsh",             name: "TSH",             unit: "mUI/L",        category: "Tireoide",
-    labRange: { M: [0.27, 4.20], F: [0.27, 4.20] }, panel: "Padrão" },
+    labRange: { M: [0.45, 4.50], F: [0.45, 4.50] }, panel: "Padrão" },
 
   { id: "t4_livre",        name: "T4 Livre",        unit: "ng/dL",        category: "Tireoide",
     labRange: { M: [0.70, 1.80], F: [0.70, 1.80] }, panel: "Padrão" },
