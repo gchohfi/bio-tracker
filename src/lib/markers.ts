@@ -452,6 +452,18 @@ export const MARKERS: MarkerDef[] = [
   { id: "g6pd",            name: "G6PD (Glicose-6-Fosfato Desidrogenase)", unit: "U/g Hb", category: "Imunologia",
     labRange: { M: [6.7, 999], F: [6.7, 999] }, panel: "Adicional" },
 
+  { id: "complemento_c3",  name: "Complemento C3",  unit: "mg/dL",        category: "Imunologia",
+    labRange: { M: [90, 180], F: [90, 180] }, panel: "Adicional" },
+
+  { id: "complemento_c4",  name: "Complemento C4",  unit: "mg/dL",        category: "Imunologia",
+    labRange: { M: [10, 40], F: [10, 40] }, panel: "Adicional" },
+
+  { id: "anti_dna",         name: "Anti-DNA",        unit: "UI/mL",        category: "Imunologia",
+    labRange: { M: [0, 25], F: [0, 25] }, panel: "Adicional" },
+
+  { id: "anti_sm",          name: "Anti-Sm",         unit: "",             category: "Imunologia",
+    labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
+
   // ── Sorologia Infecciosa ──────────────────────────────────────────────────
   { id: "hiv",             name: "HIV 1/2 (Anticorpos e Antígeno)", unit: "", category: "Sorologia",
     labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
@@ -654,6 +666,9 @@ export const MARKERS: MarkerDef[] = [
 
   { id: "copro_ph",        name: "pH Fecal",          unit: "",             category: "Fezes",
     labRange: { M: [6.0, 7.5], F: [6.0, 7.5] }, panel: "Adicional" },
+
+  { id: "copro_celulose",  name: "Celulose",          unit: "",             category: "Fezes",
+    labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Padrão" },
 
   // ── PSA ───────────────────────────────────────────────────────────────────
   { id: "psa_total",       name: "PSA Total",         unit: "ng/mL",        category: "Hormônios",
