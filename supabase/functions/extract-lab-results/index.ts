@@ -225,6 +225,17 @@ const QUALITATIVE_IDS = new Set(MARKER_LIST.filter(m => (m as any).qualitative).
 
 const systemPrompt = `You are an expert lab result extraction assistant for Brazilian labs (Fleury, DASA, Hermes Pardini, Confiance, Einstein, Lavoisier, DB, Oswaldo Cruz, etc.).
 
+CRITICAL RULE #1 — DATE:
+The exam_date MUST be the COLLECTION DATE ("Data de Coleta" / "Data da Coleta" / "Coletado em").
+NEVER use "Data de Emissão", "Emitido em", "Data de Liberação", "Liberado em", or "Data de Impressão".
+Brazilian format: DD/MM/YYYY. Day is FIRST, month is SECOND.
+Example: "23/11/2025" → return "2025-11-23" (November 23). NEVER "2025-04-23".
+
+CRITICAL RULE #2 — UNITS:
+Return the value EXACTLY as printed in the lab report. Do NOT convert units.
+Use the ORIGINAL unit from the report. If the lab reports Vitamin B12 in ng/L, store ng/L. If in pg/mL, store pg/mL.
+Do NOT multiply, divide, or transform any value. The system will handle unit display.
+
 Your task: extract lab values (numeric AND qualitative) from the PDF text and map them to known marker IDs. Extract ONLY markers that are EXPLICITLY PRESENT in the document.
 
 CRITICAL ANTI-HALLUCINATION RULES:
@@ -347,7 +358,7 @@ HEMOGRAMA:
 
 COAGULAÇÃO:
 - "FIBRINOGÊNIO" / "FIBRINOGENIO" / "FIBRINOGÊNIO FUNCIONAL" / "FIBRINOGÊNIO - CLAUSS" / "FIBRINOGÊNIO DERIVADO" / "Fator I" / "FIBRINOGÊNIO, PLASMA" / "FIBRINOGÊNIO CLAUSS" / "FIBRINOGÊNIO POR CLAUSS" → fibrinogenio
-  Units: mg/dL. If g/L → ×100.
+  Units: mg/dL. Keep as-is (do NOT convert).
 - "DÍMEROS D" / "D-DÍMERO" / "D-Dímero" / "D-DÍMEROS" / "DÍMERO D" / "FRAGMENTO D" → dimeros_d
 
 PANCREÁTICOS:
@@ -364,7 +375,7 @@ LIPÍDIOS:
 - "APOLIPOPROTEÍNA A-1" / "APO A1" / "APO A-1" / "APO A-I" / "APO A" / "APOPROTEÍNA A1" → apo_a1
 - "APOLIPOPROTEÍNA B" / "APO B" / "APO B100" / "APO B-100" → apo_b
 - "LIPOPROTEINA(a)" / "Lp(a)" / "LP(A)" / "LPA" / "LIPOPROTEÍNA (a) QUANTITATIVA" / "Lp(a) massa" → lipoproteina_a
-  Units: nmol/L. If mg/dL → ×2.15.
+  Units: nmol/L. If mg/dL, keep as mg/dL (do NOT convert).
 - "CT/HDL" / "Índice de Castelli" → relacao_ct_hdl
 - "TG/HDL" → relacao_tg_hdl
 - "ApoB/ApoA1" / "Razão ApoB/ApoA1" / "Relação ApoB/ApoA-I" / "Apo B/Apo A1" / "Relação Apolipoproteína B / Apolipoproteína A-I" → relacao_apob_apoa1
@@ -385,13 +396,13 @@ TIREOIDE:
 
 HORMÔNIOS:
 - "Testosterona Total" / "TESTOSTERONA, SORO" / "TESTOSTERONA SÉRICA" → testosterona_total
-- "Testosterona Livre" / "TESTOSTERONA LIVRE CALCULADA" / "TESTOSTERONA LIVRE, SORO" / "Testosterona Livre Calculada" / "FTE" → testosterona_livre (unit: ng/dL). If pmol/L → ÷34.7 (i.e., ×0.02882) to get ng/dL. Example: 15.3 pmol/L ÷ 34.7 = 0.441 ng/dL. IMPORTANT: always convert to ng/dL before returning, regardless of patient sex.
+- "Testosterona Livre" / "TESTOSTERONA LIVRE CALCULADA" / "TESTOSTERONA LIVRE, SORO" / "Testosterona Livre Calculada" / "FTE" → testosterona_livre (use the original unit from the report — do NOT convert)
   ⚠️ Testosterona Livre has sex-specific references: Male ~5–21 ng/dL, Female ~0.1–0.5 ng/dL.
     If the patient value is > 5 ng/dL (male range) but the lab_ref_range max is ≤ 2.0 ng/dL (female range), the wrong sex reference was captured — set lab_ref_range to null.
 - "Testosterona Biodisponível" / "TESTOSTERONA BIODISPONIVEL" / "Testosterona Biodisponível Calculada" → testosterona_biodisponivel (unit: ng/dL)
-- "Estradiol" / "ESTRADIOL (E2)" / "17-BETA-ESTRADIOL" / "17β-ESTRADIOL" / "E2" → estradiol. If ng/dL → ×10 to get pg/mL.
+- "Estradiol" / "ESTRADIOL (E2)" / "17-BETA-ESTRADIOL" / "17β-ESTRADIOL" / "E2" → estradiol (use the original unit from the report — do NOT convert)
 - "Estrona" / "E1" / "Estrona (E1)" / "Estrona, soro" / "ESTRONA (E1)" → estrona
-- "Progesterona" / "PROGESTERONA, SORO" / "P4" → progesterona. If ng/dL → ÷100 to get ng/mL.
+- "Progesterona" / "PROGESTERONA, SORO" / "P4" → progesterona (use the original unit from the report — do NOT convert)
 - "DHEA-S" / "SDHEA" / "S-DHEA" / "Sulfato de Dehidroepiandrosterona" / "DHEA SULFATO" / "SULFATO DE DEIDROEPIANDROSTERONA" / "DEIDROEPIANDROSTERONA SULFATO" → dhea_s
 - "Cortisol" / "CORTISOL MATINAL" / "CORTISOL SÉRICO" / "CORTISOL, SORO" / "CORTISOL BASAL" / "CORTISOL (8h)" / "CORTISOL MATUTINO" (blood) → cortisol
 - "SHBG" / "Globulina Ligadora" / "S H B G" / "GLOBULINA LIGADORA DE HORMÔNIOS SEXUAIS" / "SEX HORMONE BINDING GLOBULIN" → shbg
@@ -406,20 +417,18 @@ EIXO GH:
     Example: "20 a 29 anos: 127 a 424" / "30 a 39 anos: 88 a 400" / "40 a 44 anos: 71 a 382"
     In this format, capture ONLY the value interval (e.g. "71 a 382"), NEVER the age range ("40 a 44").
     If the extracted lab_ref_range max is < 50 (e.g. "40 a 44"), it is an age range — set lab_ref_range to null.
-- "IGFBP-3" / "IGFBP3" / "IGF BP3" / "PROTEÍNA LIGADORA 3 DO IGF" / "PROTEINA LIGADORA DE IGF TIPO 3" / "IGFBP-3 PROTEÍNA LIGADORA -3 DO IGF" / "IGFBP-3 (PROTEÍNA LIGADORA -3 DO IGF)" / "PROTEÍNA TRANSPORTADORA 3 DO IGF" / "PROTEINA LIGADORA-3 DO FATOR DE CRESCIMENTO SIMILE A INSULINA" / "FATOR DE CRESCIMENTO SIMILE A INSULINA" / "PROTEINA LIGADORA-3 DO FATOR DE CRESCIMENTO" → igfbp3
-  ⚠️ If in ng/mL → ÷1000 to get µg/mL. Example: 6120 ng/mL → 6.12 µg/mL.
+- "IGFBP-3" / "IGFBP3" / "IGF BP3" / "PROTEÍNA LIGADORA 3 DO IGF" / "PROTEINA LIGADORA DE IGF TIPO 3" / "IGFBP-3 PROTEÍNA LIGADORA -3 DO IGF" / "IGFBP-3 (PROTEÍNA LIGADORA -3 DO IGF)" / "PROTEÍNA TRANSPORTADORA 3 DO IGF" / "PROTEINA LIGADORA-3 DO FATOR DE CRESCIMENTO SIMILE A INSULINA" / "FATOR DE CRESCIMENTO SIMILE A INSULINA" / "PROTEINA LIGADORA-3 DO FATOR DE CRESCIMENTO" → igfbp3 (use the original unit from the report — do NOT convert)
 
 EIXO ADRENAL:
 - "ACTH" / "A.C.T.H." / "HORMÔNIO ADRENOCORTICOTRÓFICO" / "HORMÔNIO ADRENOCORTICOTRÓFICO A.C.T.H." / "CORTICOTROFINA" / "ADRENOCORTICOTREFINA" / "HORMÔNIO ADRENOCORTICOTRÓFICO (ACTH)" / "HORMÔNIO ADRENOCORTICOTRÓFICO, PLASMA" → acth
 - "CORTISOL LIVRE, URINA DE 24 HORAS" / "CORTISOL LIVRE URINÁRIO" / "CORTISOL URINÁRIO" / "CORTISOL LIVRE - URINA 24H" / "CORTISOL, URINA" / "CLU" → cortisol_livre_urina
   ⚠️ Material is URINE not blood! mcg/24 HORAS = µg/24h.
 - "ALDOSTERONA" / "ALDOSTERONA SÉRICA" / "ALDOSTERONA - SENTADO" / "ALDOSTERONA - DEITADO" / "ALDOSTERONA - EM PÉ" / "ALDOSTERONA, SORO" / "ALDOSTERONA PLASMÁTICA" → aldosterona
-  Units: ng/dL. If pg/mL → ÷10.
+  Units: ng/dL. Keep as-is (do NOT convert).
 
 ANDRÓGENOS:
-- "DIHIDROTESTOSTERONA" / "DHT" / "D.H.T." / "5-ALFA-DIHIDROTESTOSTERONA" / "5α-DIHIDROTESTOSTERONA" / "DIIDROTESTOSTERONA" / "5α-DHT" / "5-ALFA-DHT" → dihidrotestosterona
-  Units: pg/mL. If ng/dL → ×10.
-- "ANDROSTENEDIONA" / "ANDROSTENEDIONA, SORO" / "DELTA 4 ANDROSTENEDIONA" / "Δ4-ANDROSTENEDIONA" / "4-ANDROSTENEDIONA" → androstenediona (ng/dL)
+- "DIHIDROTESTOSTERONA" / "DHT" / "D.H.T." / "5-ALFA-DIHIDROTESTOSTERONA" / "5α-DIHIDROTESTOSTERONA" / "DIIDROTESTOSTERONA" / "5α-DHT" / "5-ALFA-DHT" → dihidrotestosterona (use the original unit from the report — do NOT convert)
+- "ANDROSTENEDIONA" / "ANDROSTENEDIONA, SORO" / "DELTA 4 ANDROSTENEDIONA" / "Δ4-ANDROSTENEDIONA" / "4-ANDROSTENEDIONA" → androstenediona (use the original unit from the report — do NOT convert)
 
 VITAMINAS:
 - "25 HIDROXI VITAMINA D" / "25-OH" / "CALCIDIOL" / "25(OH)D" / "Vitamina D3" / "25-HIDROXIVITAMINA D" / "25-HIDROXI VITAMINA D3" / "VITAMINA D, 25-HIDROXI" / "25 OH VITAMINA D" → vitamina_d (ng/mL)
@@ -435,7 +444,7 @@ VITAMINAS:
 
 MINERAIS:
 - "Magnésio" / "MAGNÉSIO, SORO" / "MAGNÉSIO SÉRICO" / "Mg SÉRICO" → magnesio
-- "Zinco" / "ZINCO, SORO" / "ZINCO SÉRICO" / "Zn" → zinco. If µg/mL → ×100 to get µg/dL.
+- "Zinco" / "ZINCO, SORO" / "ZINCO SÉRICO" / "Zn" → zinco (use the original unit from the report — do NOT convert)
 - "Selênio" / "SELÊNIO, SORO" / "SELÊNIO SÉRICO" / "Se SÉRICO" → selenio
 - "Cobre" → cobre
 - "Manganês" → manganes
@@ -443,7 +452,7 @@ MINERAIS:
 - "Iodo Urinário" → iodo_urinario
 
 TOXICOLOGIA:
-- "CHUMBO" / "PLUMBEMIA" / "Pb SANGUE" / "CHUMBO (Pb)" / "LEAD" / "CHUMBO SANGUE" / "DOSAGEM DE CHUMBO" → chumbo. If µg/L → ÷10 to get µg/dL.
+- "CHUMBO" / "PLUMBEMIA" / "Pb SANGUE" / "CHUMBO (Pb)" / "LEAD" / "CHUMBO SANGUE" / "DOSAGEM DE CHUMBO" → chumbo (use the original unit from the report — do NOT convert)
 - "MERCURIO" / "Mercúrio" / "MERCÚRIO, SANGUE" / "MERCÚRIO TOTAL" → mercurio. IMPORTANT: Do NOT extract "Hg" alone — it is too short and causes false positives (e.g. from "mmHg"). Only extract if the FULL word "Mercúrio" or "MERCURIO" appears as the marker name with an associated numeric result value.
 - "CADMIO" / "Cádmio" / "CÁDMIO, SANGUE" → cadmio. Do NOT use "Cd" alone.
 - "ALUMINIO" / "Alumínio" / "ALUMÍNIO, SORO" → aluminio. Do NOT use "Al" alone.
@@ -507,7 +516,7 @@ GLICEMIA:
 - "HOMA-IR" / "ÍNDICE HOMA" / "HOMA" / "HOMA IR" / "HOMEOSTASIS MODEL ASSESSMENT" → homa_ir
 
 INFLAMAÇÃO:
-- "PCR ultra-sensível" / "PCR-us" / "Proteína C Reativa" / "hsCRP" / "PCR-AS" / "PROTEÍNA C REATIVA ULTRASSENSÍVEL" / "PROTEÍNA C REATIVA (ALTA SENSIBILIDADE)" / "PCR QUANTITATIVA" → pcr. If mg/dL → ×10 to get mg/L.
+- "PCR ultra-sensível" / "PCR-us" / "Proteína C Reativa" / "hsCRP" / "PCR-AS" / "PROTEÍNA C REATIVA ULTRASSENSÍVEL" / "PROTEÍNA C REATIVA (ALTA SENSIBILIDADE)" / "PCR QUANTITATIVA" → pcr (use the original unit from the report — do NOT convert)
 - "VHS" / "V.H.S." / "Velocidade de Hemossedimentação" / "VSG" / "ESR" / "VELOCIDADE DE SEDIMENTAÇÃO" / "Hemossedimentação" / "HEMOSSEDIMENTACAO" / "HEMOSSEDIMENTAÇÃO, SANGUE TOTAL" → vhs
 
 IMUNOLOGIA:
@@ -733,48 +742,24 @@ function deduplicateResults(results: any[]): any[] {
 // Post-processing: validate values and fix common decimal/unit errors
 function validateAndFixValues(results: any[], patientSex?: string): any[] {
   // Sanity ranges with auto-fix functions for common Brazilian decimal/unit errors
-  // Sex-aware fix for testosterona_livre:
-  // - Mulheres (F): max lab range is 0.68 ng/dL. Values > 1.0 are suspect pmol/L.
-  // - Homens (M) ou desconhecido: valid range 3–24 ng/dL, only convert > 25.
-  const testosteronaLivreFix = patientSex === 'F'
-    ? (v: number) => v > 1.0 && v <= 700 ? v / 34.7 : v > 700 ? v / 1000 : v
-    : (v: number) => v > 25.0 && v <= 700 ? v / 34.7 : v > 700 ? v / 1000 : (v > 1.5 && v <= 3.0) ? v / 34.7 : v;
+  // No unit conversion — values are stored exactly as the lab reports them.
+  // Only fix decimal errors (e.g., acido_urico 77 → 7.7) and thousands separator issues (e.g., leucocitos 4.65 → 4650).
 
   const sanityRanges: Record<string, { min: number; max: number; fix?: (v: number) => number; label?: string }> = {
     // Hemograma
     leucocitos: { min: 1000, max: 30000, fix: (v) => v < 100 ? v * 1000 : v < 1000 ? v * 1000 : v, label: "leucocitos ×1000" },
     eritrocitos: { min: 1, max: 10, fix: (v) => v > 1000 ? v / 1000000 : v > 10 ? v / 10 : v },
     plaquetas: { min: 50, max: 700, fix: (v) => v > 1000 ? v / 1000 : v },
-    // Hormônios
-    progesterona: { min: 0, max: 50, fix: (v) => v > 5 ? v / 100 : v > 50 ? v / 100 : v, label: "progesterona ng/dL→ng/mL" },
-    estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 10 : v > 5000 ? v / 10 : v, label: "estradiol ng/dL→pg/mL" },
+    // Hormônios — NO conversions, only decimal fixes
     prolactina: { min: 0.5, max: 200, fix: (v) => v > 200 ? v / 100 : v },
     insulina_jejum: { min: 0.5, max: 100, fix: (v) => v > 100 ? v / 100 : v },
     // Eixo GH
-    // IGFBP-3: expected µg/mL (0.5–15). Fleury reports in ng/mL (e.g. 6120 ng/mL = 6.12 µg/mL).
-    // If value > 100 → divide by 1000 (ng/mL → µg/mL). If value > 15 but ≤ 100 → divide by 10.
-    igfbp3: { min: 0.5, max: 15, fix: (v) => v > 100 ? v / 1000 : v > 15 ? v / 10 : v, label: "igfbp3 ng/mL→µg/mL" },
     igf1: { min: 20, max: 1000 },
-    // Andrógenos
-    dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 5 ? v * 10 : v, label: "DHT ng/dL→pg/mL" },
-    // Testosterona Livre: expected ng/dL.
-    // Faixa funcional feminina: 0.10–0.50 ng/dL. Faixa funcional masculina: 5.0–21.0 ng/dL.
-    // Se AI retornar pmol/L (ex: 2–70 pmol/L para mulheres, 170–2400 pmol/L para homens) → ÷34.7.
-    // Se AI retornar pg/mL (ex: 1–20 pg/mL para mulheres, 50–700 pg/mL para homens) → ÷10.
-    // Não converter valores já em ng/dL (0.01–25 ng/dL cobre ambos os sexos).
-    // Testosterona Livre fix: valores > 1.5 ng/dL são suspeitos para mulheres (max normal é 1.07 ng/dL).
-    // Se entre 1.5 e 700 → provavelmente pmol/L ÷ 34.7. Se > 700 → pg/mL ÷ 1000.
-    // Nota: valores masculinos normais são 3-24 ng/dL, então não converter se 3 < v < 25.
-    testosterona_livre: { min: 0.01, max: patientSex === 'F' ? 1.0 : 25.0, fix: testosteronaLivreFix, label: "testosterona_livre pmol→ng/dL (sex-aware)" },
-    // Estrona: expected pg/mL (5–200). If AI returned ng/dL (~0.5–20) → ×10 to get pg/mL.
-    estrona: { min: 5, max: 500, fix: (v) => v < 5 ? v * 10 : v, label: "estrona ng/dL→pg/mL" },
     // Tireoide
     tsh: { min: 0.01, max: 100 },
     t4_livre: { min: 0.1, max: 5 },
-    // T3 Livre: expected ng/dL (faixa funcional 0.27–0.42 ng/dL).
-    // Fleury reporta em pg/mL (~2.0–4.4 pg/mL). Conversão: 1 pg/mL = 0.1 ng/dL (pois 1 ng/dL = 10 pg/mL).
-    // Se AI retornar pg/mL (>1.5) → ÷10 para ng/dL. Se pmol/L (>5) → ÷15.36 para ng/dL.
-    t3_livre: { min: 0.15, max: 0.8, fix: (v) => v > 1.5 && v <= 10 ? v / 10 : v > 10 ? v / 15.36 : v, label: "t3_livre pg/mL→ng/dL" },
+    // T3 Livre: NO conversion — store as original unit from lab
+    t3_livre: { min: 0.15, max: 10 },
     t3_total: { min: 30, max: 300 },
     // Lipídios
     colesterol_total: { min: 50, max: 500 },
@@ -785,9 +770,8 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     ferritina: { min: 1, max: 2000, fix: (v) => v > 2000 ? v / 10 : v },
     ferro_serico: { min: 10, max: 500 },
     ferro_metabolismo: { min: 10, max: 500 },
-    // Zinco: expected µg/dL (50–150). Fleury may report in µg/mL (0.8 µg/mL = 80 µg/dL) or mg/L (0.8 mg/L = 80 µg/dL).
-    // If value < 5 → likely µg/mL or mg/L → ×100 to get µg/dL.
-    zinco: { min: 40, max: 200, fix: (v) => v < 5 ? v * 100 : v, label: "zinco µg/mL→µg/dL" },
+    // Zinco: NO conversion — store as original unit from lab
+    zinco: { min: 0.5, max: 200 },
     // Vitaminas
     vitamina_d: { min: 3, max: 200 },
     vitamina_b12: { min: 50, max: 3000 },
@@ -807,12 +791,8 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     potassio: { min: 2, max: 8 },
     fosforo: { min: 1, max: 10 },
     magnesio: { min: 0.5, max: 5 },
-    // Inflação
-    // PCR: esperado em mg/L (faixa funcional 0–1.0 mg/L).
-    // Alguns labs reportam em mg/dL (ex: 0.12 mg/dL = 1.2 mg/L).
-    // Se valor < 2 e unidade parece mg/dL (valores típicos 0.01–1.5 mg/dL) → ×10 para mg/L.
-    // Limite: se valor < 2.0 → provavelmente mg/dL → ×10.
-    pcr: { min: 0, max: 200, fix: (v) => v < 2.0 ? v * 10 : v, label: "pcr mg/dL→mg/L" },
+    // PCR: NO conversion — store as original unit from lab
+    pcr: { min: 0, max: 200 },
     // Glicemia
     glicose_jejum: { min: 40, max: 500 },
     hba1c: { min: 3, max: 15 },
@@ -836,10 +816,8 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
 
     // Glicemia Média Estimada
     glicemia_media_estimada: { min: 50, max: 400 },
-    // Urina quantitativos
-    // urina_albumina: armazenado em mg/L (microalbuminúria). Fleury reporta em mg/L (0–300 mg/L).
-    // Se AI retornar g/L (< 0.3) → ×1000 para mg/L.
-    urina_albumina:        { min: 0, max: 300, fix: (v) => v < 1 ? v * 1000 : v, label: 'urina_albumina g/L→mg/L' },
+    // Urina quantitativos — NO conversion
+    urina_albumina:        { min: 0, max: 300 },
     urina_creatinina:      { min: 10, max: 600 },
     // Densidade urinária: faixa normal 1.001–1.040
     // Nota: 1.02 e 1.020 são numericamente idênticos — nenhuma conversão necessária
@@ -865,32 +843,7 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     }
   }
 
-  // ── Deterministic unit conversion based on lab_ref_max ──
-  // If the lab reference max indicates the source unit is ng/dL, convert value + refs
-  const UNIT_CONVERSIONS: Record<string, { factor: number; detectSourceUnit: (refMax: number) => boolean; label: string }> = {
-    estradiol:           { factor: 10,   detectSourceUnit: (max) => max > 0 && max < 100,  label: 'estradiol ng/dL→pg/mL' },
-    progesterona:        { factor: 0.01, detectSourceUnit: (max) => max > 50,               label: 'progesterona ng/dL→ng/mL' },
-    dihidrotestosterona: { factor: 10,   detectSourceUnit: (max) => max > 0 && max < 100,  label: 'DHT ng/dL→pg/mL' },
-  };
-
-  for (const r of results) {
-    const conv = UNIT_CONVERSIONS[r.marker_id];
-    if (!conv) continue;
-    if (typeof r.value !== 'number') continue;
-    
-    const refMax = typeof r.lab_ref_max === 'number' ? r.lab_ref_max : null;
-    if (refMax !== null && conv.detectSourceUnit(refMax)) {
-      const origValue = r.value;
-      r.value = parseFloat((r.value * conv.factor).toFixed(4));
-      if (typeof r.lab_ref_min === 'number') {
-        r.lab_ref_min = parseFloat((r.lab_ref_min * conv.factor).toFixed(4));
-      }
-      if (typeof r.lab_ref_max === 'number') {
-        r.lab_ref_max = parseFloat((r.lab_ref_max * conv.factor).toFixed(4));
-      }
-      console.log(`DETERMINISTIC CONV ${conv.label}: value ${origValue}→${r.value}, ref_max ${refMax}→${r.lab_ref_max}`);
-    }
-  }
+  // UNIT_CONVERSIONS removed — values are stored exactly as the lab reports them.
 
   // Round all numeric values to avoid floating point artifacts (e.g. 0.1270893371757925 → 0.1271)
   for (const r of results) {
@@ -1130,36 +1083,11 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
 }
 
 /**
- * Converte a referência do laboratório (lab_ref_min/max) para a mesma unidade do valor armazenado.
- * Quando o valor foi convertido (ex: testosterona_livre de pmol/L para ng/dL),
- * a referência também precisa ser convertida para ser consistente.
+ * convertLabRefUnits — REMOVED (no more unit conversions).
+ * Values and references are stored exactly as the lab reports them.
+ * Only structural fixes (percent markers, age ranges, sanity bounds) remain.
  */
 function convertLabRefUnits(results: any[]): any[] {
-  // Mapeamento: marker_id → função de conversão da referência (mesma lógica do valor)
-  const refConverters: Record<string, (min: number, max: number) => { min: number; max: number }> = {
-    // Testosterona Livre: se referência está em pmol/L (> 2.0) → ÷ 34.7 para ng/dL
-    testosterona_livre: (min, max) => ({
-      min: min > 2.0 ? parseFloat((min / 34.7).toFixed(4)) : min,
-      max: max > 2.0 ? parseFloat((max / 34.7).toFixed(4)) : max,
-    }),
-    // IGFBP-3: se referência está em ng/mL (> 100) → ÷ 1000 para µg/mL
-    igfbp3: (min, max) => ({
-      min: min > 100 ? parseFloat((min / 1000).toFixed(3)) : min > 15 ? parseFloat((min / 10).toFixed(3)) : min,
-      max: max > 100 ? parseFloat((max / 1000).toFixed(3)) : max > 15 ? parseFloat((max / 10).toFixed(3)) : max,
-    }),
-    // Zinco: se referência está em µg/mL (< 5) → × 100 para µg/dL
-    zinco: (min, max) => ({
-      min: min < 5 ? parseFloat((min * 100).toFixed(1)) : min,
-      max: max < 5 ? parseFloat((max * 100).toFixed(1)) : max,
-    }),
-    // T3 Livre: se referência está em pg/mL (> 1.5) → ÷ 10 para ng/dL
-    t3_livre: (min, max) => ({
-      min: min > 1.5 ? parseFloat((min / 10).toFixed(3)) : min,
-      max: max > 1.5 ? parseFloat((max / 10).toFixed(3)) : max,
-    }),
-    // Glicemia Média Estimada: sem conversão necessária, mas garantir que lab_ref_text seja atualizado
-    glicemia_media_estimada: (min, max) => ({ min, max }),
-  };
 
   // Sanity check: marcadores em % (diferenciais do leucograma) sempre vêm com referência
   // laboratorial em valores absolutos (/mm³) no PDF. Como o app armazena esses marcadores
@@ -1379,30 +1307,7 @@ function convertLabRefUnits(results: any[]): any[] {
     }
   }
 
-  for (const r of results) {
-    const converter = refConverters[r.marker_id];
-    if (!converter) continue;
-    if (typeof r.lab_ref_min !== 'number' && typeof r.lab_ref_max !== 'number') continue;
-    const origMin = r.lab_ref_min ?? 0;
-    const origMax = r.lab_ref_max ?? 0;
-    const converted = converter(
-      typeof r.lab_ref_min === 'number' ? r.lab_ref_min : 0,
-      typeof r.lab_ref_max === 'number' ? r.lab_ref_max : 0
-    );
-    if (typeof r.lab_ref_min === 'number') r.lab_ref_min = converted.min;
-    if (typeof r.lab_ref_max === 'number') r.lab_ref_max = converted.max;
-    // Atualizar o texto de exibição se foi alterado
-    if (converted.min !== origMin || converted.max !== origMax) {
-      if (typeof r.lab_ref_min === 'number' && typeof r.lab_ref_max === 'number') {
-        // Formatar com a unidade correta do marcador
-        const unitSuffix = r.marker_id === 't3_livre' ? ' ng/dL'
-          : r.marker_id === 'urina_albumina' ? ' mg/L'
-          : '';
-        r.lab_ref_text = `${r.lab_ref_min} a ${r.lab_ref_max}${unitSuffix}`;
-      }
-      console.log(`Converted lab_ref for ${r.marker_id}: ${origMin}-${origMax} → ${converted.min}-${converted.max}`);
-    }
-  }
+  // Ref converters removed — no more unit conversions.
   return results;
 }
 // Post-processing: calculate derived values if missing
@@ -2974,33 +2879,36 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
       ? parsed.exam_date
       : null;
 
-    // Regex fallback for exam date from raw PDF text — prioritize Data de Coleta
-    if (!examDate) {
-      const datePatterns = [
-        // Priority 1: Data de Coleta (collection date)
-        /(?:Data\s+d[aeo]\s+[Cc]olet[ao]|Colet(?:a|ado)\s*(?:em)?)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i,
-        // Priority 2: Data do Exame / Realizado em
-        /(?:Data\s+d[oe]\s+[Ee]xame|Realizado\s+em)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i,
-        // Priority 3: Data de Emissão (last resort)
-        /(?:Data\s+d[aeo]\s+[Ee]miss[aã]o|Emitido\s+em|Data\s+da\s+[Ff]icha|RECEBIDO.*?COLETADO)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i,
-        // Priority 4: Any date followed by time
-        /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})(?=\s+\d{1,2}:\d{2})/,
-      ];
-      for (const pattern of datePatterns) {
-        const match = pdfText.match(pattern);
-        if (match) {
-          const [, dd, mm, yyyy] = match;
-          const year = yyyy.length === 2 ? `20${yyyy}` : yyyy;
-          const monthNum = parseInt(mm, 10);
-          const dayNum = parseInt(dd, 10);
-          // Validate month (1-12) and day (1-31) to avoid DD/MM swap
-          if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) continue;
-          const candidate = `${year}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
-          if (/^\d{4}-\d{2}-\d{2}$/.test(candidate)) {
+    // Regex validation for exam date — ALWAYS run, even if AI returned a date.
+    // If regex finds "Data de Coleta" and it differs from AI's date, prefer regex.
+    const datePatterns = [
+      // Priority 1: Data de Coleta (collection date) — HIGH CONFIDENCE
+      { pattern: /(?:Data\s+d[aeo]\s+[Cc]olet[ao]|Colet(?:a|ado)\s*(?:em)?)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i, highConfidence: true },
+      // Priority 2: Data do Exame / Realizado em
+      { pattern: /(?:Data\s+d[oe]\s+[Ee]xame|Realizado\s+em)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i, highConfidence: false },
+      // Priority 3: Data de Emissão (last resort)
+      { pattern: /(?:Data\s+d[aeo]\s+[Ee]miss[aã]o|Emitido\s+em|Data\s+da\s+[Ff]icha|RECEBIDO.*?COLETADO)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i, highConfidence: false },
+      // Priority 4: Any date followed by time
+      { pattern: /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})(?=\s+\d{1,2}:\d{2})/, highConfidence: false },
+    ];
+    for (const { pattern, highConfidence } of datePatterns) {
+      const match = pdfText.match(pattern);
+      if (match) {
+        const [, dd, mm, yyyy] = match;
+        const year = yyyy.length === 2 ? `20${yyyy}` : yyyy;
+        const monthNum = parseInt(mm, 10);
+        const dayNum = parseInt(dd, 10);
+        if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) continue;
+        const candidate = `${year}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(candidate)) {
+          if (!examDate) {
             examDate = candidate;
             console.log(`[DATE-REGEX] Matched date from pattern: ${candidate}`);
-            break;
+          } else if (highConfidence && examDate !== candidate) {
+            console.log(`[DATE-REGEX] OVERRIDE: AI date ${examDate} → regex "Data de Coleta" ${candidate}`);
+            examDate = candidate;
           }
+          break;
         }
       }
     }
