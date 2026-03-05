@@ -1083,36 +1083,11 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
 }
 
 /**
- * Converte a referência do laboratório (lab_ref_min/max) para a mesma unidade do valor armazenado.
- * Quando o valor foi convertido (ex: testosterona_livre de pmol/L para ng/dL),
- * a referência também precisa ser convertida para ser consistente.
+ * convertLabRefUnits — REMOVED (no more unit conversions).
+ * Values and references are stored exactly as the lab reports them.
+ * Only structural fixes (percent markers, age ranges, sanity bounds) remain.
  */
 function convertLabRefUnits(results: any[]): any[] {
-  // Mapeamento: marker_id → função de conversão da referência (mesma lógica do valor)
-  const refConverters: Record<string, (min: number, max: number) => { min: number; max: number }> = {
-    // Testosterona Livre: se referência está em pmol/L (> 2.0) → ÷ 34.7 para ng/dL
-    testosterona_livre: (min, max) => ({
-      min: min > 2.0 ? parseFloat((min / 34.7).toFixed(4)) : min,
-      max: max > 2.0 ? parseFloat((max / 34.7).toFixed(4)) : max,
-    }),
-    // IGFBP-3: se referência está em ng/mL (> 100) → ÷ 1000 para µg/mL
-    igfbp3: (min, max) => ({
-      min: min > 100 ? parseFloat((min / 1000).toFixed(3)) : min > 15 ? parseFloat((min / 10).toFixed(3)) : min,
-      max: max > 100 ? parseFloat((max / 1000).toFixed(3)) : max > 15 ? parseFloat((max / 10).toFixed(3)) : max,
-    }),
-    // Zinco: se referência está em µg/mL (< 5) → × 100 para µg/dL
-    zinco: (min, max) => ({
-      min: min < 5 ? parseFloat((min * 100).toFixed(1)) : min,
-      max: max < 5 ? parseFloat((max * 100).toFixed(1)) : max,
-    }),
-    // T3 Livre: se referência está em pg/mL (> 1.5) → ÷ 10 para ng/dL
-    t3_livre: (min, max) => ({
-      min: min > 1.5 ? parseFloat((min / 10).toFixed(3)) : min,
-      max: max > 1.5 ? parseFloat((max / 10).toFixed(3)) : max,
-    }),
-    // Glicemia Média Estimada: sem conversão necessária, mas garantir que lab_ref_text seja atualizado
-    glicemia_media_estimada: (min, max) => ({ min, max }),
-  };
 
   // Sanity check: marcadores em % (diferenciais do leucograma) sempre vêm com referência
   // laboratorial em valores absolutos (/mm³) no PDF. Como o app armazena esses marcadores
@@ -1332,30 +1307,7 @@ function convertLabRefUnits(results: any[]): any[] {
     }
   }
 
-  for (const r of results) {
-    const converter = refConverters[r.marker_id];
-    if (!converter) continue;
-    if (typeof r.lab_ref_min !== 'number' && typeof r.lab_ref_max !== 'number') continue;
-    const origMin = r.lab_ref_min ?? 0;
-    const origMax = r.lab_ref_max ?? 0;
-    const converted = converter(
-      typeof r.lab_ref_min === 'number' ? r.lab_ref_min : 0,
-      typeof r.lab_ref_max === 'number' ? r.lab_ref_max : 0
-    );
-    if (typeof r.lab_ref_min === 'number') r.lab_ref_min = converted.min;
-    if (typeof r.lab_ref_max === 'number') r.lab_ref_max = converted.max;
-    // Atualizar o texto de exibição se foi alterado
-    if (converted.min !== origMin || converted.max !== origMax) {
-      if (typeof r.lab_ref_min === 'number' && typeof r.lab_ref_max === 'number') {
-        // Formatar com a unidade correta do marcador
-        const unitSuffix = r.marker_id === 't3_livre' ? ' ng/dL'
-          : r.marker_id === 'urina_albumina' ? ' mg/L'
-          : '';
-        r.lab_ref_text = `${r.lab_ref_min} a ${r.lab_ref_max}${unitSuffix}`;
-      }
-      console.log(`Converted lab_ref for ${r.marker_id}: ${origMin}-${origMax} → ${converted.min}-${converted.max}`);
-    }
-  }
+  // Ref converters removed — no more unit conversions.
   return results;
 }
 // Post-processing: calculate derived values if missing
