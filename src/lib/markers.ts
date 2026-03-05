@@ -878,6 +878,6 @@ export function formatRefDisplay(
   const mn = rMin ?? fallbackMin;
   const mx = rMax ?? fallbackMax;
   if ((mn === 0 || mn == null) && mx != null && mx < 999) return `< ${mx}`;
-  if (mx != null && mx >= 999) return `> ${mn}`;
+  if (mx == null || mx >= 99999) return `> ${mn}`;
   return `${mn}–${mx}`;
 }
