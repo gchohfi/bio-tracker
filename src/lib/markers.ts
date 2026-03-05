@@ -55,7 +55,7 @@ export const MARKERS: MarkerDef[] = [
     labRange: { M: [11.5, 14.5], F: [11.5, 14.5] }, panel: "Padrão" },
 
   { id: "leucocitos",      name: "Leucócitos",      unit: "/µL",          category: "Hemograma",
-    labRange: { M: [4000, 11000], F: [4000, 11000] }, panel: "Padrão" },
+    labRange: { M: [3600, 11000], F: [3600, 11000] }, panel: "Padrão" },
 
   { id: "neutrofilos_abs", name: "Neutrófilos",     unit: "/mm³",         category: "Hemograma",
     labRange: { M: [1590, 4770], F: [1590, 4770] }, panel: "Adicional" },
@@ -583,7 +583,7 @@ export const MARKERS: MarkerDef[] = [
     labRange: { M: [0, 3], F: [0, 3] }, qualitative: true, panel: "Padrão" },
 
   { id: "urina_hemacias_quant", name: "Hemácias (urina quantitativo)", unit: "/mL", category: "Urina",
-    labRange: { M: [0, 10000], F: [0, 10000] }, panel: "Padrão" },
+    labRange: { M: [0, 23000], F: [0, 23000] }, panel: "Padrão" },
 
   // Note: urina_leucocitos_quant ref is "< 25.000 /mL" (Fleury standard)
   // Note: urina_hemacias_quant ref is "< 10.000 /mL" (Fleury standard)
