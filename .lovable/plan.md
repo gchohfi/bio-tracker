@@ -1,98 +1,33 @@
 
 
-# Correção de Conversões de Unidade: Estradiol, Progesterona e DHT
+# Plan: Fix Missing Marker Extraction (Cálcio, T3/T4 Livre)
 
-## Problemas Identificados
+## Root Cause
 
-Os 3 erros têm a mesma causa raiz: **conflito entre conversão da IA e sanity checks no pós-processamento**.
+All 4 markers exist in MARKER_LIST, the prompt, and the frontend. The problem is in **MARKER_TEXT_TERMS aliases** — the crossCheck validation discards them because the PDF text doesn't match any listed alias.
 
-### Erro 1 — Estradiol (4.4 ng/dL → 440 pg/mL, deveria ser 44)
-- A IA converte corretamente: 4.4 × 10 = 44 pg/mL
-- Mas o sanity check (linha 702) vê `44 < 50` e aplica `× 10` novamente → 440
-- **Bug**: dupla conversão no sanity fix
+### Specific bugs found:
 
-### Erro 2 — Progesterona (19 ng/dL → 19 ng/mL, deveria ser 0.19)  
-- A IA não converteu (manteve 19)
-- O sanity check (linha 701) só corrige se `> 50`, então 19 passa direto
-- **Bug**: threshold do sanity muito alto + IA falhou em converter
+1. **`calcio_ionico`** (line 2475): Has `'cálcio iónizado'` — typo with accent `ó`. Should be `'cálcio ionizado'`. Also missing unaccented `'calcio ionizado'`.
 
-### Erro 3 — DHT (13 ng/dL → 13 pg/mL, deveria ser 130)
-- A IA não converteu (manteve 13)
-- O sanity check para DHT (linha 711) não tem função `fix`
-- **Bug**: sem fallback de conversão
+2. **`calcio_total`** (line 2474): Only has `'cálcio total'`, `'calcio total'`, `'cálcio sérico'`, `'calcio serico'`, `'ca total'`. Fleury often labels it just `"CÁLCIO"` or `"CÁLCIO, SORO"` — none of these match just `"cálcio"` as a substring. Missing standalone `'cálcio'` and `'calcio'`.
 
-## Correções Propostas
+3. **`t4_livre`** (line 2411): Has `'t4 livre'`, `'tiroxina livre'`, `'t4l'`, `'ft4'`. Fleury uses `"TIROXINA (T4) LIVRE"` — lowercased: `"tiroxina (t4) livre"`. The substring `"t4 livre"` does NOT appear in `"tiroxina (t4) livre"` (there's `") "` between t4 and livre). And `"tiroxina livre"` doesn't match either (there's `"(t4) "` in between). So crossCheck discards it.
 
-### 1. Estradiol — remover branch que causa dupla conversão
-```typescript
-// ANTES (bugado):
-estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 100 : v < 50 ? v * 10 : v > 5000 ? v / 10 : v }
+4. **`t3_livre`** (line 2413): Same pattern — Fleury uses `"TRIIODOTIRONINA (T3) LIVRE"`. The substring `"t3 livre"` doesn't appear in `"triiodotironina (t3) livre"`.
 
-// DEPOIS:
-estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 10 : v > 5000 ? v / 10 : v }
-```
-- `v < 5` (valor em ng/dL não convertido, ex: 4.4) → `× 10` = 44 ✓
-- Valores 5–5000 já estão em pg/mL, não mexer
+## Fix
 
-### 2. Progesterona — adicionar detecção de ng/dL não convertido
-```typescript
-// ANTES:
-progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v }
+Single file change: add missing aliases to MARKER_TEXT_TERMS.
 
-// DEPOIS (sex-aware):
-progesterona: { min: 0, max: 50, fix: (v) => {
-  // Labs brasileiros reportam ng/dL (ex: 19, 89). Nosso target é ng/mL.
-  // Fase folicular: 0.1-1.5 ng/mL = 10-150 ng/dL
-  // Fase lútea: 5-25 ng/mL = 500-2500 ng/dL  
-  // Se > 5 para mulher ou > 1.5 para homem, provavelmente ng/dL não convertido
-  if (v > 5) return v / 100;  // ng/dL → ng/mL
-  return v;
-}}
-```
-- 19 ng/dL → `19 > 5` → `÷ 100` = 0.19 ng/mL ✓
-- Valor já convertido (0.19 ng/mL) → não mexe ✓
+**File:** `supabase/functions/extract-lab-results/index.ts`
 
-### 3. DHT — adicionar fix para conversão ng/dL → pg/mL
-```typescript
-// ANTES:
-dihidrotestosterona: { min: 0, max: 2000 }
+| Marker | Line | Aliases to add |
+|--------|------|----------------|
+| `t4_livre` | 2411 | `'tiroxina (t4) livre'`, `'tiroxina(t4) livre'` |
+| `t3_livre` | 2413 | `'triiodotironina (t3) livre'`, `'triiodotironina(t3) livre'` |
+| `calcio_total` | 2474 | `'cálcio'`, `'calcio'` |
+| `calcio_ionico` | 2475 | Fix `'cálcio iónizado'` → `'cálcio ionizado'`, add `'calcio ionizado'` |
 
-// DEPOIS:
-dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 5 ? v * 10 : v }
-```
-- 13 ng/dL → `13 ≥ 5` → passa (já no range se AI converteu) ... não, 13 está no range.
-
-Melhor abordagem: checar contra referência do lab. Se `lab_ref_max` está em ng/dL (ex: 46), o valor está em ng/dL e precisa `× 10`.
-
-Na verdade, a solução mais robusta é **adicionar conversão determinística no pós-processamento** para estes 3 marcadores, usando o `lab_ref_text` como sinal da unidade fonte:
-
-### 4. Pós-processamento determinístico (abordagem principal)
-Adicionar uma etapa após a extração que detecta a unidade fonte pelo `lab_ref_text` e converte deterministicamente:
-
-```typescript
-// No postProcessResults ou equivalente:
-const UNIT_CONVERSIONS = {
-  estradiol:    { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10,   detectRef: (max) => max < 100 },
-  progesterona: { sourceUnit: 'ng/dL', targetUnit: 'ng/mL', factor: 0.01, detectRef: (max) => max > 50 },
-  dihidrotestosterona: { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10, detectRef: (max) => max < 100 },
-};
-```
-Se o `lab_ref_max` indica unidade ng/dL (ex: estradiol ref max 23.3, progesterona ref max 89, DHT ref max 46), aplicar conversão e também converter as referências.
-
-### 5. Corrigir dados existentes no banco
-Migration SQL para corrigir os 3 valores da paciente atual.
-
-## Arquivos a alterar
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `supabase/functions/extract-lab-results/index.ts` | Corrigir sanity fixes + adicionar pós-processamento determinístico |
-| Migration SQL | Corrigir os 3 valores errados no banco |
-
-## Resumo
-- Estradiol: corrigir sanity para não duplicar conversão
-- Progesterona: baixar threshold do sanity
-- DHT: adicionar fix de conversão
-- Adicionar detecção determinística por lab_ref como camada extra de segurança
-- Corrigir dados existentes via migration
+No other changes. No crossCheckAllMarkers logic changes.
 
