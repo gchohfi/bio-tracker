@@ -791,12 +791,8 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     potassio: { min: 2, max: 8 },
     fosforo: { min: 1, max: 10 },
     magnesio: { min: 0.5, max: 5 },
-    // Inflação
-    // PCR: esperado em mg/L (faixa funcional 0–1.0 mg/L).
-    // Alguns labs reportam em mg/dL (ex: 0.12 mg/dL = 1.2 mg/L).
-    // Se valor < 2 e unidade parece mg/dL (valores típicos 0.01–1.5 mg/dL) → ×10 para mg/L.
-    // Limite: se valor < 2.0 → provavelmente mg/dL → ×10.
-    pcr: { min: 0, max: 200, fix: (v) => v < 2.0 ? v * 10 : v, label: "pcr mg/dL→mg/L" },
+    // PCR: NO conversion — store as original unit from lab
+    pcr: { min: 0, max: 200 },
     // Glicemia
     glicose_jejum: { min: 40, max: 500 },
     hba1c: { min: 3, max: 15 },
@@ -820,10 +816,8 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
 
     // Glicemia Média Estimada
     glicemia_media_estimada: { min: 50, max: 400 },
-    // Urina quantitativos
-    // urina_albumina: armazenado em mg/L (microalbuminúria). Fleury reporta em mg/L (0–300 mg/L).
-    // Se AI retornar g/L (< 0.3) → ×1000 para mg/L.
-    urina_albumina:        { min: 0, max: 300, fix: (v) => v < 1 ? v * 1000 : v, label: 'urina_albumina g/L→mg/L' },
+    // Urina quantitativos — NO conversion
+    urina_albumina:        { min: 0, max: 300 },
     urina_creatinina:      { min: 10, max: 600 },
     // Densidade urinária: faixa normal 1.001–1.040
     // Nota: 1.02 e 1.020 são numericamente idênticos — nenhuma conversão necessária
