@@ -590,9 +590,10 @@ URINA TIPO 1 / EAS:
 
 COPROLÓGICO:
 - "COPROLÓGICO FUNCIONAL" / "COPROGRAMA" / "EXAME DE FEZES" / "PROVA FUNCIONAL DAS FEZES" / "PARASITOLÓGICO DE FEZES" / "EPF" → extract ALL sub-items as qualitative
-- Sub-items: copro_cor, copro_consistencia, copro_muco, copro_sangue, copro_leucocitos, copro_hemacias, copro_parasitas, copro_gordura, copro_fibras, copro_amido, copro_residuos, copro_ac_graxos, copro_flora, copro_ph
+- Sub-items: copro_cor, copro_consistencia, copro_muco, copro_sangue, copro_leucocitos, copro_hemacias, copro_parasitas, copro_gordura, copro_fibras, copro_amido, copro_celulose, copro_residuos, copro_ac_graxos, copro_flora, copro_ph
 - "Resíduos Alimentares" / "Restos Alimentares" / "Resíduos Vegetais" → copro_residuos
 - "Ácidos Graxos" / "Ácidos Gordurosos" → copro_ac_graxos
+- "Celulose" / "Celulose Digerível" / "Celulose Vegetal" / "Celulose Não Digerível" → copro_celulose (QUALITATIVE)
 - "Flora Bacteriana" / "Flora Intestinal" → copro_flora
 - "Hemácias" (in fezes context) / "Eritrócitos" (fezes) → copro_hemacias
 
@@ -2575,6 +2576,12 @@ const MARKER_TEXT_TERMS: Record<string, string[]> = {
   copro_ac_graxos: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'ácidos graxos', 'acidos graxos'],
   copro_flora: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'flora'],
   copro_ph: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'ph'],
+  copro_celulose: ['coprológico', 'coprologico', 'coprograma', 'fezes', 'celulose'],
+  complemento_c3: ['complemento c3', 'c3 complemento', 'c3'],
+  complemento_c4: ['complemento c4', 'c4 complemento', 'c4'],
+  anti_dna: ['anti-dna', 'anti dna', 'anti-dsdna', 'anticorpo anti-dna'],
+  anti_sm: ['anti-sm', 'anti sm', 'anticorpo anti-sm'],
+  renina: ['renina', 'atividade de renina', 'arp'],
 };
 
 function crossCheckAllMarkers(results: any[], pdfText: string, beforeFallbackIds: Set<string>): any[] {
