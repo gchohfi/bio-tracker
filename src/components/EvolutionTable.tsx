@@ -389,9 +389,19 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                                 <div className="space-y-0.5">
                                   {/* Referência laboratorial convencional (principal) */}
                                   <div className="text-[10px] font-semibold text-foreground/80" title="Referência laboratorial convencional (SBPC/ML)">
-                                    {min}–{max}
+                                    {(() => {
+                                      const op = resolvedRef.operator;
+                                      if (op === '<' || op === '<=') {
+                                        return resolvedRef.max != null ? `${op} ${resolvedRef.max}` : `${min}–${max}`;
+                                      }
+                                      if (op === '>' || op === '>=') {
+                                        return resolvedRef.min != null ? `${op} ${resolvedRef.min}` : `${min}–${max}`;
+                                      }
+                                      const rMin = resolvedRef.min ?? min;
+                                      const rMax = resolvedRef.max ?? max;
+                                      return `${rMin}–${rMax}`;
+                                    })()}
                                   </div>
-                                  {/* Referência funcional removida — apenas labRange */}
                                 </div>
                               )}
                             </td>
