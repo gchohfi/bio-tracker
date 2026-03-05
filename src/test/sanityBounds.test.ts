@@ -56,7 +56,7 @@ describe("resolveReference sanity bounds", () => {
       const ref = resolveReference(find("colesterol_total"), "M", "> 20");
       expect(ref.operator).toBe("range");
       expect(ref.min).toBe(0);
-      expect(ref.max).toBe(200);
+      expect(ref.max).toBe(190);
     });
 
     it("Triglicerídeos: '> 20' deve ser rejeitado (labMin=0)", () => {
@@ -70,7 +70,7 @@ describe("resolveReference sanity bounds", () => {
       const ref = resolveReference(find("colesterol_nao_hdl"), "M", "> 20");
       expect(ref.operator).toBe("range");
       expect(ref.min).toBe(0);
-      expect(ref.max).toBe(160);
+      expect(ref.max).toBe(130);
     });
   });
 
