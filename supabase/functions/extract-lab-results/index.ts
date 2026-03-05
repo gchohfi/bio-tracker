@@ -770,8 +770,8 @@ function validateAndFixValues(results: any[], patientSex?: string): any[] {
     ferritina: { min: 1, max: 2000, fix: (v) => v > 2000 ? v / 10 : v },
     ferro_serico: { min: 10, max: 500 },
     ferro_metabolismo: { min: 10, max: 500 },
-    // Zinco: NO conversion — store as original unit from lab
-    zinco: { min: 0.5, max: 200 },
+    zinco: { min: 30, max: 200, fix: (v: number) => v < 10 ? v * 100 : v, label: "zinco decimal fix" },
+    testosterona_livre: { min: 0.5, max: 100, fix: (v: number) => v > 1000 ? v / 100 : v > 100 ? v / 10 : v, label: "testosterona_livre decimal fix" },
     // Vitaminas
     vitamina_d: { min: 3, max: 200 },
     vitamina_b12: { min: 50, max: 3000 },
@@ -2879,36 +2879,58 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
       ? parsed.exam_date
       : null;
 
-    // Regex validation for exam date — ALWAYS run, even if AI returned a date.
-    // If regex finds "Data de Coleta" and it differs from AI's date, prefer regex.
-    const datePatterns = [
-      // Priority 1: Data de Coleta (collection date) — HIGH CONFIDENCE
-      { pattern: /(?:Data\s+d[aeo]\s+[Cc]olet[ao]|Colet(?:a|ado)\s*(?:em)?)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i, highConfidence: true },
-      // Priority 2: Data do Exame / Realizado em
-      { pattern: /(?:Data\s+d[oe]\s+[Ee]xame|Realizado\s+em)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i, highConfidence: false },
-      // Priority 3: Data de Emissão (last resort)
-      { pattern: /(?:Data\s+d[aeo]\s+[Ee]miss[aã]o|Emitido\s+em|Data\s+da\s+[Ff]icha|RECEBIDO.*?COLETADO)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i, highConfidence: false },
-      // Priority 4: Any date followed by time
-      { pattern: /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})(?=\s+\d{1,2}:\d{2})/, highConfidence: false },
+    // ── Step 1: Try HIGH-CONFIDENCE "Data de Coleta" patterns FIRST ──
+    // These unconditionally override ANY AI-extracted date.
+    const highConfPatterns = [
+      /(?:Data\s+d[aeo]\s+[Cc]olet[ao]|Colet(?:a|ado)\s*(?:em)?)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i,
     ];
-    for (const { pattern, highConfidence } of datePatterns) {
-      const match = pdfText.match(pattern);
-      if (match) {
-        const [, dd, mm, yyyy] = match;
+    let highConfDateFound = false;
+    for (const pat of highConfPatterns) {
+      const m = pdfText.match(pat);
+      if (m) {
+        const [, dd, mm, yyyy] = m;
         const year = yyyy.length === 2 ? `20${yyyy}` : yyyy;
         const monthNum = parseInt(mm, 10);
         const dayNum = parseInt(dd, 10);
-        if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) continue;
-        const candidate = `${year}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
-        if (/^\d{4}-\d{2}-\d{2}$/.test(candidate)) {
-          if (!examDate) {
-            examDate = candidate;
-            console.log(`[DATE-REGEX] Matched date from pattern: ${candidate}`);
-          } else if (highConfidence && examDate !== candidate) {
-            console.log(`[DATE-REGEX] OVERRIDE: AI date ${examDate} → regex "Data de Coleta" ${candidate}`);
-            examDate = candidate;
-          }
+        if (monthNum >= 1 && monthNum <= 12 && dayNum >= 1 && dayNum <= 31) {
+          const candidate = `${year}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+          console.log(`[DATE] High-confidence "Data de Coleta": ${candidate} (overrides AI: ${examDate})`);
+          examDate = candidate;
+          highConfDateFound = true;
           break;
+        }
+        // If month > 12, day/month are probably swapped (DD/MM vs MM/DD)
+        if (dayNum >= 1 && dayNum <= 12 && monthNum >= 1 && monthNum <= 31) {
+          const candidate = `${year}-${dd.padStart(2, "0")}-${mm.padStart(2, "0")}`;
+          console.log(`[DATE] High-confidence SWAPPED d/m: ${candidate} (overrides AI: ${examDate})`);
+          examDate = candidate;
+          highConfDateFound = true;
+          break;
+        }
+      }
+    }
+
+    // ── Step 2: Only if NO high-confidence match, fall back to lower-priority patterns ──
+    if (!highConfDateFound && !examDate) {
+      const fallbackPatterns = [
+        /(?:Data\s+d[oe]\s+[Ee]xame|Realizado\s+em)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i,
+        /(?:Data\s+d[aeo]\s+[Ee]miss[aã]o|Emitido\s+em|Data\s+da\s+[Ff]icha|RECEBIDO.*?COLETADO)[:\s]*(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/i,
+        /(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})(?=\s+\d{1,2}:\d{2})/,
+      ];
+      for (const pattern of fallbackPatterns) {
+        const match = pdfText.match(pattern);
+        if (match) {
+          const [, dd, mm, yyyy] = match;
+          const year = yyyy.length === 2 ? `20${yyyy}` : yyyy;
+          const monthNum = parseInt(mm, 10);
+          const dayNum = parseInt(dd, 10);
+          if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) continue;
+          const candidate = `${year}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+          if (/^\d{4}-\d{2}-\d{2}$/.test(candidate)) {
+            examDate = candidate;
+            console.log(`[DATE-REGEX] Fallback date from pattern: ${candidate}`);
+            break;
+          }
         }
       }
     }
