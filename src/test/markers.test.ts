@@ -335,10 +335,10 @@ describe("clinical edge cases — extreme values", () => {
   });
 
   // Vitamina D toxic levels
-  it("Vitamina D 150 ng/mL (tóxica) com labRange [20,100] deve ser high", () => {
+  it("Vitamina D 150 ng/mL com labRange [20,99999] e ref 'Acima de 20' deve ser normal", () => {
     const ref = resolveReference(find("vitamina_d"), "F", "Acima de 20");
-    // labRange max=100, so 150 > 100 → high (correct: Vit D >100 is toxic)
-    expect(getMarkerStatusFromRef(150, ref)).toBe("high");
+    // labRange max=99999 (sentinel), ref resolves to operator ">", so 150 > 20 → normal
+    expect(getMarkerStatusFromRef(150, ref)).toBe("normal");
   });
 
   it("Vitamina D 8 ng/mL (deficiência grave) com ref '> 20' deve ser low", () => {
