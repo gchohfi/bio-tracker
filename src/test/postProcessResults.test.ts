@@ -24,6 +24,22 @@ function postProcessResults(results: any[]): any[] {
     if (r.marker_id) resultMap.set(r.marker_id, r);
   }
 
+  // Fix psa_ratio extracted as fraction (e.g. 0.28 instead of 27.5%)
+  if (resultMap.has("psa_ratio")) {
+    const existing = resultMap.get("psa_ratio");
+    if (typeof existing.value === "number" && existing.value < 1.0 && existing.value > 0) {
+      if (resultMap.has("psa_livre") && resultMap.has("psa_total")) {
+        const psaL = resultMap.get("psa_livre").value;
+        const psaT = resultMap.get("psa_total").value;
+        if (typeof psaL === "number" && typeof psaT === "number" && psaT > 0) {
+          existing.value = Math.round((psaL / psaT) * 100 * 10) / 10;
+        }
+      } else {
+        existing.value = Math.round(existing.value * 100 * 10) / 10;
+      }
+    }
+  }
+
   // Calculate Bilirrubina Indireta = Total - Direta
   if (!resultMap.has("bilirrubina_indireta") && resultMap.has("bilirrubina_total") && resultMap.has("bilirrubina_direta")) {
     const bt = resultMap.get("bilirrubina_total").value;
