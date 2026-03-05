@@ -262,6 +262,9 @@ export const MARKERS: MarkerDef[] = [
   { id: "aldosterona",     name: "Aldosterona",     unit: "ng/dL",        category: "Eixo Adrenal",
     labRange: { M: [2.5, 39.2], F: [2.5, 39.2] }, panel: "Adicional" },
 
+  { id: "renina",           name: "Renina",          unit: "µUI/mL",       category: "Eixo Adrenal",
+    labRange: { M: [2.8, 39.9], F: [2.8, 39.9] }, panel: "Adicional" },
+
   // ── Andrógenos ────────────────────────────────────────────────────────────
   { id: "dihidrotestosterona", name: "Dihidrotestosterona", unit: "pg/mL", category: "Andrógenos",
     labRange: { M: [250, 990], F: [16, 79] }, panel: "Padrão" },
