@@ -1459,18 +1459,22 @@ function postProcessResults(results: any[]): any[] {
     resultMap.set(r.marker_id, r);
   }
 
-  // Fix psa_ratio extracted as fraction (e.g. 0.28 instead of 27.5%)
+  // Fix psa_ratio: ALWAYS recalculate from psa_livre/psa_total when both are available.
+  // The AI often confuses the reference text (e.g. "> 25%") with the actual result value.
+  // Recalculating from primary values is always more reliable.
   if (resultMap.has("psa_ratio")) {
     const existing = resultMap.get("psa_ratio");
-    if (typeof existing.value === "number" && existing.value < 1.0 && existing.value > 0) {
+    if (typeof existing.value === "number") {
       if (resultMap.has("psa_livre") && resultMap.has("psa_total")) {
         const psaL = resultMap.get("psa_livre").value;
         const psaT = resultMap.get("psa_total").value;
         if (typeof psaL === "number" && typeof psaT === "number" && psaT > 0) {
-          existing.value = Math.round((psaL / psaT) * 100 * 10) / 10;
-          console.log(`[PSA] Recalculated psa_ratio from fraction: ${existing.value}%`);
+          const recalculated = Math.round((psaL / psaT) * 100 * 10) / 10;
+          console.log(`[PSA] Recalculated psa_ratio: ${existing.value} → ${recalculated}% (from ${psaL}/${psaT})`);
+          existing.value = recalculated;
         }
-      } else {
+      } else if (existing.value < 1.0 && existing.value > 0) {
+        // No psa_livre/psa_total available — assume fraction and convert to %
         existing.value = Math.round(existing.value * 100 * 10) / 10;
         console.log(`[PSA] Converted psa_ratio from fraction: ${existing.value}%`);
       }
