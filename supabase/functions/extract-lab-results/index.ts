@@ -881,9 +881,9 @@ function validateAndFixValues(results: any[], patientSex?: string, patientAge?: 
     urina_creatinina:      { min: 10, max: 600 },
     // Densidade urinária: faixa normal 1.001–1.040
     // Nota: 1.02 e 1.020 são numericamente idênticos — nenhuma conversão necessária
-    urina_densidade:       { min: 1.001, max: 1.040 },
+    urina_densidade:       { min: 1.000, max: 1.060 },
     // pH urinário: faixa normal 4.5–8.5
-    urina_ph:              { min: 4, max: 9 },
+    urina_ph:              { min: 4.0, max: 9.5 },
     // Leucograma absoluto — labs reportam em mil/mm³ (ex: 0.27 = 270 /mm³)
     neutrofilos_abs:       { min: 100, max: 15000, fix: (v) => v < 10 ? v * 1000 : v, label: "neutrofilos_abs ×1000" },
     linfocitos_abs:        { min: 100, max: 10000, fix: (v) => v < 10 ? v * 1000 : v, label: "linfocitos_abs ×1000" },
@@ -943,7 +943,6 @@ function validateAndFixValues(results: any[], patientSex?: string, patientAge?: 
     amh:               { min: 0.01, max: 25 },
 
     // ── Lipídios + Glicemia (os que faltam) ──
-    triglicerideos:    { min: 20, max: 2000 },
     vldl:              { min: 1, max: 200 },
 
     // ── Vitaminas ──
