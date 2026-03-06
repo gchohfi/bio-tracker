@@ -25,6 +25,7 @@ import { calculateDerivedValues, applyReferenceOverrides, enrichDheaReference, g
 import { validateAndFixValues, sanitizeLabReferences, crossCheckAllMarkers, validateExtraction } from "./validate.ts";
 import { systemPrompt, buildUserMessage, extractResultsTool } from "./prompt.ts";
 import { regexFallback } from "./regexFallback.ts";
+import { detectDocumentProfiles, extractHistoricalData, filterOutCurrentDate } from "./historicalExtract.ts";
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
 const corsHeaders = {
