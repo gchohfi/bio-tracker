@@ -1,5 +1,6 @@
 /**
- * Regression tests for supabase/functions/extract-lab-results/convert.ts
+ * Regression tests for the unit conversion pipeline:
+ *   unitInference.ts (inferSourceUnit) → convert.ts (applyUnitConversions)
  *
  * Covers:
  * 1. Value + reference converted together (same factor)
@@ -7,14 +8,25 @@
  * 3. unit_raw defines conversion
  * 4. lab_ref_text defines conversion
  * 5. No conversion when no rule matches
- * 6. Idempotency: calling applyUnitConversions twice = same result
+ * 6. Idempotency: calling inferSourceUnit+applyUnitConversions twice = same result
  * 7. Critical markers: estradiol, progesterona, DHT, PCR, testosterona_livre, t3_livre, zinco
+ * 8. inferSourceUnit marks _sourceUnit, _targetUnit, _conversionFactor, _conversionConfidence
  */
 import { describe, it, expect } from "vitest";
 import {
   applyUnitConversions,
   UNIT_CONVERSIONS,
 } from "../../supabase/functions/extract-lab-results/convert";
+import {
+  inferSourceUnit,
+} from "../../supabase/functions/extract-lab-results/unitInference";
+
+/** Helper: run the full infer+convert pipeline (mirrors index.ts flow) */
+function convertPipeline(results: any[]): any[] {
+  inferSourceUnit(results);
+  applyUnitConversions(results);
+  return results;
+}
 
 // Helper: create a result object
 function makeResult(
