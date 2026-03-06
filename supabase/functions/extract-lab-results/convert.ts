@@ -144,6 +144,32 @@ export const UNIT_CONVERSIONS: Record<string, ConversionRule[]> = {
       factor: 0.4006,
     },
   ],
+
+  progesterona: [
+    {
+      from_unit_pattern: /ng\/d/i,
+      from_unit_label: "ng/dL",
+      to_unit: "ng/mL",
+      factor: 0.01,
+      value_heuristic: (v) => v > 10, // ng/dL values are typically > 10 vs ng/mL < 1
+    },
+    {
+      from_unit_pattern: /nmol/i,
+      from_unit_label: "nmol/L",
+      to_unit: "ng/mL",
+      factor: 0.3145,
+    },
+  ],
+
+  dht: [
+    {
+      from_unit_pattern: /ng\/d/i,
+      from_unit_label: "ng/dL",
+      to_unit: "pg/mL",
+      factor: 10,
+      value_heuristic: (v) => v < 5, // ng/dL DHT is typically < 5
+    },
+  ],
 };
 
 // ---------------------------------------------------------------------------
