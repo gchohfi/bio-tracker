@@ -5,6 +5,7 @@ import { normalizeOperatorText, deduplicateResults, parseLabRefRanges } from "./
 import { inferSourceUnit } from "./unitInference.ts";
 import { applyUnitConversions } from "./convert.ts";
 import { calculateDerivedValues, applyReferenceOverrides, enrichDheaReference, guardVldlReference } from "./derive.ts";
+import { validateAndFixValues, sanitizeLabReferences, crossCheckAllMarkers, validateExtraction } from "./validate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
