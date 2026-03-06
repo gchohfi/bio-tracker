@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { MARKER_LIST, QUALITATIVE_IDS, VALID_MARKER_IDS, CALCULATED_MARKERS, ALLOW_NEGATIVE, MARKER_TEXT_TERMS, DHEA_RANGES_BY_AGE, REFERENCE_OVERRIDES } from "./constants.ts";
 import { toFloat, parseBrNum, OPERATOR_PATTERNS } from "./utils.ts";
 import { normalizeOperatorText, deduplicateResults, parseLabRefRanges } from "./normalize.ts";
+import { inferSourceUnit } from "./unitInference.ts";
 import { applyUnitConversions } from "./convert.ts";
 
 const corsHeaders = {
@@ -2338,7 +2339,9 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     validResults = normalizeOperatorText(validResults);
     // Deduplicate (prefer calculated values over operator values for same marker)
     validResults = deduplicateResults(validResults);
-    // STEP 1: Unit conversions (centralized in convert.ts) — BEFORE scale fixes
+    // STEP 1a: Infer source units (unitInference.ts)
+    validResults = inferSourceUnit(validResults);
+    // STEP 1b: Apply conversions (convert.ts) — BEFORE scale fixes
     validResults = applyUnitConversions(validResults);
     // STEP 2: Scale adjustments and validation
     validResults = validateAndFixValues(validResults, patientSex, patientAge);
@@ -2351,7 +2354,8 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     const fallbackAdded = validResults.filter((r: any) => !beforeFallbackIds.has(r.marker_id));
     if (fallbackAdded.length > 0) {
       console.log(`Regex fallback added ${fallbackAdded.length} markers: ${fallbackAdded.map((r: any) => r.marker_id).join(', ')}`);
-      // Convert units for fallback markers, then validate
+      // Infer + convert units for fallback markers, then validate
+      inferSourceUnit(fallbackAdded);
       applyUnitConversions(fallbackAdded);
       const fallbackValidated = validateAndFixValues(fallbackAdded, patientSex, patientAge);
       const fallbackValidatedIds = new Set(fallbackValidated.map((r: any) => r.marker_id));
