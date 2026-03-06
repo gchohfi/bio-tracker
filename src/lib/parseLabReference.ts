@@ -276,7 +276,7 @@ export function parseLabReference(text: string, sex?: 'M' | 'F'): ParsedReferenc
   if (rangeMatch) {
     const min = toFloat(rangeMatch[1]);
     const max = toFloat(rangeMatch[2]);
-    if (min !== null && max !== null) {
+    if (min !== null && max !== null && min < max) {
       return { min, max, operator: 'range', displayText: `${min}–${max}` };
     }
   }
