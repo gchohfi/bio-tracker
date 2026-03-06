@@ -1000,11 +1000,12 @@ function validateAndFixValues(results: any[], patientSex?: string, patientAge?: 
 }
 
 /**
- * convertLabRefUnits — REMOVED (no more unit conversions).
- * Values and references are stored exactly as the lab reports them.
- * Only structural fixes (percent markers, age ranges, sanity bounds) remain.
+ * sanitizeLabReferences — Sanitize lab reference ranges.
+ * NOT unit conversion (despite the old name "convertLabRefUnits").
+ * Handles: percent-marker ref cleanup, age-range detection, sanity bounds.
+ * TODO(refactor): Move to validate.ts in Phase 3.
  */
-function convertLabRefUnits(results: any[]): any[] {
+function sanitizeLabReferences(results: any[]): any[] {
 
   // Sanity check: marcadores em % (diferenciais do leucograma) sempre vêm com referência
   // laboratorial em valores absolutos (/mm³) no PDF. Como o app armazena esses marcadores
