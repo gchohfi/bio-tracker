@@ -2224,58 +2224,16 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     }
     // Parse lab_ref_text into numeric min/max fields
     validResults = parseLabRefRanges(validResults);
-    // === VALIDAÇÃO DHEA-S: ref por idade (após parseLabRefRanges para garantir min/max) ===
-    if (patientAge != null) {
-      const ageRange = DHEA_RANGES_BY_AGE.find(r => patientAge! >= r.minAge && patientAge! <= r.maxAge);
-      if (ageRange) {
-        for (const r of validResults) {
-          if (r.marker_id === 'dhea_s') {
-            const sex = (patientSex === 'F') ? 'F' : 'M';
-            const [correctMin, correctMax] = ageRange[sex];
-            if (r.lab_ref_min != null && r.lab_ref_min !== correctMin) {
-              console.log(`DHEA-S: patient age ${patientAge}, sex ${sex}. Replacing ref ${r.lab_ref_min}-${r.lab_ref_max} with age-appropriate ${correctMin}-${correctMax}`);
-              r.lab_ref_min = correctMin;
-              r.lab_ref_max = correctMax;
-              r.lab_ref_text = `${correctMin}-${correctMax}`;
-            } else if (r.lab_ref_min == null) {
-              console.log(`DHEA-S: no ref extracted. Setting age-appropriate ref ${correctMin}-${correctMax} for age ${patientAge}`);
-              r.lab_ref_min = correctMin;
-              r.lab_ref_max = correctMax;
-              r.lab_ref_text = `${correctMin}-${correctMax}`;
-            }
-          }
-        }
-      }
-    }
-    // VLDL guard: discard inverted references (">=" or ">" is nonsensical for VLDL — lower is better)
-    for (const r of validResults) {
-      if (r.marker_id === 'vldl' && r.lab_ref_text && /^[>≥]/i.test(String(r.lab_ref_text).trim())) {
-        console.log(`[VLDL-guard] Discarding inverted VLDL ref: "${r.lab_ref_text}"`);
-        delete r.lab_ref_text; delete r.lab_ref_min; delete r.lab_ref_max;
-      }
-    }
+    // === DHEA-S: ref por idade (após parseLabRefRanges para garantir min/max) ===
+    validResults = enrichDheaReference(validResults, patientAge, patientSex);
+    // VLDL guard: discard inverted references
+    validResults = guardVldlReference(validResults);
     // Sanitize lab references (percent markers, age ranges, sanity bounds) — NOT unit conversion
     validResults = sanitizeLabReferences(validResults);
     // Cross-check ALL markers against PDF text (anti-hallucination)
     validResults = crossCheckAllMarkers(validResults, pdfText, beforeFallbackIds);
-
-    // ── Reference Overrides: force correct clinical limits for problematic markers ──
-    for (const r of validResults) {
-      const override = REFERENCE_OVERRIDES[r.marker_id];
-      if (override) {
-        // Only apply override if the lab didn't provide a valid reference.
-        // This preserves personalized references (e.g. LDL < 70 for high-risk patients).
-        const hasLabRef = r.lab_ref_text && r.lab_ref_text.trim().length > 0;
-        if (hasLabRef) {
-          console.log(`[REF-OVERRIDE] ${r.marker_id}: KEEPING lab ref "${r.lab_ref_text}" (override skipped — lab provided a reference)`);
-        } else {
-          console.log(`[REF-OVERRIDE] ${r.marker_id}: ref ${r.lab_ref_min}-${r.lab_ref_max} "${r.lab_ref_text}" → ${override.min}-${override.max} "${override.text}"`);
-          r.lab_ref_min = override.min;
-          r.lab_ref_max = override.max;
-          r.lab_ref_text = override.text;
-        }
-      }
-    }
+    // Reference Overrides: force correct clinical limits for problematic markers
+    validResults = applyReferenceOverrides(validResults);
 
     // ── Structural Validator ──
     const validation = validateExtraction(validResults);
