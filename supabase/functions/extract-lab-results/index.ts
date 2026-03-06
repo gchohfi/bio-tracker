@@ -2442,8 +2442,8 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
         delete r.lab_ref_text; delete r.lab_ref_min; delete r.lab_ref_max;
       }
     }
-    // Convert lab_ref units to match the stored value units (e.g. pmol/L → ng/dL for testosterona_livre)
-    validResults = convertLabRefUnits(validResults);
+    // Sanitize lab references (percent markers, age ranges, sanity bounds) — NOT unit conversion
+    validResults = sanitizeLabReferences(validResults);
     // Cross-check ALL markers against PDF text (anti-hallucination)
     validResults = crossCheckAllMarkers(validResults, pdfText, beforeFallbackIds);
 
