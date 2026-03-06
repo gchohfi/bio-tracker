@@ -65,8 +65,8 @@ const OPERATOR_PATTERNS: Array<{ pattern: RegExp; operator: string }> = [
   { pattern: /^maior\s+que\b/i, operator: '>' },
   { pattern: /^acima\s+de\b/i, operator: '>' },
   { pattern: /^abaixo\s+de\b/i, operator: '<' },
-  { pattern: /^ate\b/i, operator: '<=' },
-  { pattern: /^até\b/i, operator: '<=' },
+  { pattern: /^ate(?:\s|$)/i, operator: '<=' },
+  { pattern: /^até(?:\s|$)/i, operator: '<=' },
   // Symbolic operators — mais específicos primeiro
   { pattern: /^<=\s*/, operator: '<=' },
   { pattern: /^>=\s*/, operator: '>=' },
