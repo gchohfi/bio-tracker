@@ -446,7 +446,7 @@ describe("convert: exact expected values", () => {
 
 describe("inferSourceUnit: metadata marking", () => {
   it("marks _sourceUnit, _targetUnit, _conversionFactor for unit_raw match", () => {
-    const results = [makeResult("estradiol", 4.4, { unit: "ng/dL" })];
+    const results: any[] = [makeResult("estradiol", 4.4, { unit: "ng/dL" })];
     inferSourceUnit(results);
     expect(results[0]._sourceUnit).toBe("ng/dL");
     expect(results[0]._targetUnit).toBe("pg/mL");
@@ -456,7 +456,7 @@ describe("inferSourceUnit: metadata marking", () => {
   });
 
   it("marks medium confidence for lab_ref_text match", () => {
-    const results = [
+    const results: any[] = [
       makeResult("pcr", 0.2, { lab_ref_text: "Inferior a 0.5 mg/dL" }),
     ];
     inferSourceUnit(results);
@@ -466,7 +466,7 @@ describe("inferSourceUnit: metadata marking", () => {
   });
 
   it("marks low confidence for heuristic match", () => {
-    const results = [makeResult("dht", 3.0, {})];
+    const results: any[] = [makeResult("dht", 3.0, {})];
     inferSourceUnit(results);
     expect(results[0]._sourceUnit).toBe("ng/dL");
     expect(results[0]._conversionConfidence).toBe("low");
@@ -474,7 +474,7 @@ describe("inferSourceUnit: metadata marking", () => {
   });
 
   it("does NOT mark when no rule matches", () => {
-    const results = [makeResult("hemoglobina", 14, { unit: "g/dL" })];
+    const results: any[] = [makeResult("hemoglobina", 14, { unit: "g/dL" })];
     inferSourceUnit(results);
     expect(results[0]._sourceUnit).toBeUndefined();
     expect(results[0]._targetUnit).toBeUndefined();
@@ -482,7 +482,7 @@ describe("inferSourceUnit: metadata marking", () => {
   });
 
   it("does NOT mark when already _converted", () => {
-    const results = [
+    const results: any[] = [
       makeResult("estradiol", 44, { unit: "ng/dL", _converted: true }),
     ];
     inferSourceUnit(results);
