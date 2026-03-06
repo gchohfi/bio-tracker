@@ -24,17 +24,18 @@ function postProcessResults(results: any[]): any[] {
     if (r.marker_id) resultMap.set(r.marker_id, r);
   }
 
-  // Fix psa_ratio extracted as fraction (e.g. 0.28 instead of 27.5%)
+  // Fix psa_ratio: ALWAYS recalculate from psa_livre/psa_total when both are available.
   if (resultMap.has("psa_ratio")) {
     const existing = resultMap.get("psa_ratio");
-    if (typeof existing.value === "number" && existing.value < 1.0 && existing.value > 0) {
+    if (typeof existing.value === "number") {
       if (resultMap.has("psa_livre") && resultMap.has("psa_total")) {
         const psaL = resultMap.get("psa_livre").value;
         const psaT = resultMap.get("psa_total").value;
         if (typeof psaL === "number" && typeof psaT === "number" && psaT > 0) {
-          existing.value = Math.round((psaL / psaT) * 100 * 10) / 10;
+          const recalculated = Math.round((psaL / psaT) * 100 * 10) / 10;
+          existing.value = recalculated;
         }
-      } else {
+      } else if (existing.value < 1.0 && existing.value > 0) {
         existing.value = Math.round(existing.value * 100 * 10) / 10;
       }
     }
@@ -485,15 +486,16 @@ describe("postProcessResults — cálculos derivados automáticos", () => {
       expect(getCalculated(out, "psa_ratio")).toBeUndefined();
     });
 
-    it("não sobrescreve se psa_ratio já existe no laudo com valor >= 1", () => {
+    it("recalcula psa_ratio mesmo se já existe com valor >= 1 (IA pode ter extraído referência)", () => {
       const results = [
         mkResult("psa_livre", 0.19),
         mkResult("psa_total", 0.69),
-        mkResult("psa_ratio", 30), // já extraído do laudo como %
+        mkResult("psa_ratio", 30), // valor incorreto extraído da referência
       ];
       const out = postProcessResults(results);
+      // Deve recalcular: (0.19 / 0.69) * 100 = 27.5%
       const vals = out.filter(r => r.marker_id === "psa_ratio").map(r => r.value);
-      expect(vals).toEqual([30]);
+      expect(vals).toEqual([27.5]);
     });
 
     it("corrige psa_ratio extraído como fração 0.28 → recalcula 27.5%", () => {
