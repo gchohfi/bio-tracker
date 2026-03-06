@@ -925,6 +925,24 @@ function validateAndFixValues(results: any[], patientSex?: string, patientAge?: 
     fosfatase_alcalina: { min: 10, max: 1000 },
     bilirrubina_direta: { min: 0, max: 15 },
 
+    // ── Tireoide (extras) ──
+    t4_total:          { min: 1, max: 25 },
+    t3_reverso:        { min: 5, max: 50 },
+    anti_tpo:          { min: 0, max: 2000 },
+    anti_tg:           { min: 0, max: 2000 },
+    trab:              { min: 0, max: 50 },
+
+    // ── Hormônios (extras) ──
+    testosterona_total: { min: 1, max: 1500 },
+    fsh:               { min: 0.1, max: 200 },
+    lh:                { min: 0.1, max: 200 },
+    progesterona:      { min: 0.05, max: 50 },
+    dhea_s:            { min: 5, max: 700 },
+    shbg:              { min: 5, max: 200 },
+    amh:               { min: 0.01, max: 25 },
+
+    // ── Lipídios (extras) ──
+    vldl:              { min: 1, max: 200 },
   };
 
   // ── Conversão de unidade PCR: mg/dL → mg/L ──
