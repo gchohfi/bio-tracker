@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertTriangle, Clock } from "lucide-react";
+import { Loader2, AlertTriangle, Clock, FileDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -20,12 +20,14 @@ import {
   type EvolutionReportData,
   type EvolutionCellValue,
 } from "@/lib/evolutionReportBuilder";
+import { generateEvolutionPdf } from "@/lib/generateEvolutionPdf";
 
 interface EvolutionTimelineProps {
   patientId: string;
+  patientName?: string;
 }
 
-export default function EvolutionTimeline({ patientId }: EvolutionTimelineProps) {
+export default function EvolutionTimeline({ patientId, patientName }: EvolutionTimelineProps) {
   const [data, setData] = useState<EvolutionReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | "Todos">("Todos");
@@ -129,15 +131,26 @@ export default function EvolutionTimeline({ patientId }: EvolutionTimelineProps)
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
 
-      {/* Summary */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Badge variant="outline" className="gap-1">
-          <Clock className="h-3 w-3" />
-          {data.dates.length} datas
-        </Badge>
-        <Badge variant="outline">
-          {data.sections.reduce((acc, s) => acc + s.markers.length, 0)} analitos
-        </Badge>
+      {/* Summary + Download */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Badge variant="outline" className="gap-1">
+            <Clock className="h-3 w-3" />
+            {data.dates.length} datas
+          </Badge>
+          <Badge variant="outline">
+            {data.sections.reduce((acc, s) => acc + s.markers.length, 0)} analitos
+          </Badge>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={() => generateEvolutionPdf({ data, patientName: patientName || "Paciente" })}
+        >
+          <FileDown className="h-3.5 w-3.5" />
+          Baixar PDF evolutivo
+        </Button>
       </div>
 
       {/* Timeline table */}
