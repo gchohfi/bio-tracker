@@ -26,6 +26,7 @@ import { validateAndFixValues, sanitizeLabReferences, crossCheckAllMarkers, vali
 import { systemPrompt, buildUserMessage, extractResultsTool } from "./prompt.ts";
 import { regexFallback } from "./regexFallback.ts";
 import { detectDocumentProfiles, extractHistoricalData, filterOutCurrentDate } from "./historicalExtract.ts";
+import { normalizeHistoricalResults } from "./historicalNormalize.ts";
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
 const corsHeaders = {
@@ -234,7 +235,7 @@ serve(async (req) => {
       ? parsed.exam_date : null;
     const examDate = extractExamDate(pdfText, aiDate);
 
-    // ── 10. HISTORICAL EXTRACTION (novo — não altera currentResults) ────────
+    // ── 10. HISTORICAL EXTRACTION + NORMALIZATION ─────────────────────────
     let historicalResults: any[] = [];
     try {
       const blocks = detectDocumentProfiles(pdfText);
@@ -242,7 +243,9 @@ serve(async (req) => {
         console.log(`[HIST] Detected ${blocks.length} historical blocks: ${blocks.map(b => b.type).join(", ")}`);
         historicalResults = extractHistoricalData(pdfText, blocks);
         historicalResults = filterOutCurrentDate(historicalResults, examDate);
-        console.log(`[HIST] Extracted ${historicalResults.length} marker timelines with ${historicalResults.reduce((sum: number, t: any) => sum + t.entries.length, 0)} total entries`);
+        // Normalize: operator text → infer unit → convert → scale → round
+        historicalResults = normalizeHistoricalResults(historicalResults);
+        console.log(`[HIST] Extracted ${historicalResults.length} marker timelines with ${historicalResults.reduce((sum: number, t: any) => sum + t.entries.length, 0)} total entries (normalized)`);
       }
     } catch (histError) {
       console.error("[HIST] Historical extraction error (non-fatal):", histError);
