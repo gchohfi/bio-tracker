@@ -2438,17 +2438,7 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     validResults = parseLabRefRanges(validResults);
     // === VALIDAÇÃO DHEA-S: ref por idade (após parseLabRefRanges para garantir min/max) ===
     if (patientAge != null) {
-      const dheaRangesByAge: { minAge: number; maxAge: number; M: [number, number]; F: [number, number] }[] = [
-        { minAge: 10, maxAge: 14, M: [24, 247],  F: [24, 247] },
-        { minAge: 15, maxAge: 19, M: [70, 492],  F: [63, 373] },
-        { minAge: 20, maxAge: 34, M: [160, 492], F: [65, 368] },
-        { minAge: 35, maxAge: 44, M: [89, 427],  F: [45, 320] },
-        { minAge: 45, maxAge: 54, M: [44, 331],  F: [32, 240] },
-        { minAge: 55, maxAge: 64, M: [44, 331],  F: [26, 200] },
-        { minAge: 65, maxAge: 74, M: [34, 249],  F: [20, 155] },
-        { minAge: 75, maxAge: 120, M: [16, 123], F: [15, 95] },
-      ];
-      const ageRange = dheaRangesByAge.find(r => patientAge! >= r.minAge && patientAge! <= r.maxAge);
+      const ageRange = DHEA_RANGES_BY_AGE.find(r => patientAge! >= r.minAge && patientAge! <= r.maxAge);
       if (ageRange) {
         for (const r of validResults) {
           if (r.marker_id === 'dhea_s') {
@@ -2482,16 +2472,6 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     validResults = crossCheckAllMarkers(validResults, pdfText, beforeFallbackIds);
 
     // ── Reference Overrides: force correct clinical limits for problematic markers ──
-    const REFERENCE_OVERRIDES: Record<string, { min: number | null; max: number | null; text: string }> = {
-      colesterol_total:   { min: null, max: 190,  text: '< 190 mg/dL' },
-      hdl:                { min: 40,   max: null, text: '> 40 mg/dL' },
-      ldl:                { min: null, max: 129,  text: '< 130 mg/dL' },
-      colesterol_nao_hdl: { min: null, max: 130,  text: '< 130 mg/dL' },
-      triglicerides:      { min: null, max: 150,  text: '< 150 mg/dL' },
-      vldl:               { min: null, max: 30,   text: '< 30 mg/dL' },
-      vitamina_b12:       { min: 300,  max: null, text: '> 300 pg/mL' },
-      hba1c:              { min: null, max: 5.7,  text: '< 5,7%' },
-    };
     for (const r of validResults) {
       const override = REFERENCE_OVERRIDES[r.marker_id];
       if (override) {
