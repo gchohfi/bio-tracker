@@ -131,15 +131,26 @@ export default function EvolutionTimeline({ patientId, patientName }: EvolutionT
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
 
-      {/* Summary */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Badge variant="outline" className="gap-1">
-          <Clock className="h-3 w-3" />
-          {data.dates.length} datas
-        </Badge>
-        <Badge variant="outline">
-          {data.sections.reduce((acc, s) => acc + s.markers.length, 0)} analitos
-        </Badge>
+      {/* Summary + Download */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Badge variant="outline" className="gap-1">
+            <Clock className="h-3 w-3" />
+            {data.dates.length} datas
+          </Badge>
+          <Badge variant="outline">
+            {data.sections.reduce((acc, s) => acc + s.markers.length, 0)} analitos
+          </Badge>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={() => generateEvolutionPdf({ data, patientName: patientName || "Paciente" })}
+        >
+          <FileDown className="h-3.5 w-3.5" />
+          Baixar PDF evolutivo
+        </Button>
       </div>
 
       {/* Timeline table */}
