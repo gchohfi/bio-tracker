@@ -15,7 +15,7 @@ describe("Marker ID synchronization", () => {
   const EXTRACTION_ONLY_IDS = new Set(["neutrofilos", "linfocitos"]);
 
   // Parse MARKER_LIST IDs from edge function source
-  const edgeFnPath = resolve(__dirname, "../../supabase/functions/extract-lab-results/index.ts");
+  const edgeFnPath = resolve(__dirname, "../../supabase/functions/extract-lab-results/constants.ts");
   const edgeFnSource = readFileSync(edgeFnPath, "utf-8");
 
   // Extract all { id: "xxx" } from MARKER_LIST block

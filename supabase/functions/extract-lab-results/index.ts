@@ -486,177 +486,153 @@ Example: "23/11/2025" → 2025-11-23 (November 23). NEVER swap day and month.`;
 
 // Post-processing: validate values and fix common decimal/unit errors
 function validateAndFixValues(results: any[], patientSex?: string, patientAge?: number | null): any[] {
-  // Sanity ranges with auto-fix functions for common Brazilian decimal/unit errors
-  // No unit conversion — values are stored exactly as the lab reports them.
-  // Only fix decimal errors (e.g., acido_urico 77 → 7.7) and thousands separator issues (e.g., leucocitos 4.65 → 4650).
 
-  const sanityRanges: Record<string, { min: number; max: number; fix?: (v: number, unit?: string) => number; label?: string }> = {
-    // Hemograma
+  // ════════════════════════════════════════════════════════════════════
+  // CATEGORY 1: UNIT CONVERSIONS
+  // These transform values from one unit to another (e.g., ng/dL → pg/mL).
+  // TODO(refactor): Move to convert.ts in Phase 3. Must convert value AND reference together.
+  // ════════════════════════════════════════════════════════════════════
+  const unitConversions: Record<string, { min: number; max: number; convert: (v: number, unit?: string) => number; label: string }> = {
+    t3_livre: { min: 0.15, max: 10, convert: (v) => v < 1.0 ? v * 10 : v, label: "[UNIT-CONV] t3_livre ng/dL→pg/mL (×10)" },
+    estradiol: { min: 0.5, max: 500, convert: (v: number, unit?: string) => {
+      if (unit && /ng\/d/i.test(unit)) return Math.round(v * 10 * 100) / 100;
+      if (v < 1) return Math.round(v * 10 * 100) / 100;
+      return v;
+    }, label: "[UNIT-CONV] estradiol ng/dL→pg/mL (×10)" },
+    zinco: { min: 30, max: 200, convert: (v: number, unit?: string) => {
+      if (unit && /ug\/m[lL]|µg\/m[lL]/i.test(unit)) return Math.round(v * 100 * 100) / 100;
+      if (v < 10) return v * 100;
+      return v;
+    }, label: "[UNIT-CONV] zinco µg/mL→µg/dL (×100)" },
+    testosterona_livre: { min: 0.5, max: 50, convert: (v: number, unit?: string) => {
+      if (unit && /pmol/i.test(unit)) return Math.round((v / 34.7) * 100) / 100;
+      if (v > 100) return Math.round((v / 34.7) * 100) / 100;
+      return v;
+    }, label: "[UNIT-CONV] testosterona_livre pmol/L→ng/dL (÷34.7)" },
+    pcr: { min: 0, max: 200, convert: (v) => v < 0.5 && v > 0 ? v * 10 : v, label: "[UNIT-CONV] pcr mg/dL→mg/L (×10)" },
+  };
+
+  // ════════════════════════════════════════════════════════════════════
+  // CATEGORY 2: SCALE ADJUSTMENTS
+  // These fix OCR/parsing errors where the unit is correct but the
+  // decimal point or thousands separator was lost.
+  // TODO(refactor): Move to validate.ts in Phase 3.
+  // ════════════════════════════════════════════════════════════════════
+  const scaleAdjustments: Record<string, { min: number; max: number; fix: (v: number) => number; label: string }> = {
     leucocitos: { min: 1000, max: 30000, fix: (v) => {
-      // v < 30: provavelmente em mil/µL (ex: 4.5 → 4500, 12.3 → 12300)
       if (v < 30) return v * 1000;
-      // 30 ≤ v < 100: ambíguo, mas provavelmente em centenas (ex: 39 → 3900)
       if (v < 100) return v * 100;
-      // 100 ≤ v < 1000: provavelmente ponto decimal ausente (ex: 465 → 4650)
       if (v < 1000) return v * 10;
       return v;
-    }, label: "leucocitos scale fix" },
-    eritrocitos: { min: 1, max: 10, fix: (v) => v > 1000 ? v / 1000000 : v > 10 ? v / 10 : v },
-    plaquetas: { min: 50, max: 700, fix: (v) => v > 1000 ? v / 1000 : v },
-    // Hormônios — NO conversions, only decimal fixes
-    prolactina: { min: 0.5, max: 200, fix: (v) => v > 200 ? v / 100 : v },
-    insulina_jejum: { min: 0.5, max: 100, fix: (v) => v > 100 ? v / 100 : v },
-    // Eixo GH
+    }, label: "[SCALE-FIX] leucocitos scale fix" },
+    eritrocitos: { min: 1, max: 10, fix: (v) => v > 1000 ? v / 1000000 : v > 10 ? v / 10 : v, label: "[SCALE-FIX] eritrocitos decimal fix" },
+    plaquetas: { min: 50, max: 700, fix: (v) => v > 1000 ? v / 1000 : v, label: "[SCALE-FIX] plaquetas ÷1000" },
+    prolactina: { min: 0.5, max: 200, fix: (v) => v > 200 ? v / 100 : v, label: "[SCALE-FIX] prolactina decimal fix" },
+    insulina_jejum: { min: 0.5, max: 100, fix: (v) => v > 100 ? v / 100 : v, label: "[SCALE-FIX] insulina decimal fix" },
+    tsh: { min: 0.01, max: 100, fix: (v) => v > 200 ? v / 100 : v, label: "[SCALE-FIX] tsh decimal fix" },
+    ferritina: { min: 1, max: 2000, fix: (v) => v > 2000 ? v / 10 : v, label: "[SCALE-FIX] ferritina decimal fix" },
+    acido_urico: { min: 0.5, max: 15, fix: (v) => v > 15 ? v / 10 : v, label: "[SCALE-FIX] acido_urico decimal fix" },
+    tgo_ast: { min: 3, max: 500, fix: (v) => (v > 1000 && v < 10000) ? v / 10 : v, label: "[SCALE-FIX] tgo_ast decimal fix" },
+    tgp_alt: { min: 3, max: 500, fix: (v) => (v > 1000 && v < 10000) ? v / 10 : v, label: "[SCALE-FIX] tgp_alt decimal fix" },
+    transferrina: { min: 100, max: 500, fix: (v) => v < 100 ? v * 10 : v, label: "[SCALE-FIX] transferrina ×10" },
+    neutrofilos_abs: { min: 100, max: 15000, fix: (v) => v < 10 ? v * 1000 : v, label: "[SCALE-FIX] neutrofilos_abs ×1000" },
+    linfocitos_abs: { min: 100, max: 10000, fix: (v) => v < 10 ? v * 1000 : v, label: "[SCALE-FIX] linfocitos_abs ×1000" },
+    monocitos_abs: { min: 10, max: 3000, fix: (v) => v < 1 ? v * 1000 : v, label: "[SCALE-FIX] monocitos_abs ×1000" },
+    eosinofilos_abs: { min: 10, max: 3000, fix: (v) => v < 1 ? v * 1000 : v, label: "[SCALE-FIX] eosinofilos_abs ×1000" },
+    basofilos_abs: { min: 1, max: 500, fix: (v) => v < 1 ? v * 1000 : v, label: "[SCALE-FIX] basofilos_abs ×1000" },
+  };
+
+  // ════════════════════════════════════════════════════════════════════
+  // CATEGORY 3: SANITY BOUNDS (validation only — no fix, just bounds)
+  // Used for range checking. No transformation applied.
+  // ════════════════════════════════════════════════════════════════════
+  const sanityBounds: Record<string, { min: number; max: number }> = {
     igf1: { min: 20, max: 1000 },
-    // Tireoide
-    tsh: { min: 0.01, max: 100, fix: (v: number) => {
-      if (v > 200) return v / 100;
-      return v;
-    }, label: "tsh decimal fix" },
     t4_livre: { min: 0.1, max: 5 },
-    // T3 Livre: target unit is pg/mL; auto-convert ng/dL values (< 1.0) by multiplying by 10
-    t3_livre: { min: 0.15, max: 10, fix: (v) => v < 1.0 ? v * 10 : v },
     t3_total: { min: 30, max: 300 },
-    // Lipídios
     colesterol_total: { min: 50, max: 500 },
     hdl: { min: 10, max: 150 },
     ldl: { min: 10, max: 400 },
     triglicerides: { min: 20, max: 2000 },
-    // Ferro
-    ferritina: { min: 1, max: 2000, fix: (v) => v > 2000 ? v / 10 : v },
     ferro_serico: { min: 10, max: 500 },
     ferro_metabolismo: { min: 10, max: 500 },
-    zinco: { min: 30, max: 200, fix: (v: number, unit?: string) => {
-      if (unit && /ug\/m[lL]|µg\/m[lL]/i.test(unit)) return Math.round(v * 100 * 100) / 100;
-      if (v < 10) return v * 100;
-      return v;
-    }, label: "zinco µg/mL→µg/dL" },
-    testosterona_livre: { min: 0.5, max: 50, fix: (v: number, unit?: string) => {
-      if (unit && /pmol/i.test(unit)) return Math.round((v / 34.7) * 100) / 100;
-      if (v > 100) return Math.round((v / 34.7) * 100) / 100;
-      return v;
-    }, label: "testosterona_livre pmol→ng/dL" },
-    estradiol: { min: 0.5, max: 500, fix: (v: number, unit?: string) => {
-      // Convert ng/dL → pg/mL (×10) only when:
-      // 1. Unit explicitly says ng/dL, OR
-      // 2. Value < 1 (impossible as pg/mL — even post-menopause is ~5-20 pg/mL from most labs;
-      //    but a value like 0.3 is clearly ng/dL that needs conversion to 3.0 pg/mL)
-      // Do NOT convert values 1-5 automatically — post-menopausal women can have 
-      // legitimate estradiol of 3-5 pg/mL.
-      if (unit && /ng\/d/i.test(unit)) return Math.round(v * 10 * 100) / 100;
-      if (v < 1) return Math.round(v * 10 * 100) / 100;
-      return v;
-    }, label: "estradiol ng/dL→pg/mL" },
-    // Vitaminas
     vitamina_d: { min: 3, max: 200 },
     vitamina_b12: { min: 50, max: 3000 },
     acido_folico: { min: 0.5, max: 50 },
     homocisteina: { min: 1, max: 50 },
-    // Hepático
     albumina: { min: 1, max: 8 },
     bilirrubina_total: { min: 0.01, max: 20 },
-    // Renal
     creatinina: { min: 0.1, max: 15 },
-    acido_urico: { min: 0.5, max: 15, fix: (v: number) => v > 15 ? v / 10 : v, label: "acido_urico decimal fix" },
     ureia: { min: 5, max: 200 },
-    // Eletrólitos
     calcio_total: { min: 5, max: 15 },
     calcio_ionico: { min: 0.5, max: 2.5 },
     sodio: { min: 100, max: 180 },
     potassio: { min: 2, max: 8 },
     fosforo: { min: 1, max: 10 },
     magnesio: { min: 0.5, max: 5 },
-    // PCR: target unit mg/L — auto-convert mg/dL values (< 0.5) by multiplying by 10
-    pcr: { min: 0, max: 200, fix: (v) => v < 0.5 && v > 0 ? v * 10 : v },
-    // Glicemia
     glicose_jejum: { min: 40, max: 500 },
     hba1c: { min: 3, max: 15 },
-    // Coagulação
     fibrinogenio: { min: 50, max: 800 },
-    // Cortisol
     cortisol: { min: 0.5, max: 50 },
-    // Eletroforese de Proteínas: frações em % (valores fisiológicos)
-    // Albumina: 50–70% — se < 30, provavelmente é outra fração (remover para evitar erro)
     eletroforese_albumina: { min: 30, max: 80 },
-    eletroforese_alfa1:    { min: 1, max: 10 },
-    eletroforese_alfa2:    { min: 4, max: 20 },
-    eletroforese_beta1:    { min: 2, max: 12 },
-    eletroforese_beta2:    { min: 1, max: 10 },
-    eletroforese_gama:     { min: 5, max: 30 },
-    relacao_ag:            { min: 0.8, max: 4.0 },
-    // PSA
-    psa_total:             { min: 0, max: 100 },
-    psa_livre:             { min: 0, max: 20 },
-    psa_ratio:             { min: 0, max: 100 },
-
-    // Glicemia Média Estimada
+    eletroforese_alfa1: { min: 1, max: 10 },
+    eletroforese_alfa2: { min: 4, max: 20 },
+    eletroforese_beta1: { min: 2, max: 12 },
+    eletroforese_beta2: { min: 1, max: 10 },
+    eletroforese_gama: { min: 5, max: 30 },
+    relacao_ag: { min: 0.8, max: 4.0 },
+    psa_total: { min: 0, max: 100 },
+    psa_livre: { min: 0, max: 20 },
+    psa_ratio: { min: 0, max: 100 },
     glicemia_media_estimada: { min: 50, max: 400 },
-    // Urina quantitativos — NO conversion
-    urina_albumina:        { min: 0, max: 300 },
-    urina_creatinina:      { min: 10, max: 600 },
-    // Densidade urinária: faixa normal 1.001–1.040
-    // Nota: 1.02 e 1.020 são numericamente idênticos — nenhuma conversão necessária
-    urina_densidade:       { min: 1.000, max: 1.060 },
-    // pH urinário: faixa normal 4.5–8.5
-    urina_ph:              { min: 4.0, max: 9.5 },
-    // Leucograma absoluto — labs reportam em mil/mm³ (ex: 0.27 = 270 /mm³)
-    neutrofilos_abs:       { min: 100, max: 15000, fix: (v) => v < 10 ? v * 1000 : v, label: "neutrofilos_abs ×1000" },
-    linfocitos_abs:        { min: 100, max: 10000, fix: (v) => v < 10 ? v * 1000 : v, label: "linfocitos_abs ×1000" },
-    monocitos_abs:         { min: 10,  max: 3000,  fix: (v) => v < 1 ? v * 1000 : v, label: "monocitos_abs ×1000" },
-    eosinofilos_abs:       { min: 10,  max: 3000,  fix: (v) => v < 1 ? v * 1000 : v, label: "eosinofilos_abs ×1000" },
-    basofilos_abs:         { min: 1,   max: 500,   fix: (v) => v < 1 ? v * 1000 : v, label: "basofilos_abs ×1000" },
-    // Transferrina — 28 deveria ser 280 (separador perdido)
-    transferrina:          { min: 100, max: 500, fix: (v) => v < 100 ? v * 10 : v, label: "transferrina ×10" },
-
-    // ── Hemograma ──
-    hemoglobina:       { min: 5, max: 22 },
-    hematocrito:       { min: 15, max: 70 },
-    vcm:               { min: 50, max: 130 },
-    hcm:               { min: 15, max: 45 },
-    rdw:               { min: 8, max: 30 },
-    vpm:               { min: 4, max: 20 },
-    vhs:               { min: 0, max: 200 },
-    bastonetes:        { min: 0, max: 30 },
-    segmentados:       { min: 10, max: 90 },
-    neutrofilos:       { min: 10, max: 95 },
-    linfocitos:        { min: 3, max: 70 },
-    eosinofilos:       { min: 0, max: 30 },
-    monocitos:         { min: 0, max: 25 },
-    basofilos:         { min: 0, max: 5 },
-
-    // ── Hepático ──
-    tgo_ast:           { min: 3, max: 500, fix: (v: number) => {
-      if (v > 1000 && v < 10000) return v / 10;
-      return v;
-    }, label: "tgo_ast decimal fix" },
-    tgp_alt:           { min: 3, max: 500, fix: (v: number) => {
-      if (v > 1000 && v < 10000) return v / 10;
-      return v;
-    }, label: "tgp_alt decimal fix" },
-    ggt:               { min: 3, max: 1000 },
+    urina_albumina: { min: 0, max: 300 },
+    urina_creatinina: { min: 10, max: 600 },
+    urina_densidade: { min: 1.000, max: 1.060 },
+    urina_ph: { min: 4.0, max: 9.5 },
+    hemoglobina: { min: 5, max: 22 },
+    hematocrito: { min: 15, max: 70 },
+    vcm: { min: 50, max: 130 },
+    hcm: { min: 15, max: 45 },
+    rdw: { min: 8, max: 30 },
+    vpm: { min: 4, max: 20 },
+    vhs: { min: 0, max: 200 },
+    bastonetes: { min: 0, max: 30 },
+    segmentados: { min: 10, max: 90 },
+    neutrofilos: { min: 10, max: 95 },
+    linfocitos: { min: 3, max: 70 },
+    eosinofilos: { min: 0, max: 30 },
+    monocitos: { min: 0, max: 25 },
+    basofilos: { min: 0, max: 5 },
+    ggt: { min: 3, max: 1000 },
     fosfatase_alcalina: { min: 10, max: 1000 },
     bilirrubina_direta: { min: 0, max: 15 },
-
-    // ── Tireoide (extras) ──
-    t4_total:          { min: 1, max: 25 },
-    t3_reverso:        { min: 5, max: 50 },
-    anti_tpo:          { min: 0, max: 2000 },
-    anti_tg:           { min: 0, max: 2000 },
-    trab:              { min: 0, max: 50 },
-
-    // ── Hormônios (extras) ──
+    t4_total: { min: 1, max: 25 },
+    t3_reverso: { min: 5, max: 50 },
+    anti_tpo: { min: 0, max: 2000 },
+    anti_tg: { min: 0, max: 2000 },
+    trab: { min: 0, max: 50 },
     testosterona_total: { min: 1, max: 1500 },
-    fsh:               { min: 0.1, max: 200 },
-    lh:                { min: 0.1, max: 200 },
-    progesterona:      { min: 0.05, max: 50 },
-    dhea_s:            { min: 5, max: 700 },
-    shbg:              { min: 5, max: 200 },
-    amh:               { min: 0.01, max: 25 },
-
-    // ── Lipídios (extras) ──
-    vldl:              { min: 1, max: 200 },
+    fsh: { min: 0.1, max: 200 },
+    lh: { min: 0.1, max: 200 },
+    progesterona: { min: 0.05, max: 50 },
+    dhea_s: { min: 5, max: 700 },
+    shbg: { min: 5, max: 200 },
+    amh: { min: 0.01, max: 25 },
+    vldl: { min: 1, max: 200 },
   };
 
+  // Legacy compat: merge all into a single lookup for the existing fix loop
+  const sanityRanges: Record<string, { min: number; max: number; fix?: (v: number, unit?: string) => number; label?: string }> = {
+    ...sanityBounds,
+    ...Object.fromEntries(Object.entries(scaleAdjustments).map(([k, v]) => [k, { ...v, fix: v.fix as (v: number, unit?: string) => number }])),
+    ...Object.fromEntries(Object.entries(unitConversions).map(([k, v]) => [k, { ...v, fix: v.convert }])),
+  };
+
+  // ════════════════════════════════════════════════════════════════════
+  // UNIT CONVERSION: PCR mg/dL → mg/L (explicit block)
+  // TODO(refactor): Move to convert.ts in Phase 3.
+  // This converts value AND reference together (correct pattern).
+  // ════════════════════════════════════════════════════════════════════
   // ── Conversão de unidade PCR: mg/dL → mg/L ──
   // PCR target unit é mg/L. Alguns labs reportam em mg/dL (10x menor).
   // Detectar pela referência: se lab_ref_text menciona "mg/dL" ou ref_max <= 1 (indicando mg/dL), converter.
@@ -1024,11 +1000,12 @@ function validateAndFixValues(results: any[], patientSex?: string, patientAge?: 
 }
 
 /**
- * convertLabRefUnits — REMOVED (no more unit conversions).
- * Values and references are stored exactly as the lab reports them.
- * Only structural fixes (percent markers, age ranges, sanity bounds) remain.
+ * sanitizeLabReferences — Sanitize lab reference ranges.
+ * NOT unit conversion (despite the old name "convertLabRefUnits").
+ * Handles: percent-marker ref cleanup, age-range detection, sanity bounds.
+ * TODO(refactor): Move to validate.ts in Phase 3.
  */
-function convertLabRefUnits(results: any[]): any[] {
+function sanitizeLabReferences(results: any[]): any[] {
 
   // Sanity check: marcadores em % (diferenciais do leucograma) sempre vêm com referência
   // laboratorial em valores absolutos (/mm³) no PDF. Como o app armazena esses marcadores
@@ -1274,8 +1251,11 @@ function convertLabRefUnits(results: any[]): any[] {
   // Ref converters removed — no more unit conversions.
   return results;
 }
-// Post-processing: calculate derived values if missing
-function postProcessResults(results: any[]): any[] {
+// ════════════════════════════════════════════════════════════════════
+// CATEGORY 3: DERIVED VALUES — Calculate markers from other markers
+// TODO(refactor): Move to derive.ts in Phase 3.
+// ════════════════════════════════════════════════════════════════════
+function calculateDerivedValues(results: any[]): any[] {
   const resultMap = new Map<string, any>();
   for (const r of results) {
     resultMap.set(r.marker_id, r);
@@ -2409,8 +2389,8 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     validResults = deduplicateResults(validResults);
     // Validate and fix common decimal/unit errors
     validResults = validateAndFixValues(validResults, patientSex, patientAge);
-    // Post-process: calculate derived values if AI missed them
-    validResults = postProcessResults(validResults);
+    // Calculate derived values (HOMA-IR, ratios, etc.) if AI missed them
+    validResults = calculateDerivedValues(validResults);
     // Regex fallback for markers the AI frequently misses
     const beforeFallbackIds = new Set<string>(validResults.map((r: any) => r.marker_id));
     validResults = regexFallback(pdfText, validResults);
@@ -2431,7 +2411,7 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
         return r;
       });
       // Re-run derived calculations with full set
-      validResults = postProcessResults(validResults);
+      validResults = calculateDerivedValues(validResults);
     }
     // Parse lab_ref_text into numeric min/max fields
     validResults = parseLabRefRanges(validResults);
@@ -2465,8 +2445,8 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
         delete r.lab_ref_text; delete r.lab_ref_min; delete r.lab_ref_max;
       }
     }
-    // Convert lab_ref units to match the stored value units (e.g. pmol/L → ng/dL for testosterona_livre)
-    validResults = convertLabRefUnits(validResults);
+    // Sanitize lab references (percent markers, age ranges, sanity bounds) — NOT unit conversion
+    validResults = sanitizeLabReferences(validResults);
     // Cross-check ALL markers against PDF text (anti-hallucination)
     validResults = crossCheckAllMarkers(validResults, pdfText, beforeFallbackIds);
 
