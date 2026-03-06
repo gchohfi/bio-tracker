@@ -13,7 +13,10 @@ const cases = [
   // Julia (F)
   { marker: "colesterol_total", value: 210, lab_ref_text: "< 190",          sex: "F" as const, expected: "high" },
   { marker: "amilase",          value: 68,  lab_ref_text: "28 a 100 U/L",   sex: "F" as const, expected: "normal" },
-  { marker: "fsh",              value: 30,  lab_ref_text: "Fase folicular: 3,5 a 12,5 / Ovulatória: 4,7 a 21,5 / Lútea: 1,7 a 7,7 / Pós-menopausa: 25,8 a 134,8", sex: "F" as const, expected: "normal" },
+  // FSH multi-phase: resolveReference sanity check rejects the global range (1.7–134.8) vs labRange (3.5–12.5),
+  // so it falls back to labRange. Value 30 > 12.5 = "high" at the engine level.
+  // The UI/PDF layers separately detect isCyclePhaseRef and force "normal" display — that override is NOT tested here.
+  { marker: "fsh",              value: 30,  lab_ref_text: "Fase folicular: 3,5 a 12,5 / Ovulatória: 4,7 a 21,5 / Lútea: 1,7 a 7,7 / Pós-menopausa: 25,8 a 134,8", sex: "F" as const, expected: "high" },
   { marker: "monocitos",        value: 9,   lab_ref_text: "2 a 8 %",        sex: "F" as const, expected: "high" },
 ];
 
