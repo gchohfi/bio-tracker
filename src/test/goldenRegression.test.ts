@@ -18,7 +18,8 @@ import {
   getMarkerStatusFromRef,
   type MarkerDef,
 } from "@/lib/markers";
-import { UNIT_CONVERSIONS } from "@/lib/markers";
+// UNIT_CONVERSIONS lives in edge function (Deno), so we replicate conversion logic locally
+// using the golden case fixtures as the source of truth
 import {
   ALL_GOLDEN_CASES,
   BARBARA_CASES,
