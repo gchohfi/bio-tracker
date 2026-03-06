@@ -486,15 +486,16 @@ describe("postProcessResults — cálculos derivados automáticos", () => {
       expect(getCalculated(out, "psa_ratio")).toBeUndefined();
     });
 
-    it("não sobrescreve se psa_ratio já existe no laudo com valor >= 1", () => {
+    it("recalcula psa_ratio mesmo se já existe com valor >= 1 (IA pode ter extraído referência)", () => {
       const results = [
         mkResult("psa_livre", 0.19),
         mkResult("psa_total", 0.69),
-        mkResult("psa_ratio", 30), // já extraído do laudo como %
+        mkResult("psa_ratio", 30), // valor incorreto extraído da referência
       ];
       const out = postProcessResults(results);
+      // Deve recalcular: (0.19 / 0.69) * 100 = 27.5%
       const vals = out.filter(r => r.marker_id === "psa_ratio").map(r => r.value);
-      expect(vals).toEqual([30]);
+      expect(vals).toEqual([27.5]);
     });
 
     it("corrige psa_ratio extraído como fração 0.28 → recalcula 27.5%", () => {
