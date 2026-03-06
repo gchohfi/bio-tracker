@@ -1227,10 +1227,20 @@ function convertLabRefUnits(results: any[]): any[] {
   ]);
   for (const r of results) {
     if (percentOnlyMarkers.has(r.marker_id) && (r.lab_ref_min != null || r.lab_ref_max != null)) {
-      console.log(`Discarding absolute-unit lab_ref for percent marker ${r.marker_id}: ${r.lab_ref_min}-${r.lab_ref_max} (text: ${r.lab_ref_text})`);
-      r.lab_ref_min = null;
-      r.lab_ref_max = null;
-      r.lab_ref_text = '';
+      // Check if the reference looks like a percentage range (both values <= 100)
+      // or an absolute count range (values typically > 100, e.g. "1.526 a 5.020 /mm³").
+      // Only discard if it's clearly an absolute count reference.
+      const refMin = typeof r.lab_ref_min === 'number' ? r.lab_ref_min : 0;
+      const refMax = typeof r.lab_ref_max === 'number' ? r.lab_ref_max : 0;
+      const looksLikeAbsolute = refMax > 100 || refMin > 100;
+      if (looksLikeAbsolute) {
+        console.log(`Discarding absolute-unit lab_ref for percent marker ${r.marker_id}: ${r.lab_ref_min}-${r.lab_ref_max} (text: ${r.lab_ref_text})`);
+        r.lab_ref_min = null;
+        r.lab_ref_max = null;
+        r.lab_ref_text = '';
+      } else {
+        console.log(`Keeping percentage lab_ref for ${r.marker_id}: ${r.lab_ref_min}-${r.lab_ref_max} (text: ${r.lab_ref_text})`);
+      }
     }
   }
   // Bug 7 — Diferenciais do leucograma em valor absoluto (/mm³) em vez de percentual (%).
