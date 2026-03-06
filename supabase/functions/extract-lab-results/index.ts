@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { MARKER_LIST, QUALITATIVE_IDS, VALID_MARKER_IDS, CALCULATED_MARKERS, ALLOW_NEGATIVE, MARKER_TEXT_TERMS, DHEA_RANGES_BY_AGE, REFERENCE_OVERRIDES } from "./constants.ts";
 import { toFloat, parseBrNum, OPERATOR_PATTERNS } from "./utils.ts";
 import { normalizeOperatorText, deduplicateResults, parseLabRefRanges } from "./normalize.ts";
+import { applyUnitConversions } from "./convert.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -488,29 +489,10 @@ Example: "23/11/2025" → 2025-11-23 (November 23). NEVER swap day and month.`;
 function validateAndFixValues(results: any[], patientSex?: string, patientAge?: number | null): any[] {
 
   // ════════════════════════════════════════════════════════════════════
-  // CATEGORY 1: UNIT CONVERSIONS
-  // These transform values from one unit to another (e.g., ng/dL → pg/mL).
-  // TODO(refactor): Move to convert.ts in Phase 3. Must convert value AND reference together.
+  // CATEGORY 1: UNIT CONVERSIONS → MOVED TO convert.ts
+  // applyUnitConversions() is called BEFORE this function in the main flow.
+  // The unitConversions block has been removed — all conversions are in convert.ts.
   // ════════════════════════════════════════════════════════════════════
-  const unitConversions: Record<string, { min: number; max: number; convert: (v: number, unit?: string) => number; label: string }> = {
-    t3_livre: { min: 0.15, max: 10, convert: (v) => v < 1.0 ? v * 10 : v, label: "[UNIT-CONV] t3_livre ng/dL→pg/mL (×10)" },
-    estradiol: { min: 0.5, max: 500, convert: (v: number, unit?: string) => {
-      if (unit && /ng\/d/i.test(unit)) return Math.round(v * 10 * 100) / 100;
-      if (v < 1) return Math.round(v * 10 * 100) / 100;
-      return v;
-    }, label: "[UNIT-CONV] estradiol ng/dL→pg/mL (×10)" },
-    zinco: { min: 30, max: 200, convert: (v: number, unit?: string) => {
-      if (unit && /ug\/m[lL]|µg\/m[lL]/i.test(unit)) return Math.round(v * 100 * 100) / 100;
-      if (v < 10) return v * 100;
-      return v;
-    }, label: "[UNIT-CONV] zinco µg/mL→µg/dL (×100)" },
-    testosterona_livre: { min: 0.5, max: 50, convert: (v: number, unit?: string) => {
-      if (unit && /pmol/i.test(unit)) return Math.round((v / 34.7) * 100) / 100;
-      if (v > 100) return Math.round((v / 34.7) * 100) / 100;
-      return v;
-    }, label: "[UNIT-CONV] testosterona_livre pmol/L→ng/dL (÷34.7)" },
-    pcr: { min: 0, max: 200, convert: (v) => v < 0.5 && v > 0 ? v * 10 : v, label: "[UNIT-CONV] pcr mg/dL→mg/L (×10)" },
-  };
 
   // ════════════════════════════════════════════════════════════════════
   // CATEGORY 2: SCALE ADJUSTMENTS
@@ -621,45 +603,14 @@ function validateAndFixValues(results: any[], patientSex?: string, patientAge?: 
     vldl: { min: 1, max: 200 },
   };
 
-  // Legacy compat: merge all into a single lookup for the existing fix loop
+  // Legacy compat: merge scaleAdjustments + sanityBounds for the existing fix loop
+  // Unit conversions are NO LONGER here — they run in convert.ts BEFORE this function.
   const sanityRanges: Record<string, { min: number; max: number; fix?: (v: number, unit?: string) => number; label?: string }> = {
     ...sanityBounds,
     ...Object.fromEntries(Object.entries(scaleAdjustments).map(([k, v]) => [k, { ...v, fix: v.fix as (v: number, unit?: string) => number }])),
-    ...Object.fromEntries(Object.entries(unitConversions).map(([k, v]) => [k, { ...v, fix: v.convert }])),
   };
 
-  // ════════════════════════════════════════════════════════════════════
-  // UNIT CONVERSION: PCR mg/dL → mg/L (explicit block)
-  // TODO(refactor): Move to convert.ts in Phase 3.
-  // This converts value AND reference together (correct pattern).
-  // ════════════════════════════════════════════════════════════════════
-  // ── Conversão de unidade PCR: mg/dL → mg/L ──
-  // PCR target unit é mg/L. Alguns labs reportam em mg/dL (10x menor).
-  // Detectar pela referência: se lab_ref_text menciona "mg/dL" ou ref_max <= 1 (indicando mg/dL), converter.
-  for (const r of results) {
-    if (r.marker_id !== 'pcr') continue;
-    if (typeof r.value !== 'number' || r.value === 0) continue;
-    const refText = (r.lab_ref_text || '').toLowerCase();
-    const isInMgDl = refText.includes('mg/dl') || 
-                     (r.value > 0 && r.value < 0.5 && !refText.includes('mg/l'));
-    if (isInMgDl) {
-      const original = r.value;
-      r.value = r.value * 10;
-      console.log(`PCR unit conversion mg/dL→mg/L: ${original} → ${r.value}`);
-      // Também converter lab_ref_min e lab_ref_max se existem e parecem mg/dL
-      if (typeof r.lab_ref_max === 'number' && r.lab_ref_max <= 10) {
-        console.log(`PCR ref conversion mg/dL→mg/L: max ${r.lab_ref_max} → ${r.lab_ref_max * 10}`);
-        r.lab_ref_max = r.lab_ref_max * 10;
-      }
-      if (typeof r.lab_ref_min === 'number' && r.lab_ref_min > 0 && r.lab_ref_min < 1) {
-        r.lab_ref_min = r.lab_ref_min * 10;
-      }
-      // Limpar lab_ref_text para usar mg/L
-      if (r.lab_ref_text) {
-        r.lab_ref_text = r.lab_ref_text.replace(/mg\/dL/gi, 'mg/L');
-      }
-    }
-  }
+  // PCR unit conversion REMOVED — now handled by convert.ts applyUnitConversions()
 
   for (const r of results) {
     if (typeof r.value !== "number") continue;
@@ -2387,7 +2338,9 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     validResults = normalizeOperatorText(validResults);
     // Deduplicate (prefer calculated values over operator values for same marker)
     validResults = deduplicateResults(validResults);
-    // Validate and fix common decimal/unit errors
+    // STEP 1: Unit conversions (centralized in convert.ts) — BEFORE scale fixes
+    validResults = applyUnitConversions(validResults);
+    // STEP 2: Scale adjustments and validation
     validResults = validateAndFixValues(validResults, patientSex, patientAge);
     // Calculate derived values (HOMA-IR, ratios, etc.) if AI missed them
     validResults = calculateDerivedValues(validResults);
@@ -2398,7 +2351,8 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     const fallbackAdded = validResults.filter((r: any) => !beforeFallbackIds.has(r.marker_id));
     if (fallbackAdded.length > 0) {
       console.log(`Regex fallback added ${fallbackAdded.length} markers: ${fallbackAdded.map((r: any) => r.marker_id).join(', ')}`);
-      // Validate fallback markers (anti-hallucination, sanity checks)
+      // Convert units for fallback markers, then validate
+      applyUnitConversions(fallbackAdded);
       const fallbackValidated = validateAndFixValues(fallbackAdded, patientSex, patientAge);
       const fallbackValidatedIds = new Set(fallbackValidated.map((r: any) => r.marker_id));
       // Remove unvalidated fallback markers, keep only those that passed validation
