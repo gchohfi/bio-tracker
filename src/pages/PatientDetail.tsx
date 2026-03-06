@@ -286,6 +286,7 @@ export default function PatientDetail() {
   const [extractedExamDate, setExtractedExamDate] = useState<string | null>(null);
   const [lastQualityScore, setLastQualityScore] = useState<number | null>(null);
   const [lastExtractionIssues, setLastExtractionIssues] = useState<any[]>([]);
+  const [lastHistoricalResults, setLastHistoricalResults] = useState<any[]>([]);
   const [reportEditOpen, setReportEditOpen] = useState(false);
   const [reportResults, setReportResults] = useState<any[]>([]);
   const [reportWithAI, setReportWithAI] = useState(false);
@@ -917,8 +918,9 @@ export default function PatientDetail() {
     // Capture quality metrics from edge function
     const qualityScore = data?.quality_score ?? null;
     const extractionIssues = data?.issues ?? [];
+    const historicalResults = data?.historicalResults ?? [];
 
-    return { newValues, newLabRefs, fullText, cleanedText, count: results.length, examDate, qualityScore, extractionIssues };
+    return { newValues, newLabRefs, fullText, cleanedText, count: results.length, examDate, qualityScore, extractionIssues, historicalResults };
   };
 
   const handlePdfImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -938,6 +940,7 @@ export default function PatientDetail() {
 
       let lastQuality: number | null = null;
       let allIssues: any[] = [];
+      let allHistorical: any[] = [];
 
       for (const file of files) {
         toast({ title: `Processando ${file.name}...`, description: `${files.indexOf(file) + 1} de ${files.length}` });
@@ -950,6 +953,7 @@ export default function PatientDetail() {
         if (!firstExamDate && result.examDate) firstExamDate = result.examDate;
         if (result.qualityScore !== null) lastQuality = result.qualityScore;
         allIssues = allIssues.concat(result.extractionIssues);
+        if (result.historicalResults.length > 0) allHistorical = allHistorical.concat(result.historicalResults);
       }
 
       setMarkerValues(currentValues);
@@ -959,6 +963,7 @@ export default function PatientDetail() {
       setImportedPdfCount((prev) => prev + files.length);
       setLastQualityScore(lastQuality);
       setLastExtractionIssues(allIssues);
+      setLastHistoricalResults(allHistorical);
 
       // Auto-fill session date if extracted from PDF
       if (firstExamDate) {
