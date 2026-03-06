@@ -286,6 +286,7 @@ export default function PatientDetail() {
   const [extractedExamDate, setExtractedExamDate] = useState<string | null>(null);
   const [lastQualityScore, setLastQualityScore] = useState<number | null>(null);
   const [lastExtractionIssues, setLastExtractionIssues] = useState<any[]>([]);
+  const [lastHistoricalResults, setLastHistoricalResults] = useState<any[]>([]);
   const [reportEditOpen, setReportEditOpen] = useState(false);
   const [reportResults, setReportResults] = useState<any[]>([]);
   const [reportWithAI, setReportWithAI] = useState(false);
@@ -479,6 +480,46 @@ export default function PatientDetail() {
         }).eq("id", sessionId);
       }
 
+      // Persist historical results if available
+      if (sessionId && lastHistoricalResults.length > 0) {
+        const histRows: any[] = [];
+        for (const timeline of lastHistoricalResults) {
+          for (const entry of timeline.entries || []) {
+            histRows.push({
+              session_id: sessionId,
+              marker_id: timeline.marker_id,
+              marker_name: timeline.marker_name || null,
+              result_date: entry.date,
+              value: entry.value ?? null,
+              text_value: entry.text_value || null,
+              unit: entry.unit || null,
+              raw_value: entry.raw_value ?? null,
+              raw_unit: entry.raw_unit || null,
+              raw_text_value: entry.raw_text_value || null,
+              raw_ref_text: entry.raw_ref_text || timeline.reference_text || null,
+              reference_text: timeline.reference_text || null,
+              conversion_applied: entry.conversion_applied || false,
+              conversion_reason: entry.conversion_reason || null,
+              source_type: entry.source_type || "evolution_page",
+              source_lab: entry.source_lab || null,
+              source_document: entry.source_document || null,
+              flag: entry.flag || null,
+            });
+          }
+        }
+        if (histRows.length > 0) {
+          // Delete existing historical results for this session to ensure idempotency on re-save
+          await supabase.from("lab_historical_results").delete().eq("session_id", sessionId);
+          const { error: histError } = await supabase.from("lab_historical_results").insert(histRows as any);
+          if (histError) {
+            console.error("Historical results persist error:", histError);
+            // Non-fatal: don't block save
+          } else {
+            console.log(`Persisted ${histRows.length} historical entries for session ${sessionId}`);
+          }
+        }
+      }
+
       toast({ title: editingSessionId ? "Sessão atualizada!" : "Sessão criada!" });
       setFormOpen(false);
       fetchData();
@@ -491,7 +532,8 @@ export default function PatientDetail() {
 
   const handleDeleteSession = async (sessionId: string) => {
     if (!confirm("Excluir esta sessão e todos os resultados?")) return;
-    // Delete lab_results first (foreign key constraint)
+    // Delete lab_results and historical results first (foreign key constraint)
+    await supabase.from("lab_historical_results").delete().eq("session_id", sessionId);
     const { error: resultsError } = await supabase.from("lab_results").delete().eq("session_id", sessionId);
     if (resultsError) {
       toast({ title: "Erro ao excluir resultados", description: resultsError.message, variant: "destructive" });
@@ -829,6 +871,7 @@ export default function PatientDetail() {
     examDate: string | null;
     qualityScore: number | null;
     extractionIssues: any[];
+    historicalResults: any[];
   }> => {
     const { fullText, cleanedText } = await extractPdfText(file);
 
@@ -917,8 +960,9 @@ export default function PatientDetail() {
     // Capture quality metrics from edge function
     const qualityScore = data?.quality_score ?? null;
     const extractionIssues = data?.issues ?? [];
+    const historicalResults = data?.historicalResults ?? [];
 
-    return { newValues, newLabRefs, fullText, cleanedText, count: results.length, examDate, qualityScore, extractionIssues };
+    return { newValues, newLabRefs, fullText, cleanedText, count: results.length, examDate, qualityScore, extractionIssues, historicalResults };
   };
 
   const handlePdfImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -938,6 +982,7 @@ export default function PatientDetail() {
 
       let lastQuality: number | null = null;
       let allIssues: any[] = [];
+      let allHistorical: any[] = [];
 
       for (const file of files) {
         toast({ title: `Processando ${file.name}...`, description: `${files.indexOf(file) + 1} de ${files.length}` });
@@ -950,6 +995,7 @@ export default function PatientDetail() {
         if (!firstExamDate && result.examDate) firstExamDate = result.examDate;
         if (result.qualityScore !== null) lastQuality = result.qualityScore;
         allIssues = allIssues.concat(result.extractionIssues);
+        if (result.historicalResults.length > 0) allHistorical = allHistorical.concat(result.historicalResults);
       }
 
       setMarkerValues(currentValues);
@@ -959,6 +1005,7 @@ export default function PatientDetail() {
       setImportedPdfCount((prev) => prev + files.length);
       setLastQualityScore(lastQuality);
       setLastExtractionIssues(allIssues);
+      setLastHistoricalResults(allHistorical);
 
       // Auto-fill session date if extracted from PDF
       if (firstExamDate) {
