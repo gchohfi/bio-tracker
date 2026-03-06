@@ -519,7 +519,8 @@ export function extractHistoricalData(
 
 /**
  * Merge multiple timelines for the same marker_id into one.
- * Deduplicates entries by date.
+ * Deduplicates entries by composite key: date + source_type + raw_value.
+ * Allows same marker + same date from different sources (e.g., two labs).
  */
 function mergeTimelines(timelines: HistoricalMarkerTimeline[]): HistoricalMarkerTimeline[] {
   const byMarker = new Map<string, HistoricalMarkerTimeline>();
@@ -529,12 +530,15 @@ function mergeTimelines(timelines: HistoricalMarkerTimeline[]): HistoricalMarker
     if (!existing) {
       byMarker.set(tl.marker_id, { ...tl, entries: [...tl.entries] });
     } else {
-      // Add entries, dedup by date
-      const existingDates = new Set(existing.entries.map(e => e.date));
+      // Composite dedup key: date + source_type + value (or text_value)
+      const existingKeys = new Set(
+        existing.entries.map(e => entryDedupKey(e))
+      );
       for (const entry of tl.entries) {
-        if (!existingDates.has(entry.date)) {
+        const key = entryDedupKey(entry);
+        if (!existingKeys.has(key)) {
           existing.entries.push(entry);
-          existingDates.add(entry.date);
+          existingKeys.add(key);
         }
       }
       // Use reference_text if not already set
@@ -550,6 +554,15 @@ function mergeTimelines(timelines: HistoricalMarkerTimeline[]): HistoricalMarker
   }
 
   return Array.from(byMarker.values());
+}
+
+/**
+ * Gera chave composta para deduplicação de entradas históricas.
+ * Chave: marker_date|source_type|source_lab|source_document|raw_value_or_text
+ */
+function entryDedupKey(e: HistoricalEntry): string {
+  const valueKey = e.value !== undefined ? String(e.value) : (e.text_value || "");
+  return `${e.date}|${e.source_type}|${e.source_lab || ""}|${e.source_document || ""}|${valueKey}`;
 }
 
 /**

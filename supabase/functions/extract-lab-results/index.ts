@@ -26,6 +26,7 @@ import { validateAndFixValues, sanitizeLabReferences, crossCheckAllMarkers, vali
 import { systemPrompt, buildUserMessage, extractResultsTool } from "./prompt.ts";
 import { regexFallback } from "./regexFallback.ts";
 import { detectDocumentProfiles, extractHistoricalData, filterOutCurrentDate } from "./historicalExtract.ts";
+import { normalizeHistoricalResults } from "./historicalNormalize.ts";
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
 const corsHeaders = {
