@@ -1437,23 +1437,7 @@ function regexFallback(pdfText: string, aiResults: any[]): any[] {
   const found = new Set(aiResults.map(r => r.marker_id));
   const additional: any[] = [];
 
-  // Helper: parse número brasileiro (1.234,56 → 1234.56)
-  function parseBrNum(s: string): number {
-    let c = s.trim();
-    if (/^\d{1,3}(\.\d{3})+(,\d{1,4})?$/.test(c)) {
-      c = c.replace(/\./g, '').replace(',', '.');
-      return parseFloat(c);
-    }
-    if (/^\d+,\d{1,4}$/.test(c)) {
-      c = c.replace(',', '.');
-      return parseFloat(c);
-    }
-    if (/^\d{2,}(\.\d{3})+$/.test(c)) {
-      c = c.replace('.', '');
-      return parseFloat(c);
-    }
-    return parseFloat(c.replace(',', '.'));
-  }
+  // parseBrNum imported from ./utils.ts
 
   // Helper: processar valor capturado (trata "inferior a", "superior a", operadores)
   function processValue(id: string, rawVal: string): void {
