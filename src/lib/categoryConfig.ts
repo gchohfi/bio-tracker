@@ -69,6 +69,7 @@ export const CATEGORY_CONFIG = {
   "Hepático":          cat("140 50% 40%", "Hepático"),
   Renal:               cat("200 50% 50%", "Renal"),
   "Eletrólitos":       cat("10 70% 55%",  "Eletrólitos"),
+  "Coagulação":        cat("350 55% 50%", "Coagulação"),
   
   "Pancreático":       cat("50 70% 45%",  "Pancreático"),
   Imunologia:          cat("270 50% 55%", "Imunologia"),
