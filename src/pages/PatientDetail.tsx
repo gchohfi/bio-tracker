@@ -1521,7 +1521,7 @@ export default function PatientDetail() {
           </TabsContent>
 
           <TabsContent value="timeline" className="mt-4 overflow-hidden">
-            <EvolutionTimeline patientId={patient.id} />
+            <EvolutionTimeline patientId={patient.id} patientName={patient.name} />
           </TabsContent>
 
           <TabsContent value="evolution" className="mt-4 overflow-hidden">
