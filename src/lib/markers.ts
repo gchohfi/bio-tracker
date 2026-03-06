@@ -759,8 +759,11 @@ export function resolveReference(
   // Se há texto de referência do laudo, usar ele (mais específico)
   if (labRefText) {
     // Descartar textos descritivos que contêm referências etárias/contextuais
+    // EXCETO se o texto também contém indicadores de fase do ciclo menstrual —
+    // nesses casos, o parseLabReference (seção 3.6) sabe extrair o range global.
+    const hasCyclePhase = /fol[ií]cul|ovulat[oó]|l[uú]te|secretor|proliferat|p[oó]s[- ]?menop/i.test(labRefText);
     const isAgeOrContextualText = /\banos\b|\bidade\b/i.test(labRefText);
-    if (isAgeOrContextualText) {
+    if (isAgeOrContextualText && !hasCyclePhase) {
       const [labMin, labMax] = marker.labRange[sex];
       return { min: labMin, max: labMax, operator: 'range', source: 'lab' };
     }
