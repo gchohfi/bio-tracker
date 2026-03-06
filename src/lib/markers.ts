@@ -132,7 +132,7 @@ export const MARKERS: MarkerDef[] = [
     labRange: { M: [70, 99], F: [70, 99] }, panel: "Padrão" },
 
   { id: "hba1c",           name: "HbA1c",           unit: "%",            category: "Glicemia",
-    labRange: { M: [4.0, 5.6], F: [4.0, 5.6] }, panel: "Padrão" },
+    labRange: { M: [4.0, 5.7], F: [4.0, 5.7] }, panel: "Padrão" },
 
   { id: "insulina_jejum",  name: "Insulina Jejum",  unit: "µU/mL",        category: "Glicemia",
     labRange: { M: [2.0, 25.0], F: [2.0, 25.0] }, panel: "Padrão" },
