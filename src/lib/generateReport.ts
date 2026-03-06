@@ -493,12 +493,26 @@ export function generatePatientReport(
             (s) => s.rowIndex === data.row.index
           );
           if (sparkData) {
-            const [min, max] = sparkData.marker.labRange[sex]; // sparkline usa ref. laboratorial
+            // Use resolveReference for sparkline band — same logic as value color classification
+            const labRefText = labRefByMarker[sparkData.marker.id]?.text;
+            const ref = resolveReference(sparkData.marker, sex, labRefText);
+            let refMin = ref.min ?? 0;
+            let refMax = ref.max ?? 0;
+
+            // Clamp sentinels: if refMax is a sentinel (999+) or refMin is 0 for one-sided markers,
+            // use data-driven bounds so the sparkline remains visually useful
+            const isSentinel = (v: number) => /^9{3,}$/.test(String(v));
+            if (isSentinel(refMax) || refMax >= 99999) {
+              // One-sided "> X": set refMax to max data value * 1.3 for visual headroom
+              const maxVal = Math.max(...sparkData.values);
+              refMax = Math.max(refMin * 2, maxVal * 1.3);
+            }
+
             drawSparkline(
               doc,
               sparkData.values,
-              min,
-              max,
+              refMin,
+              refMax,
               data.cell.x + 1.5,
               data.cell.y + 1.5,
               data.cell.width - 3,
