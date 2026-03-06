@@ -71,7 +71,10 @@ export const UNIT_CONVERSIONS: Record<string, ConversionRule[]> = {
       from_unit_label: "pmol/L",
       to_unit: "pg/mL",
       factor: 0.2724,
-      value_heuristic: (v) => v > 50,
+      // Estradiol in pg/mL can be 12-5000 (follicular to ovulatory).
+      // pmol/L values are typically > 500 (e.g. 500 pmol/L ≈ 136 pg/mL).
+      // Only trigger heuristic for values clearly in pmol/L range.
+      value_heuristic: (v) => v > 500,
     },
   ],
 
