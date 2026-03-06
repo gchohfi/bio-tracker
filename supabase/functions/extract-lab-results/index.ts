@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { MARKER_LIST, QUALITATIVE_IDS, VALID_MARKER_IDS, CALCULATED_MARKERS, ALLOW_NEGATIVE, MARKER_TEXT_TERMS, DHEA_RANGES_BY_AGE, REFERENCE_OVERRIDES } from "./constants.ts";
 import { toFloat, parseBrNum, OPERATOR_PATTERNS } from "./utils.ts";
 import { normalizeOperatorText, deduplicateResults, parseLabRefRanges } from "./normalize.ts";
+import { applyUnitConversions } from "./convert.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -488,29 +489,10 @@ Example: "23/11/2025" → 2025-11-23 (November 23). NEVER swap day and month.`;
 function validateAndFixValues(results: any[], patientSex?: string, patientAge?: number | null): any[] {
 
   // ════════════════════════════════════════════════════════════════════
-  // CATEGORY 1: UNIT CONVERSIONS
-  // These transform values from one unit to another (e.g., ng/dL → pg/mL).
-  // TODO(refactor): Move to convert.ts in Phase 3. Must convert value AND reference together.
+  // CATEGORY 1: UNIT CONVERSIONS → MOVED TO convert.ts
+  // applyUnitConversions() is called BEFORE this function in the main flow.
+  // The unitConversions block has been removed — all conversions are in convert.ts.
   // ════════════════════════════════════════════════════════════════════
-  const unitConversions: Record<string, { min: number; max: number; convert: (v: number, unit?: string) => number; label: string }> = {
-    t3_livre: { min: 0.15, max: 10, convert: (v) => v < 1.0 ? v * 10 : v, label: "[UNIT-CONV] t3_livre ng/dL→pg/mL (×10)" },
-    estradiol: { min: 0.5, max: 500, convert: (v: number, unit?: string) => {
-      if (unit && /ng\/d/i.test(unit)) return Math.round(v * 10 * 100) / 100;
-      if (v < 1) return Math.round(v * 10 * 100) / 100;
-      return v;
-    }, label: "[UNIT-CONV] estradiol ng/dL→pg/mL (×10)" },
-    zinco: { min: 30, max: 200, convert: (v: number, unit?: string) => {
-      if (unit && /ug\/m[lL]|µg\/m[lL]/i.test(unit)) return Math.round(v * 100 * 100) / 100;
-      if (v < 10) return v * 100;
-      return v;
-    }, label: "[UNIT-CONV] zinco µg/mL→µg/dL (×100)" },
-    testosterona_livre: { min: 0.5, max: 50, convert: (v: number, unit?: string) => {
-      if (unit && /pmol/i.test(unit)) return Math.round((v / 34.7) * 100) / 100;
-      if (v > 100) return Math.round((v / 34.7) * 100) / 100;
-      return v;
-    }, label: "[UNIT-CONV] testosterona_livre pmol/L→ng/dL (÷34.7)" },
-    pcr: { min: 0, max: 200, convert: (v) => v < 0.5 && v > 0 ? v * 10 : v, label: "[UNIT-CONV] pcr mg/dL→mg/L (×10)" },
-  };
 
   // ════════════════════════════════════════════════════════════════════
   // CATEGORY 2: SCALE ADJUSTMENTS
