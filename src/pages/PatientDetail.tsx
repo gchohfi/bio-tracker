@@ -42,6 +42,7 @@ import {
   Sliders,
   ClipboardList,
   Stethoscope,
+  Clock,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
 import EvolutionTimeline from "@/components/EvolutionTimeline";
@@ -1517,6 +1518,10 @@ export default function PatientDetail() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="timeline" className="mt-4 overflow-hidden">
+            <EvolutionTimeline patientId={patient.id} />
           </TabsContent>
 
           <TabsContent value="evolution" className="mt-4 overflow-hidden">
