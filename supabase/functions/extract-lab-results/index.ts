@@ -2394,9 +2394,8 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
 
     const parsed = JSON.parse(toolCall.function.arguments);
     // Validate marker IDs
-    const validIds = new Set(MARKER_LIST.map((m) => m.id));
     let validResults = (parsed.results || []).filter((r: any) => {
-      if (!validIds.has(r.marker_id)) return false;
+      if (!VALID_MARKER_IDS.has(r.marker_id)) return false;
       // Qualitative markers: need text_value
       if (QUALITATIVE_IDS.has(r.marker_id)) {
         return typeof r.text_value === "string" && r.text_value.length > 0;
