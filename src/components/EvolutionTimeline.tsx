@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertTriangle, Clock } from "lucide-react";
+import { Loader2, AlertTriangle, Clock, FileDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -20,9 +20,11 @@ import {
   type EvolutionReportData,
   type EvolutionCellValue,
 } from "@/lib/evolutionReportBuilder";
+import { generateEvolutionPdf } from "@/lib/generateEvolutionPdf";
 
 interface EvolutionTimelineProps {
   patientId: string;
+  patientName?: string;
 }
 
 export default function EvolutionTimeline({ patientId }: EvolutionTimelineProps) {
