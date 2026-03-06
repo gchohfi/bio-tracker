@@ -35,15 +35,18 @@ describe("resolveReference", () => {
     expect(ref.max).toBe(marker.labRange.F[1]);
   });
 
-  it("referência multi-fase → retorna range global", () => {
+  it("referência multi-fase → sanity check rejeita range global, retorna labRange", () => {
+    // Multi-phase ref (1.7–134.8) fails sanity check vs FSH labRange (3.5–12.5)
+    // because the ratio is too large. resolveReference correctly falls back to labRange.
+    const marker = find("fsh");
     const ref = resolveReference(
-      find("fsh"),
+      marker,
       "F",
       "Fase folicular: 3,5 a 12,5 / Ovulatória: 4,7 a 21,5 / Lútea: 1,7 a 7,7 / Pós-menopausa: 25,8 a 134,8"
     );
     expect(ref.operator).toBe("range");
-    expect(ref.min).toBeCloseTo(1.7);
-    expect(ref.max).toBeCloseTo(134.8);
+    expect(ref.min).toBe(marker.labRange.F[0]);
+    expect(ref.max).toBe(marker.labRange.F[1]);
   });
 });
 
