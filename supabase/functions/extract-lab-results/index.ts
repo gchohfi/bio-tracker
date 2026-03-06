@@ -25,6 +25,7 @@ import { calculateDerivedValues, applyReferenceOverrides, enrichDheaReference, g
 import { validateAndFixValues, sanitizeLabReferences, crossCheckAllMarkers, validateExtraction } from "./validate.ts";
 import { systemPrompt, buildUserMessage, extractResultsTool } from "./prompt.ts";
 import { regexFallback } from "./regexFallback.ts";
+import { detectDocumentProfiles, extractHistoricalData, filterOutCurrentDate } from "./historicalExtract.ts";
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
 const corsHeaders = {
@@ -233,6 +234,21 @@ serve(async (req) => {
       ? parsed.exam_date : null;
     const examDate = extractExamDate(pdfText, aiDate);
 
+    // ── 10. HISTORICAL EXTRACTION (novo — não altera currentResults) ────────
+    let historicalResults: any[] = [];
+    try {
+      const blocks = detectDocumentProfiles(pdfText);
+      if (blocks.length > 0) {
+        console.log(`[HIST] Detected ${blocks.length} historical blocks: ${blocks.map(b => b.type).join(", ")}`);
+        historicalResults = extractHistoricalData(pdfText, blocks);
+        historicalResults = filterOutCurrentDate(historicalResults, examDate);
+        console.log(`[HIST] Extracted ${historicalResults.length} marker timelines with ${historicalResults.reduce((sum: number, t: any) => sum + t.entries.length, 0)} total entries`);
+      }
+    } catch (histError) {
+      console.error("[HIST] Historical extraction error (non-fatal):", histError);
+      // Historical extraction failure is non-fatal — currentResults still returned
+    }
+
     // ── RESPONSE ────────────────────────────────────────────────────────────
     console.log(`Extracted ${validResults.length} valid markers:`, validResults.map((r: any) => r.marker_id).join(', '));
     console.log(`Quality score: ${validation.quality_score}, issues: ${validation.issues.length}`);
@@ -240,6 +256,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       results: validResults,
+      historicalResults,
       exam_date: examDate,
       quality_score: validation.quality_score,
       issues: validation.issues,
