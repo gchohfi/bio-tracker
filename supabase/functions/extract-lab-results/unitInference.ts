@@ -3,15 +3,17 @@
  *
  * Camada de inferência de unidade fonte.
  * Responsável por DETECTAR qual unidade o lab usou e MARCAR o resultado
- * com _sourceUnit, _targetUnit, _conversionFactor, _conversionReason e _conversionConfidence.
+ * com metadados de conversão e auditoria.
  *
  * NÃO faz conversão — apenas marca. A conversão é feita por convert.ts.
  *
- * Regras:
- * 1. Toda decisão de "qual unidade é essa?" vive aqui
- * 2. Prioridade: unit_raw > lab_ref_text > heurística de valor
- * 3. Se não há sinal suficiente, não marca (resultado fica sem conversão)
- * 4. Tabela declarativa única (UNIT_CONVERSIONS) é a fonte de verdade
+ * Prioridade de sinais (ordem decrescente de confiança):
+ *   1. unit_raw — campo explícito de unidade do resultado (HIGH)
+ *   2. lab_ref_text — unidade adjacente a valor numérico na referência (MEDIUM)
+ *      Guards: value_heuristic + adjacência numérica obrigatórias
+ *   3. value_heuristic — range do valor sozinho (LOW)
+ *
+ * Regra de ouro: na dúvida, NÃO converter.
  */
 
 // ---------------------------------------------------------------------------
@@ -69,6 +71,7 @@ export const UNIT_CONVERSIONS: Record<string, ConversionRule[]> = {
       from_unit_label: "pmol/L",
       to_unit: "pg/mL",
       factor: 0.2724,
+      value_heuristic: (v) => v > 50,
     },
   ],
 
@@ -101,6 +104,7 @@ export const UNIT_CONVERSIONS: Record<string, ConversionRule[]> = {
       from_unit_label: "pg/mL",
       to_unit: "ng/dL",
       factor: 0.001,
+      value_heuristic: (v) => v > 1,
     },
   ],
 
@@ -182,23 +186,60 @@ export const UNIT_CONVERSIONS: Record<string, ConversionRule[]> = {
 export type InferenceConfidence = "high" | "medium" | "low";
 
 // ---------------------------------------------------------------------------
-// Detection logic
+// Helpers
 // ---------------------------------------------------------------------------
 
 /**
+ * Checks if a unit pattern appears adjacent to a numeric value in the text.
+ * Prevents matching units from multi-line headers or unrelated sections.
+ *
+ * Valid: "1.5 a 6 ng/dL", "< 0.5 mg/dL", "Inferior a 34 U/mL"
+ * Invalid: "Fase folicular:\nng/dL\n12.5 a 166 pg/mL" (ng/dL not near numbers)
+ */
+function isUnitAdjacentToNumber(text: string, unitPattern: RegExp): boolean {
+  // Build a pattern: number (with optional decimal/comma) followed by optional
+  // whitespace then the unit, OR the unit preceded by number context
+  const unitSource = unitPattern.source;
+  const adjacencyPattern = new RegExp(
+    `\\d[\\d.,]*\\s*${unitSource}|${unitSource}\\s*[\\d.,]`,
+    "i",
+  );
+  return adjacencyPattern.test(text);
+}
+
+// ---------------------------------------------------------------------------
+// Detection logic
+// ---------------------------------------------------------------------------
+
+interface InferenceResult {
+  rule: ConversionRule;
+  confidence: InferenceConfidence;
+  reason: string;
+  evidence: string;
+}
+
+/**
  * Finds the applicable conversion rule for a result.
- * Returns the rule + confidence + reason.
+ * Returns the rule + confidence + reason + evidence trail.
+ *
+ * Guards (layered defense against false positives):
+ *   - Priority 1 (unit_raw): No extra guard — explicit unit field is authoritative.
+ *   - Priority 1b (lab_ref_text):
+ *       a) Unit must appear adjacent to a numeric value in the text
+ *       b) value_heuristic must pass if defined
+ *   - Priority 2 (heuristic only): Only value range, weakest signal.
  */
 function findApplicableRule(
   markerId: string,
   unitRaw: string | undefined,
   value: number | undefined,
   labRefText: string | undefined,
-): { rule: ConversionRule; confidence: InferenceConfidence; reason: string } | null {
+): InferenceResult | null {
   const rules = UNIT_CONVERSIONS[markerId];
   if (!rules) return null;
 
   // Priority 1: match by unit_raw (high confidence)
+  // The result's own unit field is the strongest signal — no guards needed.
   if (unitRaw) {
     const matched = rules.find((r) => r.from_unit_pattern.test(unitRaw));
     if (matched) {
@@ -206,19 +247,25 @@ function findApplicableRule(
         rule: matched,
         confidence: "high",
         reason: `unit field matches ${matched.from_unit_label}`,
+        evidence: `unit_raw="${unitRaw}"`,
       };
     }
   }
 
   // Priority 1b: match by lab_ref_text (medium confidence)
-  // Guard: if the rule has a value_heuristic, the value must also satisfy it.
-  // This prevents false positives where the lab_ref_text mentions a unit
-  // (e.g. in multi-line reference ranges) but the value is already canonical.
+  // Double guard:
+  //   a) Unit must be adjacent to a number (not a stray mention from multi-line header)
+  //   b) value_heuristic must pass if defined (value must be plausible for the source unit)
   if (labRefText) {
     const matched = rules.find((r) => {
       if (!r.from_unit_pattern.test(labRefText)) return false;
-      // If heuristic exists and value is available, require it to pass
+
+      // Guard A: unit must appear next to a numeric value
+      if (!isUnitAdjacentToNumber(labRefText, r.from_unit_pattern)) return false;
+
+      // Guard B: if heuristic exists and value is available, require it to pass
       if (r.value_heuristic && value !== undefined && !r.value_heuristic(value)) return false;
+
       return true;
     });
     if (matched) {
@@ -226,11 +273,12 @@ function findApplicableRule(
         rule: matched,
         confidence: "medium",
         reason: `lab_ref_text contains ${matched.from_unit_label}`,
+        evidence: `lab_ref_text="${labRefText}", value=${value}`,
       };
     }
   }
 
-  // Priority 2: value heuristic (low confidence)
+  // Priority 2: value heuristic only (low confidence)
   if (value !== undefined) {
     const matched = rules.find((r) => r.value_heuristic?.(value));
     if (matched) {
@@ -238,6 +286,7 @@ function findApplicableRule(
         rule: matched,
         confidence: "low",
         reason: `value ${value} matches heuristic for ${matched.from_unit_label}`,
+        evidence: `value=${value}, no unit_raw, no lab_ref_text match`,
       };
     }
   }
@@ -256,6 +305,7 @@ function findApplicableRule(
  * - _conversionFactor: multiplication factor
  * - _conversionReason: human-readable reason
  * - _conversionConfidence: "high" | "medium" | "low"
+ * - _inferenceEvidence: raw evidence trail for auditability
  *
  * Does NOT convert values. Only marks results for convert.ts.
  */
@@ -281,6 +331,7 @@ export function inferSourceUnit(results: any[]): any[] {
     r._conversionFactor = match.rule.factor;
     r._conversionReason = match.reason;
     r._conversionConfidence = match.confidence;
+    r._inferenceEvidence = match.evidence;
 
     console.log(
       `[INFER] ${r.marker_id}: detected ${r._sourceUnit} → ${r._targetUnit} (${r._conversionConfidence}: ${r._conversionReason})`,
