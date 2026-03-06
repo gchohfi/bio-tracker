@@ -11,8 +11,9 @@ describe("Marker ID synchronization", () => {
   const frontendIds = new Set(MARKERS.map((m) => m.id));
 
   // IDs that exist only in the edge function for extraction purposes
-  // (e.g., percentage differentials used to derive absolute counts)
-  const EXTRACTION_ONLY_IDS = new Set(["neutrofilos", "linfocitos"]);
+  // (not rendered in frontend). Currently empty — neutrofilos/linfocitos
+  // were promoted to full frontend markers with percentage display.
+  const EXTRACTION_ONLY_IDS = new Set<string>([]);
 
   // Parse MARKER_LIST IDs from edge function source
   const edgeFnPath = resolve(__dirname, "../../supabase/functions/extract-lab-results/constants.ts");
