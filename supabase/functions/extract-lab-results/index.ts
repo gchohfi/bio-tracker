@@ -985,14 +985,49 @@ function validateAndFixValues(results: any[], patientSex?: string, patientAge?: 
     }
   }
   // === VALIDAÇÃO DE REFERÊNCIA POR SEXO ===
+  // Quando o lab_ref_text contém ambos os sexos (ex: "Homens: 3,4 a 7,0 / Mulheres: 2,4 a 6,0"),
+  // extrair o segmento correspondente ao sexo do paciente ao invés de descartar tudo.
   if (patientSex) {
     for (const r of results) {
       if (!r.lab_ref_text) continue;
       const text = String(r.lab_ref_text);
       const hasBothSexes = /\b(homens?|masculino)\b/i.test(text) && /\b(mulheres?|feminino)\b/i.test(text);
       if (hasBothSexes) {
-        console.log(`Clearing ambiguous sex-specific lab_ref_text for ${r.marker_id}: "${text}"`);
-        r.lab_ref_text = '';
+        // Split by common delimiters and find the segment matching patient sex
+        const segments = text.split(/[\/;]|\n/).map((s: string) => s.trim()).filter(Boolean);
+        let extracted = '';
+        const malePattern = /\b(homens?|masc(?:ulino)?)\b/i;
+        const femalePattern = /\b(mulheres?|fem(?:inino)?)\b/i;
+        const targetPattern = patientSex === 'M' ? malePattern : femalePattern;
+        
+        for (const seg of segments) {
+          if (targetPattern.test(seg)) {
+            // Remove the sex prefix and keep only the range
+            extracted = seg
+              .replace(/\b(homens?|mulheres?|masc(?:ulino)?|fem(?:inino)?)\b\s*:?\s*/gi, '')
+              .trim();
+            break;
+          }
+        }
+
+        if (extracted) {
+          console.log(`Extracted ${patientSex}-specific ref for ${r.marker_id}: "${text}" → "${extracted}"`);
+          r.lab_ref_text = extracted;
+          // Re-parse the extracted segment to update min/max
+          const rangeMatch = extracted.match(/([\d.,]+)\s*(?:a|até|to|-|–|—)\s*([\d.,]+)/i);
+          if (rangeMatch) {
+            const min = parseFloat(rangeMatch[1].replace(/\./g, '').replace(',', '.'));
+            const max = parseFloat(rangeMatch[2].replace(/\./g, '').replace(',', '.'));
+            if (!isNaN(min) && !isNaN(max) && min < max) {
+              r.lab_ref_min = min;
+              r.lab_ref_max = max;
+            }
+          }
+        } else {
+          // Fallback: could not extract segment — clear (same behavior as before)
+          console.log(`Could not extract ${patientSex}-specific ref for ${r.marker_id}: "${text}" — clearing`);
+          r.lab_ref_text = '';
+        }
       }
     }
   }
