@@ -797,7 +797,10 @@ function validateAndFixValues(results: any[], patientSex?: string, patientAge?: 
     // Eixo GH
     igf1: { min: 20, max: 1000 },
     // Tireoide
-    tsh: { min: 0.01, max: 100 },
+    tsh: { min: 0.01, max: 100, fix: (v: number) => {
+      if (v > 200) return v / 100;
+      return v;
+    }, label: "tsh decimal fix" },
     t4_livre: { min: 0.1, max: 5 },
     // T3 Livre: target unit is pg/mL; auto-convert ng/dL values (< 1.0) by multiplying by 10
     t3_livre: { min: 0.15, max: 10, fix: (v) => v < 1.0 ? v * 10 : v },
@@ -922,18 +925,14 @@ function validateAndFixValues(results: any[], patientSex?: string, patientAge?: 
     fosfatase_alcalina: { min: 10, max: 1000 },
     bilirrubina_direta: { min: 0, max: 15 },
 
-    // ── Tireoide ──
-    tsh:               { min: 0.01, max: 100, fix: (v: number) => {
-      if (v > 200) return v / 100;
-      return v;
-    }, label: "tsh decimal fix" },
+    // ── Tireoide (extras) ──
     t4_total:          { min: 1, max: 25 },
     t3_reverso:        { min: 5, max: 50 },
     anti_tpo:          { min: 0, max: 2000 },
     anti_tg:           { min: 0, max: 2000 },
     trab:              { min: 0, max: 50 },
 
-    // ── Hormônios ──
+    // ── Hormônios (extras) ──
     testosterona_total: { min: 1, max: 1500 },
     fsh:               { min: 0.1, max: 200 },
     lh:                { min: 0.1, max: 200 },
@@ -942,12 +941,8 @@ function validateAndFixValues(results: any[], patientSex?: string, patientAge?: 
     shbg:              { min: 5, max: 200 },
     amh:               { min: 0.01, max: 25 },
 
-    // ── Lipídios + Glicemia (os que faltam) ──
+    // ── Lipídios (extras) ──
     vldl:              { min: 1, max: 200 },
-
-    // ── Vitaminas ──
-    vitamina_d:        { min: 3, max: 200 },
-    vitamina_b12:      { min: 50, max: 3000 },
   };
 
   // ── Conversão de unidade PCR: mg/dL → mg/L ──
