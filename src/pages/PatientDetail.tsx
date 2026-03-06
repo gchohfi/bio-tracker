@@ -480,6 +480,46 @@ export default function PatientDetail() {
         }).eq("id", sessionId);
       }
 
+      // Persist historical results if available
+      if (sessionId && lastHistoricalResults.length > 0) {
+        const histRows: any[] = [];
+        for (const timeline of lastHistoricalResults) {
+          for (const entry of timeline.entries || []) {
+            histRows.push({
+              session_id: sessionId,
+              marker_id: timeline.marker_id,
+              marker_name: timeline.marker_name || null,
+              result_date: entry.date,
+              value: entry.value ?? null,
+              text_value: entry.text_value || null,
+              unit: entry.unit || null,
+              raw_value: entry.raw_value ?? null,
+              raw_unit: entry.raw_unit || null,
+              raw_text_value: entry.raw_text_value || null,
+              raw_ref_text: entry.raw_ref_text || timeline.reference_text || null,
+              reference_text: timeline.reference_text || null,
+              conversion_applied: entry.conversion_applied || false,
+              conversion_reason: entry.conversion_reason || null,
+              source_type: entry.source_type || "evolution_page",
+              source_lab: entry.source_lab || null,
+              source_document: entry.source_document || null,
+              flag: entry.flag || null,
+            });
+          }
+        }
+        if (histRows.length > 0) {
+          // Delete existing historical results for this session to ensure idempotency on re-save
+          await supabase.from("lab_historical_results").delete().eq("session_id", sessionId);
+          const { error: histError } = await supabase.from("lab_historical_results").insert(histRows as any);
+          if (histError) {
+            console.error("Historical results persist error:", histError);
+            // Non-fatal: don't block save
+          } else {
+            console.log(`Persisted ${histRows.length} historical entries for session ${sessionId}`);
+          }
+        }
+      }
+
       toast({ title: editingSessionId ? "Sessão atualizada!" : "Sessão criada!" });
       setFormOpen(false);
       fetchData();
