@@ -70,7 +70,7 @@ export const MARKERS: MarkerDef[] = [
     labRange: { M: [1120, 2950], F: [1120, 2950] }, panel: "Adicional" },
 
   { id: "monocitos",       name: "Monócitos",       unit: "%",            category: "Hemograma",
-    labRange: { M: [2, 10], F: [2, 10] }, panel: "Adicional" },
+    labRange: { M: [2, 8], F: [2, 8] }, panel: "Adicional" },
 
   { id: "monocitos_abs",   name: "Monócitos (abs)", unit: "/mm³",         category: "Hemograma",
     labRange: { M: [260, 730], F: [260, 730] }, panel: "Adicional" },
