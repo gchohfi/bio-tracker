@@ -60,7 +60,9 @@ export const UNIT_CONVERSIONS: Record<string, ConversionRule[]> = {
       from_unit_label: "ng/dL",
       to_unit: "pg/mL",
       factor: 10,
-      value_heuristic: (v) => v < 1,
+      // Values < 10 are plausibly ng/dL (1-9 ng/dL = 10-90 pg/mL).
+      // Values >= 10 are likely already in pg/mL (e.g. 44 pg/mL follicular).
+      value_heuristic: (v) => v < 10,
     },
     {
       from_unit_pattern: /pmol/i,
