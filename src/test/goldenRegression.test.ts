@@ -34,18 +34,26 @@ function findMarker(id: string): MarkerDef {
   return m;
 }
 
+/** Minimal conversion rules mirroring unitInference.ts (edge function, Deno-only) */
+const CONVERSION_RULES: Record<string, { pattern: RegExp; factor: number; to_unit: string }[]> = {
+  t3_livre: [{ pattern: /ng\/d/i, factor: 10, to_unit: "pg/mL" }],
+  estradiol: [{ pattern: /ng\/d/i, factor: 10, to_unit: "pg/mL" }],
+  pcr: [{ pattern: /mg\/d/i, factor: 10, to_unit: "mg/L" }],
+  progesterona: [{ pattern: /ng\/d/i, factor: 0.01, to_unit: "ng/mL" }],
+  dht: [{ pattern: /ng\/d/i, factor: 10, to_unit: "pg/mL" }],
+};
+
 function simulateConversion(markerId: string, value: number, sourceUnit: string): {
   convertedValue: number;
   targetUnit: string;
   converted: boolean;
 } {
-  // Map marker_id aliases: dihidrotestosterona → dht for conversion lookup
   const conversionId = markerId === "dihidrotestosterona" ? "dht" : markerId;
-  const rules = UNIT_CONVERSIONS[conversionId];
+  const rules = CONVERSION_RULES[conversionId];
   if (!rules) return { convertedValue: value, targetUnit: sourceUnit, converted: false };
 
   for (const rule of rules) {
-    if (rule.from_unit_pattern.test(sourceUnit)) {
+    if (rule.pattern.test(sourceUnit)) {
       return {
         convertedValue: Math.round(value * rule.factor * 10000) / 10000,
         targetUnit: rule.to_unit,
