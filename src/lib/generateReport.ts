@@ -624,7 +624,8 @@ export function generatePatientReport(
   if (latestSession) {
     summaryParts.push(`${normalCount} dentro da faixa`);
     summaryParts.push(`${alertCount} fora da faixa`);
-    if (qualitativeCount > 0) summaryParts.push(`${qualitativeCount} qualitativos`);
+    summaryParts.push(`${qualitativeCount} qualitativos`);
+    summaryParts.push(`Total = dentro + fora + qualitativos`);
   }
   doc.text(summaryParts.join("   •   "), 42, startY + 4);
 
