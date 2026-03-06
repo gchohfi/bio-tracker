@@ -41,6 +41,29 @@ const RED = { r: 210, g: 45, b: 45 };
 const GRAY = { r: 120, g: 130, b: 140 };
 const LIGHT_BG = { r: 248, g: 250, b: 252 };
 
+/**
+ * Marcadores onde valor MAIOR é melhor (trend ▲ = verde, ▼ = vermelho).
+ * Para todos os outros, valor MENOR é melhor (▲ = vermelho, ▼ = verde).
+ * Marcadores que não estão em nenhuma lista usam vermelho para ambos (padrão atual).
+ */
+const HIGHER_IS_BETTER = new Set([
+  'hdl', 'vitamina_d', 'vitamina_b12', 'acido_folico', 'ferro_serico',
+  'ferritina', 'hemoglobina', 'hematocrito', 'eritrocitos', 'linfocitos_abs',
+  'plaquetas', 'albumina', 'proteinas_totais', 'calcio_total', 'magnesio',
+  'zinco', 'selenio', 'igf1', 'vitamina_a', 'vitamina_c', 'vitamina_e',
+  'vitamina_b6', 'vitamina_b1', 'transferrina', 'sat_transferrina',
+  'testosterona_total', 'testosterona_livre', 'tfg',
+]);
+
+const LOWER_IS_BETTER = new Set([
+  'colesterol_total', 'ldl', 'vldl', 'triglicerides', 'colesterol_nao_hdl',
+  'apo_b', 'lipoproteina_a', 'relacao_ct_hdl', 'relacao_tg_hdl',
+  'relacao_apob_apoa1', 'pcr', 'vhs', 'homocisteina', 'hba1c',
+  'homa_ir', 'insulina_jejum', 'tgo_ast', 'tgp_alt', 'ggt',
+  'bilirrubina_total', 'acido_urico', 'chumbo', 'mercurio', 'cadmio',
+  'aluminio', 'psa_total',
+]);
+
 /* ─── Category colors (RGB) — derivados automaticamente do categoryConfig.ts ─── */
 // getCategoryRGB agora é um alias de getCategoryRgb (importado de markers.ts → categoryConfig.ts).
 // Não é mais necessário manter um mapa manual aqui.
@@ -346,6 +369,7 @@ export function generatePatientReport(
     ];
 
     const body: any[][] = [];
+    const rowMarkerIds: Map<number, string> = new Map();
     const sparklineData: {
       marker: MarkerDef;
       values: number[];
@@ -399,6 +423,8 @@ export function generatePatientReport(
       ];
 
       body.push(row);
+      // Track marker_id per row for contextual trend coloring
+      rowMarkerIds.set(body.length - 1, marker.id);
       if (!isQualitative && numericValues.length >= 2) {
         sparklineData.push({ marker, values: numericValues, rowIndex: idx });
       }
@@ -478,11 +504,23 @@ export function generatePatientReport(
               }
           }
         }
-        // Color trend symbols
+        // Color trend symbols — contextual: depends on whether higher or lower is better
         if (data.section === "body" && data.column.index === trendColIdx) {
-          const sym = data.cell.raw as string;
-          if (sym === "▲") data.cell.styles.textColor = [RED.r, RED.g, RED.b];
-          else if (sym === "▼") data.cell.styles.textColor = [RED.r, RED.g, RED.b];
+          const sym = String(data.cell.raw).trim();
+          const rowMarkerId = rowMarkerIds.get(data.row.index) || '';
+          if (sym === "▲") {
+            if (HIGHER_IS_BETTER.has(rowMarkerId)) {
+              data.cell.styles.textColor = [GREEN.r, GREEN.g, GREEN.b];
+            } else {
+              data.cell.styles.textColor = [RED.r, RED.g, RED.b];
+            }
+          } else if (sym === "▼") {
+            if (LOWER_IS_BETTER.has(rowMarkerId)) {
+              data.cell.styles.textColor = [GREEN.r, GREEN.g, GREEN.b];
+            } else {
+              data.cell.styles.textColor = [RED.r, RED.g, RED.b];
+            }
+          }
           else if (sym === "●") data.cell.styles.textColor = [GRAY.r, GRAY.g, GRAY.b];
         }
       },
