@@ -4,6 +4,7 @@ import { toFloat, parseBrNum, OPERATOR_PATTERNS } from "./utils.ts";
 import { normalizeOperatorText, deduplicateResults, parseLabRefRanges } from "./normalize.ts";
 import { inferSourceUnit } from "./unitInference.ts";
 import { applyUnitConversions } from "./convert.ts";
+import { calculateDerivedValues, applyReferenceOverrides, enrichDheaReference, guardVldlReference } from "./derive.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1204,158 +1205,8 @@ function sanitizeLabReferences(results: any[]): any[] {
   return results;
 }
 // ════════════════════════════════════════════════════════════════════
-// CATEGORY 3: DERIVED VALUES — Calculate markers from other markers
-// TODO(refactor): Move to derive.ts in Phase 3.
+// CATEGORY 3: DERIVED VALUES — moved to ./derive.ts
 // ════════════════════════════════════════════════════════════════════
-function calculateDerivedValues(results: any[]): any[] {
-  const resultMap = new Map<string, any>();
-  for (const r of results) {
-    resultMap.set(r.marker_id, r);
-  }
-
-  // Fix psa_ratio: ALWAYS recalculate from psa_livre/psa_total when both are available.
-  // The AI often confuses the reference text (e.g. "> 25%") with the actual result value.
-  // Recalculating from primary values is always more reliable.
-  if (resultMap.has("psa_ratio")) {
-    const existing = resultMap.get("psa_ratio");
-    if (typeof existing.value === "number") {
-      if (resultMap.has("psa_livre") && resultMap.has("psa_total")) {
-        const psaL = resultMap.get("psa_livre").value;
-        const psaT = resultMap.get("psa_total").value;
-        if (typeof psaL === "number" && typeof psaT === "number" && psaT > 0) {
-          const recalculated = Math.round((psaL / psaT) * 100 * 10) / 10;
-          console.log(`[PSA] Recalculated psa_ratio: ${existing.value} → ${recalculated}% (from ${psaL}/${psaT})`);
-          existing.value = recalculated;
-        }
-      } else if (existing.value < 1.0 && existing.value > 0) {
-        // No psa_livre/psa_total available — assume fraction and convert to %
-        existing.value = Math.round(existing.value * 100 * 10) / 10;
-        console.log(`[PSA] Converted psa_ratio from fraction: ${existing.value}%`);
-      }
-    }
-  }
-
-  // Calculate Bilirrubina Indireta = Total - Direta
-  if (!resultMap.has("bilirrubina_indireta") && resultMap.has("bilirrubina_total") && resultMap.has("bilirrubina_direta")) {
-    const bt = resultMap.get("bilirrubina_total").value;
-    const bd = resultMap.get("bilirrubina_direta").value;
-    if (typeof bt === "number" && typeof bd === "number") {
-      const bi = Math.round((bt - bd) * 100) / 100;
-      if (bi >= 0) {
-        results.push({ marker_id: "bilirrubina_indireta", value: bi });
-        console.log(`Calculated bilirrubina_indireta: ${bt} - ${bd} = ${bi}`);
-      }
-    }
-  }
-
-  // Calculate Colesterol Não-HDL = CT - HDL
-  if (!resultMap.has("colesterol_nao_hdl") && resultMap.has("colesterol_total") && resultMap.has("hdl")) {
-    const ct = resultMap.get("colesterol_total").value;
-    const hdl = resultMap.get("hdl").value;
-    if (typeof ct === "number" && typeof hdl === "number") {
-      const naoHdl = Math.round(ct - hdl);
-      if (naoHdl >= 0) {
-        results.push({ marker_id: "colesterol_nao_hdl", value: naoHdl });
-        console.log(`Calculated colesterol_nao_hdl: ${ct} - ${hdl} = ${naoHdl}`);
-      }
-    }
-  }
-
-  // Calculate CT/HDL ratio
-  if (!resultMap.has("relacao_ct_hdl") && resultMap.has("colesterol_total") && resultMap.has("hdl")) {
-    const ct = resultMap.get("colesterol_total").value;
-    const hdl = resultMap.get("hdl").value;
-    if (typeof ct === "number" && typeof hdl === "number" && hdl > 0) {
-      const ratio = Math.round((ct / hdl) * 100) / 100;
-      results.push({ marker_id: "relacao_ct_hdl", value: ratio });
-      console.log(`Calculated relacao_ct_hdl: ${ct} / ${hdl} = ${ratio}`);
-    }
-  }
-
-  // Calculate TG/HDL ratio
-  if (!resultMap.has("relacao_tg_hdl") && resultMap.has("triglicerides") && resultMap.has("hdl")) {
-    const tg = resultMap.get("triglicerides").value;
-    const hdl = resultMap.get("hdl").value;
-    if (typeof tg === "number" && typeof hdl === "number" && hdl > 0) {
-      const ratio = Math.round((tg / hdl) * 100) / 100;
-      results.push({ marker_id: "relacao_tg_hdl", value: ratio });
-      console.log(`Calculated relacao_tg_hdl: ${tg} / ${hdl} = ${ratio}`);
-    }
-  }
-
-  // Calculate ApoB/ApoA1 ratio
-  if (!resultMap.has("relacao_apob_apoa1") && resultMap.has("apo_b") && resultMap.has("apo_a1")) {
-    const apoB = resultMap.get("apo_b").value;
-    const apoA1 = resultMap.get("apo_a1").value;
-    if (typeof apoB === "number" && typeof apoA1 === "number" && apoA1 > 0) {
-      const ratio = Math.round((apoB / apoA1) * 100) / 100;
-      results.push({ marker_id: "relacao_apob_apoa1", value: ratio });
-      console.log(`Calculated relacao_apob_apoa1: ${apoB} / ${apoA1} = ${ratio}`);
-    }
-  }
-
-  // Calculate HOMA-IR = (Glicose × Insulina) / 405
-  if (!resultMap.has("homa_ir") && resultMap.has("glicose_jejum") && resultMap.has("insulina_jejum")) {
-    const glicose = resultMap.get("glicose_jejum").value;
-    const insulina = resultMap.get("insulina_jejum").value;
-    if (typeof glicose === "number" && typeof insulina === "number") {
-      const homa = Math.round((glicose * insulina / 405) * 100) / 100;
-      results.push({ marker_id: "homa_ir", value: homa });
-      console.log(`Calculated homa_ir: (${glicose} × ${insulina}) / 405 = ${homa}`);
-    }
-  }
-
-  // Calculate Neutrófilos = Bastonetes + Segmentados
-  if (!resultMap.has("neutrofilos") && resultMap.has("bastonetes") && resultMap.has("segmentados")) {
-    const bast = resultMap.get("bastonetes").value;
-    const seg = resultMap.get("segmentados").value;
-    if (typeof bast === "number" && typeof seg === "number") {
-      const neutro = Math.round((bast + seg) * 100) / 100;
-      results.push({ marker_id: "neutrofilos", value: neutro });
-      console.log(`Calculated neutrofilos: ${bast} + ${seg} = ${neutro}`);
-    }
-  }
-  // Calculate Capacidade de Fixação Latente do Ferro = TIBC - Ferro Sérico
-  if (!resultMap.has("fixacao_latente_ferro") && resultMap.has("tibc") && resultMap.has("ferro_serico")) {
-    const tibc = resultMap.get("tibc").value;
-    const ferro = resultMap.get("ferro_serico").value;
-    if (typeof tibc === "number" && typeof ferro === "number") {
-      const latente = Math.round(tibc - ferro);
-      if (latente >= 0) {
-        results.push({ marker_id: "fixacao_latente_ferro", value: latente });
-        console.log(`Calculated fixacao_latente_ferro: ${tibc} - ${ferro} = ${latente}`);
-      }
-    }
-  }
-  // Calculate Razão Albumina/Creatinina urinária (ACR)
-  // urina_albumina em mg/L, urina_creatinina em mg/dL (= mg/100mL)
-  // ACR (mg/g) = albumina(mg/L) / creatinina(mg/dL) × 10
-  // (porque 1 mg/dL creatinina = 0.1 g/L = 100 mg/L → ACR = albumina_mgL / (creatinina_mgdL / 100) = albumina × 100 / creatinina)
-  if (!resultMap.has("urina_acr") && resultMap.has("urina_albumina") && resultMap.has("urina_creatinina")) {
-    const alb = resultMap.get("urina_albumina").value;
-    const crea = resultMap.get("urina_creatinina").value;
-    if (typeof alb === "number" && typeof crea === "number" && crea > 0) {
-      // ACR em mg/g: albumina(mg/L) × 100 / creatinina(mg/dL)
-      const acr = Math.round((alb * 100 / crea) * 10) / 10;
-      results.push({ marker_id: "urina_acr", value: acr });
-      console.log(`Calculated urina_acr: ${alb} mg/L ÷ ${crea} mg/dL × 100 = ${acr} mg/g`);
-    }
-  }
-
-  // Calculate Relação PSA Livre/Total (%)
-  // Interpretação clínica: ≥ 15% = risco baixo de câncer de próstata
-  if (!resultMap.has("psa_ratio") && resultMap.has("psa_livre") && resultMap.has("psa_total")) {
-    const psaLivre = resultMap.get("psa_livre").value;
-    const psaTotal = resultMap.get("psa_total").value;
-    if (typeof psaLivre === "number" && typeof psaTotal === "number" && psaTotal > 0) {
-      const ratio = Math.round((psaLivre / psaTotal) * 100 * 10) / 10; // 1 casa decimal
-      results.push({ marker_id: "psa_ratio", value: ratio });
-      console.log(`Calculated psa_ratio: (${psaLivre} / ${psaTotal}) * 100 = ${ratio}%`);
-    }
-  }
-
-  return results;
-}
 
 // toFloat, OPERATOR_PATTERNS moved to ./utils.ts
 // parseLabRefRanges moved to ./normalize.ts
