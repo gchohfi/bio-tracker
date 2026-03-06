@@ -194,6 +194,13 @@ export function parseLabReference(text: string, sex?: 'M' | 'F'): ParsedReferenc
   // 3.5d. Remover prefixos de sexo+idade restantes (ex: "Pré-púberes:", "Pós-menopausa:")
   input = input.replace(/^(?:pr[eé]-?p[uú]beres?|p[oó]s-?menopausa|menopausa|adultos?)\s*:?\s*/gi, '').trim();
 
+  // ── 3.5e. Descarte de texto longo sem range extraível ──
+  // Sincronizar com edge function: textos > 60 chars sem range numérico
+  // são geralmente descrições clínicas, não referências parseáveis.
+  if (input.length > 60 && !/[\d.,]+\s*(?:a|até|to|-|–|—)\s*[\d.,]+/i.test(input)) {
+    return fallback;
+  }
+
   // ── 3.6. Textos com prefixos descritivos ou multi-categoria de risco ──
   // Labs reportam colesterol/triglicerídeos com categorias de risco:
   //   "Desejável: < 190 / Limítrofe: 190-239 / Alto: >= 240"
@@ -276,7 +283,7 @@ export function parseLabReference(text: string, sex?: 'M' | 'F'): ParsedReferenc
   if (rangeMatch) {
     const min = toFloat(rangeMatch[1]);
     const max = toFloat(rangeMatch[2]);
-    if (min !== null && max !== null) {
+    if (min !== null && max !== null && min < max) {
       return { min, max, operator: 'range', displayText: `${min}–${max}` };
     }
   }
