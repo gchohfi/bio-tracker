@@ -813,9 +813,15 @@ function validateAndFixValues(results: any[], patientSex?: string, patientAge?: 
       if (v > 100) return Math.round((v / 34.7) * 100) / 100;
       return v;
     }, label: "testosterona_livre pmol→ng/dL" },
-    estradiol: { min: 5, max: 500, fix: (v: number, unit?: string) => {
+    estradiol: { min: 0.5, max: 500, fix: (v: number, unit?: string) => {
+      // Convert ng/dL → pg/mL (×10) only when:
+      // 1. Unit explicitly says ng/dL, OR
+      // 2. Value < 1 (impossible as pg/mL — even post-menopause is ~5-20 pg/mL from most labs;
+      //    but a value like 0.3 is clearly ng/dL that needs conversion to 3.0 pg/mL)
+      // Do NOT convert values 1-5 automatically — post-menopausal women can have 
+      // legitimate estradiol of 3-5 pg/mL.
       if (unit && /ng\/d/i.test(unit)) return Math.round(v * 10 * 100) / 100;
-      if (v < 5) return Math.round(v * 10 * 100) / 100;
+      if (v < 1) return Math.round(v * 10 * 100) / 100;
       return v;
     }, label: "estradiol ng/dL→pg/mL" },
     // Vitaminas
