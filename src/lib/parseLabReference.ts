@@ -65,8 +65,8 @@ const OPERATOR_PATTERNS: Array<{ pattern: RegExp; operator: string }> = [
   { pattern: /^maior\s+que\b/i, operator: '>' },
   { pattern: /^acima\s+de\b/i, operator: '>' },
   { pattern: /^abaixo\s+de\b/i, operator: '<' },
-  { pattern: /^ate\b/i, operator: '<=' },
-  { pattern: /^até\b/i, operator: '<=' },
+  { pattern: /^ate(?:\s|$)/i, operator: '<=' },
+  { pattern: /^até(?:\s|$)/i, operator: '<=' },
   // Symbolic operators — mais específicos primeiro
   { pattern: /^<=\s*/, operator: '<=' },
   { pattern: /^>=\s*/, operator: '>=' },
@@ -151,6 +151,10 @@ export function parseLabReference(text: string, sex?: 'M' | 'F'): ParsedReferenc
   for (const { pattern, operator } of OPERATOR_PATTERNS) {
     if (pattern.test(input)) {
       const numStr = input.replace(pattern, '').trim();
+      // Skip if this looks like an age pattern (e.g. "Acima de 12 anos: 4,0 a 10,0")
+      if (/^\s*[\d.,]+\s*(?:anos?|a)\s*:/i.test(numStr)) {
+        continue; // Let the age-stripping in section 3.5 handle it
+      }
       // Extrair primeiro número do restante
       const numMatch = numStr.match(/[\d.,]+/);
       if (numMatch) {
