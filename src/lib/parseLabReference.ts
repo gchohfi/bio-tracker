@@ -63,6 +63,8 @@ const OPERATOR_PATTERNS: Array<{ pattern: RegExp; operator: string }> = [
   { pattern: /^menor\s+que\b/i, operator: '<' },
   { pattern: /^superior\s+a\b/i, operator: '>' },
   { pattern: /^maior\s+que\b/i, operator: '>' },
+  { pattern: /^acima\s+de\b/i, operator: '>' },
+  { pattern: /^abaixo\s+de\b/i, operator: '<' },
   { pattern: /^ate\b/i, operator: '<=' },
   { pattern: /^até\b/i, operator: '<=' },
   // Symbolic operators — mais específicos primeiro
@@ -237,6 +239,27 @@ export function parseLabReference(text: string, sex?: 'M' | 'F'): ParsedReferenc
         if (rMin !== null && rMax !== null) {
           return { min: rMin, max: rMax, operator: 'range', displayText: `${rMin}–${rMax}` };
         }
+      }
+    }
+  }
+
+  // ── 3.7. Detecção de referência multi-fase (ciclo menstrual) ──
+  // Textos como "Fase folicular: 3,5 a 12,5 / Ovulatória: 4,7 a 21,5 / Lútea: 1,7 a 7,7 / Pós-menopausa: 25,8 a 134,8"
+  // O parser normal pegaria apenas o primeiro range. Para multi-fase, extrair min global e max global.
+  const phasePattern = /(?:fol[ií]cul|ovulat[oó]|l[uú]te|secretor|menstrua|proliferat|p[oó]s[- ]?menop)/i;
+  if (phasePattern.test(input)) {
+    const allRanges = [...input.matchAll(/([\d.,]+)\s*(?:a|até|to|-|–|—)\s*([\d.,]+)/gi)];
+    if (allRanges.length >= 2) {
+      let globalMin = Infinity;
+      let globalMax = -Infinity;
+      for (const m of allRanges) {
+        const lo = toFloat(m[1]);
+        const hi = toFloat(m[2]);
+        if (lo !== null && lo < globalMin) globalMin = lo;
+        if (hi !== null && hi > globalMax) globalMax = hi;
+      }
+      if (globalMin !== Infinity && globalMax !== -Infinity && globalMin < globalMax) {
+        return { min: globalMin, max: globalMax, operator: 'range', displayText: `${globalMin}–${globalMax}` };
       }
     }
   }
