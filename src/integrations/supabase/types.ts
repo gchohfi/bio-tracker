@@ -185,39 +185,66 @@ export type Database = {
       }
       lab_historical_results: {
         Row: {
+          conversion_applied: boolean | null
+          conversion_reason: string | null
           created_at: string
           flag: string | null
           id: string
           marker_id: string
+          marker_name: string | null
+          raw_ref_text: string | null
+          raw_text_value: string | null
+          raw_unit: string | null
+          raw_value: number | null
           reference_text: string | null
           result_date: string
           session_id: string
+          source_document: string | null
+          source_lab: string | null
           source_type: string
           text_value: string | null
           unit: string | null
           value: number | null
         }
         Insert: {
+          conversion_applied?: boolean | null
+          conversion_reason?: string | null
           created_at?: string
           flag?: string | null
           id?: string
           marker_id: string
+          marker_name?: string | null
+          raw_ref_text?: string | null
+          raw_text_value?: string | null
+          raw_unit?: string | null
+          raw_value?: number | null
           reference_text?: string | null
           result_date: string
           session_id: string
+          source_document?: string | null
+          source_lab?: string | null
           source_type?: string
           text_value?: string | null
           unit?: string | null
           value?: number | null
         }
         Update: {
+          conversion_applied?: boolean | null
+          conversion_reason?: string | null
           created_at?: string
           flag?: string | null
           id?: string
           marker_id?: string
+          marker_name?: string | null
+          raw_ref_text?: string | null
+          raw_text_value?: string | null
+          raw_unit?: string | null
+          raw_value?: number | null
           reference_text?: string | null
           result_date?: string
           session_id?: string
+          source_document?: string | null
+          source_lab?: string | null
           source_type?: string
           text_value?: string | null
           unit?: string | null
