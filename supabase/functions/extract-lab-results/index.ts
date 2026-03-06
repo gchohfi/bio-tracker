@@ -780,7 +780,15 @@ function validateAndFixValues(results: any[], patientSex?: string, patientAge?: 
 
   const sanityRanges: Record<string, { min: number; max: number; fix?: (v: number, unit?: string) => number; label?: string }> = {
     // Hemograma
-    leucocitos: { min: 1000, max: 30000, fix: (v) => v < 100 ? v * 1000 : v < 1000 ? v * 1000 : v, label: "leucocitos ×1000" },
+    leucocitos: { min: 1000, max: 30000, fix: (v) => {
+      // v < 30: provavelmente em mil/µL (ex: 4.5 → 4500, 12.3 → 12300)
+      if (v < 30) return v * 1000;
+      // 30 ≤ v < 100: ambíguo, mas provavelmente em centenas (ex: 39 → 3900)
+      if (v < 100) return v * 100;
+      // 100 ≤ v < 1000: provavelmente ponto decimal ausente (ex: 465 → 4650)
+      if (v < 1000) return v * 10;
+      return v;
+    }, label: "leucocitos scale fix" },
     eritrocitos: { min: 1, max: 10, fix: (v) => v > 1000 ? v / 1000000 : v > 10 ? v / 10 : v },
     plaquetas: { min: 50, max: 700, fix: (v) => v > 1000 ? v / 1000 : v },
     // Hormônios — NO conversions, only decimal fixes
