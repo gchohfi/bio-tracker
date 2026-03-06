@@ -591,8 +591,8 @@ export const MARKERS: MarkerDef[] = [
   { id: "urina_hemacias_quant", name: "Hemácias (urina quantitativo)", unit: "/mL", category: "Urina",
     labRange: { M: [0, 23000], F: [0, 23000] }, panel: "Padrão" },
 
-  // Note: urina_leucocitos_quant ref is "< 25.000 /mL" (Fleury standard)
-  // Note: urina_hemacias_quant ref is "< 10.000 /mL" (Fleury standard)
+  // Note: urina_leucocitos_quant ref is "<= 25.000 /mL" (Fleury standard)
+  // Note: urina_hemacias_quant ref is "<= 23.000 /mL" (Fleury standard)
 
   { id: "urina_bacterias", name: "Bactérias (urina)", unit: "",            category: "Urina",
     labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
