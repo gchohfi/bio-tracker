@@ -875,11 +875,17 @@ export function getMarkerStatusFromRef(
 ): 'normal' | 'low' | 'high' {
   const { min, max, operator } = ref;
 
-  if (operator === '<' || operator === '<=') {
+  if (operator === '<=') {
     return value <= (max ?? Infinity) ? 'normal' : 'high';
   }
-  if (operator === '>' || operator === '>=') {
+  if (operator === '<') {
+    return value < (max ?? Infinity) ? 'normal' : 'high';
+  }
+  if (operator === '>=') {
     return value >= (min ?? -Infinity) ? 'normal' : 'low';
+  }
+  if (operator === '>') {
+    return value > (min ?? -Infinity) ? 'normal' : 'low';
   }
 
   // operator === 'range' ou qualquer outro
