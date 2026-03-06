@@ -29,7 +29,7 @@ CRITICAL ANTI-HALLUCINATION RULES:
 4. Do NOT extract a marker just because it is in the known list — only extract if you can see the actual test name AND its result value printed in the document.
 
 Known markers (id | name | unit):
-${MARKER_LIST.map((m) => \`\${m.id} | \${m.name} | \${m.unit}\`).join("\\n")}
+${MARKER_LIST.map((m) => m.id + " | " + m.name + " | " + m.unit).join("\n")}
 
 === TEXT NORMALIZATION — APPLY BEFORE MATCHING ===
 Before attempting to match any exam name:
