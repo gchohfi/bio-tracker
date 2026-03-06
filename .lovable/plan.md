@@ -1,98 +1,84 @@
 
+# Plano de Refatoração: Pipeline de Extração de Exames
 
-# Correção de Conversões de Unidade: Estradiol, Progesterona e DHT
+## Estado Atual
 
-## Problemas Identificados
+`index.ts` = 3334 linhas monolíticas. Diretório `pipeline/` existe com módulos (types, normalize, infer_unit, convert, validate) usados **apenas pelos testes** — não integrados ao fluxo real.
 
-Os 3 erros têm a mesma causa raiz: **conflito entre conversão da IA e sanity checks no pós-processamento**.
+## Inventário de Funções no index.ts
 
-### Erro 1 — Estradiol (4.4 ng/dL → 440 pg/mL, deveria ser 44)
-- A IA converte corretamente: 4.4 × 10 = 44 pg/mL
-- Mas o sanity check (linha 702) vê `44 < 50` e aplica `× 10` novamente → 440
-- **Bug**: dupla conversão no sanity fix
+| Linhas | Função | Módulo Alvo |
+|--------|--------|-------------|
+| 10-228 | `MARKER_LIST` | `constants.ts` |
+| 230 | `QUALITATIVE_IDS` | `constants.ts` |
+| 232-702 | `systemPrompt` | `extract.ts` |
+| 706-773 | `normalizeOperatorText()` + `deduplicateResults()` | `normalize.ts` |
+| 776-1311 | `validateAndFixValues()` | Dividir: conversões→`convert.ts`, anti-alucinação→`normalize.ts`, sanity→`validate.ts` |
+| 1319-1563 | `convertLabRefUnits()` | Dividir: ref fixes→`normalize.ts`, sanity→`validate.ts` |
+| 1566-1713 | `postProcessResults()` | `derive.ts` |
+| 1722-1912 | `toFloat()` + `parseLabRefRanges()` | `utils.ts` + `normalize.ts` |
+| 1920-2666 | `regexFallback()` | `extract.ts` |
+| 2668-2908 | `crossCheckAllMarkers()` | `validate.ts` |
+| 2910-2989 | `validateExtraction()` | `validate.ts` |
+| 2992-3334 | `serve()` handler | `index.ts` (orquestrador) |
 
-### Erro 2 — Progesterona (19 ng/dL → 19 ng/mL, deveria ser 0.19)  
-- A IA não converteu (manteve 19)
-- O sanity check (linha 701) só corrige se `> 50`, então 19 passa direto
-- **Bug**: threshold do sanity muito alto + IA falhou em converter
+## Fontes de Dupla Conversão (A ELIMINAR)
 
-### Erro 3 — DHT (13 ng/dL → 13 pg/mL, deveria ser 130)
-- A IA não converteu (manteve 13)
-- O sanity check para DHT (linha 711) não tem função `fix`
-- **Bug**: sem fallback de conversão
+### 1. Prompt pede conversão + sanityRanges.fix() faz a mesma
+Prompt pede: T3L ×10, estradiol ×10, zinco ×100, PCR ×10, testosterona_livre ÷34.7.
+Depois `fix()` aplica de novo.
 
-## Correções Propostas
+### 2. Fixes que são conversões disfarçadas
+- `t3_livre.fix`: `v < 1.0 ? v * 10` — conversão ng/dL→pg/mL
+- `estradiol.fix`: conversão ng/dL→pg/mL
+- `zinco.fix`: conversão µg/mL→µg/dL
+- `testosterona_livre.fix`: conversão pmol/L→ng/dL
+- `pcr.fix`: conversão mg/dL→mg/L
 
-### 1. Estradiol — remover branch que causa dupla conversão
-```typescript
-// ANTES (bugado):
-estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 100 : v < 50 ? v * 10 : v > 5000 ? v / 10 : v }
+### 3. Bloco PCR (linhas 948-974)
+Conversão explícita duplicada.
 
-// DEPOIS:
-estradiol: { min: 5, max: 5000, fix: (v) => v < 5 ? v * 10 : v > 5000 ? v / 10 : v }
-```
-- `v < 5` (valor em ng/dL não convertido, ex: 4.4) → `× 10` = 44 ✓
-- Valores 5–5000 já estão em pg/mL, não mexer
+## Sequência de Implementação
 
-### 2. Progesterona — adicionar detecção de ng/dL não convertido
-```typescript
-// ANTES:
-progesterona: { min: 0, max: 50, fix: (v) => v > 50 ? v / 100 : v }
+### Fase 1: Extrair constantes e utils (baixo risco)
+1. `constants.ts` ← MARKER_LIST, QUALITATIVE_IDS, MARKER_TEXT_TERMS, CALCULATED_MARKERS
+2. `utils.ts` ← toFloat, OPERATOR_PATTERNS, parseBrNum
+3. Atualizar imports no index.ts
 
-// DEPOIS (sex-aware):
-progesterona: { min: 0, max: 50, fix: (v) => {
-  // Labs brasileiros reportam ng/dL (ex: 19, 89). Nosso target é ng/mL.
-  // Fase folicular: 0.1-1.5 ng/mL = 10-150 ng/dL
-  // Fase lútea: 5-25 ng/mL = 500-2500 ng/dL  
-  // Se > 5 para mulher ou > 1.5 para homem, provavelmente ng/dL não convertido
-  if (v > 5) return v / 100;  // ng/dL → ng/mL
-  return v;
-}}
-```
-- 19 ng/dL → `19 > 5` → `÷ 100` = 0.19 ng/mL ✓
-- Valor já convertido (0.19 ng/mL) → não mexe ✓
+### Fase 2: Extrair módulos de processamento (risco médio)
+4. Expandir `normalize.ts` ← normalizeOperatorText, deduplicateResults, anti-alucinação, parseLabRefRanges, fixes de referência
+5. `derive.ts` ← postProcessResults, DHEA-S, reference overrides
+6. Expandir `validate.ts` ← crossCheckAllMarkers, validateExtraction, sanityRanges (sem fixes de conversão)
+7. `extract.ts` ← systemPrompt, regexFallback, chamada Gemini
 
-### 3. DHT — adicionar fix para conversão ng/dL → pg/mL
-```typescript
-// ANTES:
-dihidrotestosterona: { min: 0, max: 2000 }
+### Fase 3: Eliminar dupla conversão (risco alto)
+8. Remover instruções de conversão do prompt
+9. Remover fixes de conversão do sanityRanges
+10. Remover bloco PCR separado
+11. Integrar inferUnits() + convertResults() do pipeline
 
-// DEPOIS:
-dihidrotestosterona: { min: 5, max: 2000, fix: (v) => v < 5 ? v * 10 : v }
-```
-- 13 ng/dL → `13 ≥ 5` → passa (já no range se AI converteu) ... não, 13 está no range.
+### Fase 4: Simplificar orquestrador
+12. Reescrever serve() handler
 
-Melhor abordagem: checar contra referência do lab. Se `lab_ref_max` está em ng/dL (ex: 46), o valor está em ng/dL e precisa `× 10`.
+## Trechos a REMOVER (dupla conversão)
 
-Na verdade, a solução mais robusta é **adicionar conversão determinística no pós-processamento** para estes 3 marcadores, usando o `lab_ref_text` como sinal da unidade fonte:
+### No prompt:
+- L396: T3L "multiply by 10"
+- L407: Testosterona Livre "DIVIDE by 34.7"
+- L411: Estradiol "MULTIPLY by 10"
+- L456: Zinco "MULTIPLY by 100"
+- L531: PCR "multiply by 10"
+- L671: bloco T3L conversão
 
-### 4. Pós-processamento determinístico (abordagem principal)
-Adicionar uma etapa após a extração que detecta a unidade fonte pelo `lab_ref_text` e converte deterministicamente:
+### Nos sanityRanges:
+- `t3_livre.fix`, `estradiol.fix`, `zinco.fix`, `testosterona_livre.fix`, `pcr.fix`
 
-```typescript
-// No postProcessResults ou equivalente:
-const UNIT_CONVERSIONS = {
-  estradiol:    { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10,   detectRef: (max) => max < 100 },
-  progesterona: { sourceUnit: 'ng/dL', targetUnit: 'ng/mL', factor: 0.01, detectRef: (max) => max > 50 },
-  dihidrotestosterona: { sourceUnit: 'ng/dL', targetUnit: 'pg/mL', factor: 10, detectRef: (max) => max < 100 },
-};
-```
-Se o `lab_ref_max` indica unidade ng/dL (ex: estradiol ref max 23.3, progesterona ref max 89, DHT ref max 46), aplicar conversão e também converter as referências.
+### Bloco PCR (L948-974)
 
-### 5. Corrigir dados existentes no banco
-Migration SQL para corrigir os 3 valores da paciente atual.
+## Trechos a MANTER (fixes de decimal genuínos)
 
-## Arquivos a alterar
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `supabase/functions/extract-lab-results/index.ts` | Corrigir sanity fixes + adicionar pós-processamento determinístico |
-| Migration SQL | Corrigir os 3 valores errados no banco |
-
-## Resumo
-- Estradiol: corrigir sanity para não duplicar conversão
-- Progesterona: baixar threshold do sanity
-- DHT: adicionar fix de conversão
-- Adicionar detecção determinística por lab_ref como camada extra de segurança
-- Corrigir dados existentes via migration
-
+- `leucocitos.fix`: escalonamento de milhar
+- `eritrocitos.fix`, `plaquetas.fix`: decimal/milhar
+- `prolactina.fix`, `insulina_jejum.fix`, `tsh.fix`: decimal
+- `tgo_ast.fix`, `tgp_alt.fix`, `acido_urico.fix`, `ferritina.fix`, `transferrina.fix`: decimal
+- WBC absolutos: escalonamento mil/mm³→/mm³
