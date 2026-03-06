@@ -830,6 +830,7 @@ export default function PatientDetail() {
     examDate: string | null;
     qualityScore: number | null;
     extractionIssues: any[];
+    historicalResults: any[];
   }> => {
     const { fullText, cleanedText } = await extractPdfText(file);
 
