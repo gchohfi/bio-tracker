@@ -3129,7 +3129,7 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     const REFERENCE_OVERRIDES: Record<string, { min: number | null; max: number | null; text: string }> = {
       colesterol_total:   { min: null, max: 190,  text: '< 190 mg/dL' },
       hdl:                { min: 40,   max: null, text: '> 40 mg/dL' },
-      ldl:                { min: 100,  max: 129,  text: '100 a 129 mg/dL' },
+      ldl:                { min: null, max: 129,  text: '< 130 mg/dL' },
       colesterol_nao_hdl: { min: null, max: 130,  text: '< 130 mg/dL' },
       triglicerides:      { min: null, max: 150,  text: '< 150 mg/dL' },
       vldl:               { min: null, max: 30,   text: '< 30 mg/dL' },
@@ -3139,10 +3139,17 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     for (const r of validResults) {
       const override = REFERENCE_OVERRIDES[r.marker_id];
       if (override) {
-        console.log(`[REF-OVERRIDE] ${r.marker_id}: ref ${r.lab_ref_min}-${r.lab_ref_max} "${r.lab_ref_text}" → ${override.min}-${override.max} "${override.text}"`);
-        r.lab_ref_min = override.min;
-        r.lab_ref_max = override.max;
-        r.lab_ref_text = override.text;
+        // Only apply override if the lab didn't provide a valid reference.
+        // This preserves personalized references (e.g. LDL < 70 for high-risk patients).
+        const hasLabRef = r.lab_ref_text && r.lab_ref_text.trim().length > 0;
+        if (hasLabRef) {
+          console.log(`[REF-OVERRIDE] ${r.marker_id}: KEEPING lab ref "${r.lab_ref_text}" (override skipped — lab provided a reference)`);
+        } else {
+          console.log(`[REF-OVERRIDE] ${r.marker_id}: ref ${r.lab_ref_min}-${r.lab_ref_max} "${r.lab_ref_text}" → ${override.min}-${override.max} "${override.text}"`);
+          r.lab_ref_min = override.min;
+          r.lab_ref_max = override.max;
+          r.lab_ref_text = override.text;
+        }
       }
     }
 
