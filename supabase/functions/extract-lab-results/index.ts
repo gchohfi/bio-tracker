@@ -1251,8 +1251,11 @@ function sanitizeLabReferences(results: any[]): any[] {
   // Ref converters removed — no more unit conversions.
   return results;
 }
-// Post-processing: calculate derived values if missing
-function postProcessResults(results: any[]): any[] {
+// ════════════════════════════════════════════════════════════════════
+// CATEGORY 3: DERIVED VALUES — Calculate markers from other markers
+// TODO(refactor): Move to derive.ts in Phase 3.
+// ════════════════════════════════════════════════════════════════════
+function calculateDerivedValues(results: any[]): any[] {
   const resultMap = new Map<string, any>();
   for (const r of results) {
     resultMap.set(r.marker_id, r);
@@ -2386,8 +2389,8 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     validResults = deduplicateResults(validResults);
     // Validate and fix common decimal/unit errors
     validResults = validateAndFixValues(validResults, patientSex, patientAge);
-    // Post-process: calculate derived values if AI missed them
-    validResults = postProcessResults(validResults);
+    // Calculate derived values (HOMA-IR, ratios, etc.) if AI missed them
+    validResults = calculateDerivedValues(validResults);
     // Regex fallback for markers the AI frequently misses
     const beforeFallbackIds = new Set<string>(validResults.map((r: any) => r.marker_id));
     validResults = regexFallback(pdfText, validResults);
@@ -2408,7 +2411,7 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
         return r;
       });
       // Re-run derived calculations with full set
-      validResults = postProcessResults(validResults);
+      validResults = calculateDerivedValues(validResults);
     }
     // Parse lab_ref_text into numeric min/max fields
     validResults = parseLabRefRanges(validResults);
