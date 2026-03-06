@@ -2351,7 +2351,8 @@ Search the ENTIRE text from first to last line. Do NOT stop early.\n\n${textToSe
     const fallbackAdded = validResults.filter((r: any) => !beforeFallbackIds.has(r.marker_id));
     if (fallbackAdded.length > 0) {
       console.log(`Regex fallback added ${fallbackAdded.length} markers: ${fallbackAdded.map((r: any) => r.marker_id).join(', ')}`);
-      // Validate fallback markers (anti-hallucination, sanity checks)
+      // Convert units for fallback markers, then validate
+      applyUnitConversions(fallbackAdded);
       const fallbackValidated = validateAndFixValues(fallbackAdded, patientSex, patientAge);
       const fallbackValidatedIds = new Set(fallbackValidated.map((r: any) => r.marker_id));
       // Remove unvalidated fallback markers, keep only those that passed validation
