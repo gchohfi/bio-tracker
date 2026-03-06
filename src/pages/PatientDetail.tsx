@@ -532,7 +532,8 @@ export default function PatientDetail() {
 
   const handleDeleteSession = async (sessionId: string) => {
     if (!confirm("Excluir esta sessão e todos os resultados?")) return;
-    // Delete lab_results first (foreign key constraint)
+    // Delete lab_results and historical results first (foreign key constraint)
+    await supabase.from("lab_historical_results").delete().eq("session_id", sessionId);
     const { error: resultsError } = await supabase.from("lab_results").delete().eq("session_id", sessionId);
     if (resultsError) {
       toast({ title: "Erro ao excluir resultados", description: resultsError.message, variant: "destructive" });
