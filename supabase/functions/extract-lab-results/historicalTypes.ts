@@ -38,16 +38,42 @@ export interface DetectedBlock {
 export interface HistoricalEntry {
   /** Data do resultado (ISO: "2024-06-03") */
   date: string;
-  /** Valor numérico, se disponível */
+
+  // ── Valores normalizados (após pipeline: infer → convert → scale) ──
+  /** Valor numérico normalizado (unidade canônica) */
   value?: number;
-  /** Valor textual (qualitativos, operadores) */
+  /** Valor textual normalizado (operadores padronizados) */
   text_value?: string;
-  /** Unidade conforme impressa no laudo */
+  /** Unidade canônica final (após conversão) */
   unit?: string;
+
+  // ── Valores brutos (auditoria) ──
+  /** Valor numérico original como extraído do PDF */
+  raw_value?: number;
+  /** Texto original como extraído do PDF */
+  raw_text_value?: string;
+  /** Unidade original como impressa no laudo */
+  raw_unit?: string;
+  /** Texto de referência original */
+  raw_ref_text?: string;
+
+  // ── Metadados de conversão ──
+  /** Flag indicando se conversão de unidade foi aplicada */
+  conversion_applied?: boolean;
+  /** Razão/detalhes da conversão */
+  conversion_reason?: string;
+
+  // ── Classificação ──
   /** Flag de classificação em relação à referência */
   flag?: "normal" | "high" | "low" | null;
+
+  // ── Proveniência ──
   /** Tipo de fonte que gerou esta entrada */
   source_type: DocumentProfileType;
+  /** Laboratório de origem (se identificável) */
+  source_lab?: string;
+  /** Identificador do documento de origem */
+  source_document?: string;
 }
 
 /** Série temporal de um marcador */
