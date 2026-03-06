@@ -11,8 +11,8 @@
  * 4. Só converte quando _conversionFactor está presente (inferido por unitInference.ts)
  * 5. Log explícito: "[CONVERT] marker: value from→to, unit from→to"
  */
-
-// Re-export table for backward compatibility and tests
+// COMPAT SHIM: re-export for src/test/convert.test.ts which imports UNIT_CONVERSIONS from convert.ts
+// TODO: atualizar os testes para importar diretamente de unitInference.ts e remover este re-export
 export { UNIT_CONVERSIONS } from "./unitInference.ts";
 
 // ---------------------------------------------------------------------------
