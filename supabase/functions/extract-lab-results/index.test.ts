@@ -306,20 +306,20 @@ Deno.test("REFERENCE_OVERRIDES: LDL override must have min=null (not min=100)", 
 // ─── parseLabRefRanges ──────────────────────────────────────────────────────
 
 Deno.test("parseLabRefRanges: '70 a 100' → min=70, max=100", () => {
-  const results = [{ marker_id: "test", lab_ref_text: "70 a 100" }];
+  const results: any[] = [{ marker_id: "test", lab_ref_text: "70 a 100" }];
   parseLabRefRanges(results);
   assertEquals(results[0].lab_ref_min, 70);
   assertEquals(results[0].lab_ref_max, 100);
 });
 
 Deno.test("parseLabRefRanges: 'Acima de 20' → min=20", () => {
-  const results = [{ marker_id: "test", lab_ref_text: "Acima de 20" }];
+  const results: any[] = [{ marker_id: "test", lab_ref_text: "Acima de 20" }];
   parseLabRefRanges(results);
   assertEquals(results[0].lab_ref_min, 20);
 });
 
 Deno.test("parseLabRefRanges: 'Abaixo de 5' → max=5", () => {
-  const results = [{ marker_id: "test", lab_ref_text: "Abaixo de 5" }];
+  const results: any[] = [{ marker_id: "test", lab_ref_text: "Abaixo de 5" }];
   parseLabRefRanges(results);
   assertEquals(results[0].lab_ref_max, 5);
 });
