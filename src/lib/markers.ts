@@ -145,7 +145,7 @@ export const MARKERS: MarkerDef[] = [
     labRange: { M: [40, 999], F: [50, 999] }, panel: "Padrão" },
 
   { id: "ldl",             name: "LDL",             unit: "mg/dL",        category: "Lipídios",
-    labRange: { M: [100, 129], F: [100, 129] }, panel: "Padrão" },
+    labRange: { M: [0, 129], F: [0, 129] }, panel: "Padrão" },
 
   { id: "vldl",            name: "VLDL",            unit: "mg/dL",        category: "Lipídios",
     labRange: { M: [0, 30], F: [0, 30] }, panel: "Padrão" },
