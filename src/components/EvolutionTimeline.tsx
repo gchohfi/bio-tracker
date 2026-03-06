@@ -27,7 +27,7 @@ interface EvolutionTimelineProps {
   patientName?: string;
 }
 
-export default function EvolutionTimeline({ patientId }: EvolutionTimelineProps) {
+export default function EvolutionTimeline({ patientId, patientName }: EvolutionTimelineProps) {
   const [data, setData] = useState<EvolutionReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | "Todos">("Todos");
