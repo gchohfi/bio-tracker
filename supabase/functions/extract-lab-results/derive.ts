@@ -8,7 +8,7 @@
  *
  * NÃO faz:
  *   - Conversão de unidade (→ convert.ts)
- *   - Ajuste de escala (→ validate.ts / validateAndFixValues)
+ *   - Ajuste de escala (→ scale.ts / applyScaleAdjustments)
  *   - Inferência de unidade (→ unitInference.ts)
  *   - Validação estrutural final (→ validate.ts)
  */
