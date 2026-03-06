@@ -884,6 +884,63 @@ function validateAndFixValues(results: any[], patientSex?: string, patientAge?: 
     basofilos_abs:         { min: 1,   max: 500,   fix: (v) => v < 1 ? v * 1000 : v, label: "basofilos_abs ×1000" },
     // Transferrina — 28 deveria ser 280 (separador perdido)
     transferrina:          { min: 100, max: 500, fix: (v) => v < 100 ? v * 10 : v, label: "transferrina ×10" },
+
+    // ── Hemograma ──
+    hemoglobina:       { min: 5, max: 22 },
+    hematocrito:       { min: 15, max: 70 },
+    vcm:               { min: 50, max: 130 },
+    hcm:               { min: 15, max: 45 },
+    rdw:               { min: 8, max: 30 },
+    vpm:               { min: 4, max: 20 },
+    vhs:               { min: 0, max: 200 },
+    bastonetes:        { min: 0, max: 30 },
+    segmentados:       { min: 10, max: 90 },
+    neutrofilos:       { min: 10, max: 95 },
+    linfocitos:        { min: 3, max: 70 },
+    eosinofilos:       { min: 0, max: 30 },
+    monocitos:         { min: 0, max: 25 },
+    basofilos:         { min: 0, max: 5 },
+
+    // ── Hepático ──
+    tgo_ast:           { min: 3, max: 500, fix: (v: number) => {
+      if (v > 1000 && v < 10000) return v / 10;
+      return v;
+    }, label: "tgo_ast decimal fix" },
+    tgp_alt:           { min: 3, max: 500, fix: (v: number) => {
+      if (v > 1000 && v < 10000) return v / 10;
+      return v;
+    }, label: "tgp_alt decimal fix" },
+    ggt:               { min: 3, max: 1000 },
+    fosfatase_alcalina: { min: 10, max: 1000 },
+    bilirrubina_direta: { min: 0, max: 15 },
+
+    // ── Tireoide ──
+    tsh:               { min: 0.01, max: 100, fix: (v: number) => {
+      if (v > 200) return v / 100;
+      return v;
+    }, label: "tsh decimal fix" },
+    t4_total:          { min: 1, max: 25 },
+    t3_reverso:        { min: 5, max: 50 },
+    anti_tpo:          { min: 0, max: 2000 },
+    anti_tg:           { min: 0, max: 2000 },
+    trab:              { min: 0, max: 50 },
+
+    // ── Hormônios ──
+    testosterona_total: { min: 1, max: 1500 },
+    fsh:               { min: 0.1, max: 200 },
+    lh:                { min: 0.1, max: 200 },
+    progesterona:      { min: 0.05, max: 50 },
+    dhea_s:            { min: 5, max: 700 },
+    shbg:              { min: 5, max: 200 },
+    amh:               { min: 0.01, max: 25 },
+
+    // ── Lipídios + Glicemia (os que faltam) ──
+    triglicerideos:    { min: 20, max: 2000 },
+    vldl:              { min: 1, max: 200 },
+
+    // ── Vitaminas ──
+    vitamina_d:        { min: 3, max: 200 },
+    vitamina_b12:      { min: 50, max: 3000 },
   };
 
   // ── Conversão de unidade PCR: mg/dL → mg/L ──
