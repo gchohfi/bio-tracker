@@ -276,25 +276,7 @@ export function sanitizeLabReferences(results: any[]): any[] {
     }
   }
 
-  // Leucogram absolute → percent conversion
-  const percentDifferentials = new Set([
-    'neutrofilos', 'linfocitos', 'monocitos', 'eosinofilos', 'basofilos', 'segmentados', 'bastonetes',
-  ]);
-  const leucocitosResult = results.find((r: any) => r.marker_id === 'leucocitos');
-  const leucocitosTotal = leucocitosResult ? leucocitosResult.value : null;
-  for (const r of results) {
-    if (percentDifferentials.has(r.marker_id) && typeof r.value === 'number' && r.value > 100) {
-      if (leucocitosTotal && leucocitosTotal > 0) {
-        const pct = parseFloat(((r.value / leucocitosTotal) * 100).toFixed(1));
-        console.log(`[leucogram-fix] Converting ${r.marker_id} absolute ${r.value} /mm³ → ${pct}% (leucocitos=${leucocitosTotal})`);
-        r.value = pct;
-        r.unit = '%';
-      } else {
-        console.log(`[leucogram-fix] Removing ${r.marker_id} absolute ${r.value} /mm³ (no leucocitos total available)`);
-        r._remove = true;
-      }
-    }
-  }
+  // NOTE: Leucogram absolute → percent conversion moved to scale.ts (applyLeucogramPercentConversion)
 
   // Marker-specific ref sanitization
   for (const r of results) {
@@ -324,11 +306,7 @@ export function sanitizeLabReferences(results: any[]): any[] {
       console.log(`Discarding female lab_ref for testosterona_livre: value=${r.value} ng/dL (male) but ref max=${r.lab_ref_max} ng/dL (female)`);
       r.lab_ref_min = null; r.lab_ref_max = null; r.lab_ref_text = '';
     }
-    if (r.marker_id === 'leucocitos' && typeof r.lab_ref_max === 'number' && r.lab_ref_max < 100) {
-      console.log(`[leucocitos] Fixing thousands separator bug: ref [${r.lab_ref_min}, ${r.lab_ref_max}] → [${(r.lab_ref_min ?? 0) * 1000}, ${r.lab_ref_max * 1000}]`);
-      if (typeof r.lab_ref_min === 'number') r.lab_ref_min = Math.round(r.lab_ref_min * 1000);
-      r.lab_ref_max = Math.round(r.lab_ref_max * 1000);
-    }
+    // NOTE: leucocitos ref thousands fix moved to scale.ts (applyScaleAdjustments)
     if (r.marker_id === 'hba1c' && typeof r.lab_ref_min === 'number' && r.lab_ref_min >= 5.0 && typeof r.lab_ref_max === 'number' && r.lab_ref_max <= 7.0) {
       console.log(`Discarding pre-diabetes lab_ref for hba1c: ${r.lab_ref_min}-${r.lab_ref_max}`);
       r.lab_ref_min = null; r.lab_ref_max = null; r.lab_ref_text = '';
