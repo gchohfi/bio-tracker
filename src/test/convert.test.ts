@@ -337,6 +337,98 @@ describe("convert: critical markers", () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════
+// 8. Exact expected values from user specification
+// ═══════════════════════════════════════════════════════════════════
+
+describe("convert: exact expected values", () => {
+  it("estradiol 4.4 ng/dL → 44 pg/mL", () => {
+    const results = [
+      makeResult("estradiol", 4.4, {
+        unit: "ng/dL",
+        lab_ref_min: 1.5,
+        lab_ref_max: 6.0,
+        lab_ref_text: "1.5 a 6.0 ng/dL",
+      }),
+    ];
+    applyUnitConversions(results);
+    expect(results[0].value).toBeCloseTo(44, 1);
+    expect(results[0].lab_ref_min).toBeCloseTo(15, 1);
+    expect(results[0].lab_ref_max).toBeCloseTo(60, 1);
+    expect(results[0]._converted).toBe(true);
+  });
+
+  it("progesterona 19 ng/dL → 0.19 ng/mL", () => {
+    const results = [
+      makeResult("progesterona", 19, {
+        unit: "ng/dL",
+        lab_ref_min: 10,
+        lab_ref_max: 50,
+        lab_ref_text: "10 a 50 ng/dL",
+      }),
+    ];
+    applyUnitConversions(results);
+    expect(results[0].value).toBeCloseTo(0.19, 2);
+    expect(results[0].lab_ref_min).toBeCloseTo(0.1, 2);
+    expect(results[0].lab_ref_max).toBeCloseTo(0.5, 2);
+    expect(results[0]._converted).toBe(true);
+  });
+
+  it("DHT 13 ng/dL → 130 pg/mL", () => {
+    const results = [
+      makeResult("dht", 13, {
+        unit: "ng/dL",
+        lab_ref_min: 5,
+        lab_ref_max: 30,
+        lab_ref_text: "5 a 30 ng/dL",
+      }),
+    ];
+    applyUnitConversions(results);
+    expect(results[0].value).toBeCloseTo(130, 1);
+    expect(results[0].lab_ref_min).toBeCloseTo(50, 1);
+    expect(results[0].lab_ref_max).toBeCloseTo(300, 1);
+    expect(results[0]._converted).toBe(true);
+  });
+
+  it("already converted value must NOT be reconverted", () => {
+    const results = [
+      makeResult("estradiol", 44, {
+        unit: "ng/dL",
+        lab_ref_min: 15,
+        lab_ref_max: 60,
+        _converted: true,
+      }),
+    ];
+    applyUnitConversions(results);
+    expect(results[0].value).toBe(44);
+    expect(results[0].lab_ref_min).toBe(15);
+    expect(results[0].lab_ref_max).toBe(60);
+  });
+
+  it("estradiol already in pg/mL must NOT convert", () => {
+    const results = [
+      makeResult("estradiol", 44, {
+        unit: "pg/mL",
+        lab_ref_min: 15,
+        lab_ref_max: 60,
+      }),
+    ];
+    applyUnitConversions(results);
+    expect(results[0].value).toBe(44);
+    expect(results[0]._converted).toBeUndefined();
+  });
+
+  it("must NOT convert silently without sufficient signal", () => {
+    // estradiol value 44 with no unit and no lab_ref_text — heuristic requires v<1
+    const results = [
+      makeResult("estradiol", 44, { lab_ref_min: 15, lab_ref_max: 60 }),
+    ];
+    applyUnitConversions(results);
+    expect(results[0].value).toBe(44);
+    expect(results[0]._converted).toBeUndefined();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
 // Table completeness check
 // ═══════════════════════════════════════════════════════════════════
 
