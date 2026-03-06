@@ -158,7 +158,9 @@ export const UNIT_CONVERSIONS: Record<string, ConversionRule[]> = {
       from_unit_label: "ng/dL",
       to_unit: "ng/mL",
       factor: 0.01,
-      value_heuristic: (v) => v > 10,
+      // Normal luteal progesterona is 1.8-23.4 ng/mL — values 10-25 are NOT ng/dL.
+      // Only values > 50 are plausibly ng/dL (50 ng/dL = 0.5 ng/mL, still low).
+      value_heuristic: (v) => v > 50,
     },
     {
       from_unit_pattern: /nmol/i,
