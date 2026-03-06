@@ -44,6 +44,7 @@ import {
   Stethoscope,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
+import EvolutionTimeline from "@/components/EvolutionTimeline";
 import ImportVerification from "@/components/ImportVerification";
 import EditExtractionDialog from "@/components/EditExtractionDialog";
 import EditReportDialog from "@/components/EditReportDialog";
