@@ -6,8 +6,9 @@
  *   2. NORMALIZE   — Operadores textuais, deduplicação
  *   3. INFER UNIT  — Detecção de unidade fonte/alvo
  *   4. CONVERT     — Aplicação de fator de conversão
- *   5. VALIDATE    — Scale adjustments, sanity bounds, anti-alucinação
- *   6. DERIVE      — Cálculos derivados (HOMA-IR, ratios, etc.)
+ *   5. SCALE       — Ajustes de escala (OCR/parsing: decimal perdido, milhar)
+ *   6. VALIDATE    — Sanity bounds, anti-alucinação
+ *   7. DERIVE      — Cálculos derivados (HOMA-IR, ratios, etc.)
  *   7. ENRICH      — Referências (parseLabRefRanges, DHEA, VLDL, sanitize, overrides)
  *   8. STRUCTURAL  — Validação estrutural final + quality score
  *
@@ -19,6 +20,7 @@ import { QUALITATIVE_IDS, VALID_MARKER_IDS } from "./constants.ts";
 import { normalizeOperatorText, deduplicateResults, parseLabRefRanges } from "./normalize.ts";
 import { inferSourceUnit } from "./unitInference.ts";
 import { applyUnitConversions } from "./convert.ts";
+import { applyScaleAdjustments } from "./scale.ts";
 import { calculateDerivedValues, applyReferenceOverrides, enrichDheaReference, guardVldlReference } from "./derive.ts";
 import { validateAndFixValues, sanitizeLabReferences, crossCheckAllMarkers, validateExtraction } from "./validate.ts";
 import { systemPrompt, buildUserMessage, extractResultsTool } from "./prompt.ts";
@@ -110,7 +112,10 @@ function processPipeline(results: any[], patientSex?: string, patientAge?: numbe
   r = inferSourceUnit(r);
   r = applyUnitConversions(r);
 
-  // STEP 3: Validate (scale adjustments, sanity bounds, anti-hallucination)
+  // STEP 3: Scale adjustments (OCR/parsing fixes — corrige magnitude, não unidade)
+  r = applyScaleAdjustments(r);
+
+  // STEP 4: Validate (sanity bounds, anti-hallucination)
   r = validateAndFixValues(r, patientSex, patientAge);
 
   // STEP 4: Derive (HOMA-IR, ratios, bilirrubina indireta, etc.)

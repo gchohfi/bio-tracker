@@ -2,8 +2,7 @@
  * validate.ts
  *
  * Responsável EXCLUSIVAMENTE por:
- *   - Scale adjustments (fixes de OCR/parsing: decimal perdido, milhar)
- *   - Sanity bounds (validação de plausibilidade)
+ *   - Sanity bounds (validação de plausibilidade — sem correção de valor)
  *   - Anti-alucinação (urina_hemoglobina, urina_hemacias, toxicologia)
  *   - Sanitização de referências (percent markers, age ranges, sanity bounds)
  *   - Cross-check contra texto PDF (anti-hallucination)
@@ -12,6 +11,7 @@
  *
  * NÃO faz:
  *   - Conversão de unidade (→ convert.ts)
+ *   - Ajuste de escala / OCR fix (→ scale.ts)
  *   - Inferência de unidade (→ unitInference.ts)
  *   - Cálculo derivado (→ derive.ts)
  */
@@ -20,166 +20,11 @@ import { QUALITATIVE_IDS, VALID_MARKER_IDS, CALCULATED_MARKERS, ALLOW_NEGATIVE, 
 import { parseBrNum } from "./utils.ts";
 
 // ════════════════════════════════════════════════════════════════════
-// validateAndFixValues — Scale adjustments + sanity + anti-hallucination
+// validateAndFixValues — Sanity bounds + anti-hallucination
+// Scale adjustments foram movidos para scale.ts (applyScaleAdjustments)
 // ════════════════════════════════════════════════════════════════════
 
 export function validateAndFixValues(results: any[], patientSex?: string, patientAge?: number | null): any[] {
-
-  // ════════════════════════════════════════════════════════════════════
-  // CATEGORY 2: SCALE ADJUSTMENTS
-  // These fix OCR/parsing errors where the unit is correct but the
-  // decimal point or thousands separator was lost.
-  // ════════════════════════════════════════════════════════════════════
-  const scaleAdjustments: Record<string, { min: number; max: number; fix: (v: number) => number; label: string }> = {
-    leucocitos: { min: 1000, max: 30000, fix: (v) => {
-      if (v < 30) return v * 1000;
-      if (v < 100) return v * 100;
-      if (v < 1000) return v * 10;
-      return v;
-    }, label: "[SCALE-FIX] leucocitos scale fix" },
-    eritrocitos: { min: 1, max: 10, fix: (v) => v > 1000 ? v / 1000000 : v > 10 ? v / 10 : v, label: "[SCALE-FIX] eritrocitos decimal fix" },
-    plaquetas: { min: 50, max: 700, fix: (v) => v > 1000 ? v / 1000 : v, label: "[SCALE-FIX] plaquetas ÷1000" },
-    prolactina: { min: 0.5, max: 200, fix: (v) => v > 200 ? v / 100 : v, label: "[SCALE-FIX] prolactina decimal fix" },
-    insulina_jejum: { min: 0.5, max: 100, fix: (v) => v > 100 ? v / 100 : v, label: "[SCALE-FIX] insulina decimal fix" },
-    tsh: { min: 0.01, max: 100, fix: (v) => v > 200 ? v / 100 : v, label: "[SCALE-FIX] tsh decimal fix" },
-    ferritina: { min: 1, max: 2000, fix: (v) => v > 2000 ? v / 10 : v, label: "[SCALE-FIX] ferritina decimal fix" },
-    acido_urico: { min: 0.5, max: 15, fix: (v) => v > 15 ? v / 10 : v, label: "[SCALE-FIX] acido_urico decimal fix" },
-    tgo_ast: { min: 3, max: 500, fix: (v) => (v > 1000 && v < 10000) ? v / 10 : v, label: "[SCALE-FIX] tgo_ast decimal fix" },
-    tgp_alt: { min: 3, max: 500, fix: (v) => (v > 1000 && v < 10000) ? v / 10 : v, label: "[SCALE-FIX] tgp_alt decimal fix" },
-    transferrina: { min: 100, max: 500, fix: (v) => v < 100 ? v * 10 : v, label: "[SCALE-FIX] transferrina ×10" },
-    neutrofilos_abs: { min: 100, max: 15000, fix: (v) => v < 10 ? v * 1000 : v, label: "[SCALE-FIX] neutrofilos_abs ×1000" },
-    linfocitos_abs: { min: 100, max: 10000, fix: (v) => v < 10 ? v * 1000 : v, label: "[SCALE-FIX] linfocitos_abs ×1000" },
-    monocitos_abs: { min: 10, max: 3000, fix: (v) => v < 1 ? v * 1000 : v, label: "[SCALE-FIX] monocitos_abs ×1000" },
-    eosinofilos_abs: { min: 10, max: 3000, fix: (v) => v < 1 ? v * 1000 : v, label: "[SCALE-FIX] eosinofilos_abs ×1000" },
-    basofilos_abs: { min: 1, max: 500, fix: (v) => v < 1 ? v * 1000 : v, label: "[SCALE-FIX] basofilos_abs ×1000" },
-  };
-
-  // ════════════════════════════════════════════════════════════════════
-  // CATEGORY 3: SANITY BOUNDS (validation only — no fix, just bounds)
-  // ════════════════════════════════════════════════════════════════════
-  const sanityBounds: Record<string, { min: number; max: number }> = {
-    igf1: { min: 20, max: 1000 },
-    t4_livre: { min: 0.1, max: 5 },
-    t3_total: { min: 30, max: 300 },
-    colesterol_total: { min: 50, max: 500 },
-    hdl: { min: 10, max: 150 },
-    ldl: { min: 10, max: 400 },
-    triglicerides: { min: 20, max: 2000 },
-    ferro_serico: { min: 10, max: 500 },
-    ferro_metabolismo: { min: 10, max: 500 },
-    vitamina_d: { min: 3, max: 200 },
-    vitamina_b12: { min: 50, max: 3000 },
-    acido_folico: { min: 0.5, max: 50 },
-    homocisteina: { min: 1, max: 50 },
-    albumina: { min: 1, max: 8 },
-    bilirrubina_total: { min: 0.01, max: 20 },
-    creatinina: { min: 0.1, max: 15 },
-    ureia: { min: 5, max: 200 },
-    calcio_total: { min: 5, max: 15 },
-    calcio_ionico: { min: 0.5, max: 2.5 },
-    sodio: { min: 100, max: 180 },
-    potassio: { min: 2, max: 8 },
-    fosforo: { min: 1, max: 10 },
-    magnesio: { min: 0.5, max: 5 },
-    glicose_jejum: { min: 40, max: 500 },
-    hba1c: { min: 3, max: 15 },
-    fibrinogenio: { min: 50, max: 800 },
-    cortisol: { min: 0.5, max: 50 },
-    eletroforese_albumina: { min: 30, max: 80 },
-    eletroforese_alfa1: { min: 1, max: 10 },
-    eletroforese_alfa2: { min: 4, max: 20 },
-    eletroforese_beta1: { min: 2, max: 12 },
-    eletroforese_beta2: { min: 1, max: 10 },
-    eletroforese_gama: { min: 5, max: 30 },
-    relacao_ag: { min: 0.8, max: 4.0 },
-    psa_total: { min: 0, max: 100 },
-    psa_livre: { min: 0, max: 20 },
-    psa_ratio: { min: 0, max: 100 },
-    glicemia_media_estimada: { min: 50, max: 400 },
-    urina_albumina: { min: 0, max: 300 },
-    urina_creatinina: { min: 10, max: 600 },
-    urina_densidade: { min: 1.000, max: 1.060 },
-    urina_ph: { min: 4.0, max: 9.5 },
-    hemoglobina: { min: 5, max: 22 },
-    hematocrito: { min: 15, max: 70 },
-    vcm: { min: 50, max: 130 },
-    hcm: { min: 15, max: 45 },
-    rdw: { min: 8, max: 30 },
-    vpm: { min: 4, max: 20 },
-    vhs: { min: 0, max: 200 },
-    bastonetes: { min: 0, max: 30 },
-    segmentados: { min: 10, max: 90 },
-    neutrofilos: { min: 10, max: 95 },
-    linfocitos: { min: 3, max: 70 },
-    eosinofilos: { min: 0, max: 30 },
-    monocitos: { min: 0, max: 25 },
-    basofilos: { min: 0, max: 5 },
-    ggt: { min: 3, max: 1000 },
-    fosfatase_alcalina: { min: 10, max: 1000 },
-    bilirrubina_direta: { min: 0, max: 15 },
-    t4_total: { min: 1, max: 25 },
-    t3_reverso: { min: 5, max: 50 },
-    anti_tpo: { min: 0, max: 2000 },
-    anti_tg: { min: 0, max: 2000 },
-    trab: { min: 0, max: 50 },
-    testosterona_total: { min: 1, max: 1500 },
-    fsh: { min: 0.1, max: 200 },
-    lh: { min: 0.1, max: 200 },
-    progesterona: { min: 0.05, max: 50 },
-    dhea_s: { min: 5, max: 700 },
-    shbg: { min: 5, max: 200 },
-    amh: { min: 0.01, max: 25 },
-    vldl: { min: 1, max: 200 },
-  };
-
-  // Merge scaleAdjustments + sanityBounds for the existing fix loop
-  const sanityRanges: Record<string, { min: number; max: number; fix?: (v: number, unit?: string) => number; label?: string }> = {
-    ...sanityBounds,
-    ...Object.fromEntries(Object.entries(scaleAdjustments).map(([k, v]) => [k, { ...v, fix: v.fix as (v: number, unit?: string) => number }])),
-  };
-
-  for (const r of results) {
-    if (typeof r.value !== "number") continue;
-    if (QUALITATIVE_IDS.has(r.marker_id)) continue;
-    if (r.text_value && /^[<>≤≥]=?\s*\d/.test(r.text_value.trim())) continue;
-    const range = sanityRanges[r.marker_id];
-    if (!range || !range.fix) continue;
-    if (r.value < range.min || r.value > range.max) {
-      const original = r.value;
-      r.value = range.fix(r.value, r.unit);
-      if (r.value < range.min * 0.3 || r.value > range.max * 3) {
-        r.value = original; // revert — fix didn't help
-      } else {
-        console.log(`Fixed ${r.marker_id}: ${original} → ${r.value} (${range.label || 'decimal fix'})`);
-      }
-    }
-  }
-
-  // Fix lab references for absolute WBC markers that came in mil/mm³
-  const absWbcMarkers = new Set(['neutrofilos_abs', 'linfocitos_abs', 'monocitos_abs', 'eosinofilos_abs', 'basofilos_abs']);
-  for (const r of results) {
-    if (!absWbcMarkers.has(r.marker_id)) continue;
-    if (typeof r.lab_ref_max === 'number' && r.lab_ref_max < 20) {
-      console.log(`[wbc-ref-fix] Multiplying lab_ref for ${r.marker_id}: ${r.lab_ref_min}-${r.lab_ref_max} → ${(r.lab_ref_min || 0) * 1000}-${r.lab_ref_max * 1000}`);
-      if (typeof r.lab_ref_min === 'number') r.lab_ref_min = r.lab_ref_min * 1000;
-      r.lab_ref_max = r.lab_ref_max * 1000;
-    }
-  }
-
-  // Round all numeric values to avoid floating point artifacts
-  for (const r of results) {
-    if (typeof r.value === 'number' && !QUALITATIVE_IDS.has(r.marker_id)) {
-      if (r.value === 0) continue;
-      const abs = Math.abs(r.value);
-      let decimals: number;
-      if (abs >= 100) decimals = 0;
-      else if (abs >= 10) decimals = 1;
-      else if (abs >= 1) decimals = 2;
-      else if (abs >= 0.1) decimals = 3;
-      else decimals = 4;
-      r.value = parseFloat(r.value.toFixed(decimals));
-    }
-  }
 
   // ── Remove urina_densidade e urina_ph com valores implausíveis ──
   for (const r of results) {
