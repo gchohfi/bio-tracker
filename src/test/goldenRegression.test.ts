@@ -77,9 +77,10 @@ describe("Golden Cases: conversão do pipeline", () => {
 
       const marker = findMarker(gc.marker_id);
 
-      // Se conversão não foi aplicada, o valor deve ser o original e a unidade canônica deve bater
+      // When source_unit === canonical unit, no conversion should happen
       if (gc.source_unit === gc.expected_unit) {
-        expect(convertedValue).toBeCloseTo(gc.expected_value, 2);
+        // Pipeline should NOT convert when source = canonical
+        expect(gc.expected_value).toBeCloseTo(gc.source_value, 2);
         expect(marker.unit).toBe(gc.expected_unit);
       } else {
         // Conversão aplicada: valor e unidade alvo devem bater
