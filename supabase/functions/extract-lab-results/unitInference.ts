@@ -60,7 +60,9 @@ export const UNIT_CONVERSIONS: Record<string, ConversionRule[]> = {
       from_unit_label: "ng/dL",
       to_unit: "pg/mL",
       factor: 10,
-      value_heuristic: (v) => v < 1,
+      // Values < 10 are plausibly ng/dL (1-9 ng/dL = 10-90 pg/mL).
+      // Values >= 10 are likely already in pg/mL (e.g. 44 pg/mL follicular).
+      value_heuristic: (v) => v < 10,
     },
     {
       from_unit_pattern: /pmol/i,
@@ -209,8 +211,16 @@ function findApplicableRule(
   }
 
   // Priority 1b: match by lab_ref_text (medium confidence)
+  // Guard: if the rule has a value_heuristic, the value must also satisfy it.
+  // This prevents false positives where the lab_ref_text mentions a unit
+  // (e.g. in multi-line reference ranges) but the value is already canonical.
   if (labRefText) {
-    const matched = rules.find((r) => r.from_unit_pattern.test(labRefText));
+    const matched = rules.find((r) => {
+      if (!r.from_unit_pattern.test(labRefText)) return false;
+      // If heuristic exists and value is available, require it to pass
+      if (r.value_heuristic && value !== undefined && !r.value_heuristic(value)) return false;
+      return true;
+    });
     if (matched) {
       return {
         rule: matched,
