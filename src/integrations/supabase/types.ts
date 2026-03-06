@@ -183,6 +183,56 @@ export type Database = {
           },
         ]
       }
+      lab_historical_results: {
+        Row: {
+          created_at: string
+          flag: string | null
+          id: string
+          marker_id: string
+          reference_text: string | null
+          result_date: string
+          session_id: string
+          source_type: string
+          text_value: string | null
+          unit: string | null
+          value: number | null
+        }
+        Insert: {
+          created_at?: string
+          flag?: string | null
+          id?: string
+          marker_id: string
+          reference_text?: string | null
+          result_date: string
+          session_id: string
+          source_type?: string
+          text_value?: string | null
+          unit?: string | null
+          value?: number | null
+        }
+        Update: {
+          created_at?: string
+          flag?: string | null
+          id?: string
+          marker_id?: string
+          reference_text?: string | null
+          result_date?: string
+          session_id?: string
+          source_type?: string
+          text_value?: string | null
+          unit?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_historical_results_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "lab_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lab_results: {
         Row: {
           created_at: string
