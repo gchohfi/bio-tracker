@@ -42,8 +42,10 @@ import {
   Sliders,
   ClipboardList,
   Stethoscope,
+  Clock,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
+import EvolutionTimeline from "@/components/EvolutionTimeline";
 import ImportVerification from "@/components/ImportVerification";
 import EditExtractionDialog from "@/components/EditExtractionDialog";
 import EditReportDialog from "@/components/EditReportDialog";
@@ -262,7 +264,7 @@ export default function PatientDetail() {
   const [activeCategory, setActiveCategory] = useState<Category>("Hemograma");
   const [markerValues, setMarkerValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [detailTab, setDetailTab] = useState<"sessions" | "evolution" | "analysis" | "anamnese" | "doctor_notes">("sessions");
+  const [detailTab, setDetailTab] = useState<"sessions" | "evolution" | "timeline" | "analysis" | "anamnese" | "doctor_notes">("sessions");
   const [savedAnalyses, setSavedAnalyses] = useState<any[]>([]);
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
   const [extracting, setExtracting] = useState(false);
@@ -1432,7 +1434,7 @@ export default function PatientDetail() {
         </div>
 
         {/* Tabs for Sessions, Evolution and AI Analysis */}
-        <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "sessions" | "evolution" | "analysis" | "anamnese" | "doctor_notes")}>
+        <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as any)}>
           <TabsList>
             <TabsTrigger value="sessions" className="gap-1.5">
               <FlaskConical className="h-3.5 w-3.5" />
@@ -1441,6 +1443,10 @@ export default function PatientDetail() {
             <TabsTrigger value="evolution" className="gap-1.5">
               <BarChart3 className="h-3.5 w-3.5" />
               Evolução
+            </TabsTrigger>
+            <TabsTrigger value="timeline" className="gap-1.5">
+              <Clock className="h-3.5 w-3.5" />
+              Timeline
             </TabsTrigger>
             <TabsTrigger value="analysis" className="gap-1.5">
               <Brain className="h-3.5 w-3.5" />
@@ -1512,6 +1518,10 @@ export default function PatientDetail() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="timeline" className="mt-4 overflow-hidden">
+            <EvolutionTimeline patientId={patient.id} />
           </TabsContent>
 
           <TabsContent value="evolution" className="mt-4 overflow-hidden">
