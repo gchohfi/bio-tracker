@@ -616,9 +616,10 @@ export function generatePatientReport(
   doc.setFont("helvetica", "normal");
   doc.setTextColor(60, 60, 60);
 
+  const totalClassified = normalCount + alertCount + qualitativeCount;
   const summaryParts = [
     `${sorted.length} sessão(ões)`,
-    `${results.length} resultados registrados`,
+    `${totalClassified} resultados na última sessão`,
   ];
   if (latestSession) {
     summaryParts.push(`${normalCount} dentro da faixa`);
