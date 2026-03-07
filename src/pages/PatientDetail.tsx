@@ -803,6 +803,11 @@ export default function PatientDetail() {
       }
       setCachedAiAnalysis(analysisData?.analysis);
       setCachedProtocols(analysisData?.analysis?.protocol_recommendations ?? []);
+      const v2Report = analysisData?.analysis_v2 as AnalysisV2Data | undefined;
+      if (v2Report && analysisData?.analysis) {
+        // Store V2 keyed by a temporary id (report flow doesn't save to DB)
+        setAnalysisV2Map(prev => ({ ...prev, _report: v2Report }));
+      }
       generatePatientReport(patient.name, sex, sessions, updatedResults, analysisData?.analysis);
       toast({ title: "Relatório completo com IA exportado!" });
     } catch (err: any) {
