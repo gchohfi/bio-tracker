@@ -76,5 +76,5 @@ export function useReviewState(initialState?: ReviewState) {
     [reviews]
   );
 
-  return { reviews, setDecision, clearDecision, getReview, getStats };
+  return { reviews, setDecision, clearDecision, getReview, getStats, setAll };
 }
