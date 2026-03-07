@@ -56,6 +56,7 @@ import { AnamneseTab } from "@/components/AnamneseTab";
 // DoctorNotesTab hidden in Fase A — import preserved for future migration
 // import { DoctorNotesTab } from "@/components/DoctorNotesTab";
 import { ClinicalEvolutionTab } from "@/components/ClinicalEvolutionTab";
+import { ClinicalEvolutionSummary } from "@/components/ClinicalEvolutionSummary";
 import { generatePatientReport } from "@/lib/generateReport";
 import { exportPrescriptionCSV } from "@/lib/exportPrescriptionCSV";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
