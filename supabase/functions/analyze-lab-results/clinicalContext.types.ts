@@ -1,0 +1,176 @@
+/**
+ * clinicalContext.types.ts
+ *
+ * Tipos canônicos para a camada de contexto clínico do sistema de análise IA.
+ * Estes tipos servem como contrato entre:
+ *   - Frontend (PatientDetail.tsx) → monta e envia
+ *   - Edge Function (analyze-lab-results) → consome e injeta no prompt
+ *
+ * IMPORTANTE: Este arquivo define a ESTRUTURA ALVO. A migração será incremental:
+ *   Fase 1 (atual): tipos definidos, não consumidos ainda
+ *   Fase 2: buildUserPrompt() consome ClinicalContext.labs
+ *   Fase 3: frontend envia CanonicalLabResult[] no body
+ */
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CANONICAL LAB RESULT — resultado laboratorial normalizado
+// ══════════════════════════════════════════════════════════════════════════════
+
+export type LabStatus =
+  | "normal"
+  | "low"
+  | "high"
+  | "critical_low"
+  | "critical_high"
+  | "qualitative";
+
+/** Razão pela qual um marcador normal é considerado clinicamente relevante */
+export type RelevanceReason =
+  | "near_lower_limit"   // valor a <15% do limite inferior
+  | "near_upper_limit"   // valor a <15% do limite superior
+  | "key_marker"         // marcador clinicamente importante independente do valor
+  | "trend_change";      // tendência de piora entre sessões
+
+/** Lista de marker_ids considerados clinicamente importantes mesmo quando normais */
+export const KEY_MARKERS: readonly string[] = [
+  "glicose_jejum",
+  "insulina_jejum",
+  "homa_ir",
+  "hba1c",
+  "tsh",
+  "t4_livre",
+  "t3_livre",
+  "ferritina",
+  "vitamina_d",
+  "vitamina_b12",
+  "homocisteina",
+  "pcr",
+  "cortisol",
+  "testosterona_total",
+  "hdl",
+  "ldl",
+  "triglicerides",
+] as const;
+
+export interface CanonicalLabResult {
+  marker_id: string;
+  marker_name: string;
+  value: number | null;
+  text_value?: string;
+  unit: string;
+  status: LabStatus;
+  session_date: string;
+
+  // Referências laboratoriais (do laudo)
+  lab_ref_min?: number;
+  lab_ref_max?: number;
+  lab_ref_text?: string;
+
+  // Referências funcionais (nutrologia)
+  functional_min?: number;
+  functional_max?: number;
+
+  // Contexto de relevância (preenchido apenas para clinicallyRelevantNormals)
+  relevance_reason?: RelevanceReason;
+
+  // Metadados de origem
+  is_derived?: boolean;         // HOMA-IR, relação T3/T4, etc.
+  derived_from?: string[];      // marker_ids usados no cálculo
+  source?: "current" | "historical";
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LAB TREND — tendência entre sessões para um marcador
+// ══════════════════════════════════════════════════════════════════════════════
+
+export interface LabTrend {
+  marker_id: string;
+  marker_name: string;
+  entries: Array<{ date: string; value: number }>;
+  first_value: number;
+  last_value: number;
+  delta_percent: number;       // positivo = subiu, negativo = desceu
+  direction: "up" | "down" | "stable";
+  is_improving: boolean | null; // null = sem contexto para determinar
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CLINICAL CONTEXT — estrutura completa para o prompt de análise
+// ══════════════════════════════════════════════════════════════════════════════
+
+export interface PatientProfile {
+  objectives?: string[];
+  activity_level?: string | null;
+  sport_modality?: string | null;
+  main_complaints?: string | null;
+  restrictions?: string | null;
+}
+
+export interface ClinicalContextLabs {
+  /** Todos os resultados canônicos (current + historical) */
+  allResults: CanonicalLabResult[];
+  /** Resultados fora da faixa (low, high, critical_low, critical_high) */
+  outOfRange: CanonicalLabResult[];
+  /** Normais clinicamente relevantes (perto do limite OU marcador-chave) */
+  clinicallyRelevantNormals: CanonicalLabResult[];
+  /** Marcadores derivados (HOMA-IR, relação T3/T4, etc.) */
+  derivedMarkers: CanonicalLabResult[];
+  /** Tendências entre sessões (quando há ≥2 datas) */
+  trends?: LabTrend[];
+}
+
+export interface ClinicalContext {
+  patientProfile?: PatientProfile | null;
+  anamnese?: string | null;
+  doctorNotes?: string | null;
+  labs: ClinicalContextLabs;
+}
+
+/** Flags retornados no response para indicar o que foi carregado */
+export interface ContextLoaded {
+  anamnesis: boolean;
+  doctorNotes: boolean;
+  patientProfile: boolean;
+  labs: {
+    total: number;
+    outOfRange: number;
+    clinicallyRelevantNormals: number;
+    derivedMarkers: number;
+    trendsCount: number;
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// HELPER: threshold para "próximo do limite"
+// ══════════════════════════════════════════════════════════════════════════════
+
+/** Percentual do range para considerar "perto do limite" */
+export const NEAR_LIMIT_THRESHOLD = 0.15; // 15%
+
+/**
+ * Determina se um valor normal está clinicamente próximo do limite.
+ * Retorna a razão de relevância ou null se não for relevante.
+ */
+export function checkNearLimit(
+  value: number,
+  refMin: number | undefined,
+  refMax: number | undefined,
+): RelevanceReason | null {
+  if (refMin === undefined || refMax === undefined) return null;
+  if (refMin >= refMax) return null;
+
+  const range = refMax - refMin;
+  const lowerThreshold = refMin + range * NEAR_LIMIT_THRESHOLD;
+  const upperThreshold = refMax - range * NEAR_LIMIT_THRESHOLD;
+
+  if (value <= lowerThreshold) return "near_lower_limit";
+  if (value >= upperThreshold) return "near_upper_limit";
+  return null;
+}
+
+/**
+ * Determina se um marcador é clinicamente importante independente do valor.
+ */
+export function isKeyMarker(markerId: string): boolean {
+  return (KEY_MARKERS as readonly string[]).includes(markerId);
+}
