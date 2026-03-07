@@ -21,6 +21,8 @@ import {
   Activity,
   Trash2,
   Clock,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
