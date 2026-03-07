@@ -56,6 +56,7 @@ import { AnamneseTab } from "@/components/AnamneseTab";
 // DoctorNotesTab hidden in Fase A — import preserved for future migration
 // import { DoctorNotesTab } from "@/components/DoctorNotesTab";
 import { ClinicalEvolutionTab } from "@/components/ClinicalEvolutionTab";
+import { ClinicalEvolutionSummary } from "@/components/ClinicalEvolutionSummary";
 import { generatePatientReport } from "@/lib/generateReport";
 import { exportPrescriptionCSV } from "@/lib/exportPrescriptionCSV";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
@@ -1569,12 +1570,35 @@ export default function PatientDetail() {
             )}
           </TabsContent>
 
-          <TabsContent value="timeline" className="mt-4 overflow-hidden">
-            <EvolutionTimeline patientId={patient.id} patientName={patient.name} />
+          <TabsContent value="evolution" className="mt-4">
+            <ClinicalEvolutionSummary
+              patientId={patient.id}
+              onNavigateToEncounter={(encId) => {
+                if (encId) setActiveEncounterId(encId);
+                setDetailTab("clinical_evolution");
+              }}
+            />
           </TabsContent>
 
-          <TabsContent value="evolution" className="mt-4 overflow-hidden">
-            <EvolutionTable patientId={patient.id} sessions={sessions} sex={sex} />
+          <TabsContent value="timeline" className="mt-4 overflow-hidden space-y-4">
+            <Tabs defaultValue="table">
+              <TabsList className="mb-2">
+                <TabsTrigger value="table" className="gap-1.5 text-xs">
+                  <BarChart3 className="h-3 w-3" />
+                  Comparativo
+                </TabsTrigger>
+                <TabsTrigger value="chart" className="gap-1.5 text-xs">
+                  <Clock className="h-3 w-3" />
+                  Timeline
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="table">
+                <EvolutionTable patientId={patient.id} sessions={sessions} sex={sex} />
+              </TabsContent>
+              <TabsContent value="chart">
+                <EvolutionTimeline patientId={patient.id} patientName={patient.name} />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="analysis" className="mt-4">
