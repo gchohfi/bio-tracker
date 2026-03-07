@@ -112,6 +112,54 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_reviews: {
+        Row: {
+          analysis_id: string
+          created_at: string
+          id: string
+          patient_id: string
+          practitioner_id: string
+          review_state_json: Json
+          specialty_id: string
+          updated_at: string
+        }
+        Insert: {
+          analysis_id: string
+          created_at?: string
+          id?: string
+          patient_id: string
+          practitioner_id: string
+          review_state_json?: Json
+          specialty_id?: string
+          updated_at?: string
+        }
+        Update: {
+          analysis_id?: string
+          created_at?: string
+          id?: string
+          patient_id?: string
+          practitioner_id?: string
+          review_state_json?: Json
+          specialty_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_reviews_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "patient_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analysis_reviews_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctor_specialty_notes: {
         Row: {
           adesao_tratamento: string | null
