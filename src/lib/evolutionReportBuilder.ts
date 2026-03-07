@@ -16,7 +16,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import { MARKERS, type MarkerDef, formatRefDisplay } from "@/lib/markers";
+import { MARKERS, type MarkerDef, formatRefDisplay, resolveReference, getMarkerStatusFromRef } from "@/lib/markers";
 import { CATEGORIES, type Category } from "@/lib/categoryConfig";
 
 // ── Types ───────────────────────────────────────────────────────────────
