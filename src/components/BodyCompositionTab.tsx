@@ -436,7 +436,6 @@ export function BodyCompositionTab({ patientId }: BodyCompositionTabProps) {
             <Badge variant="secondary" className="text-[10px]">Importado do PDF — confira antes de salvar</Badge>
           )}
         </div>
-        </Button>
         <div className="flex gap-2">
           {activeSession && (
             <Button size="sm" variant="destructive" className="h-8 text-xs gap-1" onClick={handleDelete}>
