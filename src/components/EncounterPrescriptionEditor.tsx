@@ -107,23 +107,24 @@ export function EncounterPrescriptionEditor({
   };
 
   // ── Save ──
-  const handleSave = async () => {
+  const handleSave = async (overrideStatus?: "draft" | "finalized") => {
     if (!user?.id) return;
     setSaving(true);
+    const effectiveStatus = overrideStatus ?? status;
 
     const payload = {
       encounter_id: encounterId,
       patient_id: patientId,
       practitioner_id: user.id,
       specialty_id: specialtyId,
-      status,
+      status: effectiveStatus,
       prescription_json: items,
     };
 
     if (prescriptionId) {
       await (supabase as any)
         .from("clinical_prescriptions")
-        .update({ prescription_json: items, status })
+        .update({ prescription_json: items, status: effectiveStatus })
         .eq("id", prescriptionId);
     } else {
       const { data } = await (supabase as any)
