@@ -689,18 +689,105 @@ FORMATO DE SAÍDA (JSON estrito):
 }`;
 
 // ══════════════════════════════════════════════════════════════════════════════
-// CLINICAL CONTEXT — tipos e fetch centralizado
 // ══════════════════════════════════════════════════════════════════════════════
-interface ClinicalContext {
-  anamnese: string | null;
-  doctorNotes: string | null;
-  patientProfile: PatientProfile | null;
-}
+// CLINICAL CONTEXT — imports, assembly, fetch
+// ══════════════════════════════════════════════════════════════════════════════
+import type {
+  ClinicalContext,
+  ClinicalContextLabs,
+  ContextLoaded,
+  CanonicalLabResult,
+  LabTrend,
+  LabStatus,
+} from "./clinicalContext.types.ts";
+import { checkNearLimit, isKeyMarker } from "./clinicalContext.types.ts";
 
-interface ContextLoaded {
-  anamnesis: boolean;
-  doctorNotes: boolean;
-  patientProfile: boolean;
+// Derived marker IDs (markers calculated from other markers)
+const DERIVED_MARKER_IDS = new Set([
+  "homa_ir", "relacao_t3_t4", "relacao_albumina_globulina",
+  "glicemia_media_estimada", "colesterol_nao_hdl",
+]);
+
+/**
+ * Builds ClinicalContextLabs from the MarkerResult[] already in the request.
+ * This is a deterministic transformation — no new data is fetched or invented.
+ */
+function buildLabsContext(results: MarkerResult[]): ClinicalContextLabs {
+  // Map MarkerResult -> CanonicalLabResult (1:1, no data changes)
+  const allResults: CanonicalLabResult[] = results.map((r) => ({
+    marker_id: r.marker_id,
+    marker_name: r.marker_name,
+    value: r.value,
+    text_value: r.text_value,
+    unit: r.unit,
+    status: r.status as LabStatus,
+    session_date: r.session_date,
+    lab_ref_min: (r as any).lab_min,
+    lab_ref_max: (r as any).lab_max,
+    functional_min: r.functional_min,
+    functional_max: r.functional_max,
+    is_derived: DERIVED_MARKER_IDS.has(r.marker_id),
+    source: "current" as const,
+  }));
+
+  const outOfRange = allResults.filter(
+    (r) => r.status === "low" || r.status === "high" || r.status === "critical_low" || r.status === "critical_high"
+  );
+
+  const derivedMarkers = allResults.filter((r) => r.is_derived);
+
+  // clinicallyRelevantNormals: normals that are key markers OR near limits
+  const normals = allResults.filter((r) => r.status === "normal");
+  const clinicallyRelevantNormals: CanonicalLabResult[] = [];
+  for (const r of normals) {
+    if (isKeyMarker(r.marker_id)) {
+      clinicallyRelevantNormals.push({ ...r, relevance_reason: "key_marker" });
+    } else if (r.value !== null) {
+      const nearReason = checkNearLimit(r.value, r.lab_ref_min, r.lab_ref_max);
+      if (nearReason) {
+        clinicallyRelevantNormals.push({ ...r, relevance_reason: nearReason });
+      }
+    }
+  }
+
+  // Trends: computed from results with multiple sessions
+  const trends: LabTrend[] = [];
+  const sessionDates = [...new Set(results.map((r) => r.session_date))].sort();
+  if (sessionDates.length > 1) {
+    const markerSessions: Record<string, { name: string; entries: Array<{ date: string; value: number }> }> = {};
+    for (const r of results) {
+      if (r.value !== null) {
+        if (!markerSessions[r.marker_id]) {
+          markerSessions[r.marker_id] = { name: r.marker_name, entries: [] };
+        }
+        markerSessions[r.marker_id].entries.push({ date: r.session_date, value: r.value });
+      }
+    }
+    for (const [id, data] of Object.entries(markerSessions)) {
+      if (data.entries.length > 1) {
+        const sorted = data.entries.sort((a, b) => a.date.localeCompare(b.date));
+        const first = sorted[0];
+        const last = sorted[sorted.length - 1];
+        const deltaPct = first.value !== 0
+          ? ((last.value - first.value) / first.value * 100)
+          : 0;
+        const direction: "up" | "down" | "stable" =
+          last.value > first.value ? "up" : last.value < first.value ? "down" : "stable";
+        trends.push({
+          marker_id: id,
+          marker_name: data.name,
+          entries: sorted,
+          first_value: first.value,
+          last_value: last.value,
+          delta_percent: Math.round(deltaPct * 10) / 10,
+          direction,
+          is_improving: null, // Phase 3: add clinical direction awareness
+        });
+      }
+    }
+  }
+
+  return { allResults, outOfRange, clinicallyRelevantNormals, derivedMarkers, trends };
 }
 
 async function fetchClinicalContext(
@@ -708,11 +795,16 @@ async function fetchClinicalContext(
   patientId: string | undefined,
   specialtyId: string,
   patientProfile: PatientProfile | null | undefined,
+  results: MarkerResult[],
 ): Promise<{ context: ClinicalContext; loaded: ContextLoaded }> {
+  // Build labs context deterministically from results
+  const labs = buildLabsContext(results);
+
   const result: ClinicalContext = {
     anamnese: null,
     doctorNotes: null,
     patientProfile: patientProfile ?? null,
+    labs,
   };
 
   const loaded: ContextLoaded = {
@@ -723,6 +815,13 @@ async function fetchClinicalContext(
       patientProfile.activity_level || patientProfile.sport_modality ||
       patientProfile.main_complaints || patientProfile.restrictions
     )),
+    labs: {
+      total: labs.allResults.length,
+      outOfRange: labs.outOfRange.length,
+      clinicallyRelevantNormals: labs.clinicallyRelevantNormals.length,
+      derivedMarkers: labs.derivedMarkers.length,
+      trendsCount: (labs.trends ?? []).length,
+    },
   };
 
   if (!patientId) return { context: result, loaded };
@@ -786,6 +885,34 @@ async function fetchClinicalContext(
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// PROMPT HELPER: format a lab result line for the prompt
+// ══════════════════════════════════════════════════════════════════════════════
+function formatLabLine(r: CanonicalLabResult, useFunctionalRefs: boolean, includeStatus: boolean): string {
+  const valueStr = r.value !== null ? r.value + " " + r.unit : r.text_value ?? "--";
+  const labRefStr = r.lab_ref_min !== undefined && r.lab_ref_max !== undefined
+    ? "(ref. lab: " + r.lab_ref_min + "-" + r.lab_ref_max + " " + r.unit + ")"
+    : "";
+  const funcRefStr = useFunctionalRefs && r.functional_min !== undefined && r.functional_max !== undefined
+    ? "[faixa funcional: " + r.functional_min + "-" + r.functional_max + "]"
+    : "";
+
+  let statusStr = "";
+  if (includeStatus) {
+    const statusLabels: Record<string, string> = {
+      low: "BAIXO", high: "ALTO", critical_low: "CRITICO BAIXO", critical_high: "CRITICO ALTO",
+    };
+    statusStr = statusLabels[r.status] ?? "";
+  }
+
+  let line = "- " + r.marker_name + ": " + valueStr;
+  if (statusStr) line += " " + statusStr;
+  if (labRefStr) line += " " + labRefStr;
+  if (funcRefStr) line += " " + funcRefStr;
+  line += " [" + r.session_date + "]";
+  return line;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // BUILD USER PROMPT
 // ══════════════════════════════════════════════════════════════════════════════
 function buildUserPrompt(
@@ -795,7 +922,6 @@ function buildUserPrompt(
   clinicalContext: ClinicalContext,
   specialtyIdOverride?: string
 ): string {
-  // Referências funcionais apenas para Nutrologia; demais especialidades usam ref. do laboratório
   const activeSpecialty = specialtyIdOverride ?? req.specialty_id ?? "medicina_funcional";
   const useFunctionalRefs = activeSpecialty === "nutrologia";
   const age = req.birth_date
@@ -804,12 +930,9 @@ function buildUserPrompt(
 
   const sexLabel = req.sex === "M" ? "Masculino" : "Feminino";
   const ageLabel = age ? age + " anos" : "idade nao informada";
+  const labs = clinicalContext.labs;
 
-  const sessionDates = [...new Set(req.results.map((r) => r.session_date))].sort();
-  const abnormal = req.results.filter(
-    (r) => r.status === "low" || r.status === "high" || r.status === "critical_low" || r.status === "critical_high"
-  );
-  const normal = req.results.filter((r) => r.status === "normal");
+  const sessionDates = [...new Set(labs.allResults.map((r) => r.session_date))].sort();
 
   let prompt = "DADOS DO PACIENTE:\n" +
     "- Nome: " + req.patient_name + "\n" +
@@ -817,7 +940,7 @@ function buildUserPrompt(
     "- Idade: " + ageLabel + "\n" +
     "- Sessoes: " + sessionDates.length + " (" + sessionDates.join(", ") + ")\n";
 
-  // Perfil do paciente (from clinicalContext)
+  // Perfil do paciente
   const p = clinicalContext.patientProfile;
   if (p) {
     if (p.objectives && p.objectives.length > 0) prompt += "- Objetivos: " + p.objectives.join(", ") + "\n";
@@ -827,7 +950,7 @@ function buildUserPrompt(
     if (p.restrictions) prompt += "- Restricoes/alergias: " + p.restrictions + "\n";
   }
 
-  // ── Clinical context sections (anamnese + doctor notes) ──
+  // ── Clinical context sections ──
   if (clinicalContext.anamnese) {
     prompt += "\nANAMNESE DO PACIENTE (" + activeSpecialty.replace(/_/g, " ") + "):\n" + clinicalContext.anamnese + "\n";
   }
@@ -835,53 +958,53 @@ function buildUserPrompt(
     prompt += "\nNOTAS CLINICAS DO MEDICO (" + activeSpecialty.replace(/_/g, " ") + "):\n" + clinicalContext.doctorNotes + "\n";
   }
 
-  prompt += "\nMARCADORES FORA DA FAIXA LABORATORIAL (" + abnormal.length + "):\n";
-  for (const r of abnormal) {
-    const valueStr = r.value !== null ? r.value + " " + r.unit : r.text_value ?? "--";
-    const labRefStr = (r as any).lab_min !== undefined && (r as any).lab_max !== undefined
-      ? "(ref. lab: " + (r as any).lab_min + "-" + (r as any).lab_max + " " + r.unit + ")"
-      : "";
-    const funcRefStr = useFunctionalRefs && r.functional_min !== undefined && r.functional_max !== undefined
-      ? "[faixa funcional: " + r.functional_min + "-" + r.functional_max + "]"
-      : "";
-    const statusLabels: Record<string, string> = {
-      low: "BAIXO", high: "ALTO", critical_low: "CRITICO BAIXO", critical_high: "CRITICO ALTO",
-    };
-    prompt += "- " + r.marker_name + ": " + valueStr + " " + (statusLabels[r.status] ?? r.status) + " " + labRefStr + " " + funcRefStr + " [" + r.session_date + "]\n";
+  // ── Lab results: out of range ──
+  prompt += "\nMARCADORES FORA DA FAIXA LABORATORIAL (" + labs.outOfRange.length + "):\n";
+  for (const r of labs.outOfRange) {
+    prompt += formatLabLine(r, useFunctionalRefs, true) + "\n";
   }
 
-  prompt += "\nMARCADORES DENTRO DA FAIXA LABORATORIAL (" + normal.length + "):\n";
-  for (const r of normal) {
-    const valueStr = r.value !== null ? r.value + " " + r.unit : r.text_value ?? "--";
-    const funcRefStr = useFunctionalRefs && r.functional_min !== undefined && r.functional_max !== undefined
-      ? "[faixa funcional: " + r.functional_min + "-" + r.functional_max + "]"
-      : "";
-    prompt += "- " + r.marker_name + ": " + valueStr + " " + funcRefStr + " [" + r.session_date + "]\n";
+  // ── Lab results: normals (excluding clinically relevant, listed separately) ──
+  const relevantIds = new Set(labs.clinicallyRelevantNormals.map((r) => r.marker_id + "|" + r.session_date));
+  const plainNormals = labs.allResults.filter(
+    (r) => r.status === "normal" && !relevantIds.has(r.marker_id + "|" + r.session_date)
+  );
+  prompt += "\nMARCADORES DENTRO DA FAIXA LABORATORIAL (" + plainNormals.length + "):\n";
+  for (const r of plainNormals) {
+    prompt += formatLabLine(r, useFunctionalRefs, false) + "\n";
   }
 
-  // Tendências entre sessões
-  if (sessionDates.length > 1) {
+  // ── Clinically relevant normals (new section) ──
+  if (labs.clinicallyRelevantNormals.length > 0) {
+    prompt += "\nMARCADORES NORMAIS CLINICAMENTE RELEVANTES (" + labs.clinicallyRelevantNormals.length + "):\n";
+    for (const r of labs.clinicallyRelevantNormals) {
+      const reasonLabel = r.relevance_reason === "near_lower_limit" ? "(proximo do limite inferior)"
+        : r.relevance_reason === "near_upper_limit" ? "(proximo do limite superior)"
+        : r.relevance_reason === "key_marker" ? "(marcador-chave)"
+        : "";
+      prompt += formatLabLine(r, useFunctionalRefs, false) + " " + reasonLabel + "\n";
+    }
+  }
+
+  // ── Derived markers (if any, highlighted) ──
+  if (labs.derivedMarkers.length > 0) {
+    prompt += "\nMARCADORES DERIVADOS/CALCULADOS (" + labs.derivedMarkers.length + "):\n";
+    for (const r of labs.derivedMarkers) {
+      const statusLabel = r.status !== "normal" ? (" " + (r.status === "high" ? "ALTO" : r.status === "low" ? "BAIXO" : r.status.toUpperCase())) : "";
+      prompt += "- " + r.marker_name + ": " + (r.value !== null ? r.value + " " + r.unit : r.text_value ?? "--") + statusLabel + " [" + r.session_date + "]\n";
+    }
+  }
+
+  // ── Trends ──
+  if (labs.trends && labs.trends.length > 0) {
     prompt += "\nTENDENCIAS (multiplas sessoes):\n";
-    const markerSessions: Record<string, Array<{ date: string; value: number }>> = {};
-    for (const r of req.results) {
-      if (r.value !== null) {
-        if (!markerSessions[r.marker_name]) markerSessions[r.marker_name] = [];
-        markerSessions[r.marker_name].push({ date: r.session_date, value: r.value });
-      }
-    }
-    for (const [name, entries] of Object.entries(markerSessions)) {
-      if (entries.length > 1) {
-        const sorted = entries.sort((a, b) => a.date.localeCompare(b.date));
-        const first = sorted[0];
-        const last = sorted[sorted.length - 1];
-        const delta = ((last.value - first.value) / first.value * 100).toFixed(1);
-        const trend = last.value > first.value ? "+" : last.value < first.value ? "-" : "=";
-        prompt += "- " + name + ": " + first.value + " -> " + last.value + " (" + trend + " " + delta + "%)\n";
-      }
+    for (const t of labs.trends) {
+      const sign = t.direction === "up" ? "+" : t.direction === "down" ? "-" : "=";
+      prompt += "- " + t.marker_name + ": " + t.first_value + " -> " + t.last_value + " (" + sign + " " + t.delta_percent + "%)\n";
     }
   }
 
-  // Ativos terapêuticos pré-selecionados (Camada 1+2)
+  // ── Therapeutic actives (Camada 1+2) ──
   const mode = req.mode ?? "full";
   if (mode !== "analysis_only" && scoredActives.length > 0) {
     prompt += "\n(A) ATIVOS TERAPEUTICOS MAIS RELEVANTES PARA ESTE PACIENTE (calculados pelo sistema):\n";
@@ -1087,15 +1210,16 @@ serve(async (req) => {
       console.warn("Failed to load prompt from DB, using default:", promptLoadError);
     }
 
-    // ── Fetch clinical context (anamnese + doctor notes) in parallel ──
+    // ── Fetch clinical context (anamnese + doctor notes + labs) ──
     const { context: clinicalContext, loaded: contextLoaded } = await fetchClinicalContext(
       serviceClient,
       body.patient_id,
       specialtyId,
       body.patient_profile,
+      body.results,
     );
 
-    // Camada 1+2: Score de ativos terapeuticos
+    // Camada 1+2: Score de ativos terapeuticos (using labs.outOfRange from context)
     const abnormalResults = body.results.filter(
       (r) => r.status === "low" || r.status === "high" || r.status === "critical_low" || r.status === "critical_high"
     );
@@ -1113,6 +1237,8 @@ serve(async (req) => {
     const userPrompt = buildUserPrompt(bodyWithMode, scoredActives, matchedProtocols, clinicalContext, specialtyId);
     console.log(
       "Analyzing " + body.results.length + " markers for " + body.patient_name + " | specialty: " + specialtyId + " | " +
+      "labs: " + contextLoaded.labs.total + " total, " + contextLoaded.labs.outOfRange + " OOR, " +
+      contextLoaded.labs.clinicallyRelevantNormals + " relevant normals, " + contextLoaded.labs.trendsCount + " trends | " +
       abnormalResults.length + " abnormal | " + scoredActives.length + " actives scored | " +
       matchedProtocols.length + " protocols matched | has_protocols: " + specialtyHasProtocols +
       " | context: anamnesis=" + contextLoaded.anamnesis + " notes=" + contextLoaded.doctorNotes + " profile=" + contextLoaded.patientProfile
