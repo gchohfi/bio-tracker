@@ -1538,6 +1538,10 @@ export default function PatientDetail() {
               <ClipboardList className="h-3.5 w-3.5" />
               Anamnese
             </TabsTrigger>
+            <TabsTrigger value="body_composition" className="gap-1.5">
+              <Scale className="h-3.5 w-3.5" />
+              Composição Corporal
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="sessions" className="mt-4">
