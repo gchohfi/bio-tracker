@@ -53,6 +53,7 @@ import AliasConfigDialog, { loadCustomAliases } from "@/components/AliasConfigDi
 import { PatientProfileDialog } from "@/components/PatientProfileDialog";
 import { AnamneseTab } from "@/components/AnamneseTab";
 import { DoctorNotesTab } from "@/components/DoctorNotesTab";
+import { ClinicalEvolutionTab } from "@/components/ClinicalEvolutionTab";
 import { generatePatientReport } from "@/lib/generateReport";
 import { exportPrescriptionCSV } from "@/lib/exportPrescriptionCSV";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
@@ -265,7 +266,7 @@ export default function PatientDetail() {
   const [activeCategory, setActiveCategory] = useState<Category>("Hemograma");
   const [markerValues, setMarkerValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [detailTab, setDetailTab] = useState<"sessions" | "evolution" | "timeline" | "analysis" | "anamnese" | "doctor_notes">("sessions");
+  const [detailTab, setDetailTab] = useState<"sessions" | "evolution" | "timeline" | "analysis" | "anamnese" | "doctor_notes" | "clinical_evolution">("sessions");
   const [savedAnalyses, setSavedAnalyses] = useState<any[]>([]);
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
   const [extracting, setExtracting] = useState(false);
