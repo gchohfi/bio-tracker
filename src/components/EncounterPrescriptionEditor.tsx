@@ -22,7 +22,9 @@ import {
   X,
   User,
   Undo2,
+  FileDown,
 } from "lucide-react";
+import { generatePrescriptionPdf } from "@/lib/generatePrescriptionPdf";
 
 // ── Types ──
 
@@ -57,6 +59,11 @@ interface EncounterPrescriptionEditorProps {
   isFinalized: boolean;
   /** Legacy prescription from analysis to use as fallback seed */
   legacyPrescription?: any[];
+  /** Metadata for PDF export */
+  patientName?: string;
+  encounterDate?: string;
+  specialtyName?: string;
+  practitionerName?: string;
 }
 
 const EMPTY_CORE: PrescriptionItemCore = {
