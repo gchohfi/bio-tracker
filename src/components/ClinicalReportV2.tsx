@@ -819,18 +819,25 @@ export default function ClinicalReportV2({ data, patientName, analysisId, patien
               {reviewMode ? "Revisando" : "Revisar"}
             </Button>
             {reviewMode && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-[11px] px-3"
-                onClick={() => {
-                  const reviewed = buildReviewedReport(data, reviews);
-                  generateReportV2Pdf(reviewed, patientName || "Paciente");
-                }}
-              >
-                <FileDown className="h-3.5 w-3.5 mr-1" />
-                Exportar PDF
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-[11px] px-3"
+                  onClick={() => {
+                    const reviewed = buildReviewedReport(data, reviews);
+                    generateReportV2Pdf(reviewed, patientName || "Paciente");
+                  }}
+                >
+                  <FileDown className="h-3.5 w-3.5 mr-1" />
+                  Exportar PDF
+                </Button>
+                <ReviewHistoryPanel
+                  analysisId={analysisId}
+                  currentHash={currentHashRef.current}
+                  allItemIds={allIds}
+                />
+              </>
             )}
           </div>
         </div>
