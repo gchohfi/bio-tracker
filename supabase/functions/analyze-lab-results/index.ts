@@ -639,6 +639,21 @@ REGRAS IMPORTANTES:
 7. Quando houver múltiplas sessões, identifique tendências — destaque melhorias
 8. Seja conciso mas completo — máximo 3-5 pontos por seção
 
+INSTRUÇÕES PARA HIPÓTESES DIAGNÓSTICAS (OBRIGATÓRIO):
+- O campo "diagnostic_hypotheses" é OBRIGATÓRIO no JSON de saída
+- Gere 2-4 hipóteses diagnósticas ESPECÍFICAS e clinicamente úteis
+- NÃO use placeholders genéricos como "análise técnica disponível"
+- Cada hipótese deve ser uma condição clínica real e acionável (ex: "Dislipidemia primária", "Síndrome metabólica inicial", "Deficiência funcional de ferro")
+- Ordene por probabilidade (probable > possible > unlikely)
+- Inclua achados contra (contradicting_findings) quando existirem — isso aumenta a confiança do médico
+- Inclua exames confirmatórios específicos para cada hipótese
+
+INSTRUÇÕES PARA FOLLOW-UP (OBRIGATÓRIO):
+- O campo "follow_up" é OBRIGATÓRIO no JSON de saída
+- suggested_exams: liste os exames mais importantes para o próximo retorno, não repita os já realizados
+- suggested_return_days: estime o prazo ideal de retorno (30, 60, 90 dias) baseado na gravidade dos achados
+- notes: inclua observações relevantes como "reavaliar após início da suplementação" ou "correlacionar com sintomas clínicos"
+
 INSTRUÇÕES PARA RECOMENDAÇÃO DE PROTOCOLOS (CRÍTICO):
 Você receberá:
   (A) Os ATIVOS TERAPÊUTICOS mais relevantes para este paciente (já calculados pelo sistema com base nos marcadores alterados e objetivos)
@@ -654,12 +669,27 @@ Sua tarefa é:
 4. Definir prioridade: "alta" (marcadores críticos ou múltiplos marcadores alterados), "media" (1-2 marcadores alterados), "baixa" (objetivo do paciente sem marcadores alterados)
 5. Incluir no campo "key_actives" os 2-3 ativos mais importantes do protocolo para este paciente
 
-FORMATO DE SAÍDA (JSON estrito):
+FORMATO DE SAÍDA (JSON estrito — TODOS os campos são obrigatórios):
 {
   "summary": "Parágrafo de 2-3 frases equilibrado: pontos positivos primeiro, depois atenções",
   "patterns": ["Padrões clínicos identificados — incluir padrões positivos também"],
   "trends": ["Tendências entre sessões — destacar melhorias"],
   "suggestions": ["Sugestões de exames complementares — apenas quando clinicamente justificado"],
+  "diagnostic_hypotheses": [
+    {
+      "hypothesis": "Nome da hipótese diagnóstica específica (ex: Dislipidemia primária, SOP, Deficiência funcional de ferro)",
+      "supporting_findings": ["Achado laboratorial ou clínico que sustenta esta hipótese"],
+      "contradicting_findings": ["Achado que vai contra esta hipótese, se houver — pode ser array vazio"],
+      "confirmatory_exams": ["Exames específicos para confirmar ou refutar esta hipótese"],
+      "likelihood": "probable | possible | unlikely",
+      "priority": "critical | high | medium | low"
+    }
+  ],
+  "follow_up": {
+    "suggested_exams": ["Exames a solicitar no próximo retorno, com justificativa breve"],
+    "suggested_return_days": 90,
+    "notes": "Observações de acompanhamento relevantes para o médico"
+  },
   "full_text": "Análise narrativa completa em 3-5 parágrafos. Tom equilibrado e profissional.",
   "technical_analysis": "DOCUMENTO 1 — ANÁLISE TÉCNICA COMPLETA: texto detalhado com faixas funcionais, cálculos mostrados (ex: HOMA-IR = glicose × insulina / 405), correlações entre marcadores, exames recebidos listados com unidades, exames ausentes sinalizados.",
   "patient_plan": "DOCUMENTO 2 — PLANO DE CONDUTAS: mudanças de estilo de vida, suplementação oral, injetáveis indicados (quando aplicável), acompanhamento proposto. Texto corrido, linguagem acessível para o paciente.",
@@ -687,6 +717,7 @@ FORMATO DE SAÍDA (JSON estrito):
     }
   ]
 }`;
+
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1042,6 +1073,9 @@ function buildUserPrompt(
     prompt += " Minimo de 3 itens. Se houver suplementacao oral mencionada no patient_plan, ela DEVE aparecer na prescription_table.\n";
   }
 
+  prompt += "\n\nINSTRUÇÕES OBRIGATÓRIAS PARA O JSON DE SAÍDA:";
+  prompt += "\n1. O campo 'diagnostic_hypotheses' é OBRIGATÓRIO. Gere 2-4 hipóteses diagnósticas ESPECÍFICAS (ex: 'Dislipidemia primária', 'Deficiência funcional de ferro', 'SOP'). NÃO use placeholders genéricos. Cada hipótese deve ter: hypothesis, supporting_findings, contradicting_findings (array vazio se não houver), confirmatory_exams, likelihood (probable/possible/unlikely), priority.";
+  prompt += "\n2. O campo 'follow_up' é OBRIGATÓRIO. Deve conter: suggested_exams (exames para o próximo retorno), suggested_return_days (30/60/90 dias), notes (observações de acompanhamento).";
   prompt += "\nRetorne um JSON com a analise clinica estruturada conforme o formato especificado.";
   return prompt;
 }
