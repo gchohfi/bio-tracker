@@ -134,6 +134,7 @@ export function ClinicalEvolutionTab({ patientId, specialtyId, onRequestAnalysis
   // ── Open encounter detail ──
   const openEncounter = async (enc: Encounter) => {
     setActiveEncounter(enc);
+    // Load note
     const { data } = await (supabase as any)
       .from("clinical_evolution_notes")
       .select("*")
@@ -141,6 +142,15 @@ export function ClinicalEvolutionTab({ patientId, specialtyId, onRequestAnalysis
       .single();
 
     setNote(data ? { ...data } : { encounter_id: enc.id, ...EMPTY_NOTE });
+
+    // Load linked analyses
+    const { data: analyses } = await (supabase as any)
+      .from("patient_analyses")
+      .select("id, specialty_name, specialty_id, created_at, mode")
+      .eq("encounter_id", enc.id)
+      .order("created_at", { ascending: false });
+    setLinkedAnalyses(analyses ?? []);
+
     setView("form");
   };
 
