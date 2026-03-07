@@ -329,7 +329,7 @@ export function ClinicalEvolutionTab({ patientId, specialtyId, onRequestAnalysis
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => { setView("list"); setActiveEncounter(null); }} className="gap-1.5">
+        <Button variant="ghost" size="sm" onClick={() => { setView("list"); setActiveEncounter(null); setLinkedAnalyses([]); }} className="gap-1.5">
           <ArrowLeft className="h-4 w-4" />
           Voltar
         </Button>
