@@ -124,6 +124,10 @@ export function EncounterPrescriptionEditor({
   specialtyId,
   isFinalized,
   legacyPrescription,
+  patientName,
+  encounterDate,
+  specialtyName,
+  practitionerName,
 }: EncounterPrescriptionEditorProps) {
   const { user } = useAuth();
   const { toast } = useToast();
