@@ -16,7 +16,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import { MARKERS, type MarkerDef, formatRefDisplay } from "@/lib/markers";
+import { MARKERS, type MarkerDef, formatRefDisplay, resolveReference, getMarkerStatusFromRef } from "@/lib/markers";
 import { CATEGORIES, type Category } from "@/lib/categoryConfig";
 
 // ── Types ───────────────────────────────────────────────────────────────
@@ -59,28 +59,25 @@ const DERIVED_MARKERS = new Set([
 // ── Helpers ─────────────────────────────────────────────────────────────
 
 /**
- * Compute flag (high/low/null) for a numeric value using the marker's labRange.
- * Uses sex "F" as default for female patients (most common in this system).
+ * Compute flag (high/low/null) for a numeric value using resolveReference
+ * (same logic as EvolutionTable) for consistency across all views.
+ *
+ * Uses resolveReference which includes sanity checking against labRange,
+ * preventing incorrect flags when lab_ref values are in the wrong scale.
  */
 function computeFlag(
   value: number | null,
   marker: MarkerDef | undefined,
-  labRefMin: number | null | undefined,
-  labRefMax: number | null | undefined,
+  sex: "M" | "F",
+  labRefText: string | null | undefined,
 ): string | null {
   if (value === null || value === undefined) return null;
-  if (marker?.qualitative) return null;
+  if (!marker) return null;
+  if (marker.qualitative) return null;
 
-  // Prefer specific lab reference if available
-  const min = labRefMin ?? marker?.labRange?.F?.[0] ?? null;
-  const max = labRefMax ?? marker?.labRange?.F?.[1] ?? null;
-
-  // Skip sentinel maxes (999, 9999, 99999, etc.)
-  const isSentinel = (v: number) => /^9{3,}$/.test(String(v));
-
-  if (min !== null && value < min) return "low";
-  if (max !== null && !isSentinel(max) && value > max) return "high";
-  return null;
+  const ref = resolveReference(marker, sex, labRefText || undefined);
+  const status = getMarkerStatusFromRef(value, ref);
+  return status === "normal" ? null : status;
 }
 
 /**
@@ -110,11 +107,14 @@ function buildFallbackRef(markerId: string, marker: MarkerDef | undefined): stri
 // ── Builder ─────────────────────────────────────────────────────────────
 
 export async function buildEvolutionReport(patientId: string): Promise<EvolutionReportData> {
-  // 1. Fetch all sessions for this patient
-  const { data: sessions } = await supabase
-    .from("lab_sessions")
-    .select("id, session_date")
-    .eq("patient_id", patientId);
+  // 1. Fetch patient sex + all sessions in parallel
+  const [patientRes, sessionsRes] = await Promise.all([
+    supabase.from("patients").select("sex").eq("id", patientId).single(),
+    supabase.from("lab_sessions").select("id, session_date").eq("patient_id", patientId),
+  ]);
+
+  const patientSex: "M" | "F" = (patientRes.data?.sex === "M" ? "M" : "F");
+  const sessions = sessionsRes.data;
 
   if (!sessions || sessions.length === 0) {
     return { patient_id: patientId, dates: [], sections: [] };
@@ -122,11 +122,9 @@ export async function buildEvolutionReport(patientId: string): Promise<Evolution
 
   const sessionIds = sessions.map((s) => s.id);
   const sessionDateMap: Record<string, string> = {};
-  sessions.forEach((s) => {
-    sessionDateMap[s.id] = s.session_date;
-  });
+  sessions.forEach((s) => { sessionDateMap[s.id] = s.session_date; });
 
-  // 2. Fetch current + historical results in parallel
+
   const [currentRes, historicalRes] = await Promise.all([
     supabase.from("lab_results").select("*").in("session_id", sessionIds),
     (supabase as any)
@@ -175,10 +173,14 @@ export async function buildEvolutionReport(patientId: string): Promise<Evolution
       if (newVal <= existingVal) continue;
     }
 
+    // Recompute flag at display time using resolveReference (consistent with current results)
+    const markerDef = markerDefMap.get(markerId);
+    const recomputedFlag = computeFlag(h.value ?? null, markerDef, patientSex, h.reference_text || null);
+
     cellMap[markerId][date] = {
       value: h.value ?? null,
       text_value: h.text_value || null,
-      flag: h.flag || null,
+      flag: recomputedFlag,
       source: "historical",
       source_lab: h.source_lab || null,
       source_document: h.source_document || null,
@@ -198,13 +200,13 @@ export async function buildEvolutionReport(patientId: string): Promise<Evolution
     const labRefText = (r as any).lab_ref_text;
     if (labRefText && !referenceMap[markerId]) referenceMap[markerId] = labRefText;
 
-    // Compute flag for current results
+    // Compute flag using resolveReference (with sanity checking + correct sex)
     const markerDef = markerDefMap.get(markerId);
     const flag = computeFlag(
       r.value ?? null,
       markerDef,
-      r.lab_ref_min ?? null,
-      r.lab_ref_max ?? null,
+      patientSex,
+      labRefText,
     );
 
     cellMap[markerId][sessionDate] = {
