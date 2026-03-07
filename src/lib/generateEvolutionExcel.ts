@@ -225,7 +225,7 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
 
     // Category header row
     const catRow = wsEvo.addRow([section.category]);
-    wsEvo.mergeCells(rowIndex, 1, rowIndex, numDates + 2);
+    wsEvo.mergeCells(rowIndex, 1, rowIndex, totalEvoCols);
     catRow.getCell(1).font = { bold: true, size: 10, color: { argb: WHITE_ARGB } };
     catRow.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: catArgb } };
     catRow.getCell(1).alignment = { horizontal: "left", vertical: "middle" };
@@ -253,6 +253,26 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
         }
       }
       rowValues.push(marker.reference_text || "—");
+
+      // ── Functional reference (parallel layer) ──
+      // Use last available numeric value for status evaluation
+      let lastValue: number | null = null;
+      for (let di = data.dates.length - 1; di >= 0; di--) {
+        const c = marker.values_by_date[data.dates[di]];
+        if (c?.value !== null && c?.value !== undefined) {
+          lastValue = c.value;
+          break;
+        }
+      }
+
+      const funcResult = resolveFunctionalRef(marker.marker_id, lastValue, sex, marker.unit);
+      rowValues.push(funcResult?.refText ?? "");
+      rowValues.push(
+        funcResult === null ? ""
+        : funcResult.status === "normal" ? "Normal"
+        : funcResult.status === "fora" ? "Fora"
+        : "—"
+      );
 
       const dataRow = wsEvo.addRow(rowValues);
       dataRow.height = 18;
@@ -288,6 +308,26 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
       refCell.font = { size: 8, color: { argb: GRAY_TEXT_ARGB } };
       refCell.alignment = { horizontal: "center", vertical: "middle" };
       refCell.border = thinBorder;
+
+      // Style functional reference cell
+      const funcRefCell = dataRow.getCell(numDates + 3);
+      funcRefCell.font = { size: 8, color: { argb: GRAY_TEXT_ARGB } };
+      funcRefCell.alignment = { horizontal: "center", vertical: "middle" };
+      funcRefCell.border = thinBorder;
+
+      // Style functional status cell
+      const funcStatusCell = dataRow.getCell(numDates + 4);
+      funcStatusCell.alignment = { horizontal: "center", vertical: "middle" };
+      funcStatusCell.border = thinBorder;
+      if (funcResult?.status === "normal") {
+        funcStatusCell.font = { bold: true, size: 9, color: { argb: GREEN_TEXT_ARGB } };
+        funcStatusCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG_ARGB } };
+      } else if (funcResult?.status === "fora") {
+        funcStatusCell.font = { bold: true, size: 9, color: { argb: RED_TEXT_ARGB } };
+        funcStatusCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: RED_BG_ARGB } };
+      } else {
+        funcStatusCell.font = { size: 8, color: { argb: GRAY_TEXT_ARGB } };
+      }
 
       // Alternate row shading
       if ((rowIndex - 4) % 2 === 0) {
