@@ -122,6 +122,7 @@ export function BodyCompositionTab({ patientId }: BodyCompositionTabProps) {
   const [saving, setSaving] = useState(false);
   const [newDate, setNewDate] = useState<Date>(new Date());
   const [importing, setImporting] = useState(false);
+  const [sourceType, setSourceType] = useState<string>("manual");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Load sessions ──
