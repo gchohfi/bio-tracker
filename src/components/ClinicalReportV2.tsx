@@ -482,8 +482,8 @@ function CollapsibleFindingGroup({ system, items, ...rp }: { system: string; ite
               </div>
               {item.markers.length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  {item.markers.map((m) => (
-                    <Badge key={m} variant="secondary" className="text-[9px] font-mono">{m}</Badge>
+                  {item.markers.map((m, idx) => (
+                    <Badge key={`${m}-${idx}`} variant="secondary" className="text-[9px] font-mono">{m}</Badge>
                   ))}
                 </div>
               )}
