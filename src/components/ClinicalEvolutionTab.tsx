@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { EncounterPrescriptionEditor } from "@/components/EncounterPrescriptionEditor";
 
 interface ClinicalEvolutionTabProps {
   patientId: string;
