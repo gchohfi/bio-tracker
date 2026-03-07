@@ -95,6 +95,35 @@ export interface LabTrend {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// BODY COMPOSITION — dados de composição corporal (InBody, bioimpedância)
+// ══════════════════════════════════════════════════════════════════════════════
+
+export interface BodyCompositionSnapshot {
+  session_date: string;
+  weight_kg: number | null;
+  bmi: number | null;
+  skeletal_muscle_kg: number | null;
+  body_fat_kg: number | null;
+  body_fat_pct: number | null;
+  visceral_fat_level: number | null;
+  total_body_water_l: number | null;
+  ecw_tbw_ratio: number | null;
+  bmr_kcal: number | null;
+  waist_cm: number | null;
+  hip_cm: number | null;
+  waist_hip_ratio: number | null;
+}
+
+export interface BodyCompositionContext {
+  /** Most recent session */
+  current: BodyCompositionSnapshot | null;
+  /** Previous session (for trend comparison) */
+  previous: BodyCompositionSnapshot | null;
+  /** Number of total sessions available */
+  totalSessions: number;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // CLINICAL CONTEXT — estrutura completa para o prompt de análise
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -124,6 +153,7 @@ export interface ClinicalContext {
   anamnese?: string | null;
   doctorNotes?: string | null;
   labs: ClinicalContextLabs;
+  bodyComposition?: BodyCompositionContext | null;
 }
 
 /** Flags retornados no response para indicar o que foi carregado */
@@ -131,6 +161,7 @@ export interface ContextLoaded {
   anamnesis: boolean;
   doctorNotes: boolean;
   patientProfile: boolean;
+  bodyComposition: boolean;
   labs: {
     total: number;
     outOfRange: number;
