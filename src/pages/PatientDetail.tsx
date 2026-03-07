@@ -310,6 +310,16 @@ export default function PatientDetail() {
     if (data) {
       setSavedAnalyses(data);
       if (data.length > 0) setSelectedAnalysis(data[0]);
+      // Hydrate V2 map from persisted data
+      const v2Entries: Record<string, AnalysisV2Data> = {};
+      for (const a of data) {
+        if (a.analysis_v2_data) {
+          v2Entries[a.id] = a.analysis_v2_data as AnalysisV2Data;
+        }
+      }
+      if (Object.keys(v2Entries).length > 0) {
+        setAnalysisV2Map(prev => ({ ...prev, ...v2Entries }));
+      }
     }
   };
 
@@ -710,6 +720,14 @@ export default function PatientDetail() {
         .select()
         .single();
       if (savedData) {
+        // Persist V2 data alongside V1
+        if (v2) {
+          await (supabase as any)
+            .from("patient_analyses")
+            .update({ analysis_v2_data: v2 })
+            .eq("id", savedData.id);
+          savedData.analysis_v2_data = v2;
+        }
         setSavedAnalyses(prev => [savedData, ...prev]);
         setSelectedAnalysis(savedData);
         setDetailTab("analysis");
