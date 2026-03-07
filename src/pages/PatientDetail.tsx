@@ -1689,7 +1689,13 @@ export default function PatientDetail() {
                     <CardContent className="space-y-6">
                       {/* ── V2 STRUCTURED REPORT ── */}
                       {analysisV2Map[selectedAnalysis.id] && (
-                        <ClinicalReportV2 data={analysisV2Map[selectedAnalysis.id]} patientName={patient?.name} />
+                        <ClinicalReportV2
+                          data={analysisV2Map[selectedAnalysis.id]}
+                          patientName={patient?.name}
+                          analysisId={selectedAnalysis.id}
+                          patientId={patient?.id}
+                          specialtyId={selectedAnalysis.specialty_id}
+                        />
                       )}
 
                       {/* ── VISÃO GERAL (V1) ── */}

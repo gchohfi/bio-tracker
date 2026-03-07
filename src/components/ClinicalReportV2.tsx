@@ -1,4 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -675,13 +677,53 @@ function ReviewSummaryBar({ stats }: { stats: ReviewStats }) {
 interface ClinicalReportV2Props {
   data: AnalysisV2Data;
   patientName?: string;
+  analysisId?: string;
+  patientId?: string;
+  specialtyId?: string;
   initialReviewState?: ReviewState;
   onReviewChange?: (reviews: ReviewState) => void;
 }
 
-export default function ClinicalReportV2({ data, patientName, initialReviewState, onReviewChange }: ClinicalReportV2Props) {
+export default function ClinicalReportV2({ data, patientName, analysisId, patientId, specialtyId, initialReviewState, onReviewChange }: ClinicalReportV2Props) {
   const [reviewMode, setReviewMode] = useState(false);
-  const { reviews, setDecision, clearDecision, getReview, getStats } = useReviewState(initialReviewState);
+  const { reviews, setDecision, clearDecision, getReview, getStats, setAll } = useReviewState(initialReviewState);
+  const { user } = useAuth();
+  const loadedRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Load persisted review state ──
+  useEffect(() => {
+    if (!analysisId || !user?.id || loadedRef.current) return;
+    loadedRef.current = true;
+    (async () => {
+      const { data: row } = await (supabase as any)
+        .from("analysis_reviews")
+        .select("review_state_json")
+        .eq("analysis_id", analysisId)
+        .eq("practitioner_id", user.id)
+        .maybeSingle();
+      if (row?.review_state_json && Object.keys(row.review_state_json).length > 0) {
+        setAll(row.review_state_json as ReviewState);
+      }
+    })();
+  }, [analysisId, user?.id]);
+
+  // ── Debounced save ──
+  const persistReview = useCallback((state: ReviewState) => {
+    if (!analysisId || !user?.id || !patientId) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      await (supabase as any)
+        .from("analysis_reviews")
+        .upsert({
+          analysis_id: analysisId,
+          practitioner_id: user.id,
+          patient_id: patientId,
+          specialty_id: specialtyId || "medicina_funcional",
+          review_state_json: state,
+        }, { onConflict: "analysis_id,practitioner_id" });
+    }, 800);
+  }, [analysisId, user?.id, patientId, specialtyId]);
 
   // Collect all reviewable item IDs
   const allIds = [
@@ -694,8 +736,9 @@ export default function ClinicalReportV2({ data, patientName, initialReviewState
 
   const handleDecision: ReviewControlsProps["onDecision"] = (id, decision, opts) => {
     setDecision(id, decision, opts);
-    const updatedEntry = { decision, ...opts, reviewed_at: new Date().toISOString() };
-    onReviewChange?.({ ...reviews, [id]: updatedEntry });
+    const updated = { ...reviews, [id]: { decision, ...opts, reviewed_at: new Date().toISOString() } };
+    onReviewChange?.(updated);
+    persistReview(updated);
   };
 
   const handleClear: ReviewControlsProps["onClear"] = (id) => {
@@ -703,6 +746,7 @@ export default function ClinicalReportV2({ data, patientName, initialReviewState
     const next = { ...reviews };
     delete next[id];
     onReviewChange?.(next);
+    persistReview(next);
   };
 
   const reviewProps: ReviewSectionProps = {
