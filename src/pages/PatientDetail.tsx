@@ -345,11 +345,24 @@ export default function PatientDetail() {
     }
   };
 
+  // ── Load encounters for filter ──
+  const loadEncountersForFilter = async () => {
+    if (!id || !user?.id) return;
+    const { data } = await (supabase as any)
+      .from("clinical_encounters")
+      .select("id, encounter_date, chief_complaint")
+      .eq("patient_id", id)
+      .eq("practitioner_id", user.id)
+      .order("encounter_date", { ascending: false });
+    setEncountersForFilter(data ?? []);
+  };
+
   useEffect(() => {
     if (!id) return;
     fetchData();
     loadSpecialties();
     loadSavedAnalyses();
+    loadEncountersForFilter();
   }, [id]);
 
   const loadSpecialties = async () => {
