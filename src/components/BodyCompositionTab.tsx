@@ -121,6 +121,8 @@ export function BodyCompositionTab({ patientId }: BodyCompositionTabProps) {
   const [form, setForm] = useState<FormFields>({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
   const [newDate, setNewDate] = useState<Date>(new Date());
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Load sessions ──
   const loadSessions = useCallback(async () => {
