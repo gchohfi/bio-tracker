@@ -81,7 +81,7 @@ export const MARKER_LIST = [
   { id: "cortisol_livre_urina", name: "Cortisol Livre (urina 24h)", unit: "µg/24h" },
   { id: "aldosterona", name: "Aldosterona", unit: "ng/dL" },
   { id: "renina", name: "Renina (Atividade de Renina Plasmática)", unit: "µUI/mL" },
-  { id: "dihidrotestosterona", name: "Dihidrotestosterona", unit: "pg/mL" },
+  { id: "dihidrotestosterona", name: "Dihidrotestosterona", unit: "ng/dL" },
   { id: "androstenediona", name: "Androstenediona", unit: "ng/dL" },
   { id: "vitamina_d", name: "Vitamina D (25-OH)", unit: "ng/mL" },
   { id: "vitamina_d_125", name: "1,25-Dihidroxi Vitamina D", unit: "pg/mL" },

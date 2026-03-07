@@ -74,7 +74,7 @@ const VALUE_HEURISTICS: Record<string, Record<string, (v: number) => boolean>> =
     "ng/dL": (v) => v > 50,
   },
   dihidrotestosterona: {
-    "ng/dL": (v) => v < 5,
+    "pg/mL": (v) => v > 50,
   },
 };
 
