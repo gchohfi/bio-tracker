@@ -57,14 +57,10 @@ PDF do Laudo
 │       │                         │
 │       ├──▶ generateReport.ts    │
 │       │   PDF do relatório      │
-│       │   (resolveReference,    │
-│       │    formatRefDisplay,    │
-│       │    getMarkerStatusFromRef)
 │       │                         │
 │       ├──▶ evolutionReportBuilder│
-│       │   Série temporal        │
-│       │   (lab_results +        │
-│       │    lab_historical)      │
+│       │   Série temporal +      │
+│       │   buildFallbackRef()    │
 │       │                         │
 │       ├──▶ generateEvolutionPdf │
 │       │   PDF evolutivo         │
@@ -74,36 +70,27 @@ PDF do Laudo
 └─────────────────────────────────┘
 ```
 
-## Fonte de Verdade
+## Fonte de Verdade (v1.2)
 
 | Conceito | Fonte | Arquivo |
 |---|---|---|
-| Unidade canônica de cada marcador | `MARKERS[].unit` | `src/lib/markers.ts` |
-| Referência laboratorial convencional | `MARKERS[].labRange` | `src/lib/markers.ts` |
-| Regras de conversão de unidade | `UNIT_CONVERSIONS` | `supabase/functions/extract-lab-results/unitInference.ts` |
+| Unidade canônica | `MARKERS[].unit` | `src/lib/markers.ts` |
+| Referência laboratorial | `MARKERS[].labRange` | `src/lib/markers.ts` |
+| Regras de conversão | `CONVERSION_RULES` | `pipeline/conversionRules.ts` |
+| Aliases de marcador | `MARKER_ALIASES` | `pipeline/markerAliases.ts` |
 | Valores persistidos | `lab_results` + `lab_historical_results` | Banco de dados |
 | Classificação de status | `resolveReference()` → `getMarkerStatusFromRef()` | `src/lib/markers.ts` |
-| Exibição de referência no PDF | `formatRefDisplay()` | `src/lib/markers.ts` |
+| Fallback de referência | `buildFallbackRef()` | `src/lib/evolutionReportBuilder.ts` |
 
 ## Onde Adicionar uma Nova Regra de Conversão
 
-1. **Abrir** `supabase/functions/extract-lab-results/unitInference.ts`
-2. **Adicionar** entrada em `UNIT_CONVERSIONS[marker_id]`
-3. **Definir**: `from_unit_pattern`, `from_unit_label`, `to_unit`, `factor`, `value_heuristic` (opcional)
-4. **Verificar** que `MARKERS[marker_id].unit` em `src/lib/markers.ts` corresponde ao `to_unit`
-5. **Adicionar** golden case em `src/test/goldenCases.fixtures.ts`
-6. **Rodar** testes: `npm test`
-
-## Resumo do PDF — Fórmula de Contagem
-
-```
-totalClassified = normalCount + alertCount + qualitativeCount
-```
-
-- **normalCount**: marcadores numéricos com `getMarkerStatusFromRef() === "normal"`
-- **alertCount**: marcadores numéricos com `getMarkerStatusFromRef() !== "normal"`
-- **qualitativeCount**: marcadores com `marker.qualitative === true` que possuem `text_value`
-- Marcadores multi-fase (ciclo menstrual) são contados como `normalCount`
+1. **Abrir** `supabase/functions/extract-lab-results/pipeline/conversionRules.ts`
+2. **Adicionar** entrada em `CONVERSION_RULES[marker_id]`
+3. **Definir**: `from_unit_pattern`, `from_unit_label`, `to_unit`, `factor`, `description`
+4. **Se necessário**, adicionar alias em `pipeline/markerAliases.ts`
+5. **Verificar** que `MARKERS[marker_id].unit` em `src/lib/markers.ts` corresponde ao `to_unit`
+6. **Adicionar** golden case em `src/test/goldenCases.fixtures.ts`
+7. **Rodar** testes: `npm test`
 
 ## Sequência de Execução
 
@@ -111,12 +98,31 @@ totalClassified = normalCount + alertCount + qualitativeCount
 NORMALIZE → INFER UNIT → CONVERT → SCALE → VALIDATE → DERIVE → FALLBACK → PERSIST
 ```
 
-Cada etapa é **idempotente**: re-executar produz o mesmo resultado.
+Cada etapa é **idempotente**.
 
 ## Diferenciação de Transformações
 
 | Tipo | Exemplo | Responsável |
 |---|---|---|
-| Unit Conversion | mg/dL → mg/L (×10) | `convert.ts` via `unitInference.ts` |
+| Unit Conversion | pg/mL → ng/dL (×0.1) | `convert.ts` via `conversionRules.ts` |
 | Scale Adjustment | leucócitos 4.5 → 4500 | `scale.ts` |
 | Derived Value | HOMA-IR = glicose × insulina / 405 | `derive.ts` |
+
+## Módulos Sensíveis (Rollback)
+
+| Prioridade | Módulo | Risco |
+|---|---|---|
+| 🔴 Alta | `conversionRules.ts` | Conversão incorreta altera valores clínicos |
+| 🔴 Alta | `unitInference.ts` / `infer_unit.ts` | Heurísticas podem disparar conversão indevida |
+| 🟡 Média | `evolutionReportBuilder.ts` | Fallback de referência afeta PDF evolutivo |
+| 🟢 Baixa | `prompt.ts` | Afeta apenas extração futura, não dados existentes |
+
+## Resumo do PDF — Fórmula de Contagem
+
+```
+totalClassified = normalCount + alertCount + qualitativeCount
+```
+
+- **normalCount**: `getMarkerStatusFromRef() === "normal"`
+- **alertCount**: `getMarkerStatusFromRef() !== "normal"`
+- **qualitativeCount**: `marker.qualitative === true` com `text_value`
