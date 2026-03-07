@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { ReviewState } from "@/hooks/useReviewState";
+import type { AnalysisV2Data } from "@/components/ClinicalReportV2";
 
 interface SnapshotRow {
   id: string;
@@ -72,18 +73,60 @@ const REASON_LABELS: Record<string, string> = {
   review_completed: "Revisão finalizada",
 };
 
+const SECTION_LABELS: Record<string, string> = {
+  red_flag: "Alerta Crítico",
+  clinical_finding: "Achado Clínico",
+  diagnostic_hypothesis: "Hipótese Diagnóstica",
+  suggested_action: "Ação Sugerida",
+};
+
+/** Build a map from item ID → readable label using the analysis data */
+function buildItemLabelMap(data?: AnalysisV2Data): Record<string, string> {
+  if (!data) return {};
+  const map: Record<string, string> = {};
+
+  for (const item of data.red_flags) {
+    const text = item.finding?.slice(0, 40) || "Alerta";
+    map[item.id] = `${text} — ${SECTION_LABELS.red_flag}`;
+  }
+  for (const item of data.clinical_findings) {
+    const system = item.system || "Sistema";
+    map[item.id] = `${system} — ${SECTION_LABELS.clinical_finding}`;
+  }
+  for (const item of data.diagnostic_hypotheses) {
+    const text = item.hypothesis?.slice(0, 40) || "Hipótese";
+    map[item.id] = `${text} — ${SECTION_LABELS.diagnostic_hypothesis}`;
+  }
+  for (const item of data.suggested_actions) {
+    const text = item.description?.slice(0, 40) || "Ação";
+    map[item.id] = `${text} — ${SECTION_LABELS.suggested_action}`;
+  }
+
+  return map;
+}
+
+const DECISION_LABELS: Record<string, string> = {
+  accepted: "Aceito",
+  edited: "Editado",
+  rejected: "Rejeitado",
+  pending: "Pendente",
+};
+
 interface ReviewHistoryPanelProps {
   analysisId: string;
   currentHash: string | null;
   allItemIds: string[];
+  analysisData?: AnalysisV2Data;
 }
 
-export function ReviewHistoryPanel({ analysisId, currentHash, allItemIds }: ReviewHistoryPanelProps) {
+export function ReviewHistoryPanel({ analysisId, currentHash, allItemIds, analysisData }: ReviewHistoryPanelProps) {
   const { user } = useAuth();
   const [snapshots, setSnapshots] = useState<SnapshotRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const itemLabels = useMemo(() => buildItemLabelMap(analysisData), [analysisData]);
 
   useEffect(() => {
     if (!open || !analysisId || !user?.id) return;
@@ -117,7 +160,7 @@ export function ReviewHistoryPanel({ analysisId, currentHash, allItemIds }: Revi
             Histórico de Revisões
           </SheetTitle>
           <p className="text-xs text-muted-foreground">
-            Timeline de snapshots salvos para esta análise.
+            Registro de todas as revisões realizadas nesta análise.
           </p>
         </SheetHeader>
         <Separator />
@@ -128,7 +171,7 @@ export function ReviewHistoryPanel({ analysisId, currentHash, allItemIds }: Revi
             )}
             {!loading && snapshots.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-8">
-                Nenhum snapshot de revisão encontrado.
+                Nenhum registro de revisão encontrado.
               </p>
             )}
 
@@ -137,7 +180,7 @@ export function ReviewHistoryPanel({ analysisId, currentHash, allItemIds }: Revi
               <div className="flex items-center gap-2 mb-3">
                 <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-                  Estado atual salvo em analysis_reviews
+                  Revisão ativa atual
                 </span>
               </div>
             )}
@@ -222,16 +265,16 @@ export function ReviewHistoryPanel({ analysisId, currentHash, allItemIds }: Revi
                         {/* Metadata */}
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-muted-foreground pt-2">
                           <div className="flex items-center gap-1">
-                            <span className="font-medium">Motivo:</span>
+                            <span className="font-medium">Tipo:</span>
                             <span>{REASON_LABELS[snap.snapshot_reason] ?? snap.snapshot_reason}</span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <span className="font-medium">Schema:</span>
+                            <span className="font-medium">Versão:</span>
                             <span>v{snap.schema_version}</span>
                           </div>
                           <div className="flex items-center gap-1 col-span-2">
                             <Hash className="h-2.5 w-2.5" />
-                            <span className="font-medium">Hash:</span>
+                            <span className="font-medium">Análise:</span>
                             <code className="font-mono text-[9px]">{snap.analysis_v2_hash ?? "—"}</code>
                             {hashMatch && (
                               <Badge className="text-[8px] h-3.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border-0 ml-1">
@@ -251,30 +294,35 @@ export function ReviewHistoryPanel({ analysisId, currentHash, allItemIds }: Revi
                         {/* Individual item decisions */}
                         <div className="space-y-1 max-h-48 overflow-y-auto">
                           <p className="text-[10px] font-medium text-muted-foreground">Decisões registradas:</p>
-                          {Object.entries(snap.review_state_json).map(([itemId, review]) => (
-                            <div key={itemId} className="flex items-center gap-2 text-[10px] py-0.5">
-                              <DecisionDot decision={review.decision} />
-                              <code className="font-mono text-[9px] text-muted-foreground truncate max-w-[120px]">
-                                {itemId}
-                              </code>
-                              <span className="text-muted-foreground">→</span>
-                              <span className={cn(
-                                "font-medium",
-                                review.decision === "accepted" && "text-emerald-600",
-                                review.decision === "edited" && "text-blue-600",
-                                review.decision === "rejected" && "text-red-500",
-                              )}>
-                                {review.decision === "accepted" ? "Aceito" :
-                                 review.decision === "edited" ? "Editado" :
-                                 review.decision === "rejected" ? "Rejeitado" : "Pendente"}
-                              </span>
-                              {review.edited_content && (
-                                <span className="text-muted-foreground truncate max-w-[100px]" title={review.edited_content}>
-                                  "{review.edited_content.slice(0, 30)}…"
-                                </span>
-                              )}
-                            </div>
-                          ))}
+                          {Object.entries(snap.review_state_json).map(([itemId, review]) => {
+                            const label = itemLabels[itemId];
+                            return (
+                              <div key={itemId} className="flex items-start gap-2 text-[10px] py-0.5">
+                                <DecisionDot decision={review.decision} className="mt-1" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-foreground truncate max-w-[200px]" title={label || itemId}>
+                                      {label || itemId}
+                                    </span>
+                                    <span className="text-muted-foreground">→</span>
+                                    <span className={cn(
+                                      "font-medium shrink-0",
+                                      review.decision === "accepted" && "text-emerald-600",
+                                      review.decision === "edited" && "text-blue-600",
+                                      review.decision === "rejected" && "text-red-500",
+                                    )}>
+                                      {DECISION_LABELS[review.decision] ?? review.decision}
+                                    </span>
+                                  </div>
+                                  {review.edited_content && (
+                                    <p className="text-muted-foreground truncate mt-0.5 italic" title={review.edited_content}>
+                                      "{review.edited_content.slice(0, 50)}…"
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     </CollapsibleContent>
@@ -289,7 +337,7 @@ export function ReviewHistoryPanel({ analysisId, currentHash, allItemIds }: Revi
   );
 }
 
-function DecisionDot({ decision }: { decision: string }) {
+function DecisionDot({ decision, className }: { decision: string; className?: string }) {
   return (
     <div className={cn(
       "h-2 w-2 rounded-full shrink-0",
@@ -297,6 +345,7 @@ function DecisionDot({ decision }: { decision: string }) {
       decision === "edited" && "bg-blue-500",
       decision === "rejected" && "bg-red-500",
       decision === "pending" && "bg-muted-foreground/40",
+      className,
     )} />
   );
 }
