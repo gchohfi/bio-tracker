@@ -377,15 +377,6 @@ export default function Index() {
         {/* Patient list */}
         <div>
           <h2 className="mb-3 text-lg font-semibold">Pacientes</h2>
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              placeholder="Buscar paciente..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
 
           {loading ? (
             <div className="flex justify-center py-12">
