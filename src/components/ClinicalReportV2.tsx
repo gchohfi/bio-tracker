@@ -136,17 +136,18 @@ const DECISION_CONFIG: Record<ReviewDecision, { label: string; icon: typeof Chec
   pending: { label: "Pendente", icon: Info, className: "text-muted-foreground", bgClassName: "" },
 };
 
-function PriorityBadge({ priority }: { priority: ClinicalPriority }) {
-  const cfg = PRIORITY_CONFIG[priority];
+function PriorityBadge({ priority }: { priority: ClinicalPriority | string }) {
+  const cfg = PRIORITY_CONFIG[priority as ClinicalPriority] ?? PRIORITY_CONFIG.medium;
   return <Badge className={cn("text-[10px] font-medium", cfg.className)}>{cfg.label}</Badge>;
 }
 
-function SourceBadge({ source }: { source: SourceType }) {
+function SourceBadge({ source }: { source: SourceType | string }) {
+  const label = SOURCE_LABELS[source as SourceType] ?? source;
   return (
     <Badge variant="outline" className="text-[9px] font-normal gap-1">
       {source === "deterministic" && <Shield className="h-2.5 w-2.5" />}
       {source === "llm" && <Lightbulb className="h-2.5 w-2.5" />}
-      {SOURCE_LABELS[source]}
+      {label}
     </Badge>
   );
 }
