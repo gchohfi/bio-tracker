@@ -845,6 +845,7 @@ async function fetchClinicalContext(
   const loaded: ContextLoaded = {
     anamnesis: false,
     doctorNotes: false,
+    bodyComposition: false,
     patientProfile: !!(patientProfile && (
       (patientProfile.objectives && patientProfile.objectives.length > 0) ||
       patientProfile.activity_level || patientProfile.sport_modality ||
