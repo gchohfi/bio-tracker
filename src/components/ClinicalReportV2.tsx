@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Collapsible,
   CollapsibleContent,
@@ -18,7 +19,19 @@ import {
   Shield,
   FlaskConical,
   Info,
+  Check,
+  Pencil,
+  X,
+  Undo2,
+  MessageSquare,
 } from "lucide-react";
+import {
+  useReviewState,
+  type ReviewDecision,
+  type ItemReview,
+  type ReviewState,
+  type ReviewStats,
+} from "@/hooks/useReviewState";
 
 // ── Types matching analysisResponseV2.types.ts ──────────────────────────
 
@@ -116,6 +129,13 @@ const ACTION_TYPE_ICONS: Record<string, string> = {
   refer: "🏥",
 };
 
+const DECISION_CONFIG: Record<ReviewDecision, { label: string; icon: typeof Check; className: string; bgClassName: string }> = {
+  accepted: { label: "Aceito", icon: Check, className: "text-emerald-700 dark:text-emerald-400", bgClassName: "border-emerald-300 bg-emerald-50/50 dark:border-emerald-800 dark:bg-emerald-950/20" },
+  edited: { label: "Editado", icon: Pencil, className: "text-blue-700 dark:text-blue-400", bgClassName: "border-blue-300 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20" },
+  rejected: { label: "Rejeitado", icon: X, className: "text-red-600 dark:text-red-400", bgClassName: "border-red-300 bg-red-50/30 dark:border-red-800 dark:bg-red-950/20 opacity-60" },
+  pending: { label: "Pendente", icon: Info, className: "text-muted-foreground", bgClassName: "" },
+};
+
 function PriorityBadge({ priority }: { priority: ClinicalPriority }) {
   const cfg = PRIORITY_CONFIG[priority];
   return <Badge className={cn("text-[10px] font-medium", cfg.className)}>{cfg.label}</Badge>;
@@ -131,9 +151,222 @@ function SourceBadge({ source }: { source: SourceType }) {
   );
 }
 
-// ── Section Components ──────────────────────────────────────────────────
+function ReviewStatusBadge({ review }: { review?: ItemReview }) {
+  if (!review || review.decision === "pending") return null;
+  const cfg = DECISION_CONFIG[review.decision];
+  const Icon = cfg.icon;
+  return (
+    <Badge variant="outline" className={cn("text-[9px] font-medium gap-1 border", cfg.className, cfg.bgClassName.split(" ").filter(c => c.startsWith("border-")).join(" "))}>
+      <Icon className="h-2.5 w-2.5" />
+      {cfg.label}
+    </Badge>
+  );
+}
 
-function RedFlagsSection({ flags }: { flags: RedFlagItem[] }) {
+// ── Review Controls ─────────────────────────────────────────────────────
+
+interface ReviewControlsProps {
+  itemId: string;
+  originalText: string;
+  review?: ItemReview;
+  onDecision: (id: string, decision: ReviewDecision, opts?: { edited_content?: string; physician_note?: string }) => void;
+  onClear: (id: string) => void;
+}
+
+function ReviewControls({ itemId, originalText, review, onDecision, onClear }: ReviewControlsProps) {
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(review?.edited_content ?? originalText);
+  const [noteText, setNoteText] = useState(review?.physician_note ?? "");
+  const [showNote, setShowNote] = useState(false);
+
+  const hasDecision = review && review.decision !== "pending";
+
+  const handleAccept = () => {
+    onDecision(itemId, "accepted", noteText ? { physician_note: noteText } : undefined);
+    setEditing(false);
+  };
+
+  const handleReject = () => {
+    onDecision(itemId, "rejected", noteText ? { physician_note: noteText } : undefined);
+    setEditing(false);
+  };
+
+  const handleSaveEdit = () => {
+    onDecision(itemId, "edited", {
+      edited_content: editText,
+      physician_note: noteText || undefined,
+    });
+    setEditing(false);
+  };
+
+  const handleUndo = () => {
+    onClear(itemId);
+    setEditing(false);
+    setEditText(originalText);
+    setNoteText("");
+    setShowNote(false);
+  };
+
+  return (
+    <div className="space-y-2">
+      {/* Edit area */}
+      {editing && (
+        <div className="space-y-2 mt-2">
+          <Textarea
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            className="text-xs min-h-[60px] bg-background"
+            placeholder="Editar conteúdo..."
+          />
+          <div className="flex gap-1.5">
+            <Button size="sm" variant="default" className="h-6 text-[10px] px-2" onClick={handleSaveEdit}>
+              Salvar edição
+            </Button>
+            <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={() => setEditing(false)}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Note area */}
+      {showNote && !editing && (
+        <div className="mt-2">
+          <Textarea
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            className="text-xs min-h-[40px] bg-background"
+            placeholder="Nota do médico..."
+          />
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div className="flex items-center gap-1 mt-1">
+        {!hasDecision && !editing && (
+          <>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 text-[10px] px-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+              onClick={handleAccept}
+            >
+              <Check className="h-3 w-3 mr-0.5" />
+              Aceitar
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 text-[10px] px-2 text-blue-700 hover:text-blue-800 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30"
+              onClick={() => { setEditing(true); setEditText(originalText); }}
+            >
+              <Pencil className="h-3 w-3 mr-0.5" />
+              Editar
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 text-[10px] px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+              onClick={handleReject}
+            >
+              <X className="h-3 w-3 mr-0.5" />
+              Rejeitar
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 text-[10px] px-1.5 text-muted-foreground"
+              onClick={() => setShowNote(!showNote)}
+            >
+              <MessageSquare className="h-3 w-3" />
+            </Button>
+          </>
+        )}
+        {hasDecision && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 text-[10px] px-2 text-muted-foreground"
+            onClick={handleUndo}
+          >
+            <Undo2 className="h-3 w-3 mr-0.5" />
+            Desfazer
+          </Button>
+        )}
+      </div>
+
+      {/* Show physician note if present */}
+      {review?.physician_note && !showNote && (
+        <p className="text-[10px] text-muted-foreground italic mt-1">
+          <MessageSquare className="h-2.5 w-2.5 inline mr-0.5" />
+          {review.physician_note}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Reviewable Item Wrapper ─────────────────────────────────────────────
+
+interface ReviewableItemProps {
+  itemId: string;
+  originalText: string;
+  review?: ItemReview;
+  onDecision: ReviewControlsProps["onDecision"];
+  onClear: ReviewControlsProps["onClear"];
+  reviewMode: boolean;
+  children: React.ReactNode;
+}
+
+function ReviewableItem({ itemId, originalText, review, onDecision, onClear, reviewMode, children }: ReviewableItemProps) {
+  const decision = review?.decision ?? "pending";
+  const cfg = DECISION_CONFIG[decision];
+
+  return (
+    <div className={cn(
+      "rounded-md border p-3 space-y-1.5 transition-all",
+      reviewMode && decision !== "pending" ? cfg.bgClassName : "bg-background"
+    )}>
+      {/* Show edited version if edited, original with strikethrough */}
+      {review?.decision === "edited" && review.edited_content && (
+        <div className="space-y-1">
+          <p className="text-sm text-blue-700 dark:text-blue-400">{review.edited_content}</p>
+          <p className="text-[10px] text-muted-foreground line-through">{originalText}</p>
+        </div>
+      )}
+
+      {/* Show original content if not edited */}
+      {review?.decision !== "edited" && children}
+
+      {/* Review status badge */}
+      {review && review.decision !== "pending" && (
+        <ReviewStatusBadge review={review} />
+      )}
+
+      {/* Review controls */}
+      {reviewMode && (
+        <ReviewControls
+          itemId={itemId}
+          originalText={originalText}
+          review={review}
+          onDecision={onDecision}
+          onClear={onClear}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Section Components (with review) ────────────────────────────────────
+
+interface ReviewSectionProps {
+  reviewMode: boolean;
+  getReview: (id: string) => ItemReview | undefined;
+  onDecision: ReviewControlsProps["onDecision"];
+  onClear: ReviewControlsProps["onClear"];
+}
+
+function RedFlagsSection({ flags, ...rp }: { flags: RedFlagItem[] } & ReviewSectionProps) {
   if (flags.length === 0) return null;
 
   return (
@@ -146,37 +379,46 @@ function RedFlagsSection({ flags }: { flags: RedFlagItem[] }) {
       </div>
       <div className="space-y-2">
         {flags.map((flag) => (
-          <div key={flag.id} className="rounded-md bg-background p-3 border border-destructive/20 space-y-1.5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium">{flag.finding}</span>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <Badge className={cn("text-[10px]", SEVERITY_CONFIG[flag.severity].className)}>
-                  {SEVERITY_CONFIG[flag.severity].label}
-                </Badge>
-                <SourceBadge source={flag.source_type} />
+          <ReviewableItem
+            key={flag.id}
+            itemId={flag.id}
+            originalText={`${flag.finding} — ${flag.suggested_action}`}
+            review={rp.getReview(flag.id)}
+            onDecision={rp.onDecision}
+            onClear={rp.onClear}
+            reviewMode={rp.reviewMode}
+          >
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium">{flag.finding}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Badge className={cn("text-[10px]", SEVERITY_CONFIG[flag.severity].className)}>
+                    {SEVERITY_CONFIG[flag.severity].label}
+                  </Badge>
+                  <SourceBadge source={flag.source_type} />
+                </div>
               </div>
+              {flag.evidence.length > 0 && (
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  {flag.evidence.map((e, i) => (
+                    <p key={i}>• {e}</p>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs font-medium text-destructive/80">
+                ➜ {flag.suggested_action}
+              </p>
             </div>
-            {flag.evidence.length > 0 && (
-              <div className="text-xs text-muted-foreground space-y-0.5">
-                {flag.evidence.map((e, i) => (
-                  <p key={i}>• {e}</p>
-                ))}
-              </div>
-            )}
-            <p className="text-xs font-medium text-destructive/80">
-              ➜ {flag.suggested_action}
-            </p>
-          </div>
+          </ReviewableItem>
         ))}
       </div>
     </div>
   );
 }
 
-function ClinicalFindingsSection({ findings }: { findings: ClinicalFindingItem[] }) {
+function ClinicalFindingsSection({ findings, ...rp }: { findings: ClinicalFindingItem[] } & ReviewSectionProps) {
   if (findings.length === 0) return null;
 
-  // Group by system
   const grouped: Record<string, ClinicalFindingItem[]> = {};
   for (const f of findings) {
     if (!grouped[f.system]) grouped[f.system] = [];
@@ -193,14 +435,14 @@ function ClinicalFindingsSection({ findings }: { findings: ClinicalFindingItem[]
       </div>
       <div className="space-y-2">
         {Object.entries(grouped).map(([system, items]) => (
-          <CollapsibleFindingGroup key={system} system={system} items={items} />
+          <CollapsibleFindingGroup key={system} system={system} items={items} {...rp} />
         ))}
       </div>
     </div>
   );
 }
 
-function CollapsibleFindingGroup({ system, items }: { system: string; items: ClinicalFindingItem[] }) {
+function CollapsibleFindingGroup({ system, items, ...rp }: { system: string; items: ClinicalFindingItem[] } & ReviewSectionProps) {
   const [open, setOpen] = useState(true);
   const highestPriority = items.reduce<ClinicalPriority>((acc, item) => {
     const order: ClinicalPriority[] = ["critical", "high", "medium", "low"];
@@ -222,7 +464,15 @@ function CollapsibleFindingGroup({ system, items }: { system: string; items: Cli
       <CollapsibleContent>
         <div className="ml-6 mt-1 space-y-1.5">
           {items.map((item) => (
-            <div key={item.id} className="rounded border p-2.5 bg-muted/20 space-y-1">
+            <ReviewableItem
+              key={item.id}
+              itemId={item.id}
+              originalText={item.interpretation}
+              review={rp.getReview(item.id)}
+              onDecision={rp.onDecision}
+              onClear={rp.onClear}
+              reviewMode={rp.reviewMode}
+            >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm">{item.interpretation}</p>
                 <div className="flex items-center gap-1 shrink-0">
@@ -237,7 +487,7 @@ function CollapsibleFindingGroup({ system, items }: { system: string; items: Cli
                   ))}
                 </div>
               )}
-            </div>
+            </ReviewableItem>
           ))}
         </div>
       </CollapsibleContent>
@@ -245,7 +495,7 @@ function CollapsibleFindingGroup({ system, items }: { system: string; items: Cli
   );
 }
 
-function HypothesesSection({ hypotheses }: { hypotheses: DiagnosticHypothesisItem[] }) {
+function HypothesesSection({ hypotheses, ...rp }: { hypotheses: DiagnosticHypothesisItem[] } & ReviewSectionProps) {
   if (hypotheses.length === 0) return null;
 
   const likelihoodLabels: Record<string, string> = {
@@ -264,37 +514,47 @@ function HypothesesSection({ hypotheses }: { hypotheses: DiagnosticHypothesisIte
       </div>
       <div className="space-y-2">
         {hypotheses.map((h) => (
-          <div key={h.id} className="rounded-md border bg-background p-3 space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium">{h.hypothesis}</span>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <Badge variant="outline" className="text-[10px]">
-                  {likelihoodLabels[h.likelihood] ?? h.likelihood}
-                </Badge>
-                <PriorityBadge priority={h.priority} />
-                <SourceBadge source={h.source_type} />
+          <ReviewableItem
+            key={h.id}
+            itemId={h.id}
+            originalText={h.hypothesis}
+            review={rp.getReview(h.id)}
+            onDecision={rp.onDecision}
+            onClear={rp.onClear}
+            reviewMode={rp.reviewMode}
+          >
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium">{h.hypothesis}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Badge variant="outline" className="text-[10px]">
+                    {likelihoodLabels[h.likelihood] ?? h.likelihood}
+                  </Badge>
+                  <PriorityBadge priority={h.priority} />
+                  <SourceBadge source={h.source_type} />
+                </div>
               </div>
+              {h.supporting_findings.length > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-medium">Achados de suporte: </span>
+                  {h.supporting_findings.join("; ")}
+                </div>
+              )}
+              {h.confirmatory_exams && h.confirmatory_exams.length > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-medium">Exames confirmatórios: </span>
+                  {h.confirmatory_exams.join("; ")}
+                </div>
+              )}
             </div>
-            {h.supporting_findings.length > 0 && (
-              <div className="text-xs text-muted-foreground">
-                <span className="font-medium">Achados de suporte: </span>
-                {h.supporting_findings.join("; ")}
-              </div>
-            )}
-            {h.confirmatory_exams && h.confirmatory_exams.length > 0 && (
-              <div className="text-xs text-muted-foreground">
-                <span className="font-medium">Exames confirmatórios: </span>
-                {h.confirmatory_exams.join("; ")}
-              </div>
-            )}
-          </div>
+          </ReviewableItem>
         ))}
       </div>
     </div>
   );
 }
 
-function SuggestedActionsSection({ actions }: { actions: SuggestedActionItem[] }) {
+function SuggestedActionsSection({ actions, ...rp }: { actions: SuggestedActionItem[] } & ReviewSectionProps) {
   if (actions.length === 0) return null;
 
   return (
@@ -307,7 +567,15 @@ function SuggestedActionsSection({ actions }: { actions: SuggestedActionItem[] }
       </div>
       <div className="space-y-2">
         {actions.map((a) => (
-          <div key={a.id} className="rounded-md border bg-background p-3 space-y-1.5">
+          <ReviewableItem
+            key={a.id}
+            itemId={a.id}
+            originalText={a.description}
+            review={rp.getReview(a.id)}
+            onDecision={rp.onDecision}
+            onClear={rp.onClear}
+            reviewMode={rp.reviewMode}
+          >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span className="text-base">{ACTION_TYPE_ICONS[a.action_type] ?? "📋"}</span>
@@ -319,7 +587,7 @@ function SuggestedActionsSection({ actions }: { actions: SuggestedActionItem[] }
               </div>
             </div>
             <p className="text-xs text-muted-foreground">{a.rationale}</p>
-          </div>
+          </ReviewableItem>
         ))}
       </div>
     </div>
@@ -362,13 +630,83 @@ function FollowUpSection({ followUp }: { followUp?: FollowUp }) {
   );
 }
 
+// ── Review Summary Bar ──────────────────────────────────────────────────
+
+function ReviewSummaryBar({ stats }: { stats: ReviewStats }) {
+  if (stats.total === 0) return null;
+  const reviewed = stats.accepted + stats.edited + stats.rejected;
+  const pct = Math.round((reviewed / stats.total) * 100);
+
+  return (
+    <div className="flex items-center gap-3 text-[11px] text-muted-foreground border rounded-md p-2 bg-muted/30">
+      <span className="font-medium">Revisão: {reviewed}/{stats.total} ({pct}%)</span>
+      <div className="flex items-center gap-2">
+        {stats.accepted > 0 && (
+          <span className="flex items-center gap-0.5 text-emerald-700 dark:text-emerald-400">
+            <Check className="h-3 w-3" /> {stats.accepted}
+          </span>
+        )}
+        {stats.edited > 0 && (
+          <span className="flex items-center gap-0.5 text-blue-700 dark:text-blue-400">
+            <Pencil className="h-3 w-3" /> {stats.edited}
+          </span>
+        )}
+        {stats.rejected > 0 && (
+          <span className="flex items-center gap-0.5 text-red-600 dark:text-red-400">
+            <X className="h-3 w-3" /> {stats.rejected}
+          </span>
+        )}
+        {stats.pending > 0 && (
+          <span className="text-muted-foreground">⏳ {stats.pending}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Component ──────────────────────────────────────────────────────
 
 interface ClinicalReportV2Props {
   data: AnalysisV2Data;
+  initialReviewState?: ReviewState;
+  onReviewChange?: (reviews: ReviewState) => void;
 }
 
-export default function ClinicalReportV2({ data }: ClinicalReportV2Props) {
+export default function ClinicalReportV2({ data, initialReviewState, onReviewChange }: ClinicalReportV2Props) {
+  const [reviewMode, setReviewMode] = useState(false);
+  const { reviews, setDecision, clearDecision, getReview, getStats } = useReviewState(initialReviewState);
+
+  // Collect all reviewable item IDs
+  const allIds = [
+    ...data.red_flags.map((f) => f.id),
+    ...data.clinical_findings.map((f) => f.id),
+    ...data.diagnostic_hypotheses.map((h) => h.id),
+    ...data.suggested_actions.map((a) => a.id),
+  ];
+  const stats = getStats(allIds);
+
+  const handleDecision: ReviewControlsProps["onDecision"] = (id, decision, opts) => {
+    setDecision(id, decision, opts);
+    // Notify parent of review change (next tick to get updated state)
+    setTimeout(() => {
+      onReviewChange?.({ ...reviews, [id]: { decision, ...opts, reviewed_at: new Date().toISOString() } });
+    }, 0);
+  };
+
+  const handleClear: ReviewControlsProps["onClear"] = (id) => {
+    clearDecision(id);
+    const next = { ...reviews };
+    delete next[id];
+    setTimeout(() => onReviewChange?.(next), 0);
+  };
+
+  const reviewProps: ReviewSectionProps = {
+    reviewMode,
+    getReview,
+    onDecision: handleDecision,
+    onClear: handleClear,
+  };
+
   return (
     <Card className="border-primary/20">
       <CardHeader className="pb-3">
@@ -382,8 +720,18 @@ export default function ClinicalReportV2({ data }: ClinicalReportV2Props) {
             <Badge variant="secondary" className="text-[10px]">
               {data.meta.specialty_name}
             </Badge>
+            <Button
+              size="sm"
+              variant={reviewMode ? "default" : "outline"}
+              className="h-7 text-[11px] px-3"
+              onClick={() => setReviewMode(!reviewMode)}
+            >
+              <Stethoscope className="h-3.5 w-3.5 mr-1" />
+              {reviewMode ? "Revisando" : "Revisar"}
+            </Button>
           </div>
         </div>
+        {reviewMode && <ReviewSummaryBar stats={stats} />}
       </CardHeader>
       <CardContent className="space-y-6">
         {/* ── Executive Summary ── */}
@@ -397,16 +745,16 @@ export default function ClinicalReportV2({ data }: ClinicalReportV2Props) {
         )}
 
         {/* ── Red Flags ── */}
-        <RedFlagsSection flags={data.red_flags} />
+        <RedFlagsSection flags={data.red_flags} {...reviewProps} />
 
         {/* ── Clinical Findings ── */}
-        <ClinicalFindingsSection findings={data.clinical_findings} />
+        <ClinicalFindingsSection findings={data.clinical_findings} {...reviewProps} />
 
         {/* ── Diagnostic Hypotheses ── */}
-        <HypothesesSection hypotheses={data.diagnostic_hypotheses} />
+        <HypothesesSection hypotheses={data.diagnostic_hypotheses} {...reviewProps} />
 
         {/* ── Suggested Actions ── */}
-        <SuggestedActionsSection actions={data.suggested_actions} />
+        <SuggestedActionsSection actions={data.suggested_actions} {...reviewProps} />
 
         {/* ── Follow-up ── */}
         <FollowUpSection followUp={data.follow_up} />
