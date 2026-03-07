@@ -31,6 +31,10 @@ export interface ReviewStats {
 export function useReviewState(initialState?: ReviewState) {
   const [reviews, setReviews] = useState<ReviewState>(initialState ?? {});
 
+  const setAll = useCallback((state: ReviewState) => {
+    setReviews(state);
+  }, []);
+
   const setDecision = useCallback(
     (itemId: string, decision: ReviewDecision, opts?: { edited_content?: string; physician_note?: string }) => {
       setReviews((prev) => ({
