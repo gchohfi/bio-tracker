@@ -166,6 +166,100 @@ export type Database = {
           },
         ]
       }
+      clinical_encounters: {
+        Row: {
+          chief_complaint: string | null
+          created_at: string
+          encounter_date: string
+          id: string
+          patient_id: string
+          practitioner_id: string
+          specialty_id: string
+          status: Database["public"]["Enums"]["encounter_status"]
+          updated_at: string
+        }
+        Insert: {
+          chief_complaint?: string | null
+          created_at?: string
+          encounter_date?: string
+          id?: string
+          patient_id: string
+          practitioner_id: string
+          specialty_id?: string
+          status?: Database["public"]["Enums"]["encounter_status"]
+          updated_at?: string
+        }
+        Update: {
+          chief_complaint?: string | null
+          created_at?: string
+          encounter_date?: string
+          id?: string
+          patient_id?: string
+          practitioner_id?: string
+          specialty_id?: string
+          status?: Database["public"]["Enums"]["encounter_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_encounters_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinical_evolution_notes: {
+        Row: {
+          assessment: string | null
+          created_at: string
+          encounter_id: string
+          exams_requested: string | null
+          free_notes: string | null
+          id: string
+          medications: string | null
+          objective: string | null
+          plan: string | null
+          subjective: string | null
+          updated_at: string
+        }
+        Insert: {
+          assessment?: string | null
+          created_at?: string
+          encounter_id: string
+          exams_requested?: string | null
+          free_notes?: string | null
+          id?: string
+          medications?: string | null
+          objective?: string | null
+          plan?: string | null
+          subjective?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assessment?: string | null
+          created_at?: string
+          encounter_id?: string
+          exams_requested?: string | null
+          free_notes?: string | null
+          id?: string
+          medications?: string | null
+          objective?: string | null
+          plan?: string | null
+          subjective?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_evolution_notes_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_encounters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctor_specialty_notes: {
         Row: {
           adesao_tratamento: string | null
@@ -632,7 +726,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      encounter_status: "draft" | "finalized"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -759,6 +853,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      encounter_status: ["draft", "finalized"],
+    },
   },
 } as const
