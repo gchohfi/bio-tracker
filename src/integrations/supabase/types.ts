@@ -166,6 +166,86 @@ export type Database = {
           },
         ]
       }
+      body_composition_sessions: {
+        Row: {
+          bmi: number | null
+          bmr_kcal: number | null
+          body_fat_kg: number | null
+          body_fat_pct: number | null
+          created_at: string
+          device_model: string | null
+          ecw_tbw_ratio: number | null
+          hip_cm: number | null
+          id: string
+          notes: string | null
+          patient_id: string
+          practitioner_id: string
+          session_date: string
+          skeletal_muscle_kg: number | null
+          source_type: string
+          total_body_water_l: number | null
+          updated_at: string
+          visceral_fat_level: number | null
+          waist_cm: number | null
+          waist_hip_ratio: number | null
+          weight_kg: number | null
+        }
+        Insert: {
+          bmi?: number | null
+          bmr_kcal?: number | null
+          body_fat_kg?: number | null
+          body_fat_pct?: number | null
+          created_at?: string
+          device_model?: string | null
+          ecw_tbw_ratio?: number | null
+          hip_cm?: number | null
+          id?: string
+          notes?: string | null
+          patient_id: string
+          practitioner_id: string
+          session_date?: string
+          skeletal_muscle_kg?: number | null
+          source_type?: string
+          total_body_water_l?: number | null
+          updated_at?: string
+          visceral_fat_level?: number | null
+          waist_cm?: number | null
+          waist_hip_ratio?: number | null
+          weight_kg?: number | null
+        }
+        Update: {
+          bmi?: number | null
+          bmr_kcal?: number | null
+          body_fat_kg?: number | null
+          body_fat_pct?: number | null
+          created_at?: string
+          device_model?: string | null
+          ecw_tbw_ratio?: number | null
+          hip_cm?: number | null
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          practitioner_id?: string
+          session_date?: string
+          skeletal_muscle_kg?: number | null
+          source_type?: string
+          total_body_water_l?: number | null
+          updated_at?: string
+          visceral_fat_level?: number | null
+          waist_cm?: number | null
+          waist_hip_ratio?: number | null
+          weight_kg?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "body_composition_sessions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinical_encounters: {
         Row: {
           chief_complaint: string | null
