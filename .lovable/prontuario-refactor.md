@@ -96,11 +96,11 @@ Paciente (patients)
 3. Remover tab "Notas Clínicas" (ou ocultar com flag)
 4. **Risco**: baixo — só muda ordem/visibilidade de tabs
 
-### Fase B: Consolidar Análise IA no Prontuário
+### Fase B: Consolidar Análise IA no Prontuário ✅ FEITO
 1. Dentro do encounter no Prontuário, já mostra análises vinculadas (✅ feito)
-2. Tab "Análise IA" continua existindo para análises avulsas e visão global
-3. Remover `encounter_id` de `analysis_reviews` (usar via `analysis_id → patient_analyses.encounter_id`)
-4. **Risco**: médio — precisa atualizar queries de review
+2. Tab "Análise IA" continua existindo para análises avulsas e visão global (✅ mantido)
+3. ✅ Removido `encounter_id` de `analysis_reviews` — vínculo agora é exclusivamente via `analysis_id → patient_analyses.encounter_id`
+4. **Risco realizado**: zero — coluna nunca era escrita no código, sem dados existentes
 
 ### Fase C: Migrar doctor_specialty_notes
 1. Para cada paciente com `doctor_specialty_notes`, oferecer "importar para nota SOAP" da consulta mais recente
