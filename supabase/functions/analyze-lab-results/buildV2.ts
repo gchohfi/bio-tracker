@@ -124,11 +124,21 @@ const MARKER_SYSTEM_MAP: Record<string, string> = {
   cortisol: "hormonal", dhea_s: "hormonal",
   lh: "hormonal", fsh: "hormonal", prolactina: "hormonal",
   igf1: "hormonal", shbg: "hormonal",
+  androstenediona: "hormonal", dht: "hormonal",
   // Vitaminas e minerais
   vitamina_d: "nutricional", vitamina_b12: "nutricional",
   acido_folico: "nutricional", ferro_serico: "nutricional",
   zinco: "nutricional", magnesio: "nutricional", selenio: "nutricional",
-  calcio_total: "nutricional",
+  calcio_total: "nutricional", calcio_ionico: "nutricional",
+  cobre: "nutricional", cromio: "nutricional",
+  // Pancreático / Digestivo
+  amilase: "pancreatico", lipase: "pancreatico",
+  // Hemograma complementar
+  basofilos: "hematologico", basofilos_abs: "hematologico",
+  eosinofilos: "hematologico", eosinofilos_abs: "hematologico",
+  monocitos: "hematologico", monocitos_abs: "hematologico",
+  neutrofilos_abs: "hematologico", linfocitos_abs: "hematologico",
+  bastonetes: "hematologico",
 };
 
 const SYSTEM_LABELS: Record<string, string> = {
@@ -141,6 +151,7 @@ const SYSTEM_LABELS: Record<string, string> = {
   inflamatorio: "Marcadores Inflamatórios",
   hormonal: "Painel Hormonal",
   nutricional: "Vitaminas e Minerais",
+  pancreatico: "Função Pancreática",
   outros: "Outros",
 };
 
@@ -270,11 +281,28 @@ export function mapV1toV2(
     }
   }
 
-  // 2. Clinical findings: determinísticos + patterns restantes do LLM
+  // 2. Clinical findings: determinísticos + patterns restantes do LLM (deduplicados)
   const deterministicFindings = buildDeterministicFindings(ctx);
   const usedAsRedFlag = new Set(llmRedFlags.map(r => r.finding));
+
+  // Build set of deterministic marker_ids para deduplicação
+  const deterministicMarkerIds = new Set<string>();
+  for (const f of deterministicFindings) {
+    for (const m of f.markers) deterministicMarkerIds.add(m);
+  }
+
+  // Deduplica: se o pattern LLM menciona um marker_id já coberto deterministicamente, filtra
   const llmFindings: ClinicalFindingItem[] = (v1.patterns ?? [])
     .filter(p => !usedAsRedFlag.has(p))
+    .filter(p => {
+      // Se o pattern é basicamente uma repetição de um achado determinístico, pular
+      const pLower = p.toLowerCase();
+      const isDuplicate = deterministicFindings.some(df =>
+        df.markers.some(m => pLower.includes(m.replace(/_/g, " "))) &&
+        (pLower.includes("elevad") || pLower.includes("baixo") || pLower.includes("alto") || pLower.includes("reduzid"))
+      );
+      return !isDuplicate;
+    })
     .map(p => ({
       id: uid(),
       source_type: "llm" as const,
@@ -304,14 +332,24 @@ export function mapV1toV2(
   }
 
   // 4. Suggested actions: suggestions do V1 + patient_plan
+  const investigateKeywords = ["solicitar", "exame", "investigar", "investigação", "dosar", "avaliar", "descartar"];
+  const treatKeywords = ["suplementar", "suplementação", "prescrever", "tratar", "iniciar"];
+  const referKeywords = ["encaminhar", "referir", "especialista"];
+
+  function classifyAction(text: string): "investigate" | "treat" | "monitor" | "refer" {
+    const lower = text.toLowerCase();
+    if (referKeywords.some(k => lower.includes(k))) return "refer";
+    if (investigateKeywords.some(k => lower.includes(k))) return "investigate";
+    if (treatKeywords.some(k => lower.includes(k))) return "treat";
+    return "monitor";
+  }
+
   const actions: SuggestedActionItem[] = (v1.suggestions ?? []).map(s => ({
     id: uid(),
     source_type: "llm" as const,
     specialty_relevant: true,
     cross_specialty_alert: false,
-    action_type: s.toLowerCase().includes("solicitar") || s.toLowerCase().includes("exame")
-      ? "investigate" as const
-      : "monitor" as const,
+    action_type: classifyAction(s),
     description: s,
     rationale: "Sugestão da análise clínica.",
     priority: "medium" as ClinicalPriority,
