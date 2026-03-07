@@ -1664,7 +1664,12 @@ export default function PatientDetail() {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      {/* ── VISÃO GERAL ── */}
+                      {/* ── V2 STRUCTURED REPORT ── */}
+                      {analysisV2Map[selectedAnalysis.id] && (
+                        <ClinicalReportV2 data={analysisV2Map[selectedAnalysis.id]} />
+                      )}
+
+                      {/* ── VISÃO GERAL (V1) ── */}
                       {selectedAnalysis.summary && (
                         <div className="rounded-lg bg-muted/50 p-4 border-l-4 border-primary">
                           <h3 className="font-bold text-sm text-primary mb-2 uppercase tracking-wide">Visão Geral</h3>
