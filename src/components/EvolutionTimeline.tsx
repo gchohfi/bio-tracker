@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertTriangle, Clock, FileDown } from "lucide-react";
+import { Loader2, AlertTriangle, Clock, FileDown, FileSpreadsheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -21,7 +21,7 @@ import {
   type EvolutionCellValue,
 } from "@/lib/evolutionReportBuilder";
 import { generateEvolutionPdf } from "@/lib/generateEvolutionPdf";
-
+import { generateEvolutionExcel } from "@/lib/generateEvolutionExcel";
 interface EvolutionTimelineProps {
   patientId: string;
   patientName?: string;
@@ -143,15 +143,26 @@ export default function EvolutionTimeline({ patientId, patientName }: EvolutionT
             {data.sections.reduce((acc, s) => acc + s.markers.length, 0)} analitos
           </Badge>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="gap-1.5"
-          onClick={() => generateEvolutionPdf({ data, patientName: patientName || "Paciente" })}
-        >
-          <FileDown className="h-3.5 w-3.5" />
-          Baixar PDF evolutivo
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => generateEvolutionPdf({ data, patientName: patientName || "Paciente" })}
+          >
+            <FileDown className="h-3.5 w-3.5" />
+            PDF
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => generateEvolutionExcel({ data, patientName: patientName || "Paciente" })}
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            Excel
+          </Button>
+        </div>
       </div>
 
       {/* Timeline table */}
