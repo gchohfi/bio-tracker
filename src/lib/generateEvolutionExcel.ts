@@ -187,17 +187,17 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
     "",
   ]);
   evoTitle.getCell(1).font = { bold: true, size: 14, color: { argb: BRAND_ARGB } };
-  wsEvo.mergeCells(1, 1, 1, numDates + 2);
+  wsEvo.mergeCells(1, 1, 1, totalEvoCols);
 
   // Period row
   const evoPeriod = wsEvo.addRow([
     `Período: ${formatDateLong(data.dates[0])} — ${formatDateLong(data.dates[numDates - 1])}`,
   ]);
   evoPeriod.getCell(1).font = { italic: true, size: 9, color: { argb: GRAY_TEXT_ARGB } };
-  wsEvo.mergeCells(2, 1, 2, numDates + 2);
+  wsEvo.mergeCells(2, 1, 2, totalEvoCols);
 
   // Header row (Analito | dates... | Ref.)
-  const headerValues = ["Analito", ...data.dates.map(formatDate), "Ref."];
+  const headerValues = ["Analito", ...data.dates.map(formatDate), "Ref.", "Ref. Funcional", "Status Funcional"];
   const evoHeaderRow = wsEvo.addRow(headerValues);
   evoHeaderRow.height = 22;
   evoHeaderRow.eachCell((cell) => {
@@ -214,7 +214,7 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
   // Auto-filter
   wsEvo.autoFilter = {
     from: { row: 3, column: 1 },
-    to: { row: 3, column: numDates + 2 },
+    to: { row: 3, column: totalEvoCols },
   };
 
   // Data rows
