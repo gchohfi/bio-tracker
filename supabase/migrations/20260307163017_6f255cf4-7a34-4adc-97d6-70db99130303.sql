@@ -1,0 +1,1 @@
+ALTER TABLE public.patient_analyses ADD COLUMN IF NOT EXISTS analysis_v2_data jsonb DEFAULT NULL;

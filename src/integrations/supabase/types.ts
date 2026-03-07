@@ -344,6 +344,7 @@ export type Database = {
       }
       patient_analyses: {
         Row: {
+          analysis_v2_data: Json | null
           created_at: string
           full_text: string | null
           id: string
@@ -363,6 +364,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          analysis_v2_data?: Json | null
           created_at?: string
           full_text?: string | null
           id?: string
@@ -382,6 +384,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          analysis_v2_data?: Json | null
           created_at?: string
           full_text?: string | null
           id?: string
