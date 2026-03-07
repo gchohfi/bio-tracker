@@ -158,7 +158,7 @@ export default function EvolutionTimeline({ patientId, patientName, patientSex }
             size="sm"
             variant="outline"
             className="gap-1.5"
-            onClick={() => generateEvolutionExcel({ data, patientName: patientName || "Paciente" })}
+            onClick={() => generateEvolutionExcel({ data, patientName: patientName || "Paciente", patientSex })}
           >
             <FileSpreadsheet className="h-3.5 w-3.5" />
             Excel

@@ -1616,7 +1616,7 @@ export default function PatientDetail() {
                 <EvolutionTable patientId={patient.id} sessions={sessions} sex={sex} />
               </TabsContent>
               <TabsContent value="chart">
-                <EvolutionTimeline patientId={patient.id} patientName={patient.name} />
+                <EvolutionTimeline patientId={patient.id} patientName={patient.name} patientSex={patient.sex === "F" ? "F" : "M"} />
               </TabsContent>
             </Tabs>
           </TabsContent>
