@@ -20,6 +20,7 @@ import type {
   EvolutionReportData,
   EvolutionCellValue,
 } from "@/lib/evolutionReportBuilder";
+import { resolveFunctionalRef } from "@/lib/functionalRanges";
 
 /* ── Color helpers ── */
 function rgbToArgb(rgb: { r: number; g: number; b: number }): string {
@@ -87,9 +88,10 @@ const thinBorder: Partial<ExcelJS.Borders> = {
 interface GenerateOptions {
   data: EvolutionReportData;
   patientName: string;
+  patientSex?: "M" | "F";
 }
 
-export async function generateEvolutionExcel({ data, patientName }: GenerateOptions) {
+export async function generateEvolutionExcel({ data, patientName, patientSex }: GenerateOptions) {
   const wb = new ExcelJS.Workbook();
   wb.creator = "BioTracker";
   wb.created = new Date();
