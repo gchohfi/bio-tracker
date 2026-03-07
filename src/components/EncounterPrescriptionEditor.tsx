@@ -246,8 +246,8 @@ export function EncounterPrescriptionEditor({
         // Auto-detect edit vs accept
         if (item.ai_original) {
           updated.origin = hasBeenEdited({ ...updated, ai_original: item.ai_original })
-            ? "edited_by_physician"
-            : "accepted_by_physician";
+            ? ("edited_by_physician" as ItemOrigin)
+            : ("accepted_by_physician" as ItemOrigin);
         }
         return updated;
       })
