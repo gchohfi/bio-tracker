@@ -4,7 +4,7 @@
  * Linhas = analitos, Colunas = datas, Última coluna = referência.
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -190,9 +190,9 @@ export default function EvolutionTimeline({ patientId, patientName }: EvolutionT
               </thead>
               <tbody>
                 {filteredSections.map((section) => (
-                  <>
+                  <Fragment key={`section-${section.category}`}>
                     {/* Category header */}
-                    <tr key={`cat-${section.category}`}>
+                    <tr>
                       <td colSpan={data.dates.length + 2} className="px-3 py-2">
                         <div className="flex items-center gap-2">
                           <div
@@ -232,7 +232,7 @@ export default function EvolutionTimeline({ patientId, patientName }: EvolutionT
                         </td>
                       </tr>
                     ))}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
