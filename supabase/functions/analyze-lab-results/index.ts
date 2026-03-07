@@ -660,6 +660,21 @@ FORMATO DE SAÍDA (JSON estrito):
   "patterns": ["Padrões clínicos identificados — incluir padrões positivos também"],
   "trends": ["Tendências entre sessões — destacar melhorias"],
   "suggestions": ["Sugestões de exames complementares — apenas quando clinicamente justificado"],
+  "diagnostic_hypotheses": [
+    {
+      "hypothesis": "Nome da hipótese diagnóstica (ex: Síndrome metabólica inicial, Hipotireoidismo subclínico)",
+      "supporting_findings": ["Achado laboratorial ou clínico que sustenta esta hipótese"],
+      "contradicting_findings": ["Achado que vai contra esta hipótese, se houver — pode ser array vazio"],
+      "confirmatory_exams": ["Exames específicos para confirmar ou refutar esta hipótese"],
+      "likelihood": "probable | possible | unlikely",
+      "priority": "critical | high | medium | low"
+    }
+  ],
+  "follow_up": {
+    "suggested_exams": ["Exames a solicitar no próximo retorno, com justificativa breve"],
+    "suggested_return_days": 90,
+    "notes": "Observações de acompanhamento relevantes para o médico"
+  },
   "full_text": "Análise narrativa completa em 3-5 parágrafos. Tom equilibrado e profissional.",
   "technical_analysis": "DOCUMENTO 1 — ANÁLISE TÉCNICA COMPLETA: texto detalhado com faixas funcionais, cálculos mostrados (ex: HOMA-IR = glicose × insulina / 405), correlações entre marcadores, exames recebidos listados com unidades, exames ausentes sinalizados.",
   "patient_plan": "DOCUMENTO 2 — PLANO DE CONDUTAS: mudanças de estilo de vida, suplementação oral, injetáveis indicados (quando aplicável), acompanhamento proposto. Texto corrido, linguagem acessível para o paciente.",
@@ -686,7 +701,22 @@ FORMATO DE SAÍDA (JSON estrito):
       "key_actives": ["Ativo 1", "Ativo 2", "Ativo 3"]
     }
   ]
-}`;
+}
+
+INSTRUÇÕES PARA HIPÓTESES DIAGNÓSTICAS (CRÍTICO):
+- Gere 2-4 hipóteses diagnósticas ESPECÍFICAS e clinicamente úteis
+- NÃO use placeholders genéricos como "análise técnica disponível"
+- Cada hipótese deve ser uma condição clínica real e acionável
+- Ordene por probabilidade (probable > possible > unlikely)
+- Inclua achados contra (contradicting_findings) quando existirem — isso aumenta a confiança do médico
+- Inclua exames confirmatórios específicos para cada hipótese
+
+INSTRUÇÕES PARA FOLLOW-UP (CRÍTICO):
+- Sempre gere o campo follow_up, mesmo que mínimo
+- suggested_exams: liste os exames mais importantes para o próximo retorno, não repita os já realizados
+- suggested_return_days: estime o prazo ideal de retorno (30, 60, 90 dias) baseado na gravidade dos achados
+- notes: inclua observações relevantes como "reavaliar após início da suplementação" ou "correlacionar com sintomas clínicos"`;
+
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════════════════════

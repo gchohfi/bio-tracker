@@ -240,6 +240,21 @@ export function buildDeterministicFindings(ctx: ClinicalContext): ClinicalFindin
 // MAPPER V1 → V2 (campos do LLM)
 // ══════════════════════════════════════════════════════════════════════════════
 
+interface V1DiagnosticHypothesis {
+  hypothesis?: string;
+  supporting_findings?: string[];
+  contradicting_findings?: string[];
+  confirmatory_exams?: string[];
+  likelihood?: "probable" | "possible" | "unlikely";
+  priority?: string;
+}
+
+interface V1FollowUp {
+  suggested_exams?: string[];
+  suggested_return_days?: number;
+  notes?: string;
+}
+
 interface AnalysisV1 {
   summary?: string;
   patterns?: string[];
@@ -250,6 +265,8 @@ interface AnalysisV1 {
   patient_plan?: string;
   prescription_table?: unknown[];
   protocol_recommendations?: unknown[];
+  diagnostic_hypotheses?: V1DiagnosticHypothesis[];
+  follow_up?: V1FollowUp;
 }
 
 export function mapV1toV2(
