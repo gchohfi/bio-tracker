@@ -37,6 +37,7 @@ import {
 } from "@/hooks/useReviewState";
 import { buildReviewedReport } from "@/lib/buildReviewedReport";
 import { generateReportV2Pdf } from "@/lib/generateReportV2Pdf";
+import { computeAnalysisV2Hash, computeAnalysisV2HashSync, REVIEW_SCHEMA_VERSION } from "@/lib/analysisV2Hash";
 
 
 
