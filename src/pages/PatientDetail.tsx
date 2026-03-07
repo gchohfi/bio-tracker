@@ -1438,7 +1438,7 @@ export default function PatientDetail() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleGenerateAnalysis}
+                    onClick={() => handleGenerateAnalysis()}
                     disabled={isAnalyzing || isGeneratingProtocols}
                     className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
                     title="Gera análise clínica dos exames com IA"
@@ -1955,7 +1955,7 @@ export default function PatientDetail() {
                 specialtyId={selectedSpecialty}
                 onRequestAnalysis={(encounterId) => {
                   setActiveEncounterId(encounterId);
-                  handleGenerateAnalysis();
+                  handleGenerateAnalysis(encounterId);
                 }}
                 onViewAnalysis={(analysisId) => {
                   const found = savedAnalyses.find(a => a.id === analysisId);
