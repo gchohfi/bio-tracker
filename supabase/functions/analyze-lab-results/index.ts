@@ -1210,15 +1210,16 @@ serve(async (req) => {
       console.warn("Failed to load prompt from DB, using default:", promptLoadError);
     }
 
-    // ── Fetch clinical context (anamnese + doctor notes) in parallel ──
+    // ── Fetch clinical context (anamnese + doctor notes + labs) ──
     const { context: clinicalContext, loaded: contextLoaded } = await fetchClinicalContext(
       serviceClient,
       body.patient_id,
       specialtyId,
       body.patient_profile,
+      body.results,
     );
 
-    // Camada 1+2: Score de ativos terapeuticos
+    // Camada 1+2: Score de ativos terapeuticos (using labs.outOfRange from context)
     const abnormalResults = body.results.filter(
       (r) => r.status === "low" || r.status === "high" || r.status === "critical_low" || r.status === "critical_high"
     );
@@ -1236,6 +1237,8 @@ serve(async (req) => {
     const userPrompt = buildUserPrompt(bodyWithMode, scoredActives, matchedProtocols, clinicalContext, specialtyId);
     console.log(
       "Analyzing " + body.results.length + " markers for " + body.patient_name + " | specialty: " + specialtyId + " | " +
+      "labs: " + contextLoaded.labs.total + " total, " + contextLoaded.labs.outOfRange + " OOR, " +
+      contextLoaded.labs.clinicallyRelevantNormals + " relevant normals, " + contextLoaded.labs.trendsCount + " trends | " +
       abnormalResults.length + " abnormal | " + scoredActives.length + " actives scored | " +
       matchedProtocols.length + " protocols matched | has_protocols: " + specialtyHasProtocols +
       " | context: anamnesis=" + contextLoaded.anamnesis + " notes=" + contextLoaded.doctorNotes + " profile=" + contextLoaded.patientProfile
