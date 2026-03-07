@@ -1684,6 +1684,7 @@ export default function PatientDetail() {
                       </div>
                     ) : null;
                   })()}
+                </div>
 
                 {/* Conteúdo da análise selecionada */}
                 {selectedAnalysis && (
@@ -1695,9 +1696,21 @@ export default function PatientDetail() {
                             <Brain className="h-4 w-4 text-primary" />
                             {selectedAnalysis.specialty_name ?? selectedAnalysis.specialty_id}
                           </CardTitle>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Gerado em {format(parseISO(selectedAnalysis.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
-                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-xs text-muted-foreground">
+                              Gerado em {format(parseISO(selectedAnalysis.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                            </p>
+                            {selectedAnalysis.encounter_id ? (
+                              <Badge variant="outline" className="text-[9px] h-4 px-1.5 gap-1">
+                                <Stethoscope className="h-2.5 w-2.5" />
+                                Consulta {format(parseISO(encountersForFilter.find(e => e.id === selectedAnalysis.encounter_id)?.encounter_date ?? selectedAnalysis.created_at), "dd/MM/yy")}
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-[9px] h-4 px-1.5 opacity-60">
+                                Avulsa
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <AlertDialog>
