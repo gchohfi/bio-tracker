@@ -53,7 +53,8 @@ import EditReportDialog from "@/components/EditReportDialog";
 import AliasConfigDialog, { loadCustomAliases } from "@/components/AliasConfigDialog";
 import { PatientProfileDialog } from "@/components/PatientProfileDialog";
 import { AnamneseTab } from "@/components/AnamneseTab";
-import { DoctorNotesTab } from "@/components/DoctorNotesTab";
+// DoctorNotesTab hidden in Fase A — import preserved for future migration
+// import { DoctorNotesTab } from "@/components/DoctorNotesTab";
 import { ClinicalEvolutionTab } from "@/components/ClinicalEvolutionTab";
 import { generatePatientReport } from "@/lib/generateReport";
 import { exportPrescriptionCSV } from "@/lib/exportPrescriptionCSV";
