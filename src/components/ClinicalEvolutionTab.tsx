@@ -28,6 +28,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 interface ClinicalEvolutionTabProps {
   patientId: string;
   specialtyId: string;
+  onRequestAnalysis?: (encounterId: string) => void;
+  onViewAnalysis?: (analysisId: string) => void;
 }
 
 interface Encounter {
