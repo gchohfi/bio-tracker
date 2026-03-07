@@ -44,13 +44,13 @@ const EMPTY_ITEM: PrescriptionItem = {
  */
 function mapLegacyItems(legacy: any[]): PrescriptionItem[] {
   return legacy.map((item) => ({
-    substance: item.substance ?? item.supplement ?? item.name ?? item.key_actives?.join(", ") ?? "",
+    substance: item.substance ?? item.substancia ?? item.supplement ?? item.name ?? item.key_actives?.join(", ") ?? "",
     dose: item.dose ?? item.dosage ?? item.composition ?? "",
     route: item.route ?? item.via ?? "",
-    frequency: item.frequency ?? item.posologia ?? "",
-    duration: item.duration ?? "",
-    conditions: item.conditions ?? item.contraindications ?? item.ci ?? "",
-    monitoring: item.monitoring ?? item.monitoramento ?? "",
+    frequency: item.frequency ?? item.frequencia ?? item.posologia ?? "",
+    duration: item.duration ?? item.duracao ?? "",
+    conditions: item.conditions ?? item.condicoes_ci ?? item.contraindications ?? item.ci ?? "",
+    monitoring: item.monitoring ?? item.monitorizacao ?? item.monitoramento ?? "",
   }));
 }
 
@@ -107,23 +107,24 @@ export function EncounterPrescriptionEditor({
   };
 
   // ── Save ──
-  const handleSave = async () => {
+  const handleSave = async (overrideStatus?: "draft" | "finalized") => {
     if (!user?.id) return;
     setSaving(true);
+    const effectiveStatus = overrideStatus ?? status;
 
     const payload = {
       encounter_id: encounterId,
       patient_id: patientId,
       practitioner_id: user.id,
       specialty_id: specialtyId,
-      status,
+      status: effectiveStatus,
       prescription_json: items,
     };
 
     if (prescriptionId) {
       await (supabase as any)
         .from("clinical_prescriptions")
-        .update({ prescription_json: items, status })
+        .update({ prescription_json: items, status: effectiveStatus })
         .eq("id", prescriptionId);
     } else {
       const { data } = await (supabase as any)
@@ -179,7 +180,7 @@ export function EncounterPrescriptionEditor({
             </Badge>
           </p>
           <div className="flex gap-1.5">
-            {!seeded && legacyPrescription && legacyPrescription.length > 0 && (
+            {editable && !seeded && legacyPrescription && legacyPrescription.length > 0 && (
               <Button
                 size="sm"
                 variant="outline"
@@ -196,7 +197,7 @@ export function EncounterPrescriptionEditor({
                   <Plus className="h-3 w-3" />
                   Item
                 </Button>
-                <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={handleSave} disabled={saving}>
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => handleSave()} disabled={saving}>
                   <Save className="h-3 w-3" />
                   Salvar
                 </Button>
@@ -205,7 +206,7 @@ export function EncounterPrescriptionEditor({
                   className="h-7 text-xs gap-1"
                   onClick={() => {
                     setStatus("finalized");
-                    setTimeout(() => handleSave(), 0);
+                    handleSave("finalized");
                   }}
                   disabled={saving || items.length === 0}
                 >
