@@ -44,13 +44,13 @@ const EMPTY_ITEM: PrescriptionItem = {
  */
 function mapLegacyItems(legacy: any[]): PrescriptionItem[] {
   return legacy.map((item) => ({
-    substance: item.substance ?? item.supplement ?? item.name ?? item.key_actives?.join(", ") ?? "",
+    substance: item.substance ?? item.substancia ?? item.supplement ?? item.name ?? item.key_actives?.join(", ") ?? "",
     dose: item.dose ?? item.dosage ?? item.composition ?? "",
     route: item.route ?? item.via ?? "",
-    frequency: item.frequency ?? item.posologia ?? "",
-    duration: item.duration ?? "",
-    conditions: item.conditions ?? item.contraindications ?? item.ci ?? "",
-    monitoring: item.monitoring ?? item.monitoramento ?? "",
+    frequency: item.frequency ?? item.frequencia ?? item.posologia ?? "",
+    duration: item.duration ?? item.duracao ?? "",
+    conditions: item.conditions ?? item.condicoes_ci ?? item.contraindications ?? item.ci ?? "",
+    monitoring: item.monitoring ?? item.monitorizacao ?? item.monitoramento ?? "",
   }));
 }
 
