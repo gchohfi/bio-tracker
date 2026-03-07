@@ -836,6 +836,7 @@ export default function ClinicalReportV2({ data, patientName, analysisId, patien
                   analysisId={analysisId}
                   currentHash={currentHashRef.current}
                   allItemIds={allIds}
+                  analysisData={data}
                 />
               </>
             )}
