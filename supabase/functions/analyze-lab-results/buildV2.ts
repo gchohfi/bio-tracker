@@ -124,11 +124,21 @@ const MARKER_SYSTEM_MAP: Record<string, string> = {
   cortisol: "hormonal", dhea_s: "hormonal",
   lh: "hormonal", fsh: "hormonal", prolactina: "hormonal",
   igf1: "hormonal", shbg: "hormonal",
+  androstenediona: "hormonal", dht: "hormonal",
   // Vitaminas e minerais
   vitamina_d: "nutricional", vitamina_b12: "nutricional",
   acido_folico: "nutricional", ferro_serico: "nutricional",
   zinco: "nutricional", magnesio: "nutricional", selenio: "nutricional",
-  calcio_total: "nutricional",
+  calcio_total: "nutricional", calcio_ionico: "nutricional",
+  cobre: "nutricional", cromio: "nutricional",
+  // Pancreático / Digestivo
+  amilase: "pancreatico", lipase: "pancreatico",
+  // Hemograma complementar
+  basofilos: "hematologico", basofilos_abs: "hematologico",
+  eosinofilos: "hematologico", eosinofilos_abs: "hematologico",
+  monocitos: "hematologico", monocitos_abs: "hematologico",
+  neutrofilos_abs: "hematologico", linfocitos_abs: "hematologico",
+  bastonetes: "hematologico",
 };
 
 const SYSTEM_LABELS: Record<string, string> = {
