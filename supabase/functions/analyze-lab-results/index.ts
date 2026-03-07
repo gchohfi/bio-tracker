@@ -730,6 +730,8 @@ import type {
   CanonicalLabResult,
   LabTrend,
   LabStatus,
+  BodyCompositionSnapshot,
+  BodyCompositionContext,
 } from "./clinicalContext.types.ts";
 import { checkNearLimit, isKeyMarker } from "./clinicalContext.types.ts";
 import { mapV1toV2 } from "./buildV2.ts";
@@ -837,11 +839,13 @@ async function fetchClinicalContext(
     doctorNotes: null,
     patientProfile: patientProfile ?? null,
     labs,
+    bodyComposition: null,
   };
 
   const loaded: ContextLoaded = {
     anamnesis: false,
     doctorNotes: false,
+    bodyComposition: false,
     patientProfile: !!(patientProfile && (
       (patientProfile.objectives && patientProfile.objectives.length > 0) ||
       patientProfile.activity_level || patientProfile.sport_modality ||
@@ -858,8 +862,11 @@ async function fetchClinicalContext(
 
   if (!patientId) return { context: result, loaded };
 
-  // Fetch anamnese and doctor notes in parallel
-  const [anamneseResult, notesResult] = await Promise.all([
+  // Fetch anamnese, doctor notes, and body composition in parallel
+  const bodyCompSpecialties = ["nutrologia", "endocrinologia"];
+  const shouldFetchBodyComp = bodyCompSpecialties.includes(specialtyId);
+
+  const [anamneseResult, notesResult, bodyCompResult] = await Promise.all([
     supabaseClient
       .from("patient_anamneses")
       .select("*")
@@ -876,6 +883,16 @@ async function fetchClinicalContext(
       .single()
       .then(({ data }: { data: unknown }) => data)
       .catch((err: unknown) => { console.warn("Failed to load doctor notes:", err); return null; }),
+    shouldFetchBodyComp
+      ? supabaseClient
+          .from("body_composition_sessions")
+          .select("session_date, weight_kg, bmi, skeletal_muscle_kg, body_fat_kg, body_fat_pct, visceral_fat_level, total_body_water_l, ecw_tbw_ratio, bmr_kcal, waist_cm, hip_cm, waist_hip_ratio")
+          .eq("patient_id", patientId)
+          .order("session_date", { ascending: false })
+          .limit(2)
+          .then(({ data }: { data: unknown }) => data)
+          .catch((err: unknown) => { console.warn("Failed to load body composition:", err); return null; })
+      : Promise.resolve(null),
   ]);
 
   // Parse anamnese
@@ -911,6 +928,35 @@ async function fetchClinicalContext(
       loaded.doctorNotes = true;
       console.log("Doctor notes loaded: " + noteLines.length + " fields for patient " + patientId);
     }
+  }
+
+  // Parse body composition
+  if (bodyCompResult && Array.isArray(bodyCompResult) && bodyCompResult.length > 0) {
+    const mapSession = (row: Record<string, unknown>): BodyCompositionSnapshot => ({
+      session_date: row.session_date as string,
+      weight_kg: row.weight_kg as number | null,
+      bmi: row.bmi as number | null,
+      skeletal_muscle_kg: row.skeletal_muscle_kg as number | null,
+      body_fat_kg: row.body_fat_kg as number | null,
+      body_fat_pct: row.body_fat_pct as number | null,
+      visceral_fat_level: row.visceral_fat_level as number | null,
+      total_body_water_l: row.total_body_water_l as number | null,
+      ecw_tbw_ratio: row.ecw_tbw_ratio as number | null,
+      bmr_kcal: row.bmr_kcal as number | null,
+      waist_cm: row.waist_cm as number | null,
+      hip_cm: row.hip_cm as number | null,
+      waist_hip_ratio: row.waist_hip_ratio as number | null,
+    });
+
+    // Count total sessions (we fetched limit 2 for current+previous)
+    const totalCount = bodyCompResult.length; // approximate; enough for context
+    result.bodyComposition = {
+      current: mapSession(bodyCompResult[0] as Record<string, unknown>),
+      previous: bodyCompResult.length > 1 ? mapSession(bodyCompResult[1] as Record<string, unknown>) : null,
+      totalSessions: totalCount,
+    };
+    loaded.bodyComposition = true;
+    console.log("Body composition loaded: " + totalCount + " session(s) for patient " + patientId);
   }
 
   return { context: result, loaded };
@@ -988,6 +1034,52 @@ function buildUserPrompt(
   }
   if (clinicalContext.doctorNotes) {
     prompt += "\nNOTAS CLINICAS DO MEDICO (" + activeSpecialty.replace(/_/g, " ") + "):\n" + clinicalContext.doctorNotes + "\n";
+  }
+
+  // ── Body composition (nutrologia / endocrinologia only) ──
+  const bodyCompSpecialties = ["nutrologia", "endocrinologia"];
+  const bc = clinicalContext.bodyComposition;
+  if (bc?.current && bodyCompSpecialties.includes(activeSpecialty)) {
+    prompt += "\nCOMPOSICAO CORPORAL (dados deterministicos - bioimpedancia/InBody):\n";
+    prompt += "IMPORTANTE: Estes sao dados objetivos de composicao corporal. Use-os como contexto complementar aos exames laboratoriais. Nao altere os valores.\n";
+    const c = bc.current;
+    prompt += "Sessao atual (" + c.session_date + "):\n";
+    if (c.weight_kg !== null) prompt += "- Peso: " + c.weight_kg + " kg\n";
+    if (c.bmi !== null) prompt += "- IMC: " + c.bmi + " kg/m2\n";
+    if (c.skeletal_muscle_kg !== null) prompt += "- Massa muscular esqueletica: " + c.skeletal_muscle_kg + " kg\n";
+    if (c.body_fat_kg !== null) prompt += "- Massa de gordura corporal: " + c.body_fat_kg + " kg\n";
+    if (c.body_fat_pct !== null) prompt += "- Percentual de gordura: " + c.body_fat_pct + "%\n";
+    if (c.visceral_fat_level !== null) prompt += "- Gordura visceral (nivel): " + c.visceral_fat_level + "\n";
+    if (c.total_body_water_l !== null) prompt += "- Agua corporal total: " + c.total_body_water_l + " L\n";
+    if (c.ecw_tbw_ratio !== null) prompt += "- Relacao ECW/TBW: " + c.ecw_tbw_ratio + "\n";
+    if (c.bmr_kcal !== null) prompt += "- TMB/BMR: " + c.bmr_kcal + " kcal\n";
+    if (c.waist_cm !== null) prompt += "- Cintura: " + c.waist_cm + " cm\n";
+    if (c.hip_cm !== null) prompt += "- Quadril: " + c.hip_cm + " cm\n";
+    if (c.waist_hip_ratio !== null) prompt += "- Relacao cintura/quadril: " + c.waist_hip_ratio + "\n";
+
+    // Trends vs previous session
+    if (bc.previous) {
+      const prev = bc.previous;
+      prompt += "\nTendencia vs sessao anterior (" + prev.session_date + "):\n";
+      const comparisons: Array<{ label: string; curr: number | null; prev: number | null; unit: string; upIsBad: boolean }> = [
+        { label: "Peso", curr: c.weight_kg, prev: prev.weight_kg, unit: "kg", upIsBad: true },
+        { label: "% Gordura", curr: c.body_fat_pct, prev: prev.body_fat_pct, unit: "%", upIsBad: true },
+        { label: "Massa muscular", curr: c.skeletal_muscle_kg, prev: prev.skeletal_muscle_kg, unit: "kg", upIsBad: false },
+        { label: "Gordura visceral", curr: c.visceral_fat_level, prev: prev.visceral_fat_level, unit: "", upIsBad: true },
+        { label: "IMC", curr: c.bmi, prev: prev.bmi, unit: "", upIsBad: true },
+      ];
+      for (const cmp of comparisons) {
+        if (cmp.curr !== null && cmp.prev !== null) {
+          const delta = cmp.curr - cmp.prev;
+          if (Math.abs(delta) > 0.01) {
+            const sign = delta > 0 ? "+" : "";
+            const direction = (delta > 0 && cmp.upIsBad) || (delta < 0 && !cmp.upIsBad) ? " (desfavoravel)" : " (favoravel)";
+            prompt += "- " + cmp.label + ": " + cmp.prev + " -> " + cmp.curr + " (" + sign + delta.toFixed(1) + " " + cmp.unit + ")" + direction + "\n";
+          }
+        }
+      }
+    }
+    prompt += "\n";
   }
 
   // ── Lab results: out of range ──
@@ -1276,7 +1368,7 @@ serve(async (req) => {
       contextLoaded.labs.clinicallyRelevantNormals + " relevant normals, " + contextLoaded.labs.trendsCount + " trends | " +
       abnormalResults.length + " abnormal | " + scoredActives.length + " actives scored | " +
       matchedProtocols.length + " protocols matched | has_protocols: " + specialtyHasProtocols +
-      " | context: anamnesis=" + contextLoaded.anamnesis + " notes=" + contextLoaded.doctorNotes + " profile=" + contextLoaded.patientProfile
+      " | context: anamnesis=" + contextLoaded.anamnesis + " notes=" + contextLoaded.doctorNotes + " profile=" + contextLoaded.patientProfile + " bodyComp=" + contextLoaded.bodyComposition
     );
 
     // ── Dynamic max_tokens by mode ──
