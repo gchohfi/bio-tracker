@@ -2015,6 +2015,11 @@ export default function PatientDetail() {
               />
             )}
           </TabsContent>
+          <TabsContent value="body_composition" className="mt-4">
+            {patient && (
+              <BodyCompositionTab patientId={patient.id} />
+            )}
+          </TabsContent>
         </Tabs>
       </div>
       {/* Edit report dialog (before PDF export) */}
