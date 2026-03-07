@@ -173,10 +173,14 @@ export async function buildEvolutionReport(patientId: string): Promise<Evolution
       if (newVal <= existingVal) continue;
     }
 
+    // Recompute flag at display time using resolveReference (consistent with current results)
+    const markerDef = markerDefMap.get(markerId);
+    const recomputedFlag = computeFlag(h.value ?? null, markerDef, patientSex, h.reference_text || null);
+
     cellMap[markerId][date] = {
       value: h.value ?? null,
       text_value: h.text_value || null,
-      flag: h.flag || null,
+      flag: recomputedFlag,
       source: "historical",
       source_lab: h.source_lab || null,
       source_document: h.source_document || null,
