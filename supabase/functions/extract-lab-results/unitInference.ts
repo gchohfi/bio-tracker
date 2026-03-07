@@ -38,151 +38,68 @@ export interface ConversionRule {
  * A primeira regra que casa (por unit_raw ou heurística) é aplicada.
  * ADICIONAR NOVAS CONVERSÕES APENAS AQUI.
  */
-export const UNIT_CONVERSIONS: Record<string, ConversionRule[]> = {
-  t3_livre: [
-    {
-      from_unit_pattern: /ng\/d/i,
-      from_unit_label: "ng/dL",
-      to_unit: "pg/mL",
-      factor: 10,
-      value_heuristic: (v) => v < 1.0,
-    },
-    {
-      from_unit_pattern: /pmol/i,
-      from_unit_label: "pmol/L",
-      to_unit: "pg/mL",
-      factor: 1 / 15.36,
-      value_heuristic: (v) => v > 10,
-    },
-  ],
+// Build UNIT_CONVERSIONS from the shared conversionRules.ts source of truth.
+// Value heuristics are kept here because they are runtime-only (not serializable).
+import {
+  CONVERSION_RULES as SHARED_RULES,
+  compilePattern,
+  getConversionRules,
+} from "./pipeline/conversionRules.ts";
+import { resolveMarkerId } from "./pipeline/markerAliases.ts";
 
-  estradiol: [
-    {
-      from_unit_pattern: /ng\/d/i,
-      from_unit_label: "ng/dL",
-      to_unit: "pg/mL",
-      factor: 10,
-      // Values < 10 are plausibly ng/dL (1-9 ng/dL = 10-90 pg/mL).
-      // Values >= 10 are likely already in pg/mL (e.g. 44 pg/mL follicular).
-      value_heuristic: (v) => v < 10,
-    },
-    {
-      from_unit_pattern: /pmol/i,
-      from_unit_label: "pmol/L",
-      to_unit: "pg/mL",
-      factor: 0.2724,
-      // Estradiol in pg/mL can be 12-5000 (follicular to ovulatory).
-      // pmol/L values are typically > 500 (e.g. 500 pmol/L ≈ 136 pg/mL).
-      // Only trigger heuristic for values clearly in pmol/L range.
-      value_heuristic: (v) => v > 500,
-    },
-  ],
-
-  zinco: [
-    {
-      from_unit_pattern: /[uµ]g\/m[lL]/i,
-      from_unit_label: "µg/mL",
-      to_unit: "µg/dL",
-      factor: 100,
-      value_heuristic: (v) => v < 10,
-    },
-    {
-      from_unit_pattern: /mg\/[lL]/i,
-      from_unit_label: "mg/L",
-      to_unit: "µg/dL",
-      factor: 100,
-    },
-  ],
-
-  testosterona_livre: [
-    {
-      from_unit_pattern: /pmol/i,
-      from_unit_label: "pmol/L",
-      to_unit: "ng/dL",
-      factor: 1 / 34.7,
-      value_heuristic: (v) => v > 100,
-    },
-    {
-      from_unit_pattern: /pg\/m/i,
-      from_unit_label: "pg/mL",
-      to_unit: "ng/dL",
-      factor: 0.001,
-      value_heuristic: (v) => v > 1,
-    },
-  ],
-
-  pcr: [
-    {
-      from_unit_pattern: /mg\/d/i,
-      from_unit_label: "mg/dL",
-      to_unit: "mg/L",
-      factor: 10,
-      value_heuristic: (v) => v > 0 && v < 0.5,
-    },
-  ],
-
-  igfbp3: [
-    {
-      from_unit_pattern: /ng\/m/i,
-      from_unit_label: "ng/mL",
-      to_unit: "µg/mL",
-      factor: 0.001,
-      value_heuristic: (v) => v > 100,
-    },
-  ],
-
-  magnesio: [
-    {
-      from_unit_pattern: /mmol/i,
-      from_unit_label: "mmol/L",
-      to_unit: "mg/dL",
-      factor: 2.4305,
-    },
-    {
-      from_unit_pattern: /mEq/i,
-      from_unit_label: "mEq/L",
-      to_unit: "mg/dL",
-      factor: 1.2153,
-    },
-  ],
-
-  vitamina_d: [
-    {
-      from_unit_pattern: /nmol/i,
-      from_unit_label: "nmol/L",
-      to_unit: "ng/mL",
-      factor: 0.4006,
-    },
-  ],
-
-  progesterona: [
-    {
-      from_unit_pattern: /ng\/d/i,
-      from_unit_label: "ng/dL",
-      to_unit: "ng/mL",
-      factor: 0.01,
-      // Normal luteal progesterona is 1.8-23.4 ng/mL — values 10-25 are NOT ng/dL.
-      // Only values > 50 are plausibly ng/dL (50 ng/dL = 0.5 ng/mL, still low).
-      value_heuristic: (v) => v > 50,
-    },
-    {
-      from_unit_pattern: /nmol/i,
-      from_unit_label: "nmol/L",
-      to_unit: "ng/mL",
-      factor: 0.3145,
-    },
-  ],
-
-  dht: [
-    {
-      from_unit_pattern: /ng\/d/i,
-      from_unit_label: "ng/dL",
-      to_unit: "pg/mL",
-      factor: 10,
-      value_heuristic: (v) => v < 5,
-    },
-  ],
+/** Value heuristics per marker_id (canonical) + from_unit_label */
+const VALUE_HEURISTICS: Record<string, Record<string, (v: number) => boolean>> = {
+  t3_livre: {
+    "ng/dL": (v) => v < 1.0,
+    "pmol/L": (v) => v > 10,
+  },
+  estradiol: {
+    "ng/dL": (v) => v < 10,
+    "pmol/L": (v) => v > 500,
+  },
+  zinco: {
+    "µg/mL": (v) => v < 10,
+  },
+  testosterona_livre: {
+    "pmol/L": (v) => v > 100,
+    "pg/mL": (v) => v > 1,
+  },
+  pcr: {
+    "mg/dL": (v) => v > 0 && v < 0.5,
+  },
+  igfbp3: {
+    "ng/mL": (v) => v > 100,
+  },
+  progesterona: {
+    "ng/dL": (v) => v > 50,
+  },
+  dihidrotestosterona: {
+    "ng/dL": (v) => v < 5,
+  },
 };
+
+/**
+ * Build UNIT_CONVERSIONS from shared rules + local heuristics.
+ * Keys use the SAME IDs as the shared rules (canonical), plus aliases.
+ */
+function buildConversions(): Record<string, ConversionRule[]> {
+  const result: Record<string, ConversionRule[]> = {};
+
+  for (const [markerId, rules] of Object.entries(SHARED_RULES)) {
+    const heuristics = VALUE_HEURISTICS[markerId] ?? {};
+    result[markerId] = rules.map((r) => ({
+      from_unit_pattern: compilePattern(r),
+      from_unit_label: r.from_unit_label,
+      to_unit: r.to_unit,
+      factor: r.factor,
+      value_heuristic: heuristics[r.from_unit_label],
+    }));
+  }
+
+  return result;
+}
+
+export const UNIT_CONVERSIONS: Record<string, ConversionRule[]> = buildConversions();
 
 // ---------------------------------------------------------------------------
 // Confidence levels
@@ -240,7 +157,9 @@ function findApplicableRule(
   value: number | undefined,
   labRefText: string | undefined,
 ): InferenceResult | null {
-  const rules = UNIT_CONVERSIONS[markerId];
+  // Resolve alias before lookup (e.g. "dht" → "dihidrotestosterona")
+  const canonicalId = resolveMarkerId(markerId);
+  const rules = UNIT_CONVERSIONS[canonicalId];
   if (!rules) return null;
 
   // Priority 1: match by unit_raw (high confidence)
