@@ -730,6 +730,8 @@ import type {
   CanonicalLabResult,
   LabTrend,
   LabStatus,
+  BodyCompositionSnapshot,
+  BodyCompositionContext,
 } from "./clinicalContext.types.ts";
 import { checkNearLimit, isKeyMarker } from "./clinicalContext.types.ts";
 import { mapV1toV2 } from "./buildV2.ts";
