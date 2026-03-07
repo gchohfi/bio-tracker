@@ -38,6 +38,7 @@ import {
 import { buildReviewedReport } from "@/lib/buildReviewedReport";
 import { generateReportV2Pdf } from "@/lib/generateReportV2Pdf";
 import { computeAnalysisV2Hash, computeAnalysisV2HashSync, REVIEW_SCHEMA_VERSION } from "@/lib/analysisV2Hash";
+import { ReviewHistoryPanel } from "@/components/ReviewHistoryPanel";
 
 
 
