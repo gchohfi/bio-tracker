@@ -701,6 +701,7 @@ import type {
   LabStatus,
 } from "./clinicalContext.types.ts";
 import { checkNearLimit, isKeyMarker } from "./clinicalContext.types.ts";
+import { mapV1toV2 } from "./buildV2.ts";
 
 // Derived marker IDs (markers calculated from other markers)
 const DERIVED_MARKER_IDS = new Set([
