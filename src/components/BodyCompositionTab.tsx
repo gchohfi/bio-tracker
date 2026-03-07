@@ -147,6 +147,7 @@ export function BodyCompositionTab({ patientId }: BodyCompositionTabProps) {
   const handleCreate = () => {
     setActiveSession(null);
     setForm({ ...EMPTY_FORM, session_date: format(newDate, "yyyy-MM-dd") });
+    setSourceType("manual");
     setView("form");
   };
 
