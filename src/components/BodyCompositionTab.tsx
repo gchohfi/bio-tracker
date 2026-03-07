@@ -207,7 +207,19 @@ export function BodyCompositionTab({ patientId }: BodyCompositionTabProps) {
     setSourceType(session.source_type);
     setForm({
       session_date: session.session_date,
-...
+      weight_kg: session.weight_kg,
+      bmi: session.bmi,
+      skeletal_muscle_kg: session.skeletal_muscle_kg,
+      body_fat_kg: session.body_fat_kg,
+      body_fat_pct: session.body_fat_pct,
+      visceral_fat_level: session.visceral_fat_level,
+      total_body_water_l: session.total_body_water_l,
+      ecw_tbw_ratio: session.ecw_tbw_ratio,
+      bmr_kcal: session.bmr_kcal,
+      waist_cm: session.waist_cm,
+      hip_cm: session.hip_cm,
+      waist_hip_ratio: session.waist_hip_ratio,
+      device_model: session.device_model,
       notes: session.notes,
     });
     setView("form");
