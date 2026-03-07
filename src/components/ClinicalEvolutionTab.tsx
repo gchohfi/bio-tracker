@@ -417,6 +417,16 @@ export function ClinicalEvolutionTab({ patientId, specialtyId, onRequestAnalysis
           )}
         </CardContent>
       </Card>
+
+      {/* SOAP Fields */}
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <Field label="Subjetivo (S)" field="subjective" rows={4} />
+          <Separator />
+          <Field label="Objetivo (O)" field="objective" rows={4} />
+          <Separator />
+          <Field label="Avaliação (A)" field="assessment" rows={4} />
+          <Separator />
           <Field label="Plano (P)" field="plan" rows={4} />
           <Separator />
           <Field label="Exames solicitados" field="exams_requested" rows={2} />
