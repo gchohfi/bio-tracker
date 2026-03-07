@@ -268,6 +268,7 @@ export default function PatientDetail() {
   const [markerValues, setMarkerValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [detailTab, setDetailTab] = useState<"sessions" | "evolution" | "timeline" | "analysis" | "anamnese" | "doctor_notes" | "clinical_evolution">("sessions");
+  const [activeEncounterId, setActiveEncounterId] = useState<string | null>(null);
   const [savedAnalyses, setSavedAnalyses] = useState<any[]>([]);
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
   const [extracting, setExtracting] = useState(false);
@@ -718,6 +719,7 @@ export default function PatientDetail() {
           patient_plan: analysis?.patient_plan ?? null,
           prescription_table: analysis?.prescription_table ?? [],
           protocol_recommendations: merged?.protocol_recommendations ?? [],
+          encounter_id: activeEncounterId ?? null,
         })
         .select()
         .single();
@@ -1874,6 +1876,17 @@ export default function PatientDetail() {
               <ClinicalEvolutionTab
                 patientId={patient.id}
                 specialtyId={selectedSpecialty}
+                onRequestAnalysis={(encounterId) => {
+                  setActiveEncounterId(encounterId);
+                  handleGenerateAnalysis();
+                }}
+                onViewAnalysis={(analysisId) => {
+                  const found = savedAnalyses.find(a => a.id === analysisId);
+                  if (found) {
+                    setSelectedAnalysis(found);
+                    setDetailTab("analysis");
+                  }
+                }}
               />
             )}
           </TabsContent>
