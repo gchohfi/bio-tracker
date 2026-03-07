@@ -248,7 +248,7 @@ export function BodyCompositionTab({ patientId }: BodyCompositionTabProps) {
       waist_hip_ratio: form.waist_hip_ratio,
       device_model: form.device_model || null,
       notes: form.notes || null,
-      source_type: "manual",
+      source_type: sourceType,
     };
 
     if (activeSession) {
