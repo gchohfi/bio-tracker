@@ -180,7 +180,7 @@ export function EncounterPrescriptionEditor({
             </Badge>
           </p>
           <div className="flex gap-1.5">
-            {!seeded && legacyPrescription && legacyPrescription.length > 0 && (
+            {editable && !seeded && legacyPrescription && legacyPrescription.length > 0 && (
               <Button
                 size="sm"
                 variant="outline"
