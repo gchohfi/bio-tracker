@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,9 +21,12 @@ import {
   Activity,
   Trash2,
   Clock,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { parseInBodyPdf } from "@/lib/parseInBodyPdf";
 
 // ── Types ──
 
@@ -118,6 +121,9 @@ export function BodyCompositionTab({ patientId }: BodyCompositionTabProps) {
   const [form, setForm] = useState<FormFields>({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
   const [newDate, setNewDate] = useState<Date>(new Date());
+  const [importing, setImporting] = useState(false);
+  const [sourceType, setSourceType] = useState<string>("manual");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Load sessions ──
   const loadSessions = useCallback(async () => {
@@ -141,12 +147,64 @@ export function BodyCompositionTab({ patientId }: BodyCompositionTabProps) {
   const handleCreate = () => {
     setActiveSession(null);
     setForm({ ...EMPTY_FORM, session_date: format(newDate, "yyyy-MM-dd") });
+    setSourceType("manual");
     setView("form");
+  };
+
+  // ── Import PDF ──
+  const handleImportPdf = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so same file can be re-selected
+    e.target.value = "";
+
+    if (file.type !== "application/pdf") {
+      toast({ title: "Arquivo inválido", description: "Selecione um arquivo PDF.", variant: "destructive" });
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const parsed = await parseInBodyPdf(file);
+      setActiveSession(null);
+      setForm({
+        session_date: parsed.session_date || format(newDate, "yyyy-MM-dd"),
+        weight_kg: parsed.weight_kg,
+        bmi: parsed.bmi,
+        skeletal_muscle_kg: parsed.skeletal_muscle_kg,
+        body_fat_kg: parsed.body_fat_kg,
+        body_fat_pct: parsed.body_fat_pct,
+        visceral_fat_level: parsed.visceral_fat_level,
+        total_body_water_l: parsed.total_body_water_l,
+        ecw_tbw_ratio: parsed.ecw_tbw_ratio,
+        bmr_kcal: parsed.bmr_kcal,
+        waist_cm: parsed.waist_cm,
+        hip_cm: parsed.hip_cm,
+        waist_hip_ratio: parsed.waist_hip_ratio,
+        device_model: parsed.device_model,
+        notes: parsed.notes,
+      });
+      // Track source as pdf_parsed (will be set on save)
+      setSourceType("pdf_parsed");
+      setView("form");
+
+      const filledCount = Object.values(parsed).filter((v) => v !== null).length;
+      toast({
+        title: "PDF importado",
+        description: `${filledCount} campo(s) extraído(s). Confira e confirme os dados.`,
+      });
+    } catch (err: any) {
+      console.warn("PDF parse error:", err);
+      toast({ title: "Erro ao ler PDF", description: err?.message || "Não foi possível extrair dados do PDF.", variant: "destructive" });
+    } finally {
+      setImporting(false);
+    }
   };
 
   // ── Open existing session ──
   const openSession = (session: BodyCompositionSession) => {
     setActiveSession(session);
+    setSourceType(session.source_type);
     setForm({
       session_date: session.session_date,
       weight_kg: session.weight_kg,
@@ -190,7 +248,7 @@ export function BodyCompositionTab({ patientId }: BodyCompositionTabProps) {
       waist_hip_ratio: form.waist_hip_ratio,
       device_model: form.device_model || null,
       notes: form.notes || null,
-      source_type: "manual",
+      source_type: sourceType,
     };
 
     if (activeSession) {
@@ -289,6 +347,23 @@ export function BodyCompositionTab({ patientId }: BodyCompositionTabProps) {
                 <Plus className="h-3.5 w-3.5 mr-1" />
                 Registrar
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1.5"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importing}
+              >
+                {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                Importar PDF
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={handleImportPdf}
+              />
             </div>
           </CardContent>
         </Card>
@@ -352,10 +427,15 @@ export function BodyCompositionTab({ patientId }: BodyCompositionTabProps) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => { setView("list"); setActiveSession(null); }} className="gap-1.5">
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => { setView("list"); setActiveSession(null); setSourceType("manual"); }} className="gap-1.5">
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </Button>
+          {sourceType === "pdf_parsed" && !activeSession && (
+            <Badge variant="secondary" className="text-[10px]">Importado do PDF — confira antes de salvar</Badge>
+          )}
+        </div>
         <div className="flex gap-2">
           {activeSession && (
             <Button size="sm" variant="destructive" className="h-8 text-xs gap-1" onClick={handleDelete}>
