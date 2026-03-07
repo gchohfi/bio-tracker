@@ -197,7 +197,7 @@ export function EncounterPrescriptionEditor({
                   <Plus className="h-3 w-3" />
                   Item
                 </Button>
-                <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={handleSave} disabled={saving}>
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => handleSave()} disabled={saving}>
                   <Save className="h-3 w-3" />
                   Salvar
                 </Button>
@@ -206,7 +206,7 @@ export function EncounterPrescriptionEditor({
                   className="h-7 text-xs gap-1"
                   onClick={() => {
                     setStatus("finalized");
-                    setTimeout(() => handleSave(), 0);
+                    handleSave("finalized");
                   }}
                   disabled={saving || items.length === 0}
                 >
