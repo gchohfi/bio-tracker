@@ -1569,12 +1569,14 @@ export default function PatientDetail() {
             )}
           </TabsContent>
 
-          <TabsContent value="timeline" className="mt-4 overflow-hidden">
-            <EvolutionTimeline patientId={patient.id} patientName={patient.name} />
-          </TabsContent>
-
-          <TabsContent value="evolution" className="mt-4 overflow-hidden">
-            <EvolutionTable patientId={patient.id} sessions={sessions} sex={sex} />
+          <TabsContent value="evolution" className="mt-4">
+            <ClinicalEvolutionSummary
+              patientId={patient.id}
+              onNavigateToEncounter={(encId) => {
+                setActiveEncounterId(encId);
+                setDetailTab("clinical_evolution");
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="timeline" className="mt-4 overflow-hidden">
