@@ -1334,6 +1334,38 @@ serve(async (req) => {
     const isTruncated = finishReason === "length";
     const durationMs = Date.now() - startMs;
 
+    // ── Build V2 payload (deterministic + LLM mapping) ──
+    let analysisV2 = null;
+    try {
+      // Resolve specialty name for meta
+      let specialtyName = specialtyId.replace(/_/g, " ");
+      try {
+        const { data: spData } = await serviceClient
+          .from("analysis_prompts")
+          .select("specialty_name")
+          .eq("specialty_id", specialtyId)
+          .single();
+        if (spData?.specialty_name) specialtyName = spData.specialty_name;
+      } catch { /* use fallback name */ }
+
+      analysisV2 = mapV1toV2(
+        analysis,
+        clinicalContext,
+        specialtyId,
+        specialtyName,
+        effectiveMode as "full" | "analysis_only" | "protocols_only",
+        "google/gemini-2.5-flash",
+      );
+      console.log(
+        `V2 built: ${analysisV2.red_flags.length} red_flags, ` +
+        `${analysisV2.clinical_findings.length} findings, ` +
+        `${analysisV2.diagnostic_hypotheses.length} hypotheses, ` +
+        `${analysisV2.suggested_actions.length} actions`
+      );
+    } catch (v2Err) {
+      console.warn("V2 build failed (non-blocking):", v2Err);
+    }
+
     // Fire-and-forget: log AI call for observability (needs auth client for RLS)
     try {
       const authHeader = req.headers.get("Authorization");
@@ -1364,6 +1396,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         analysis,
+        analysis_v2: analysisV2,
         specialty_id: specialtyId,
         _truncated: isTruncated,
         _context_loaded: contextLoaded,
