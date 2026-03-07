@@ -347,6 +347,23 @@ export function BodyCompositionTab({ patientId }: BodyCompositionTabProps) {
                 <Plus className="h-3.5 w-3.5 mr-1" />
                 Registrar
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1.5"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importing}
+              >
+                {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                Importar PDF
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={handleImportPdf}
+              />
             </div>
           </CardContent>
         </Card>
