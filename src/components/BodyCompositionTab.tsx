@@ -427,9 +427,15 @@ export function BodyCompositionTab({ patientId }: BodyCompositionTabProps) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => { setView("list"); setActiveSession(null); }} className="gap-1.5">
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => { setView("list"); setActiveSession(null); setSourceType("manual"); }} className="gap-1.5">
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </Button>
+          {sourceType === "pdf_parsed" && !activeSession && (
+            <Badge variant="secondary" className="text-[10px]">Importado do PDF — confira antes de salvar</Badge>
+          )}
+        </div>
         </Button>
         <div className="flex gap-2">
           {activeSession && (
