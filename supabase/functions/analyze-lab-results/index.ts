@@ -1073,6 +1073,9 @@ function buildUserPrompt(
     prompt += " Minimo de 3 itens. Se houver suplementacao oral mencionada no patient_plan, ela DEVE aparecer na prescription_table.\n";
   }
 
+  prompt += "\n\nINSTRUÇÕES OBRIGATÓRIAS PARA O JSON DE SAÍDA:";
+  prompt += "\n1. O campo 'diagnostic_hypotheses' é OBRIGATÓRIO. Gere 2-4 hipóteses diagnósticas ESPECÍFICAS (ex: 'Dislipidemia primária', 'Deficiência funcional de ferro', 'SOP'). NÃO use placeholders genéricos. Cada hipótese deve ter: hypothesis, supporting_findings, contradicting_findings (array vazio se não houver), confirmatory_exams, likelihood (probable/possible/unlikely), priority.";
+  prompt += "\n2. O campo 'follow_up' é OBRIGATÓRIO. Deve conter: suggested_exams (exames para o próximo retorno), suggested_return_days (30/60/90 dias), notes (observações de acompanhamento).";
   prompt += "\nRetorne um JSON com a analise clinica estruturada conforme o formato especificado.";
   return prompt;
 }
