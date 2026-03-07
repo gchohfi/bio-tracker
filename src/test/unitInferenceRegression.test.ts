@@ -257,12 +257,12 @@ describe("regression: value-unit conflict blocks conversion", () => {
     expect(results[0]._converted).toBeUndefined();
   });
 
-  it("dht 13 with explicit unit pg/mL does NOT convert (already canonical)", () => {
+  it("dht 13 with explicit unit ng/dL does NOT convert (already canonical)", () => {
     const results = [
       makeResult("dht", 13, {
-        unit: "pg/mL",
-        lab_ref_min: 16,
-        lab_ref_max: 79,
+        unit: "ng/dL",
+        lab_ref_min: 5,
+        lab_ref_max: 46,
       }),
     ];
     convertPipeline(results);
@@ -294,9 +294,9 @@ describe("regression: inference metadata for auditability", () => {
   });
 
   it("heuristic match includes value in evidence", () => {
-    const results: any[] = [makeResult("dht", 3.0, {})];
+    const results: any[] = [makeResult("dht", 130, {})];
     inferSourceUnit(results);
-    expect(results[0]._inferenceEvidence).toContain("value=3");
+    expect(results[0]._inferenceEvidence).toContain("value=130");
     expect(results[0]._conversionConfidence).toBe("low");
   });
 
@@ -343,12 +343,12 @@ describe("regression: EvolutionReportData reflects persisted values only", () =>
     expect(results[0].value).toBe(0.44);
   });
 
-  it("Barbara DHT scenario: value 13, unit pg/mL, no conversion → persisted as 13", () => {
+  it("Barbara DHT scenario: value 13, unit ng/dL, no conversion → persisted as 13", () => {
     const results = [
       makeResult("dht", 13, {
-        unit: "pg/mL",
-        lab_ref_min: 16,
-        lab_ref_max: 79,
+        unit: "ng/dL",
+        lab_ref_min: 5,
+        lab_ref_max: 46,
       }),
     ];
     convertPipeline(results);
