@@ -147,7 +147,7 @@ export function ClinicalEvolutionTab({ patientId, specialtyId, onRequestAnalysis
     // Load linked analyses
     const { data: analyses } = await (supabase as any)
       .from("patient_analyses")
-      .select("id, specialty_name, specialty_id, created_at, mode")
+      .select("id, specialty_name, specialty_id, created_at, mode, prescription_table")
       .eq("encounter_id", enc.id)
       .order("created_at", { ascending: false });
     setLinkedAnalyses(analyses ?? []);
