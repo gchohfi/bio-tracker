@@ -333,6 +333,25 @@ export function EncounterPrescriptionEditor({
                   </Button>
                 </>
               )}
+              {status === "finalized" && items.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() =>
+                    generatePrescriptionPdf({
+                      items,
+                      patientName: patientName ?? "Paciente",
+                      encounterDate: encounterDate ?? new Date().toLocaleDateString("pt-BR"),
+                      specialtyName: specialtyName ?? specialtyId,
+                      practitionerName: practitionerName ?? "Profissional",
+                    })
+                  }
+                >
+                  <FileDown className="h-3 w-3" />
+                  PDF
+                </Button>
+              )}
             </div>
           </div>
 
