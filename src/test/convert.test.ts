@@ -522,7 +522,7 @@ describe("convert: table completeness", () => {
     "magnesio",
     "vitamina_d",
     "progesterona",
-    "dht",
+    "dihidrotestosterona",
   ];
 
   it.each(requiredMarkers)("%s is in UNIT_CONVERSIONS", (marker) => {
