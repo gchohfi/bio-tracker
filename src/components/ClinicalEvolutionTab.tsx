@@ -429,6 +429,10 @@ export function ClinicalEvolutionTab({ patientId, patientName, specialtyId, spec
           patientId={patientId}
           specialtyId={specialtyId}
           isFinalized={isFinalized}
+          patientName={patientName}
+          encounterDate={format(parseISO(activeEncounter.encounter_date), "dd/MM/yyyy")}
+          specialtyName={specialtyName}
+          practitionerName={practitionerName}
           legacyPrescription={
             linkedAnalyses.length > 0
               ? (linkedAnalyses[0].prescription_table as any[] | undefined) ?? undefined
