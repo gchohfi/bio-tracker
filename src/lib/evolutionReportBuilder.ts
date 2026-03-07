@@ -59,28 +59,25 @@ const DERIVED_MARKERS = new Set([
 // ── Helpers ─────────────────────────────────────────────────────────────
 
 /**
- * Compute flag (high/low/null) for a numeric value using the marker's labRange.
- * Uses sex "F" as default for female patients (most common in this system).
+ * Compute flag (high/low/null) for a numeric value using resolveReference
+ * (same logic as EvolutionTable) for consistency across all views.
+ *
+ * Uses resolveReference which includes sanity checking against labRange,
+ * preventing incorrect flags when lab_ref values are in the wrong scale.
  */
 function computeFlag(
   value: number | null,
   marker: MarkerDef | undefined,
-  labRefMin: number | null | undefined,
-  labRefMax: number | null | undefined,
+  sex: "M" | "F",
+  labRefText: string | null | undefined,
 ): string | null {
   if (value === null || value === undefined) return null;
-  if (marker?.qualitative) return null;
+  if (!marker) return null;
+  if (marker.qualitative) return null;
 
-  // Prefer specific lab reference if available
-  const min = labRefMin ?? marker?.labRange?.F?.[0] ?? null;
-  const max = labRefMax ?? marker?.labRange?.F?.[1] ?? null;
-
-  // Skip sentinel maxes (999, 9999, 99999, etc.)
-  const isSentinel = (v: number) => /^9{3,}$/.test(String(v));
-
-  if (min !== null && value < min) return "low";
-  if (max !== null && !isSentinel(max) && value > max) return "high";
-  return null;
+  const ref = resolveReference(marker, sex, labRefText || undefined);
+  const status = getMarkerStatusFromRef(value, ref);
+  return status === "normal" ? null : status;
 }
 
 /**
