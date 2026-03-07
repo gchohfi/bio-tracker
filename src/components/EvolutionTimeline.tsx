@@ -21,7 +21,7 @@ import {
   type EvolutionCellValue,
 } from "@/lib/evolutionReportBuilder";
 import { generateEvolutionPdf } from "@/lib/generateEvolutionPdf";
-
+import { generateEvolutionExcel } from "@/lib/generateEvolutionExcel";
 interface EvolutionTimelineProps {
   patientId: string;
   patientName?: string;
