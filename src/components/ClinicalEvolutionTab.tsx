@@ -63,7 +63,7 @@ const EMPTY_NOTE: Omit<EvolutionNote, "encounter_id"> = {
   free_notes: "",
 };
 
-export function ClinicalEvolutionTab({ patientId, specialtyId }: ClinicalEvolutionTabProps) {
+export function ClinicalEvolutionTab({ patientId, specialtyId, onRequestAnalysis, onViewAnalysis }: ClinicalEvolutionTabProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [encounters, setEncounters] = useState<Encounter[]>([]);
