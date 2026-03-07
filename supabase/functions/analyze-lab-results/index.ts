@@ -1036,6 +1036,52 @@ function buildUserPrompt(
     prompt += "\nNOTAS CLINICAS DO MEDICO (" + activeSpecialty.replace(/_/g, " ") + "):\n" + clinicalContext.doctorNotes + "\n";
   }
 
+  // ── Body composition (nutrologia / endocrinologia only) ──
+  const bodyCompSpecialties = ["nutrologia", "endocrinologia"];
+  const bc = clinicalContext.bodyComposition;
+  if (bc?.current && bodyCompSpecialties.includes(activeSpecialty)) {
+    prompt += "\nCOMPOSICAO CORPORAL (dados deterministicos - bioimpedancia/InBody):\n";
+    prompt += "IMPORTANTE: Estes sao dados objetivos de composicao corporal. Use-os como contexto complementar aos exames laboratoriais. Nao altere os valores.\n";
+    const c = bc.current;
+    prompt += "Sessao atual (" + c.session_date + "):\n";
+    if (c.weight_kg !== null) prompt += "- Peso: " + c.weight_kg + " kg\n";
+    if (c.bmi !== null) prompt += "- IMC: " + c.bmi + " kg/m2\n";
+    if (c.skeletal_muscle_kg !== null) prompt += "- Massa muscular esqueletica: " + c.skeletal_muscle_kg + " kg\n";
+    if (c.body_fat_kg !== null) prompt += "- Massa de gordura corporal: " + c.body_fat_kg + " kg\n";
+    if (c.body_fat_pct !== null) prompt += "- Percentual de gordura: " + c.body_fat_pct + "%\n";
+    if (c.visceral_fat_level !== null) prompt += "- Gordura visceral (nivel): " + c.visceral_fat_level + "\n";
+    if (c.total_body_water_l !== null) prompt += "- Agua corporal total: " + c.total_body_water_l + " L\n";
+    if (c.ecw_tbw_ratio !== null) prompt += "- Relacao ECW/TBW: " + c.ecw_tbw_ratio + "\n";
+    if (c.bmr_kcal !== null) prompt += "- TMB/BMR: " + c.bmr_kcal + " kcal\n";
+    if (c.waist_cm !== null) prompt += "- Cintura: " + c.waist_cm + " cm\n";
+    if (c.hip_cm !== null) prompt += "- Quadril: " + c.hip_cm + " cm\n";
+    if (c.waist_hip_ratio !== null) prompt += "- Relacao cintura/quadril: " + c.waist_hip_ratio + "\n";
+
+    // Trends vs previous session
+    if (bc.previous) {
+      const prev = bc.previous;
+      prompt += "\nTendencia vs sessao anterior (" + prev.session_date + "):\n";
+      const comparisons: Array<{ label: string; curr: number | null; prev: number | null; unit: string; upIsBad: boolean }> = [
+        { label: "Peso", curr: c.weight_kg, prev: prev.weight_kg, unit: "kg", upIsBad: true },
+        { label: "% Gordura", curr: c.body_fat_pct, prev: prev.body_fat_pct, unit: "%", upIsBad: true },
+        { label: "Massa muscular", curr: c.skeletal_muscle_kg, prev: prev.skeletal_muscle_kg, unit: "kg", upIsBad: false },
+        { label: "Gordura visceral", curr: c.visceral_fat_level, prev: prev.visceral_fat_level, unit: "", upIsBad: true },
+        { label: "IMC", curr: c.bmi, prev: prev.bmi, unit: "", upIsBad: true },
+      ];
+      for (const cmp of comparisons) {
+        if (cmp.curr !== null && cmp.prev !== null) {
+          const delta = cmp.curr - cmp.prev;
+          if (Math.abs(delta) > 0.01) {
+            const sign = delta > 0 ? "+" : "";
+            const direction = (delta > 0 && cmp.upIsBad) || (delta < 0 && !cmp.upIsBad) ? " (desfavoravel)" : " (favoravel)";
+            prompt += "- " + cmp.label + ": " + cmp.prev + " -> " + cmp.curr + " (" + sign + delta.toFixed(1) + " " + cmp.unit + ")" + direction + "\n";
+          }
+        }
+      }
+    }
+    prompt += "\n";
+  }
+
   // ── Lab results: out of range ──
   prompt += "\nMARCADORES FORA DA FAIXA LABORATORIAL (" + labs.outOfRange.length + "):\n";
   for (const r of labs.outOfRange) {
