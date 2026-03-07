@@ -149,6 +149,56 @@ export function BodyCompositionTab({ patientId }: BodyCompositionTabProps) {
     setView("form");
   };
 
+  // ── Import PDF ──
+  const handleImportPdf = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so same file can be re-selected
+    e.target.value = "";
+
+    if (file.type !== "application/pdf") {
+      toast({ title: "Arquivo inválido", description: "Selecione um arquivo PDF.", variant: "destructive" });
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const parsed = await parseInBodyPdf(file);
+      setActiveSession(null);
+      setForm({
+        session_date: parsed.session_date || format(newDate, "yyyy-MM-dd"),
+        weight_kg: parsed.weight_kg,
+        bmi: parsed.bmi,
+        skeletal_muscle_kg: parsed.skeletal_muscle_kg,
+        body_fat_kg: parsed.body_fat_kg,
+        body_fat_pct: parsed.body_fat_pct,
+        visceral_fat_level: parsed.visceral_fat_level,
+        total_body_water_l: parsed.total_body_water_l,
+        ecw_tbw_ratio: parsed.ecw_tbw_ratio,
+        bmr_kcal: parsed.bmr_kcal,
+        waist_cm: parsed.waist_cm,
+        hip_cm: parsed.hip_cm,
+        waist_hip_ratio: parsed.waist_hip_ratio,
+        device_model: parsed.device_model,
+        notes: parsed.notes,
+      });
+      // Track source as pdf_parsed (will be set on save)
+      setSourceType("pdf_parsed");
+      setView("form");
+
+      const filledCount = Object.values(parsed).filter((v) => v !== null).length;
+      toast({
+        title: "PDF importado",
+        description: `${filledCount} campo(s) extraído(s). Confira e confirme os dados.`,
+      });
+    } catch (err: any) {
+      console.warn("PDF parse error:", err);
+      toast({ title: "Erro ao ler PDF", description: err?.message || "Não foi possível extrair dados do PDF.", variant: "destructive" });
+    } finally {
+      setImporting(false);
+    }
+  };
+
   // ── Open existing session ──
   const openSession = (session: BodyCompositionSession) => {
     setActiveSession(session);
