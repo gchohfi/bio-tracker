@@ -270,6 +270,67 @@ export type Database = {
           },
         ]
       }
+      clinical_prescriptions: {
+        Row: {
+          created_at: string
+          encounter_id: string
+          id: string
+          patient_id: string
+          practitioner_id: string
+          prescription_json: Json
+          source_analysis_id: string | null
+          specialty_id: string
+          status: Database["public"]["Enums"]["prescription_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          encounter_id: string
+          id?: string
+          patient_id: string
+          practitioner_id: string
+          prescription_json?: Json
+          source_analysis_id?: string | null
+          specialty_id?: string
+          status?: Database["public"]["Enums"]["prescription_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          encounter_id?: string
+          id?: string
+          patient_id?: string
+          practitioner_id?: string
+          prescription_json?: Json
+          source_analysis_id?: string | null
+          specialty_id?: string
+          status?: Database["public"]["Enums"]["prescription_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_prescriptions_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_encounters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_prescriptions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_prescriptions_source_analysis_id_fkey"
+            columns: ["source_analysis_id"]
+            isOneToOne: false
+            referencedRelation: "patient_analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctor_specialty_notes: {
         Row: {
           adesao_tratamento: string | null
@@ -747,6 +808,7 @@ export type Database = {
     }
     Enums: {
       encounter_status: "draft" | "finalized"
+      prescription_status: "draft" | "finalized"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -875,6 +937,7 @@ export const Constants = {
   public: {
     Enums: {
       encounter_status: ["draft", "finalized"],
+      prescription_status: ["draft", "finalized"],
     },
   },
 } as const
