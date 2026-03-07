@@ -107,21 +107,18 @@ function buildFallbackRef(markerId: string, marker: MarkerDef | undefined): stri
 // ── Builder ─────────────────────────────────────────────────────────────
 
 export async function buildEvolutionReport(patientId: string): Promise<EvolutionReportData> {
-  // 1. Fetch all sessions for this patient
-  const { data: sessions } = await supabase
-    .from("lab_sessions")
-    .select("id, session_date")
-    .eq("patient_id", patientId);
+  // 1. Fetch patient sex + all sessions in parallel
+  const [patientRes, sessionsRes] = await Promise.all([
+    supabase.from("patients").select("sex").eq("id", patientId).single(),
+    supabase.from("lab_sessions").select("id, session_date").eq("patient_id", patientId),
+  ]);
+
+  const patientSex: "M" | "F" = (patientRes.data?.sex === "M" ? "M" : "F");
+  const sessions = sessionsRes.data;
 
   if (!sessions || sessions.length === 0) {
     return { patient_id: patientId, dates: [], sections: [] };
   }
-
-  const sessionIds = sessions.map((s) => s.id);
-  const sessionDateMap: Record<string, string> = {};
-  sessions.forEach((s) => {
-    sessionDateMap[s.id] = s.session_date;
-  });
 
   // 2. Fetch current + historical results in parallel
   const [currentRes, historicalRes] = await Promise.all([
