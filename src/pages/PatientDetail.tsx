@@ -672,7 +672,7 @@ export default function PatientDetail() {
   };
 
   // ── Gerar Análise de Exames (somente análise clínica, sem protocolos) ──
-  const handleGenerateAnalysis = async () => {
+  const handleGenerateAnalysis = async (overrideEncounterId?: string) => {
     if (!patient) return;
     const sessionIds = sessions.map((s) => s.id);
     const { data } = await supabase.from("lab_results").select("*").in("session_id", sessionIds);
