@@ -862,8 +862,11 @@ async function fetchClinicalContext(
 
   if (!patientId) return { context: result, loaded };
 
-  // Fetch anamnese and doctor notes in parallel
-  const [anamneseResult, notesResult] = await Promise.all([
+  // Fetch anamnese, doctor notes, and body composition in parallel
+  const bodyCompSpecialties = ["nutrologia", "endocrinologia"];
+  const shouldFetchBodyComp = bodyCompSpecialties.includes(specialtyId);
+
+  const [anamneseResult, notesResult, bodyCompResult] = await Promise.all([
     supabaseClient
       .from("patient_anamneses")
       .select("*")
@@ -880,6 +883,16 @@ async function fetchClinicalContext(
       .single()
       .then(({ data }: { data: unknown }) => data)
       .catch((err: unknown) => { console.warn("Failed to load doctor notes:", err); return null; }),
+    shouldFetchBodyComp
+      ? supabaseClient
+          .from("body_composition_sessions")
+          .select("session_date, weight_kg, bmi, skeletal_muscle_kg, body_fat_kg, body_fat_pct, visceral_fat_level, total_body_water_l, ecw_tbw_ratio, bmr_kcal, waist_cm, hip_cm, waist_hip_ratio")
+          .eq("patient_id", patientId)
+          .order("session_date", { ascending: false })
+          .limit(2)
+          .then(({ data }: { data: unknown }) => data)
+          .catch((err: unknown) => { console.warn("Failed to load body composition:", err); return null; })
+      : Promise.resolve(null),
   ]);
 
   // Parse anamnese
@@ -915,6 +928,35 @@ async function fetchClinicalContext(
       loaded.doctorNotes = true;
       console.log("Doctor notes loaded: " + noteLines.length + " fields for patient " + patientId);
     }
+  }
+
+  // Parse body composition
+  if (bodyCompResult && Array.isArray(bodyCompResult) && bodyCompResult.length > 0) {
+    const mapSession = (row: Record<string, unknown>): BodyCompositionSnapshot => ({
+      session_date: row.session_date as string,
+      weight_kg: row.weight_kg as number | null,
+      bmi: row.bmi as number | null,
+      skeletal_muscle_kg: row.skeletal_muscle_kg as number | null,
+      body_fat_kg: row.body_fat_kg as number | null,
+      body_fat_pct: row.body_fat_pct as number | null,
+      visceral_fat_level: row.visceral_fat_level as number | null,
+      total_body_water_l: row.total_body_water_l as number | null,
+      ecw_tbw_ratio: row.ecw_tbw_ratio as number | null,
+      bmr_kcal: row.bmr_kcal as number | null,
+      waist_cm: row.waist_cm as number | null,
+      hip_cm: row.hip_cm as number | null,
+      waist_hip_ratio: row.waist_hip_ratio as number | null,
+    });
+
+    // Count total sessions (we fetched limit 2 for current+previous)
+    const totalCount = bodyCompResult.length; // approximate; enough for context
+    result.bodyComposition = {
+      current: mapSession(bodyCompResult[0] as Record<string, unknown>),
+      previous: bodyCompResult.length > 1 ? mapSession(bodyCompResult[1] as Record<string, unknown>) : null,
+      totalSessions: totalCount,
+    };
+    loaded.bodyComposition = true;
+    console.log("Body composition loaded: " + totalCount + " session(s) for patient " + patientId);
   }
 
   return { context: result, loaded };
