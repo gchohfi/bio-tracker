@@ -164,18 +164,18 @@ describe("convert: unit_raw match", () => {
     expect(results[0].lab_ref_max).toBeCloseTo(1.0, 2);
   });
 
-  it("dht ng/dL → pg/mL via unit field", () => {
+  it("dht pg/mL → ng/dL via unit field", () => {
     const results = [
-      makeResult("dht", 3.0, {
-        unit: "ng/dL",
-        lab_ref_min: 1.0,
-        lab_ref_max: 5.0,
+      makeResult("dht", 130, {
+        unit: "pg/mL",
+        lab_ref_min: 50,
+        lab_ref_max: 460,
       }),
     ];
     convertPipeline(results);
-    expect(results[0].value).toBeCloseTo(30, 1);
-    expect(results[0].lab_ref_min).toBeCloseTo(10, 1);
-    expect(results[0].lab_ref_max).toBeCloseTo(50, 1);
+    expect(results[0].value).toBeCloseTo(13, 1);
+    expect(results[0].lab_ref_min).toBeCloseTo(5, 1);
+    expect(results[0].lab_ref_max).toBeCloseTo(46, 1);
   });
 });
 
@@ -330,12 +330,12 @@ describe("convert: critical markers", () => {
     expect(results[0].lab_ref_max).toBeCloseTo(9.435, 2);
   });
 
-  it("dht heuristic: value < 5 without unit triggers conversion", () => {
+  it("dht heuristic: value > 50 without unit triggers conversion (pg/mL → ng/dL)", () => {
     const results = [
-      makeResult("dht", 3.0, { lab_ref_min: 1.0, lab_ref_max: 5.0 }),
+      makeResult("dht", 130, { lab_ref_min: 50, lab_ref_max: 460 }),
     ];
     convertPipeline(results);
-    expect(results[0].value).toBeCloseTo(30, 1);
+    expect(results[0].value).toBeCloseTo(13, 1);
     expect(results[0]._converted).toBe(true);
   });
 
@@ -386,19 +386,20 @@ describe("convert: exact expected values", () => {
     expect(results[0]._converted).toBe(true);
   });
 
-  it("DHT 13 ng/dL → 130 pg/mL", () => {
+  it("DHT 130 pg/mL → 13 ng/dL", () => {
     const results = [
-      makeResult("dht", 13, {
-        unit: "ng/dL",
-        lab_ref_min: 5,
-        lab_ref_max: 30,
-        lab_ref_text: "5 a 30 ng/dL",
+      makeResult("dht", 130, {
+        unit: "pg/mL",
+        lab_ref_min: 50,
+        lab_ref_max: 460,
+        lab_ref_text: "50 a 460 pg/mL",
       }),
     ];
     convertPipeline(results);
-    expect(results[0].value).toBeCloseTo(130, 1);
-    expect(results[0].lab_ref_min).toBeCloseTo(50, 1);
-    expect(results[0].lab_ref_max).toBeCloseTo(300, 1);
+    expect(results[0].value).toBeCloseTo(13, 1);
+    expect(results[0].lab_ref_min).toBeCloseTo(5, 1);
+    expect(results[0].lab_ref_max).toBeCloseTo(46, 1);
+    expect(results[0]._converted).toBe(true);
     expect(results[0]._converted).toBe(true);
   });
 
@@ -466,9 +467,9 @@ describe("inferSourceUnit: metadata marking", () => {
   });
 
   it("marks low confidence for heuristic match", () => {
-    const results: any[] = [makeResult("dht", 3.0, {})];
+    const results: any[] = [makeResult("dht", 130, {})];
     inferSourceUnit(results);
-    expect(results[0]._sourceUnit).toBe("ng/dL");
+    expect(results[0]._sourceUnit).toBe("pg/mL");
     expect(results[0]._conversionConfidence).toBe("low");
     expect(results[0]._conversionReason).toContain("heuristic");
   });

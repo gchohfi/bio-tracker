@@ -80,11 +80,11 @@ export const CONVERSION_RULES: Record<string, ConversionRuleDef[]> = {
 
   dihidrotestosterona: [
     {
-      from_unit_pattern: "ng\\/d",
-      from_unit_label: "ng/dL",
-      to_unit: "pg/mL",
-      factor: 10,
-      description: "DHT ng/dL → pg/mL (×10)",
+      from_unit_pattern: "pg\\/m",
+      from_unit_label: "pg/mL",
+      to_unit: "ng/dL",
+      factor: 0.1,
+      description: "DHT pg/mL → ng/dL (÷10)",
     },
   ],
 

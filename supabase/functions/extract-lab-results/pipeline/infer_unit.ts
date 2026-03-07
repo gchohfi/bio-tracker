@@ -61,10 +61,10 @@ export const MARKER_UNIT_DEFS: Record<string, MarkerUnitDef> = {
     expected_ref_range: { min: 0.05, max: 25 },
   },
   dht: {
-    canonical_unit: "pg/mL",
-    alt_units: ["ng/dL", "nmol/L"],
-    plausible_range: { min: 10, max: 1000 },
-    expected_ref_range: { min: 20, max: 500 },
+    canonical_unit: "ng/dL",
+    alt_units: ["pg/mL", "nmol/L"],
+    plausible_range: { min: 1, max: 100 },
+    expected_ref_range: { min: 3, max: 50 },
   },
   dhea_s: {
     canonical_unit: "µg/dL",

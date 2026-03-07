@@ -207,27 +207,27 @@ describe("Conversão: Progesterona ng/dL → ng/mL (÷100)", () => {
   });
 });
 
-describe("Conversão: DHT ng/dL → pg/mL (×10)", () => {
+describe("Conversão: DHT pg/mL → ng/dL (×0.1)", () => {
   const normalized: NormalizedResult = {
     marker_id: "dht",
-    value_normalized: 13,
+    value_normalized: 130,
     result_type: "numeric",
-    reference: { original_text: "20 a 500", min: 20, max: 500, operator: null, ref_type: "range", is_qualitative: false },
-    unit_raw: "ng/dL",
+    reference: { original_text: "50 a 460", min: 50, max: 460, operator: null, ref_type: "range", is_qualitative: false },
+    unit_raw: "pg/mL",
   };
 
   const inference: UnitInferenceResult = {
     marker_id: "dht",
-    inferred_unit: "ng/dL",
-    target_unit: "pg/mL",
+    inferred_unit: "pg/mL",
+    target_unit: "ng/dL",
     confidence: "high",
-    reason: "Unidade extraída ng/dL é alternativa conhecida",
+    reason: "Unidade extraída pg/mL é alternativa conhecida",
     needs_conversion: true,
   };
 
-  it("converte valor 13 ng/dL → 130 pg/mL", () => {
+  it("converte valor 130 pg/mL → 13 ng/dL", () => {
     const { converted } = convertResult(normalized, inference);
-    expect(converted.value).toBe(130);
+    expect(converted.value).toBe(13);
   });
 });
 

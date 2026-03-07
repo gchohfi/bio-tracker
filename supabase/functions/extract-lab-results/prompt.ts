@@ -405,7 +405,7 @@ RULE 5: Context-aware validation — check if value makes sense for the marker:
   - Leucócitos: expect 1000-30000. If you get 4.65, it's probably 4650 (thousands separator was "4.650")
   - Progesterona: expect 0.1-40 ng/mL. If you get 101, it's probably 1.01 ("1,01" with comma decimal)
   - IGFBP-3: expect 1-15 µg/mL. If you get 6120, the lab reported in ng/mL (÷1000 → 6.12)
-  - DHT: expect 5-2000 pg/mL. If you get 13 for female, check if it should be 130 ("130" or "13,0")
+  - DHT: expect 5-100 ng/dL. If you get 130 for female, the lab may have reported in pg/mL.
   - Plaquetas: expect 50-600 mil/µL. "336 mil/mm³" → 336.
   - Eritrócitos: expect 1-10 milhões/µL. "3,8 milhões" → 3.8.
 
