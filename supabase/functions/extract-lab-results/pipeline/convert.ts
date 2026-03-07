@@ -167,7 +167,7 @@ export function convertResult(
       marker_id: result.marker_id,
       conversion_applied: true,
       conversion_reason: rule.description,
-      source_unit_inferred: rule.from_unit,
+      source_unit_inferred: rule.from_unit_label,
       target_unit: rule.to_unit,
       conversion_factor: rule.factor,
       original_value: result.value_normalized,
