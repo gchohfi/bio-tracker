@@ -1593,48 +1593,97 @@ export default function PatientDetail() {
               </Card>
             ) : (
               <div className="space-y-4">
-                {/* Selector de análises anteriores */}
-                {savedAnalyses.length > 1 && (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-muted-foreground font-medium">Histórico:</span>
-                    {savedAnalyses.map((a, i) => (
-                      <div key={a.id} className="flex items-center gap-0.5">
-                        <button
-                          onClick={() => setSelectedAnalysis(a)}
-                          className={cn(
-                            "text-xs px-2 py-1 rounded-full border transition-colors",
-                            selectedAnalysis?.id === a.id
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-background hover:bg-muted border-border"
-                          )}
-                        >
-                          {a.specialty_name ?? a.specialty_id} • {format(parseISO(a.created_at), "dd/MM/yy HH:mm")}
-                        </button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <button className="p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Excluir análise">
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Excluir análise?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                A análise de {a.specialty_name ?? a.specialty_id} gerada em {format(parseISO(a.created_at), "dd/MM/yyyy HH:mm")} será excluída permanentemente.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteAnalysis(a.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                {/* Encounter filter + analysis selector */}
+                <div className="space-y-2">
+                  {/* Encounter filter */}
+                  {encountersForFilter.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Stethoscope className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground font-medium">Filtrar por consulta:</span>
+                      <Select value={analysisEncounterFilter} onValueChange={(v) => { setAnalysisEncounterFilter(v); setSelectedAnalysis(null); }}>
+                        <SelectTrigger className="h-7 w-auto text-xs gap-1 px-2">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todas as análises</SelectItem>
+                          <SelectItem value="unlinked">Sem consulta vinculada</SelectItem>
+                          {encountersForFilter.map((enc) => (
+                            <SelectItem key={enc.id} value={enc.id}>
+                              {format(parseISO(enc.encounter_date), "dd/MM/yyyy")}
+                              {enc.chief_complaint ? ` — ${enc.chief_complaint.substring(0, 40)}` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Analysis pills */}
+                  {(() => {
+                    const filtered = analysisEncounterFilter === "all"
+                      ? savedAnalyses
+                      : analysisEncounterFilter === "unlinked"
+                        ? savedAnalyses.filter((a) => !a.encounter_id)
+                        : savedAnalyses.filter((a) => a.encounter_id === analysisEncounterFilter);
+
+                    // Auto-select first filtered if none selected
+                    if (filtered.length > 0 && !selectedAnalysis) {
+                      setTimeout(() => setSelectedAnalysis(filtered[0]), 0);
+                    }
+
+                    return filtered.length === 0 ? (
+                      <p className="text-xs text-muted-foreground py-2">Nenhuma análise encontrada para este filtro.</p>
+                    ) : filtered.length > 1 ? (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs text-muted-foreground font-medium">Histórico:</span>
+                        {filtered.map((a) => {
+                          const enc = a.encounter_id ? encountersForFilter.find((e) => e.id === a.encounter_id) : null;
+                          return (
+                            <div key={a.id} className="flex items-center gap-0.5">
+                              <button
+                                onClick={() => setSelectedAnalysis(a)}
+                                className={cn(
+                                  "text-xs px-2 py-1 rounded-full border transition-colors flex items-center gap-1",
+                                  selectedAnalysis?.id === a.id
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "bg-background hover:bg-muted border-border"
+                                )}
+                              >
+                                {enc && (
+                                  <CalendarIcon className="h-3 w-3 opacity-70" />
+                                )}
+                                {a.specialty_name ?? a.specialty_id} • {format(parseISO(a.created_at), "dd/MM/yy HH:mm")}
+                                {!a.encounter_id && (
+                                  <span className="ml-1 opacity-60 text-[9px]">(avulsa)</span>
+                                )}
+                              </button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <button className="p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Excluir análise">
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Excluir análise?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      A análise de {a.specialty_name ?? a.specialty_id} gerada em {format(parseISO(a.created_at), "dd/MM/yyyy HH:mm")} será excluída permanentemente.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteAnalysis(a.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                      Excluir
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          );
+                        })}
                       </div>
-                    ))}
-                  </div>
-                )}
+                    ) : null;
+                  })()}
 
                 {/* Conteúdo da análise selecionada */}
                 {selectedAnalysis && (
