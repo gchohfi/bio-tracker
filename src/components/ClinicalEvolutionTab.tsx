@@ -373,15 +373,50 @@ export function ClinicalEvolutionTab({ patientId, specialtyId, onRequestAnalysis
         </div>
       )}
 
-      {/* SOAP Fields */}
+      {/* Linked Analyses */}
       <Card>
-        <CardContent className="pt-6 space-y-4">
-          <Field label="Subjetivo (S)" field="subjective" rows={4} />
-          <Separator />
-          <Field label="Objetivo (O)" field="objective" rows={4} />
-          <Separator />
-          <Field label="Avaliação (A)" field="assessment" rows={4} />
-          <Separator />
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium flex items-center gap-1.5">
+              <Brain className="h-3.5 w-3.5 text-primary" />
+              Análises vinculadas
+            </p>
+            {onRequestAnalysis && activeEncounter && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs gap-1"
+                onClick={() => onRequestAnalysis(activeEncounter.id)}
+              >
+                <Brain className="h-3 w-3" />
+                Gerar Análise IA
+              </Button>
+            )}
+          </div>
+          {linkedAnalyses.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Nenhuma análise vinculada a esta consulta.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {linkedAnalyses.map((a) => (
+                <div
+                  key={a.id}
+                  className="flex items-center justify-between rounded-md border p-2 text-xs cursor-pointer hover:bg-muted/30 transition-colors"
+                  onClick={() => onViewAnalysis?.(a.id)}
+                >
+                  <div className="flex items-center gap-2">
+                    <Brain className="h-3.5 w-3.5 text-primary" />
+                    <span className="font-medium">{a.specialty_name ?? a.specialty_id}</span>
+                    <span className="text-muted-foreground">
+                      {format(parseISO(a.created_at), "dd/MM/yy HH:mm")}
+                    </span>
+                  </div>
+                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
           <Field label="Plano (P)" field="plan" rows={4} />
           <Separator />
           <Field label="Exames solicitados" field="exams_requested" rows={2} />
