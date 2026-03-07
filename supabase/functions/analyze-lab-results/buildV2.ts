@@ -151,6 +151,7 @@ const SYSTEM_LABELS: Record<string, string> = {
   inflamatorio: "Marcadores Inflamatórios",
   hormonal: "Painel Hormonal",
   nutricional: "Vitaminas e Minerais",
+  pancreatico: "Função Pancreática",
   outros: "Outros",
 };
 
