@@ -267,7 +267,7 @@ export default function PatientDetail() {
   const [activeCategory, setActiveCategory] = useState<Category>("Hemograma");
   const [markerValues, setMarkerValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [detailTab, setDetailTab] = useState<"sessions" | "evolution" | "timeline" | "analysis" | "anamnese" | "doctor_notes" | "clinical_evolution">("sessions");
+  const [detailTab, setDetailTab] = useState<"clinical_evolution" | "sessions" | "evolution" | "timeline" | "analysis" | "anamnese">("clinical_evolution");
   const [activeEncounterId, setActiveEncounterId] = useState<string | null>(null);
   const [savedAnalyses, setSavedAnalyses] = useState<any[]>([]);
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
@@ -1484,17 +1484,21 @@ export default function PatientDetail() {
         {/* Tabs for Sessions, Evolution and AI Analysis */}
         <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as any)}>
           <TabsList>
+            <TabsTrigger value="clinical_evolution" className="gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              Prontuário
+            </TabsTrigger>
             <TabsTrigger value="sessions" className="gap-1.5">
               <FlaskConical className="h-3.5 w-3.5" />
-              Sessões
+              Exames
             </TabsTrigger>
             <TabsTrigger value="evolution" className="gap-1.5">
               <BarChart3 className="h-3.5 w-3.5" />
-              Evolução
+              Evolução Clínica
             </TabsTrigger>
             <TabsTrigger value="timeline" className="gap-1.5">
               <Clock className="h-3.5 w-3.5" />
-              Timeline
+              Evolutivo de Exames
             </TabsTrigger>
             <TabsTrigger value="analysis" className="gap-1.5">
               <Brain className="h-3.5 w-3.5" />
@@ -1506,14 +1510,6 @@ export default function PatientDetail() {
             <TabsTrigger value="anamnese" className="gap-1.5">
               <ClipboardList className="h-3.5 w-3.5" />
               Anamnese
-            </TabsTrigger>
-            <TabsTrigger value="doctor_notes" className="gap-1.5">
-              <Stethoscope className="h-3.5 w-3.5" />
-              Notas Clínicas
-            </TabsTrigger>
-            <TabsTrigger value="clinical_evolution" className="gap-1.5">
-              <FileText className="h-3.5 w-3.5" />
-              Prontuário
             </TabsTrigger>
           </TabsList>
 
@@ -1945,9 +1941,7 @@ export default function PatientDetail() {
           <TabsContent value="anamnese" className="mt-4">
             {patient && <AnamneseTab patient={patient} />}
           </TabsContent>
-          <TabsContent value="doctor_notes" className="mt-4">
-            {patient && <DoctorNotesTab patient={patient} />}
-          </TabsContent>
+          {/* doctor_notes tab hidden — Fase A: data preserved, tab removed from nav */}
           <TabsContent value="clinical_evolution" className="mt-4">
             {patient && (
               <ClinicalEvolutionTab
