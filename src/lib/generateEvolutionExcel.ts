@@ -354,6 +354,8 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
     { header: "Unidade", key: "unit", width: 12 },
     { header: "Referência", key: "ref", width: 20 },
     { header: "Status", key: "status", width: 10 },
+    { header: "Ref. Funcional", key: "ref_func", width: 22 },
+    { header: "Status Funcional", key: "status_func", width: 16 },
     { header: "Fonte", key: "source", width: 12 },
   ];
 
@@ -371,7 +373,7 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
   wsDados.views = [{ state: "frozen", ySplit: 1 }];
   wsDados.autoFilter = {
     from: { row: 1, column: 1 },
-    to: { row: 1, column: 9 },
+    to: { row: 1, column: 11 },
   };
 
   // Populate data rows
@@ -382,6 +384,7 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
         if (!cell) continue;
 
         const status = cell.flag === "high" ? "Alto" : cell.flag === "low" ? "Baixo" : "Normal";
+        const funcResult = resolveFunctionalRef(marker.marker_id, cell.value, sex, marker.unit);
 
         const row = wsDados.addRow({
           category: section.category,
@@ -392,6 +395,11 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
           unit: marker.unit,
           ref: marker.reference_text || "",
           status,
+          ref_func: funcResult?.refText ?? "",
+          status_func: funcResult === null ? ""
+            : funcResult.status === "normal" ? "Normal"
+            : funcResult.status === "fora" ? "Fora"
+            : "—",
           source: cell.source === "historical"
             ? (cell.source_lab || "histórico")
             : "atual",
@@ -403,7 +411,7 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
           c.font = { size: 9 };
         });
 
-        // Color status cell
+        // Color lab status cell
         const statusCell = row.getCell(8);
         if (cell.flag === "high" || cell.flag === "low") {
           statusCell.font = { bold: true, size: 9, color: { argb: RED_TEXT_ARGB } };
@@ -413,6 +421,17 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
           statusCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG_ARGB } };
         }
         statusCell.alignment = { horizontal: "center", vertical: "middle" };
+
+        // Color functional status cell
+        const funcStatusCellDados = row.getCell(10);
+        if (funcResult?.status === "normal") {
+          funcStatusCellDados.font = { bold: true, size: 9, color: { argb: GREEN_TEXT_ARGB } };
+          funcStatusCellDados.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG_ARGB } };
+        } else if (funcResult?.status === "fora") {
+          funcStatusCellDados.font = { bold: true, size: 9, color: { argb: RED_TEXT_ARGB } };
+          funcStatusCellDados.fill = { type: "pattern", pattern: "solid", fgColor: { argb: RED_BG_ARGB } };
+        }
+        funcStatusCellDados.alignment = { horizontal: "center", vertical: "middle" };
       }
     }
   }
