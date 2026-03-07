@@ -44,6 +44,7 @@ import {
   Sliders,
   ClipboardList,
   Stethoscope,
+  Scale,
   Clock,
   ChevronRight,
   MoreVertical,
