@@ -689,12 +689,110 @@ FORMATO DE SAÍDA (JSON estrito):
 }`;
 
 // ══════════════════════════════════════════════════════════════════════════════
+// CLINICAL CONTEXT — tipos e fetch centralizado
+// ══════════════════════════════════════════════════════════════════════════════
+interface ClinicalContext {
+  anamnese: string | null;
+  doctorNotes: string | null;
+  patientProfile: PatientProfile | null;
+}
+
+interface ContextLoaded {
+  anamnesis: boolean;
+  doctorNotes: boolean;
+  patientProfile: boolean;
+}
+
+async function fetchClinicalContext(
+  supabaseClient: ReturnType<typeof createClient>,
+  patientId: string | undefined,
+  specialtyId: string,
+  patientProfile: PatientProfile | null | undefined,
+): Promise<{ context: ClinicalContext; loaded: ContextLoaded }> {
+  const result: ClinicalContext = {
+    anamnese: null,
+    doctorNotes: null,
+    patientProfile: patientProfile ?? null,
+  };
+
+  const loaded: ContextLoaded = {
+    anamnesis: false,
+    doctorNotes: false,
+    patientProfile: !!(patientProfile && (
+      (patientProfile.objectives && patientProfile.objectives.length > 0) ||
+      patientProfile.activity_level || patientProfile.sport_modality ||
+      patientProfile.main_complaints || patientProfile.restrictions
+    )),
+  };
+
+  if (!patientId) return { context: result, loaded };
+
+  // Fetch anamnese and doctor notes in parallel
+  const [anamneseResult, notesResult] = await Promise.all([
+    supabaseClient
+      .from("patient_anamneses")
+      .select("*")
+      .eq("patient_id", patientId)
+      .eq("specialty_id", specialtyId)
+      .single()
+      .then(({ data }: { data: unknown }) => data)
+      .catch((err: unknown) => { console.warn("Failed to load anamnese:", err); return null; }),
+    supabaseClient
+      .from("doctor_specialty_notes")
+      .select("*")
+      .eq("patient_id", patientId)
+      .eq("specialty_id", specialtyId)
+      .single()
+      .then(({ data }: { data: unknown }) => data)
+      .catch((err: unknown) => { console.warn("Failed to load doctor notes:", err); return null; }),
+  ]);
+
+  // Parse anamnese
+  if (anamneseResult) {
+    const a = anamneseResult as Record<string, unknown>;
+    const text = a.anamnese_text as string | null;
+    if (text && text.trim().length > 0) {
+      result.anamnese = text.trim();
+      loaded.anamnesis = true;
+      console.log("Anamnese loaded: " + text.length + " chars for patient " + patientId);
+    }
+  }
+
+  // Parse doctor notes
+  if (notesResult) {
+    const n = notesResult as Record<string, unknown>;
+    const noteLines: string[] = [];
+    if (n.impressao_clinica) noteLines.push("Impressao clinica: " + n.impressao_clinica);
+    if (n.hipoteses_diagnosticas) noteLines.push("Hipoteses diagnosticas: " + n.hipoteses_diagnosticas);
+    if (n.foco_consulta) noteLines.push("Foco desta consulta: " + n.foco_consulta);
+    if (n.observacoes_exames) noteLines.push("Observacoes sobre exames: " + n.observacoes_exames);
+    if (n.conduta_planejada) noteLines.push("Conduta planejada: " + n.conduta_planejada);
+    if (n.pontos_atencao) noteLines.push("Pontos de atencao: " + n.pontos_atencao);
+    if (n.medicamentos_prescritos) noteLines.push("Medicamentos ja prescritos: " + n.medicamentos_prescritos);
+    if (n.resposta_tratamento) noteLines.push("Resposta ao tratamento anterior: " + n.resposta_tratamento);
+    if (n.proximos_passos) noteLines.push("Proximos passos planejados: " + n.proximos_passos);
+    if (n.notas_livres) noteLines.push("Notas adicionais: " + n.notas_livres);
+    if (n.adesao_tratamento) noteLines.push("Adesao ao tratamento: " + n.adesao_tratamento);
+    if (n.motivacao_paciente) noteLines.push("Motivacao do paciente: " + n.motivacao_paciente);
+    if (n.exames_em_dia !== null) noteLines.push("Exames em dia: " + (n.exames_em_dia ? "sim" : "nao"));
+    if (noteLines.length > 0) {
+      result.doctorNotes = noteLines.map(l => "- " + l).join("\n");
+      loaded.doctorNotes = true;
+      console.log("Doctor notes loaded: " + noteLines.length + " fields for patient " + patientId);
+    }
+  }
+
+  return { context: result, loaded };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // BUILD USER PROMPT
 // ══════════════════════════════════════════════════════════════════════════════
 function buildUserPrompt(
   req: AnalysisRequest,
   scoredActives: ScoredActive[],
   matchedProtocols: Array<{ protocol: EssentiaProtocol; coverage: number; matched_actives: string[] }>,
+  clinicalContext: ClinicalContext,
   specialtyIdOverride?: string
 ): string {
   // Referências funcionais apenas para Nutrologia; demais especialidades usam ref. do laboratório
@@ -705,7 +803,7 @@ function buildUserPrompt(
     : null;
 
   const sexLabel = req.sex === "M" ? "Masculino" : "Feminino";
-  const ageLabel = age ? `${age} anos` : "idade não informada";
+  const ageLabel = age ? age + " anos" : "idade nao informada";
 
   const sessionDates = [...new Set(req.results.map((r) => r.session_date))].sort();
   const abnormal = req.results.filter(
@@ -713,53 +811,57 @@ function buildUserPrompt(
   );
   const normal = req.results.filter((r) => r.status === "normal");
 
-  let prompt = `DADOS DO PACIENTE:
-- Nome: ${req.patient_name}
-- Sexo: ${sexLabel}
-- Idade: ${ageLabel}
-- Sessões: ${sessionDates.length} (${sessionDates.join(", ")})
-`;
+  let prompt = "DADOS DO PACIENTE:\n" +
+    "- Nome: " + req.patient_name + "\n" +
+    "- Sexo: " + sexLabel + "\n" +
+    "- Idade: " + ageLabel + "\n" +
+    "- Sessoes: " + sessionDates.length + " (" + sessionDates.join(", ") + ")\n";
 
-  // Perfil do paciente
-  if (req.patient_profile) {
-    const p = req.patient_profile;
-    if (p.objectives && p.objectives.length > 0) prompt += `- Objetivos: ${p.objectives.join(", ")}\n`;
-    if (p.activity_level) prompt += `- Atividade física: ${p.activity_level}\n`;
-    if (p.sport_modality) prompt += `- Modalidade: ${p.sport_modality}\n`;
-    if (p.main_complaints) prompt += `- Queixas: ${p.main_complaints}\n`;
-    if (p.restrictions) prompt += `- Restrições/alergias: ${p.restrictions}\n`;
+  // Perfil do paciente (from clinicalContext)
+  const p = clinicalContext.patientProfile;
+  if (p) {
+    if (p.objectives && p.objectives.length > 0) prompt += "- Objetivos: " + p.objectives.join(", ") + "\n";
+    if (p.activity_level) prompt += "- Atividade fisica: " + p.activity_level + "\n";
+    if (p.sport_modality) prompt += "- Modalidade: " + p.sport_modality + "\n";
+    if (p.main_complaints) prompt += "- Queixas: " + p.main_complaints + "\n";
+    if (p.restrictions) prompt += "- Restricoes/alergias: " + p.restrictions + "\n";
   }
 
-  prompt += `\nMARCADORES FORA DA FAIXA LABORATORIAL (${abnormal.length}):\n`;
+  // ── Clinical context sections (anamnese + doctor notes) ──
+  if (clinicalContext.anamnese) {
+    prompt += "\nANAMNESE DO PACIENTE (" + activeSpecialty.replace(/_/g, " ") + "):\n" + clinicalContext.anamnese + "\n";
+  }
+  if (clinicalContext.doctorNotes) {
+    prompt += "\nNOTAS CLINICAS DO MEDICO (" + activeSpecialty.replace(/_/g, " ") + "):\n" + clinicalContext.doctorNotes + "\n";
+  }
+
+  prompt += "\nMARCADORES FORA DA FAIXA LABORATORIAL (" + abnormal.length + "):\n";
   for (const r of abnormal) {
-    const valueStr = r.value !== null ? `${r.value} ${r.unit}` : r.text_value ?? "—";
-    // Referência laboratorial convencional (base para status)
+    const valueStr = r.value !== null ? r.value + " " + r.unit : r.text_value ?? "--";
     const labRefStr = (r as any).lab_min !== undefined && (r as any).lab_max !== undefined
-      ? `(ref. lab: ${(r as any).lab_min}–${(r as any).lab_max} ${r.unit})`
+      ? "(ref. lab: " + (r as any).lab_min + "-" + (r as any).lab_max + " " + r.unit + ")"
       : "";
-    // Referência funcional: apenas para Nutrologia
     const funcRefStr = useFunctionalRefs && r.functional_min !== undefined && r.functional_max !== undefined
-      ? `[faixa funcional: ${r.functional_min}–${r.functional_max}]`
+      ? "[faixa funcional: " + r.functional_min + "-" + r.functional_max + "]"
       : "";
     const statusLabels: Record<string, string> = {
-      low: "↓ BAIXO", high: "↑ ALTO", critical_low: "⬇ CRÍTICO BAIXO", critical_high: "⬆ CRÍTICO ALTO",
+      low: "BAIXO", high: "ALTO", critical_low: "CRITICO BAIXO", critical_high: "CRITICO ALTO",
     };
-    prompt += `- ${r.marker_name}: ${valueStr} ${statusLabels[r.status] ?? r.status} ${labRefStr} ${funcRefStr} [${r.session_date}]\n`;
+    prompt += "- " + r.marker_name + ": " + valueStr + " " + (statusLabels[r.status] ?? r.status) + " " + labRefStr + " " + funcRefStr + " [" + r.session_date + "]\n";
   }
 
-  prompt += `\nMARCADORES DENTRO DA FAIXA LABORATORIAL (${normal.length}):\n`;
+  prompt += "\nMARCADORES DENTRO DA FAIXA LABORATORIAL (" + normal.length + "):\n";
   for (const r of normal) {
-    const valueStr = r.value !== null ? `${r.value} ${r.unit}` : r.text_value ?? "—";
-    // Referência funcional: apenas para Nutrologia
+    const valueStr = r.value !== null ? r.value + " " + r.unit : r.text_value ?? "--";
     const funcRefStr = useFunctionalRefs && r.functional_min !== undefined && r.functional_max !== undefined
-      ? `[faixa funcional: ${r.functional_min}–${r.functional_max}]`
+      ? "[faixa funcional: " + r.functional_min + "-" + r.functional_max + "]"
       : "";
-    prompt += `- ${r.marker_name}: ${valueStr} ${funcRefStr} [${r.session_date}]\n`;
+    prompt += "- " + r.marker_name + ": " + valueStr + " " + funcRefStr + " [" + r.session_date + "]\n";
   }
 
   // Tendências entre sessões
   if (sessionDates.length > 1) {
-    prompt += `\nTENDÊNCIAS (múltiplas sessões):\n`;
+    prompt += "\nTENDENCIAS (multiplas sessoes):\n";
     const markerSessions: Record<string, Array<{ date: string; value: number }>> = {};
     for (const r of req.results) {
       if (r.value !== null) {
@@ -773,8 +875,8 @@ function buildUserPrompt(
         const first = sorted[0];
         const last = sorted[sorted.length - 1];
         const delta = ((last.value - first.value) / first.value * 100).toFixed(1);
-        const trend = last.value > first.value ? "↑" : last.value < first.value ? "↓" : "→";
-        prompt += `- ${name}: ${first.value} → ${last.value} (${trend} ${delta}%)\n`;
+        const trend = last.value > first.value ? "+" : last.value < first.value ? "-" : "=";
+        prompt += "- " + name + ": " + first.value + " -> " + last.value + " (" + trend + " " + delta + "%)\n";
       }
     }
   }
@@ -782,42 +884,41 @@ function buildUserPrompt(
   // Ativos terapêuticos pré-selecionados (Camada 1+2)
   const mode = req.mode ?? "full";
   if (mode !== "analysis_only" && scoredActives.length > 0) {
-    prompt += `\n(A) ATIVOS TERAPÊUTICOS MAIS RELEVANTES PARA ESTE PACIENTE (calculados pelo sistema):\n`;
-    prompt += `Os seguintes ativos foram selecionados com base nos marcadores alterados e objetivos do paciente. Confirme quais são clinicamente justificados:\n\n`;
+    prompt += "\n(A) ATIVOS TERAPEUTICOS MAIS RELEVANTES PARA ESTE PACIENTE (calculados pelo sistema):\n";
+    prompt += "Os seguintes ativos foram selecionados com base nos marcadores alterados e objetivos do paciente. Confirme quais sao clinicamente justificados:\n\n";
     for (const sa of scoredActives.slice(0, 8)) {
       const triggeredNames = sa.triggered_by.join(", ") || "objetivos do paciente";
-      prompt += `• ${sa.active.name} (score: ${sa.score.toFixed(1)})\n`;
-      prompt += `  Mecanismo: ${sa.active.mechanism}\n`;
-      prompt += `  Ativado por: ${triggeredNames}\n`;
-      if (sa.active.contraindications) prompt += `  ⚠ Contraindicações: ${sa.active.contraindications}\n`;
-      prompt += `\n`;
+      prompt += "* " + sa.active.name + " (score: " + sa.score.toFixed(1) + ")\n";
+      prompt += "  Mecanismo: " + sa.active.mechanism + "\n";
+      prompt += "  Ativado por: " + triggeredNames + "\n";
+      if (sa.active.contraindications) prompt += "  Contraindicacoes: " + sa.active.contraindications + "\n";
+      prompt += "\n";
     }
 
-    prompt += `(B) PROTOCOLOS ESSENTIA QUE CONTÊM ESSES ATIVOS (pré-filtrados pelo sistema):\n`;
-    prompt += `Selecione os 3-4 com MAIOR PRECISÃO CLÍNICA para este paciente:\n\n`;
+    prompt += "(B) PROTOCOLOS ESSENTIA QUE CONTEM ESSES ATIVOS (pre-filtrados pelo sistema):\n";
+    prompt += "Selecione os 3-4 com MAIOR PRECISAO CLINICA para este paciente:\n\n";
     for (const mp of matchedProtocols) {
-      prompt += `• ${mp.protocol.id} | ${mp.protocol.name} | Via: ${mp.protocol.via}\n`;
-      prompt += `  Composição: ${mp.protocol.composition}\n`;
-      prompt += `  Ativos em comum com os selecionados: ${mp.matched_actives.join(", ")} (${mp.coverage} ativos)\n\n`;
+      prompt += "* " + mp.protocol.id + " | " + mp.protocol.name + " | Via: " + mp.protocol.via + "\n";
+      prompt += "  Composicao: " + mp.protocol.composition + "\n";
+      prompt += "  Ativos em comum com os selecionados: " + mp.matched_actives.join(", ") + " (" + mp.coverage + " ativos)\n\n";
     }
 
-    prompt += `INSTRUÇÃO: Para cada protocolo selecionado, escreva uma justificativa ESPECÍFICA (não genérica) mencionando os ativos-chave e os marcadores alterados deste paciente. Inclua "key_actives" com os 2-3 ativos mais importantes.\n`;
+    prompt += "INSTRUCAO: Para cada protocolo selecionado, escreva uma justificativa ESPECIFICA (nao generica) mencionando os ativos-chave e os marcadores alterados deste paciente. Inclua \"key_actives\" com os 2-3 ativos mais importantes.\n";
   }
 
   // Instruções por modo
   if (mode === "analysis_only") {
-    prompt += `\nMODO: Gere APENAS a análise clínica (summary, patterns, trends, suggestions, full_text, technical_analysis, patient_plan). Retorne "protocol_recommendations" como array vazio e "prescription_table" como array vazio.\n`;
+    prompt += "\nMODO: Gere APENAS a analise clinica (summary, patterns, trends, suggestions, full_text, technical_analysis, patient_plan). Retorne \"protocol_recommendations\" como array vazio e \"prescription_table\" como array vazio.\n";
   } else if (mode === "protocols_only") {
-    prompt += `\nMODO: Gere APENAS as recomendações de protocolos. Retorne summary, patterns, trends, suggestions e full_text como strings/arrays vazios.\n`;
+    prompt += "\nMODO: Gere APENAS as recomendacoes de protocolos. Retorne summary, patterns, trends, suggestions e full_text como strings/arrays vazios.\n";
   } else {
-    // modo full — reforçar que prescription_table NÃO pode ser vazio
-    prompt += `\n⚠ REGRA OBRIGATÓRIA: O campo "prescription_table" NUNCA deve ser retornado como array vazio no modo full.`;
-    prompt += ` Inclua TODOS os suplementos orais, injetáveis e medicamentos recomendados no plano de condutas.`;
-    prompt += ` Cada item DEVE conter: substancia, dose, via, frequencia, duracao, condicoes_ci, monitorizacao.`;
-    prompt += ` Mínimo de 3 itens. Se houver suplementação oral mencionada no patient_plan, ela DEVE aparecer na prescription_table.\n`;
+    prompt += "\nREGRA OBRIGATORIA: O campo \"prescription_table\" NUNCA deve ser retornado como array vazio no modo full.";
+    prompt += " Inclua TODOS os suplementos orais, injetaveis e medicamentos recomendados no plano de condutas.";
+    prompt += " Cada item DEVE conter: substancia, dose, via, frequencia, duracao, condicoes_ci, monitorizacao.";
+    prompt += " Minimo de 3 itens. Se houver suplementacao oral mencionada no patient_plan, ela DEVE aparecer na prescription_table.\n";
   }
 
-  prompt += `\nRetorne um JSON com a análise clínica estruturada conforme o formato especificado.`;
+  prompt += "\nRetorne um JSON com a analise clinica estruturada conforme o formato especificado.";
   return prompt;
 }
 
