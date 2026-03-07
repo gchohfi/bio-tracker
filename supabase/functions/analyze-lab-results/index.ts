@@ -839,6 +839,7 @@ async function fetchClinicalContext(
     doctorNotes: null,
     patientProfile: patientProfile ?? null,
     labs,
+    bodyComposition: null,
   };
 
   const loaded: ContextLoaded = {
