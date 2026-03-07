@@ -27,6 +27,7 @@ import {
   Trash2,
   FlaskConical,
   Edit2,
+  FileText,
   BarChart3,
   FileUp,
   Loader2,
