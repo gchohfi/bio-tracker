@@ -1529,7 +1529,11 @@ export default function PatientDetail() {
             ) : (
               <div className="space-y-3">
                 {sessions.map((session) => (
-                  <Card key={session.id} className="transition-colors hover:bg-muted/30">
+                  <Card
+                    key={session.id}
+                    className="cursor-pointer transition-colors hover:bg-accent/50"
+                    onClick={() => openEditSession(session)}
+                  >
                     <CardContent className="flex items-center justify-between p-4">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -1544,24 +1548,17 @@ export default function PatientDetail() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex items-center gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => openEditSession(session)}
-                          title="Editar"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteSession(session.id)}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteSession(session.id); }}
                           title="Excluir"
                           className="text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       </div>
                     </CardContent>
                   </Card>
