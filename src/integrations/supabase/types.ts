@@ -573,6 +573,57 @@ export type Database = {
         }
         Relationships: []
       }
+      review_snapshots: {
+        Row: {
+          analysis_id: string
+          analysis_v2_hash: string | null
+          id: string
+          patient_id: string
+          practitioner_id: string
+          review_state_json: Json
+          saved_at: string
+          schema_version: number
+          snapshot_reason: string
+        }
+        Insert: {
+          analysis_id: string
+          analysis_v2_hash?: string | null
+          id?: string
+          patient_id: string
+          practitioner_id: string
+          review_state_json?: Json
+          saved_at?: string
+          schema_version?: number
+          snapshot_reason?: string
+        }
+        Update: {
+          analysis_id?: string
+          analysis_v2_hash?: string | null
+          id?: string
+          patient_id?: string
+          practitioner_id?: string
+          review_state_json?: Json
+          saved_at?: string
+          schema_version?: number
+          snapshot_reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_snapshots_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "patient_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_snapshots_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
