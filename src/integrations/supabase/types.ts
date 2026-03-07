@@ -115,31 +115,37 @@ export type Database = {
       analysis_reviews: {
         Row: {
           analysis_id: string
+          analysis_v2_hash: string | null
           created_at: string
           id: string
           patient_id: string
           practitioner_id: string
           review_state_json: Json
+          schema_version: number
           specialty_id: string
           updated_at: string
         }
         Insert: {
           analysis_id: string
+          analysis_v2_hash?: string | null
           created_at?: string
           id?: string
           patient_id: string
           practitioner_id: string
           review_state_json?: Json
+          schema_version?: number
           specialty_id?: string
           updated_at?: string
         }
         Update: {
           analysis_id?: string
+          analysis_v2_hash?: string | null
           created_at?: string
           id?: string
           patient_id?: string
           practitioner_id?: string
           review_state_json?: Json
+          schema_version?: number
           specialty_id?: string
           updated_at?: string
         }
