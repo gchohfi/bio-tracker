@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { EncounterPrescriptionEditor } from "@/components/EncounterPrescriptionEditor";
 
 interface ClinicalEvolutionTabProps {
   patientId: string;
@@ -146,7 +147,7 @@ export function ClinicalEvolutionTab({ patientId, specialtyId, onRequestAnalysis
     // Load linked analyses
     const { data: analyses } = await (supabase as any)
       .from("patient_analyses")
-      .select("id, specialty_name, specialty_id, created_at, mode")
+      .select("id, specialty_name, specialty_id, created_at, mode, prescription_table")
       .eq("encounter_id", enc.id)
       .order("created_at", { ascending: false });
     setLinkedAnalyses(analyses ?? []);
@@ -417,6 +418,21 @@ export function ClinicalEvolutionTab({ patientId, specialtyId, onRequestAnalysis
           )}
         </CardContent>
       </Card>
+
+      {/* Prescription Editor */}
+      {activeEncounter && (
+        <EncounterPrescriptionEditor
+          encounterId={activeEncounter.id}
+          patientId={patientId}
+          specialtyId={specialtyId}
+          isFinalized={isFinalized}
+          legacyPrescription={
+            linkedAnalyses.length > 0
+              ? (linkedAnalyses[0].prescription_table as any[] | undefined) ?? undefined
+              : undefined
+          }
+        />
+      )}
 
       {/* SOAP Fields */}
       <Card>
