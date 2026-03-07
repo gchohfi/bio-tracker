@@ -259,6 +259,7 @@ export default function Index() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Stats — 3 cards, clean */}
