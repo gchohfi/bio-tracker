@@ -120,7 +120,11 @@ export async function buildEvolutionReport(patientId: string): Promise<Evolution
     return { patient_id: patientId, dates: [], sections: [] };
   }
 
-  // 2. Fetch current + historical results in parallel
+  const sessionIds = sessions.map((s) => s.id);
+  const sessionDateMap: Record<string, string> = {};
+  sessions.forEach((s) => { sessionDateMap[s.id] = s.session_date; });
+
+
   const [currentRes, historicalRes] = await Promise.all([
     supabase.from("lab_results").select("*").in("session_id", sessionIds),
     (supabase as any)
