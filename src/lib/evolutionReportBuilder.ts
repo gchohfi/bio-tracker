@@ -232,10 +232,16 @@ export async function buildEvolutionReport(patientId: string): Promise<Evolution
 
     if (!sectionMap.has(category)) sectionMap.set(category, []);
 
-    // Resolve reference text: prefer DB, fallback to MARKERS labRange
-    let refText = referenceMap[markerId] || null;
-    if (!refText || refText.trim() === "") {
+    // Resolve reference text
+    // For derived/calculated markers, ALWAYS use fallback to prevent echoed values
+    let refText: string | null;
+    if (DERIVED_MARKERS.has(markerId)) {
       refText = buildFallbackRef(markerId, def);
+    } else {
+      refText = referenceMap[markerId] || null;
+      if (!refText || refText.trim() === "") {
+        refText = buildFallbackRef(markerId, def);
+      }
     }
 
     sectionMap.get(category)!.push({
