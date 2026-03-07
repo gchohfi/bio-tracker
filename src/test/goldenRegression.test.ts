@@ -18,8 +18,16 @@ import {
   getMarkerStatusFromRef,
   type MarkerDef,
 } from "@/lib/markers";
-// UNIT_CONVERSIONS lives in edge function (Deno), so we replicate conversion logic locally
-// using the golden case fixtures as the source of truth
+// Shared conversion rules — single source of truth (no duplication)
+import {
+  CONVERSION_RULES,
+  compilePattern,
+  getConversionRules,
+} from "../../supabase/functions/extract-lab-results/pipeline/conversionRules";
+import {
+  resolveMarkerId,
+  isSameMarker,
+} from "../../supabase/functions/extract-lab-results/pipeline/markerAliases";
 import {
   ALL_GOLDEN_CASES,
   BARBARA_CASES,
@@ -34,26 +42,20 @@ function findMarker(id: string): MarkerDef {
   return m;
 }
 
-/** Minimal conversion rules mirroring unitInference.ts (edge function, Deno-only) */
-const CONVERSION_RULES: Record<string, { pattern: RegExp; factor: number; to_unit: string }[]> = {
-  t3_livre: [{ pattern: /ng\/d/i, factor: 10, to_unit: "pg/mL" }],
-  estradiol: [{ pattern: /ng\/d/i, factor: 10, to_unit: "pg/mL" }],
-  pcr: [{ pattern: /mg\/d/i, factor: 10, to_unit: "mg/L" }],
-  progesterona: [{ pattern: /ng\/d/i, factor: 0.01, to_unit: "ng/mL" }],
-  dht: [{ pattern: /ng\/d/i, factor: 10, to_unit: "pg/mL" }],
-};
-
+/**
+ * Simulates conversion using the shared CONVERSION_RULES.
+ * No local duplication — uses the same rules as production.
+ */
 function simulateConversion(markerId: string, value: number, sourceUnit: string): {
   convertedValue: number;
   targetUnit: string;
   converted: boolean;
 } {
-  const conversionId = markerId === "dihidrotestosterona" ? "dht" : markerId;
-  const rules = CONVERSION_RULES[conversionId];
+  const rules = getConversionRules(markerId);
   if (!rules) return { convertedValue: value, targetUnit: sourceUnit, converted: false };
 
   for (const rule of rules) {
-    if (rule.pattern.test(sourceUnit)) {
+    if (compilePattern(rule).test(sourceUnit)) {
       return {
         convertedValue: Math.round(value * rule.factor * 10000) / 10000,
         targetUnit: rule.to_unit,
@@ -216,5 +218,33 @@ describe("Coerência Timeline ↔ PDF: mesma fonte de verdade", () => {
       const ref2 = resolveReference(marker, gc.sex, undefined);
       expect(ref1).toEqual(ref2);
     });
+  });
+});
+
+// ── 7. Aliases resolvem corretamente ─────────────────────────────────────
+
+describe("Marker aliases: resolução canônica", () => {
+  it("dht resolve para dihidrotestosterona", () => {
+    expect(resolveMarkerId("dht")).toBe("dihidrotestosterona");
+  });
+
+  it("dihidrotestosterona resolve para si mesmo", () => {
+    expect(resolveMarkerId("dihidrotestosterona")).toBe("dihidrotestosterona");
+  });
+
+  it("isSameMarker reconhece dht e dihidrotestosterona como iguais", () => {
+    expect(isSameMarker("dht", "dihidrotestosterona")).toBe(true);
+  });
+
+  it("marker sem alias resolve para si mesmo", () => {
+    expect(resolveMarkerId("pcr")).toBe("pcr");
+    expect(resolveMarkerId("estradiol")).toBe("estradiol");
+  });
+
+  it("getConversionRules resolve alias dht → dihidrotestosterona", () => {
+    const rulesDht = getConversionRules("dht");
+    const rulesDihidro = getConversionRules("dihidrotestosterona");
+    expect(rulesDht).toBeDefined();
+    expect(rulesDht).toEqual(rulesDihidro);
   });
 });

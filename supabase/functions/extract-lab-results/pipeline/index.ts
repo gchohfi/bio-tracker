@@ -15,6 +15,8 @@ export * from "./normalize.ts";
 export * from "./infer_unit.ts";
 export * from "./convert.ts";
 export * from "./validate.ts";
+export * from "./markerAliases.ts";
+export * from "./conversionRules.ts";
 
 import type { RawExamResult, PersistedExamResult, PipelineContext } from "./types.ts";
 import { normalizeResults } from "./normalize.ts";
