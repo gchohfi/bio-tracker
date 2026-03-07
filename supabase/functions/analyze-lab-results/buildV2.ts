@@ -332,10 +332,23 @@ export function mapV1toV2(
       confidence: "moderate" as const,
     }));
 
-  // 3. Diagnostic hypotheses: extrair do technical_analysis (V1 não tem campo dedicado)
-  const hypotheses: DiagnosticHypothesisItem[] = [];
-  // Se technical_analysis existe, criamos uma hipótese-resumo
-  if (v1.technical_analysis && v1.technical_analysis.length > 50) {
+  // 3. Diagnostic hypotheses: usar campo nativo da IA se disponível, fallback para placeholder
+  let hypotheses: DiagnosticHypothesisItem[] = [];
+  if (v1.diagnostic_hypotheses && Array.isArray(v1.diagnostic_hypotheses) && v1.diagnostic_hypotheses.length > 0) {
+    hypotheses = v1.diagnostic_hypotheses.map(h => ({
+      id: uid(),
+      source_type: "llm" as const,
+      specialty_relevant: true,
+      cross_specialty_alert: false,
+      hypothesis: h.hypothesis ?? "Hipótese não especificada",
+      supporting_findings: h.supporting_findings ?? [],
+      contradicting_findings: h.contradicting_findings,
+      confirmatory_exams: h.confirmatory_exams,
+      likelihood: (h.likelihood as "probable" | "possible" | "unlikely") ?? "possible",
+      priority: (h.priority as ClinicalPriority) ?? "medium",
+    }));
+  } else if (v1.technical_analysis && v1.technical_analysis.length > 50) {
+    // Fallback: hipótese-resumo genérica (backward compat)
     hypotheses.push({
       id: uid(),
       source_type: "llm",
@@ -373,14 +386,25 @@ export function mapV1toV2(
     confidence: "moderate" as const,
   }));
 
-  // 5. Follow-up: suggestions que mencionam exames
-  const examSuggestions = (v1.suggestions ?? []).filter(s =>
-    s.toLowerCase().includes("exame") || s.toLowerCase().includes("solicitar") ||
-    s.toLowerCase().includes("dosar") || s.toLowerCase().includes("repetir")
-  );
-  const followUp: FollowUp | undefined = examSuggestions.length > 0
-    ? { suggested_exams: examSuggestions }
-    : undefined;
+  // 5. Follow-up: usar campo nativo da IA se disponível, fallback para extração de suggestions
+  let followUp: FollowUp | undefined;
+  if (v1.follow_up && typeof v1.follow_up === "object") {
+    const fu = v1.follow_up;
+    followUp = {
+      suggested_exams: fu.suggested_exams ?? [],
+      suggested_return_days: fu.suggested_return_days,
+      notes: fu.notes,
+    };
+  } else {
+    // Fallback: extrair de suggestions
+    const examSuggestions = (v1.suggestions ?? []).filter(s =>
+      s.toLowerCase().includes("exame") || s.toLowerCase().includes("solicitar") ||
+      s.toLowerCase().includes("dosar") || s.toLowerCase().includes("repetir")
+    );
+    followUp = examSuggestions.length > 0
+      ? { suggested_exams: examSuggestions }
+      : undefined;
+  }
 
   return {
     executive_summary: v1.summary ?? "",
