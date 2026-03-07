@@ -731,6 +731,8 @@ export default function ClinicalReportV2({ data, patientName, analysisId, patien
     if (!analysisId || !user?.id || !patientId) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
+      const hash = currentHashRef.current;
+      // 1. Upsert current state (unchanged logic)
       await (supabase as any)
         .from("analysis_reviews")
         .upsert({
@@ -739,10 +741,26 @@ export default function ClinicalReportV2({ data, patientName, analysisId, patien
           patient_id: patientId,
           specialty_id: specialtyId || "medicina_funcional",
           review_state_json: state,
-          analysis_v2_hash: currentHashRef.current,
+          analysis_v2_hash: hash,
           schema_version: REVIEW_SCHEMA_VERSION,
         }, { onConflict: "analysis_id,practitioner_id" });
-      setReviewOutdated(false); // New save resets outdated
+      setReviewOutdated(false);
+
+      // 2. Append audit snapshot (fire-and-forget)
+      (supabase as any)
+        .from("review_snapshots")
+        .insert({
+          analysis_id: analysisId,
+          patient_id: patientId,
+          practitioner_id: user.id,
+          analysis_v2_hash: hash,
+          schema_version: REVIEW_SCHEMA_VERSION,
+          review_state_json: state,
+          snapshot_reason: "auto_save",
+        })
+        .then(({ error }: { error: any }) => {
+          if (error) console.warn("[ReviewSnapshot] insert failed:", error.message);
+        });
     }, 800);
   }, [analysisId, user?.id, patientId, specialtyId]);
 
