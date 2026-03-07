@@ -11,10 +11,12 @@
  *    (determinístico e documentado).
  * 3. Datas ordenadas cronologicamente.
  * 4. Marcadores agrupados por categoria (CATEGORY_CONFIG) e estáveis dentro da categoria.
+ * 5. Flags (high/low) são computados para todos os resultados usando labRange.
+ * 6. reference_text usa lab_ref_text do banco; se vazio, gera a partir de MARKERS.labRange.
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import { MARKERS, type MarkerDef } from "@/lib/markers";
+import { MARKERS, type MarkerDef, formatRefDisplay } from "@/lib/markers";
 import { CATEGORIES, type Category } from "@/lib/categoryConfig";
 
 // ── Types ───────────────────────────────────────────────────────────────
@@ -45,6 +47,64 @@ export interface EvolutionReportData {
   patient_id: string;
   dates: string[]; // sorted chronologically (YYYY-MM-DD)
   sections: EvolutionSection[];
+}
+
+// ── Derived / calculated markers ────────────────────────────────────────
+const DERIVED_MARKERS = new Set([
+  "glicemia_media_estimada", "vldl", "homa_ir",
+  "relacao_ct_hdl", "relacao_tg_hdl", "relacao_apob_apoa1",
+  "psa_ratio", "colesterol_nao_hdl",
+]);
+
+// ── Helpers ─────────────────────────────────────────────────────────────
+
+/**
+ * Compute flag (high/low/null) for a numeric value using the marker's labRange.
+ * Uses sex "F" as default for female patients (most common in this system).
+ */
+function computeFlag(
+  value: number | null,
+  marker: MarkerDef | undefined,
+  labRefMin: number | null | undefined,
+  labRefMax: number | null | undefined,
+): string | null {
+  if (value === null || value === undefined) return null;
+  if (marker?.qualitative) return null;
+
+  // Prefer specific lab reference if available
+  const min = labRefMin ?? marker?.labRange?.F?.[0] ?? null;
+  const max = labRefMax ?? marker?.labRange?.F?.[1] ?? null;
+
+  // Skip sentinel maxes (999, 9999, 99999, etc.)
+  const isSentinel = (v: number) => /^9{3,}$/.test(String(v));
+
+  if (min !== null && value < min) return "low";
+  if (max !== null && !isSentinel(max) && value > max) return "high";
+  return null;
+}
+
+/**
+ * Build a display-friendly reference text from MARKERS labRange.
+ * For derived markers, returns "calculado".
+ */
+function buildFallbackRef(markerId: string, marker: MarkerDef | undefined): string | null {
+  if (DERIVED_MARKERS.has(markerId)) {
+    // Still show labRange if it exists and is meaningful
+    if (marker) {
+      const [min, max] = marker.labRange.F;
+      const isSentinel = (v: number) => /^9{3,}$/.test(String(v));
+      if (min === 0 && max === 0) return "calculado";
+      const ref = formatRefDisplay(
+        { min, max, operator: "range" }, min, max
+      );
+      return ref;
+    }
+    return "calculado";
+  }
+  if (!marker) return null;
+  const [min, max] = marker.labRange.F;
+  if (min === 0 && max === 0) return null; // qualitative
+  return formatRefDisplay({ min, max, operator: "range" }, min, max);
 }
 
 // ── Builder ─────────────────────────────────────────────────────────────
@@ -83,6 +143,10 @@ export async function buildEvolutionReport(patientId: string): Promise<Evolution
   const referenceMap: Record<string, string | null> = {};
   const markerNameMap: Record<string, string> = {};
   const allDates = new Set<string>();
+
+  // Build marker def lookup
+  const markerDefMap = new Map<string, MarkerDef>();
+  MARKERS.forEach((m) => markerDefMap.set(m.id, m));
 
   // Helper to ensure marker entry exists
   const ensureMarker = (markerId: string) => {
@@ -134,10 +198,19 @@ export async function buildEvolutionReport(patientId: string): Promise<Evolution
     const labRefText = (r as any).lab_ref_text;
     if (labRefText && !referenceMap[markerId]) referenceMap[markerId] = labRefText;
 
+    // Compute flag for current results
+    const markerDef = markerDefMap.get(markerId);
+    const flag = computeFlag(
+      r.value ?? null,
+      markerDef,
+      r.lab_ref_min ?? null,
+      r.lab_ref_max ?? null,
+    );
+
     cellMap[markerId][sessionDate] = {
       value: r.value ?? null,
       text_value: r.text_value || null,
-      flag: null,
+      flag,
       source: "current",
     };
   }
@@ -145,11 +218,7 @@ export async function buildEvolutionReport(patientId: string): Promise<Evolution
   // 4. Sort dates chronologically
   const sortedDates = Array.from(allDates).sort();
 
-  // 5. Group markers by category using MARKERS definition
-  const markerDefMap = new Map<string, MarkerDef>();
-  MARKERS.forEach((m) => markerDefMap.set(m.id, m));
-
-  // Collect all marker_ids that have data
+  // 5. Collect all marker_ids that have data
   const activeMarkerIds = Object.keys(cellMap);
 
   // Group by category
@@ -163,11 +232,17 @@ export async function buildEvolutionReport(patientId: string): Promise<Evolution
 
     if (!sectionMap.has(category)) sectionMap.set(category, []);
 
+    // Resolve reference text: prefer DB, fallback to MARKERS labRange
+    let refText = referenceMap[markerId] || null;
+    if (!refText || refText.trim() === "") {
+      refText = buildFallbackRef(markerId, def);
+    }
+
     sectionMap.get(category)!.push({
       marker_id: markerId,
       marker_name: markerName,
       unit,
-      reference_text: referenceMap[markerId] || null,
+      reference_text: refText,
       values_by_date: cellMap[markerId],
     });
   }

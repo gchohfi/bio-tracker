@@ -132,9 +132,13 @@ export function generateEvolutionPdf({ data, patientName }: GenerateOptions) {
     const bodyRows: any[][] = [catRow];
 
     for (const marker of section.markers) {
-      const nameWithUnit = marker.unit
-        ? `${sanitize(marker.marker_name)} (${sanitize(marker.unit)})`
-        : sanitize(marker.marker_name);
+      const sanitizedName = sanitize(marker.marker_name);
+      const sanitizedUnit = sanitize(marker.unit);
+      // Avoid duplicate unit: if name already contains "(unit)", don't append again
+      const nameAlreadyHasUnit = sanitizedUnit && sanitizedName.includes(`(${sanitizedUnit})`);
+      const nameWithUnit = sanitizedUnit && !nameAlreadyHasUnit
+        ? `${sanitizedName} (${sanitizedUnit})`
+        : sanitizedName;
 
       const row: any[] = [nameWithUnit];
 

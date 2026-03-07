@@ -85,7 +85,8 @@ export default function EvolutionTimeline({ patientId, patientName }: EvolutionT
       <div className="flex flex-col items-center gap-0.5">
         <span className={cn(
           "text-xs tabular-nums",
-          cell.source === "historical" && "text-muted-foreground"
+          cell.source === "historical" && !cell.flag && "text-muted-foreground",
+          (cell.flag === "high" || cell.flag === "low") && "text-destructive font-semibold"
         )}>
           {display}
         </span>
@@ -204,8 +205,11 @@ export default function EvolutionTimeline({ patientId, patientName }: EvolutionT
                         className="border-b last:border-0 hover:bg-muted/20 transition-colors"
                       >
                         <td className="sticky left-0 z-10 bg-card px-3 py-1.5">
-                          <div className="text-xs font-medium">{marker.marker_name}</div>
-                          <div className="text-[10px] text-muted-foreground">{marker.unit}</div>
+                          <div className="text-xs font-medium">
+                            {marker.unit && !marker.marker_name.includes(`(${marker.unit})`)
+                              ? `${marker.marker_name} (${marker.unit})`
+                              : marker.marker_name}
+                          </div>
                         </td>
                         {data.dates.map((d) => (
                           <td key={d} className="px-1 py-1.5 text-center">
