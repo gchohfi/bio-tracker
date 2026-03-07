@@ -815,6 +815,12 @@ export default function ClinicalReportV2({ data, patientName, analysisId, patien
             )}
           </div>
         </div>
+        {reviewMode && reviewOutdated && (
+          <div className="flex items-center gap-2 rounded-md border border-yellow-300 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950/30 px-3 py-2 text-xs text-yellow-800 dark:text-yellow-300">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            <span>A análise foi re-gerada desde a última revisão. A revisão anterior não corresponde mais aos itens atuais e foi descartada. Inicie uma nova revisão.</span>
+          </div>
+        )}
         {reviewMode && <ReviewSummaryBar stats={stats} />}
       </CardHeader>
       <CardContent className="space-y-6">
