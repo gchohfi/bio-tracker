@@ -1207,13 +1207,11 @@ serve(async (req) => {
     const isTruncated = finishReason === "length";
     const durationMs = Date.now() - startMs;
 
-    // Fire-and-forget: log AI call for observability
+    // Fire-and-forget: log AI call for observability (needs auth client for RLS)
     try {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL");
-      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
       const authHeader = req.headers.get("Authorization");
-      if (supabaseUrl && supabaseKey && authHeader) {
-        const logClient = createClient(supabaseUrl, supabaseKey, {
+      if (authHeader) {
+        const logClient = createClient(supabaseUrl!, supabaseServiceKey!, {
           global: { headers: { Authorization: authHeader } },
         });
         const { data: userData } = await logClient.auth.getUser();
@@ -1241,6 +1239,7 @@ serve(async (req) => {
         analysis,
         specialty_id: specialtyId,
         _truncated: isTruncated,
+        _context_loaded: contextLoaded,
         _diagnostics: {
           finish_reason: finishReason,
           completion_tokens: usage?.completion_tokens,
