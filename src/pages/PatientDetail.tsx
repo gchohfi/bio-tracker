@@ -672,7 +672,7 @@ export default function PatientDetail() {
   };
 
   // ── Gerar Análise de Exames (somente análise clínica, sem protocolos) ──
-  const handleGenerateAnalysis = async () => {
+  const handleGenerateAnalysis = async (overrideEncounterId?: string) => {
     if (!patient) return;
     const sessionIds = sessions.map((s) => s.id);
     const { data } = await supabase.from("lab_results").select("*").in("session_id", sessionIds);
@@ -734,7 +734,7 @@ export default function PatientDetail() {
           patient_plan: analysis?.patient_plan ?? null,
           prescription_table: analysis?.prescription_table ?? [],
           protocol_recommendations: merged?.protocol_recommendations ?? [],
-          encounter_id: activeEncounterId ?? null,
+          encounter_id: overrideEncounterId ?? activeEncounterId ?? null,
         })
         .select()
         .single();
@@ -1438,7 +1438,7 @@ export default function PatientDetail() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleGenerateAnalysis}
+                    onClick={() => handleGenerateAnalysis()}
                     disabled={isAnalyzing || isGeneratingProtocols}
                     className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
                     title="Gera análise clínica dos exames com IA"
@@ -1955,7 +1955,7 @@ export default function PatientDetail() {
                 specialtyId={selectedSpecialty}
                 onRequestAnalysis={(encounterId) => {
                   setActiveEncounterId(encounterId);
-                  handleGenerateAnalysis();
+                  handleGenerateAnalysis(encounterId);
                 }}
                 onViewAnalysis={(analysisId) => {
                   const found = savedAnalyses.find(a => a.id === analysisId);
