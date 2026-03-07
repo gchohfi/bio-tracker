@@ -419,6 +419,21 @@ export function ClinicalEvolutionTab({ patientId, specialtyId, onRequestAnalysis
         </CardContent>
       </Card>
 
+      {/* Prescription Editor */}
+      {activeEncounter && (
+        <EncounterPrescriptionEditor
+          encounterId={activeEncounter.id}
+          patientId={patientId}
+          specialtyId={specialtyId}
+          isFinalized={isFinalized}
+          legacyPrescription={
+            linkedAnalyses.length > 0
+              ? (linkedAnalyses[0].prescription_table as any[] | undefined) ?? undefined
+              : undefined
+          }
+        />
+      )}
+
       {/* SOAP Fields */}
       <Card>
         <CardContent className="pt-6 space-y-4">
