@@ -1059,101 +1059,41 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
+    // ── Single Supabase client (service role) for all DB reads ──
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
+    if (!supabaseUrl || !supabaseServiceKey) throw new Error("Supabase config missing");
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+
     // ── Prompt Engine: carregar prompt do banco por especialidade ──
     const specialtyId = body.specialty_id ?? "medicina_funcional";
-    let activeSystemPrompt = SYSTEM_PROMPT; // fallback para o prompt hardcoded
+    let activeSystemPrompt = SYSTEM_PROMPT;
     let specialtyHasProtocols = true;
     try {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL");
-      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
-      if (supabaseUrl && supabaseKey) {
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        const { data: promptData, error: promptError } = await supabase
-          .from("analysis_prompts")
-          .select("system_prompt, has_protocols")
-          .eq("specialty_id", specialtyId)
-          .eq("is_active", true)
-          .single();
-        if (!promptError && promptData?.system_prompt) {
-          activeSystemPrompt = promptData.system_prompt;
-          specialtyHasProtocols = promptData.has_protocols ?? false;
-          console.log(`Loaded prompt for specialty: ${specialtyId}`);
-        } else {
-          console.warn(`Prompt not found for specialty '${specialtyId}', using default. Error: ${promptError?.message}`);
-        }
+      const { data: promptData, error: promptError } = await serviceClient
+        .from("analysis_prompts")
+        .select("system_prompt, has_protocols")
+        .eq("specialty_id", specialtyId)
+        .eq("is_active", true)
+        .single();
+      if (!promptError && promptData?.system_prompt) {
+        activeSystemPrompt = promptData.system_prompt;
+        specialtyHasProtocols = promptData.has_protocols ?? false;
+        console.log("Loaded prompt for specialty: " + specialtyId);
+      } else {
+        console.warn("Prompt not found for specialty '" + specialtyId + "', using default. Error: " + (promptError?.message ?? "none"));
       }
     } catch (promptLoadError) {
       console.warn("Failed to load prompt from DB, using default:", promptLoadError);
     }
 
-    // ── Buscar anamnese do paciente para enriquecer o prompt ──
-    let anamneseContext = "";
-    if (body.patient_id) {
-      try {
-        const supabaseUrl2 = Deno.env.get("SUPABASE_URL");
-        const supabaseKey2 = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
-        if (supabaseUrl2 && supabaseKey2) {
-          const supabaseClient2 = createClient(supabaseUrl2, supabaseKey2);
-          const { data: anamneseData } = await supabaseClient2
-            .from("patient_anamneses")
-            .select("*")
-            .eq("patient_id", body.patient_id)
-            .eq("specialty_id", specialtyId)
-            .single();
-          if (anamneseData) {
-            const a = anamneseData as Record<string, unknown>;
-            const text = a.anamnese_text as string | null;
-            if (text && text.trim().length > 0) {
-              anamneseContext = `\nANAMNESE DO PACIENTE (${specialtyId.replace(/_/g, " ")}):\n${text.trim()}\n`;
-              console.log(`Anamnese loaded: ${text.length} chars for patient ${body.patient_id}`);
-            }
-          }
-        }
-      } catch (anamneseError) {
-        console.warn("Failed to load anamnese:", anamneseError);
-      }
-    }
-
-    // ── Buscar notas clínicas do médico para enriquecer o prompt ──
-    let doctorNotesContext = "";
-    if (body.patient_id) {
-      try {
-        const supabaseUrl3 = Deno.env.get("SUPABASE_URL");
-        const supabaseKey3 = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
-        if (supabaseUrl3 && supabaseKey3) {
-          const supabaseClient3 = createClient(supabaseUrl3, supabaseKey3);
-          const { data: notesData } = await supabaseClient3
-            .from("doctor_specialty_notes")
-            .select("*")
-            .eq("patient_id", body.patient_id)
-            .eq("specialty_id", specialtyId)
-            .single();
-          if (notesData) {
-            const n = notesData as Record<string, unknown>;
-            const noteLines: string[] = [];
-            if (n.impressao_clinica) noteLines.push(`Impressao clinica: ${n.impressao_clinica}`);
-            if (n.hipoteses_diagnosticas) noteLines.push(`Hipoteses diagnosticas: ${n.hipoteses_diagnosticas}`);
-            if (n.foco_consulta) noteLines.push(`Foco desta consulta: ${n.foco_consulta}`);
-            if (n.observacoes_exames) noteLines.push(`Observacoes sobre exames: ${n.observacoes_exames}`);
-            if (n.conduta_planejada) noteLines.push(`Conduta planejada: ${n.conduta_planejada}`);
-            if (n.pontos_atencao) noteLines.push(`Pontos de atencao: ${n.pontos_atencao}`);
-            if (n.medicamentos_prescritos) noteLines.push(`Medicamentos ja prescritos: ${n.medicamentos_prescritos}`);
-            if (n.resposta_tratamento) noteLines.push(`Resposta ao tratamento anterior: ${n.resposta_tratamento}`);
-            if (n.proximos_passos) noteLines.push(`Proximos passos planejados: ${n.proximos_passos}`);
-            if (n.notas_livres) noteLines.push(`Notas adicionais: ${n.notas_livres}`);
-            if (n.adesao_tratamento) noteLines.push(`Adesao ao tratamento: ${n.adesao_tratamento}`);
-            if (n.motivacao_paciente) noteLines.push(`Motivacao do paciente: ${n.motivacao_paciente}`);
-            if (n.exames_em_dia !== null) noteLines.push(`Exames em dia: ${n.exames_em_dia ? 'sim' : 'nao'}`);
-            if (noteLines.length > 0) {
-              doctorNotesContext = `\nNOTAS CLINICAS DO MEDICO (${specialtyId.replace(/_/g, " ")}):\n` + noteLines.map(l => `- ${l}`).join("\n") + "\n";
-              console.log(`Doctor notes loaded: ${noteLines.length} fields for patient ${body.patient_id}`);
-            }
-          }
-        }
-      } catch (notesError) {
-        console.warn("Failed to load doctor notes:", notesError);
-      }
-    }
+    // ── Fetch clinical context (anamnese + doctor notes) in parallel ──
+    const { context: clinicalContext, loaded: contextLoaded } = await fetchClinicalContext(
+      serviceClient,
+      body.patient_id,
+      specialtyId,
+      body.patient_profile,
+    );
 
     // Camada 1+2: Score de ativos terapeuticos
     const abnormalResults = body.results.filter(
@@ -1162,25 +1102,20 @@ serve(async (req) => {
     const objectives = body.patient_profile?.objectives ?? [];
     const scoredActives = scoreActives(abnormalResults, body.sex, objectives);
 
-    // Camada 3: Mapear ativos → protocolos Essentia (apenas para especialidades com protocolos)
+    // Camada 3: Mapear ativos -> protocolos Essentia (apenas para especialidades com protocolos)
     const topActiveIds = specialtyHasProtocols ? scoredActives.slice(0, 8).map((sa) => sa.active.id) : [];
     const matchedProtocols = specialtyHasProtocols ? matchProtocolsByActives(topActiveIds, body.sex) : [];
 
-    // Se a especialidade não tem protocolos, forçar modo analysis_only
+    // Se a especialidade nao tem protocolos, forcar modo analysis_only
     const effectiveMode = !specialtyHasProtocols ? "analysis_only" : (body.mode ?? "full");
     const bodyWithMode = { ...body, mode: effectiveMode };
 
-     const userPromptBase = buildUserPrompt(bodyWithMode, scoredActives, matchedProtocols, specialtyId);
-    // Injetar anamnese no prompt logo apos os dados do paciente (antes dos marcadores)
-    // Combinar anamnese + notas do médico no prompt
-    const combinedContext = (anamneseContext || "") + (doctorNotesContext || "");
-    const userPrompt = combinedContext
-      ? userPromptBase.replace("\nMARCADORES FORA DA FAIXA", combinedContext + "\nMARCADORES FORA DA FAIXA")
-      : userPromptBase;
+    const userPrompt = buildUserPrompt(bodyWithMode, scoredActives, matchedProtocols, clinicalContext, specialtyId);
     console.log(
-      `Analyzing ${body.results.length} markers for ${body.patient_name} | specialty: ${specialtyId} | ` +
-      `${abnormalResults.length} abnormal | ${scoredActives.length} actives scored | ` +
-      `${matchedProtocols.length} protocols matched | has_protocols: ${specialtyHasProtocols}`
+      "Analyzing " + body.results.length + " markers for " + body.patient_name + " | specialty: " + specialtyId + " | " +
+      abnormalResults.length + " abnormal | " + scoredActives.length + " actives scored | " +
+      matchedProtocols.length + " protocols matched | has_protocols: " + specialtyHasProtocols +
+      " | context: anamnesis=" + contextLoaded.anamnesis + " notes=" + contextLoaded.doctorNotes + " profile=" + contextLoaded.patientProfile
     );
 
     // ── Dynamic max_tokens by mode ──
