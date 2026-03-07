@@ -46,6 +46,7 @@ import {
   Stethoscope,
   Clock,
   ChevronRight,
+  MoreVertical,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
 import EvolutionTimeline from "@/components/EvolutionTimeline";
