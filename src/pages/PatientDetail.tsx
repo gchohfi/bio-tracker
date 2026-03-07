@@ -1577,6 +1577,10 @@ export default function PatientDetail() {
             <EvolutionTable patientId={patient.id} sessions={sessions} sex={sex} />
           </TabsContent>
 
+          <TabsContent value="timeline" className="mt-4 overflow-hidden">
+            <EvolutionTimeline patientId={patient.id} patientName={patient.name} />
+          </TabsContent>
+
           <TabsContent value="analysis" className="mt-4">
             {savedAnalyses.length === 0 ? (
               <Card>
