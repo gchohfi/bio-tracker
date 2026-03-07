@@ -44,6 +44,7 @@ import {
   ClipboardList,
   Stethoscope,
   Clock,
+  ChevronRight,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
 import EvolutionTimeline from "@/components/EvolutionTimeline";
