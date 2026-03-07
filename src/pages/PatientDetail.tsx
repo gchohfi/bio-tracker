@@ -734,7 +734,7 @@ export default function PatientDetail() {
           patient_plan: analysis?.patient_plan ?? null,
           prescription_table: analysis?.prescription_table ?? [],
           protocol_recommendations: merged?.protocol_recommendations ?? [],
-          encounter_id: activeEncounterId ?? null,
+          encounter_id: overrideEncounterId ?? activeEncounterId ?? null,
         })
         .select()
         .single();
