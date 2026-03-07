@@ -22,161 +22,19 @@ import type {
 // Tabela de conversão centralizada
 // ---------------------------------------------------------------------------
 
-/** Definição de uma conversão de unidade */
-interface ConversionRule {
-  /** Unidade de origem */
-  from_unit: string;
-  /** Unidade de destino (canônica) */
-  to_unit: string;
-  /** Fator de multiplicação: valor_destino = valor_origem × factor */
-  factor: number;
-  /** Descrição legível da conversão */
-  description: string;
-}
+// ---------------------------------------------------------------------------
+// Conversion rules: imported from the shared single source of truth
+// ---------------------------------------------------------------------------
 
-/**
- * Tabela de conversão: marker_id → lista de regras.
- * A primeira regra com from_unit correspondente à unidade inferida é aplicada.
- *
- * IMPORTANTE: Adicionar novas conversões APENAS aqui.
- */
-export const CONVERSION_TABLE: Record<string, ConversionRule[]> = {
-  // Estradiol: ng/dL → pg/mL (fator 10)
-  estradiol: [
-    {
-      from_unit: "ng/dL",
-      to_unit: "pg/mL",
-      factor: 10,
-      description: "Estradiol ng/dL → pg/mL (×10)",
-    },
-    {
-      from_unit: "pmol/L",
-      to_unit: "pg/mL",
-      factor: 0.2724,
-      description: "Estradiol pmol/L → pg/mL (÷3.671)",
-    },
-  ],
+import {
+  CONVERSION_RULES as SHARED_RULES,
+  getConversionRules,
+  type ConversionRuleDef,
+} from "./conversionRules.ts";
+import { resolveMarkerId } from "./markerAliases.ts";
 
-  // Progesterona: ng/dL → ng/mL (fator 0.01)
-  progesterona: [
-    {
-      from_unit: "ng/dL",
-      to_unit: "ng/mL",
-      factor: 0.01,
-      description: "Progesterona ng/dL → ng/mL (÷100)",
-    },
-    {
-      from_unit: "nmol/L",
-      to_unit: "ng/mL",
-      factor: 0.3145,
-      description: "Progesterona nmol/L → ng/mL (÷3.18)",
-    },
-  ],
-
-  // DHT (Dihidrotestosterona): ng/dL → pg/mL (fator 10)
-  dht: [
-    {
-      from_unit: "ng/dL",
-      to_unit: "pg/mL",
-      factor: 10,
-      description: "DHT ng/dL → pg/mL (×10)",
-    },
-  ],
-
-  // Testosterona Livre: pmol/L → ng/dL (fator 1/34.7)
-  testosterona_livre: [
-    {
-      from_unit: "pmol/L",
-      to_unit: "ng/dL",
-      factor: 1 / 34.7,
-      description: "Testosterona Livre pmol/L → ng/dL (÷34.7)",
-    },
-    {
-      from_unit: "pg/mL",
-      to_unit: "ng/dL",
-      factor: 0.001,
-      description: "Testosterona Livre pg/mL → ng/dL (÷1000)",
-    },
-  ],
-
-  // T3 Livre: pg/mL → ng/dL (fator 0.1) ou pmol/L → ng/dL (fator 1/15.36)
-  t3_livre: [
-    {
-      from_unit: "pg/mL",
-      to_unit: "ng/dL",
-      factor: 0.1,
-      description: "T3 Livre pg/mL → ng/dL (÷10)",
-    },
-    {
-      from_unit: "pmol/L",
-      to_unit: "ng/dL",
-      factor: 1 / 15.36,
-      description: "T3 Livre pmol/L → ng/dL (÷15.36)",
-    },
-  ],
-
-  // Zinco: µg/mL → µg/dL (fator 100) ou mg/L → µg/dL (fator 100)
-  zinco: [
-    {
-      from_unit: "µg/mL",
-      to_unit: "µg/dL",
-      factor: 100,
-      description: "Zinco µg/mL → µg/dL (×100)",
-    },
-    {
-      from_unit: "mg/L",
-      to_unit: "µg/dL",
-      factor: 100,
-      description: "Zinco mg/L → µg/dL (×100)",
-    },
-  ],
-
-  // PCR: mg/dL → mg/L (fator 10)
-  pcr: [
-    {
-      from_unit: "mg/dL",
-      to_unit: "mg/L",
-      factor: 10,
-      description: "PCR mg/dL → mg/L (×10)",
-    },
-  ],
-
-  // Magnésio: mmol/L → mg/dL (fator 2.4305)
-  magnesio: [
-    {
-      from_unit: "mmol/L",
-      to_unit: "mg/dL",
-      factor: 2.4305,
-      description: "Magnésio mmol/L → mg/dL (×2.4305)",
-    },
-    {
-      from_unit: "mEq/L",
-      to_unit: "mg/dL",
-      factor: 1.2153,
-      description: "Magnésio mEq/L → mg/dL (×1.2153)",
-    },
-  ],
-
-  // Vitamina D: nmol/L → ng/mL (fator 0.4006)
-  vitamina_d: [
-    {
-      from_unit: "nmol/L",
-      to_unit: "ng/mL",
-      factor: 0.4006,
-      description: "Vitamina D nmol/L → ng/mL (÷2.496)",
-    },
-  ],
-
-  // Urina albumina: g/L → mg/L (fator 1000)
-  urina_albumina: [
-    {
-      from_unit: "g/L",
-      to_unit: "mg/L",
-      factor: 1000,
-      description: "Albumina urinária g/L → mg/L (×1000)",
-    },
-  ],
-};
+// Re-export for consumers that depend on CONVERSION_TABLE
+export { SHARED_RULES as CONVERSION_TABLE };
 
 // ---------------------------------------------------------------------------
 // Normalização de unidade para lookup na tabela
@@ -191,11 +49,11 @@ function normalizeUnit(unit: string): string {
     .replace("micro", "µ");
 }
 
-function findRule(markerId: string, fromUnit: string): ConversionRule | null {
-  const rules = CONVERSION_TABLE[markerId];
+function findRule(markerId: string, fromUnit: string): ConversionRuleDef | null {
+  const rules = getConversionRules(markerId);
   if (!rules) return null;
   const fromNorm = normalizeUnit(fromUnit);
-  return rules.find((r) => normalizeUnit(r.from_unit) === fromNorm) ?? null;
+  return rules.find((r) => normalizeUnit(r.from_unit_label) === fromNorm) ?? null;
 }
 
 // ---------------------------------------------------------------------------
