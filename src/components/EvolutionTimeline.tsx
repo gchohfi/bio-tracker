@@ -25,9 +25,10 @@ import { generateEvolutionExcel } from "@/lib/generateEvolutionExcel";
 interface EvolutionTimelineProps {
   patientId: string;
   patientName?: string;
+  patientSex?: "M" | "F";
 }
 
-export default function EvolutionTimeline({ patientId, patientName }: EvolutionTimelineProps) {
+export default function EvolutionTimeline({ patientId, patientName, patientSex }: EvolutionTimelineProps) {
   const [data, setData] = useState<EvolutionReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | "Todos">("Todos");
@@ -157,7 +158,7 @@ export default function EvolutionTimeline({ patientId, patientName }: EvolutionT
             size="sm"
             variant="outline"
             className="gap-1.5"
-            onClick={() => generateEvolutionExcel({ data, patientName: patientName || "Paciente" })}
+            onClick={() => generateEvolutionExcel({ data, patientName: patientName || "Paciente", patientSex })}
           >
             <FileSpreadsheet className="h-3.5 w-3.5" />
             Excel

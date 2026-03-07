@@ -20,6 +20,7 @@ import type {
   EvolutionReportData,
   EvolutionCellValue,
 } from "@/lib/evolutionReportBuilder";
+import { resolveFunctionalRef } from "@/lib/functionalRanges";
 
 /* ── Color helpers ── */
 function rgbToArgb(rgb: { r: number; g: number; b: number }): string {
@@ -87,9 +88,10 @@ const thinBorder: Partial<ExcelJS.Borders> = {
 interface GenerateOptions {
   data: EvolutionReportData;
   patientName: string;
+  patientSex?: "M" | "F";
 }
 
-export async function generateEvolutionExcel({ data, patientName }: GenerateOptions) {
+export async function generateEvolutionExcel({ data, patientName, patientSex }: GenerateOptions) {
   const wb = new ExcelJS.Workbook();
   wb.creator = "BioTracker";
   wb.created = new Date();
@@ -165,6 +167,7 @@ export async function generateEvolutionExcel({ data, patientName }: GenerateOpti
   });
 
   // Column widths
+  const sex = patientSex ?? "M";
   const evoColumns: Partial<ExcelJS.Column>[] = [
     { width: 32, key: "analito" }, // Analyte name
   ];
@@ -172,7 +175,10 @@ export async function generateEvolutionExcel({ data, patientName }: GenerateOpti
     evoColumns.push({ width: 14, key: `d${i}` });
   }
   evoColumns.push({ width: 18, key: "ref" }); // Reference
+  evoColumns.push({ width: 22, key: "ref_func" }); // Ref. Funcional
+  evoColumns.push({ width: 14, key: "status_func" }); // Status Funcional
   wsEvo.columns = evoColumns;
+  const totalEvoCols = numDates + 4; // analito + dates + ref + ref_func + status_func
 
   // Title row
   const evoTitle = wsEvo.addRow([
@@ -181,17 +187,17 @@ export async function generateEvolutionExcel({ data, patientName }: GenerateOpti
     "",
   ]);
   evoTitle.getCell(1).font = { bold: true, size: 14, color: { argb: BRAND_ARGB } };
-  wsEvo.mergeCells(1, 1, 1, numDates + 2);
+  wsEvo.mergeCells(1, 1, 1, totalEvoCols);
 
   // Period row
   const evoPeriod = wsEvo.addRow([
     `Período: ${formatDateLong(data.dates[0])} — ${formatDateLong(data.dates[numDates - 1])}`,
   ]);
   evoPeriod.getCell(1).font = { italic: true, size: 9, color: { argb: GRAY_TEXT_ARGB } };
-  wsEvo.mergeCells(2, 1, 2, numDates + 2);
+  wsEvo.mergeCells(2, 1, 2, totalEvoCols);
 
   // Header row (Analito | dates... | Ref.)
-  const headerValues = ["Analito", ...data.dates.map(formatDate), "Ref."];
+  const headerValues = ["Analito", ...data.dates.map(formatDate), "Ref.", "Ref. Funcional", "Status Funcional"];
   const evoHeaderRow = wsEvo.addRow(headerValues);
   evoHeaderRow.height = 22;
   evoHeaderRow.eachCell((cell) => {
@@ -208,7 +214,7 @@ export async function generateEvolutionExcel({ data, patientName }: GenerateOpti
   // Auto-filter
   wsEvo.autoFilter = {
     from: { row: 3, column: 1 },
-    to: { row: 3, column: numDates + 2 },
+    to: { row: 3, column: totalEvoCols },
   };
 
   // Data rows
@@ -219,7 +225,7 @@ export async function generateEvolutionExcel({ data, patientName }: GenerateOpti
 
     // Category header row
     const catRow = wsEvo.addRow([section.category]);
-    wsEvo.mergeCells(rowIndex, 1, rowIndex, numDates + 2);
+    wsEvo.mergeCells(rowIndex, 1, rowIndex, totalEvoCols);
     catRow.getCell(1).font = { bold: true, size: 10, color: { argb: WHITE_ARGB } };
     catRow.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: catArgb } };
     catRow.getCell(1).alignment = { horizontal: "left", vertical: "middle" };
@@ -247,6 +253,26 @@ export async function generateEvolutionExcel({ data, patientName }: GenerateOpti
         }
       }
       rowValues.push(marker.reference_text || "—");
+
+      // ── Functional reference (parallel layer) ──
+      // Use last available numeric value for status evaluation
+      let lastValue: number | null = null;
+      for (let di = data.dates.length - 1; di >= 0; di--) {
+        const c = marker.values_by_date[data.dates[di]];
+        if (c?.value !== null && c?.value !== undefined) {
+          lastValue = c.value;
+          break;
+        }
+      }
+
+      const funcResult = resolveFunctionalRef(marker.marker_id, lastValue, sex, marker.unit);
+      rowValues.push(funcResult?.refText ?? "");
+      rowValues.push(
+        funcResult === null ? ""
+        : funcResult.status === "normal" ? "Normal"
+        : funcResult.status === "fora" ? "Fora"
+        : "—"
+      );
 
       const dataRow = wsEvo.addRow(rowValues);
       dataRow.height = 18;
@@ -283,6 +309,26 @@ export async function generateEvolutionExcel({ data, patientName }: GenerateOpti
       refCell.alignment = { horizontal: "center", vertical: "middle" };
       refCell.border = thinBorder;
 
+      // Style functional reference cell
+      const funcRefCell = dataRow.getCell(numDates + 3);
+      funcRefCell.font = { size: 8, color: { argb: GRAY_TEXT_ARGB } };
+      funcRefCell.alignment = { horizontal: "center", vertical: "middle" };
+      funcRefCell.border = thinBorder;
+
+      // Style functional status cell
+      const funcStatusCell = dataRow.getCell(numDates + 4);
+      funcStatusCell.alignment = { horizontal: "center", vertical: "middle" };
+      funcStatusCell.border = thinBorder;
+      if (funcResult?.status === "normal") {
+        funcStatusCell.font = { bold: true, size: 9, color: { argb: GREEN_TEXT_ARGB } };
+        funcStatusCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG_ARGB } };
+      } else if (funcResult?.status === "fora") {
+        funcStatusCell.font = { bold: true, size: 9, color: { argb: RED_TEXT_ARGB } };
+        funcStatusCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: RED_BG_ARGB } };
+      } else {
+        funcStatusCell.font = { size: 8, color: { argb: GRAY_TEXT_ARGB } };
+      }
+
       // Alternate row shading
       if ((rowIndex - 4) % 2 === 0) {
         dataRow.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: LIGHT_BG_ARGB } };
@@ -308,6 +354,8 @@ export async function generateEvolutionExcel({ data, patientName }: GenerateOpti
     { header: "Unidade", key: "unit", width: 12 },
     { header: "Referência", key: "ref", width: 20 },
     { header: "Status", key: "status", width: 10 },
+    { header: "Ref. Funcional", key: "ref_func", width: 22 },
+    { header: "Status Funcional", key: "status_func", width: 16 },
     { header: "Fonte", key: "source", width: 12 },
   ];
 
@@ -325,7 +373,7 @@ export async function generateEvolutionExcel({ data, patientName }: GenerateOpti
   wsDados.views = [{ state: "frozen", ySplit: 1 }];
   wsDados.autoFilter = {
     from: { row: 1, column: 1 },
-    to: { row: 1, column: 9 },
+    to: { row: 1, column: 11 },
   };
 
   // Populate data rows
@@ -336,6 +384,7 @@ export async function generateEvolutionExcel({ data, patientName }: GenerateOpti
         if (!cell) continue;
 
         const status = cell.flag === "high" ? "Alto" : cell.flag === "low" ? "Baixo" : "Normal";
+        const funcResult = resolveFunctionalRef(marker.marker_id, cell.value, sex, marker.unit);
 
         const row = wsDados.addRow({
           category: section.category,
@@ -346,6 +395,11 @@ export async function generateEvolutionExcel({ data, patientName }: GenerateOpti
           unit: marker.unit,
           ref: marker.reference_text || "",
           status,
+          ref_func: funcResult?.refText ?? "",
+          status_func: funcResult === null ? ""
+            : funcResult.status === "normal" ? "Normal"
+            : funcResult.status === "fora" ? "Fora"
+            : "—",
           source: cell.source === "historical"
             ? (cell.source_lab || "histórico")
             : "atual",
@@ -357,7 +411,7 @@ export async function generateEvolutionExcel({ data, patientName }: GenerateOpti
           c.font = { size: 9 };
         });
 
-        // Color status cell
+        // Color lab status cell
         const statusCell = row.getCell(8);
         if (cell.flag === "high" || cell.flag === "low") {
           statusCell.font = { bold: true, size: 9, color: { argb: RED_TEXT_ARGB } };
@@ -367,6 +421,17 @@ export async function generateEvolutionExcel({ data, patientName }: GenerateOpti
           statusCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG_ARGB } };
         }
         statusCell.alignment = { horizontal: "center", vertical: "middle" };
+
+        // Color functional status cell
+        const funcStatusCellDados = row.getCell(10);
+        if (funcResult?.status === "normal") {
+          funcStatusCellDados.font = { bold: true, size: 9, color: { argb: GREEN_TEXT_ARGB } };
+          funcStatusCellDados.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_BG_ARGB } };
+        } else if (funcResult?.status === "fora") {
+          funcStatusCellDados.font = { bold: true, size: 9, color: { argb: RED_TEXT_ARGB } };
+          funcStatusCellDados.fill = { type: "pattern", pattern: "solid", fgColor: { argb: RED_BG_ARGB } };
+        }
+        funcStatusCellDados.alignment = { horizontal: "center", vertical: "middle" };
       }
     }
   }
