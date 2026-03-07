@@ -85,7 +85,8 @@ export default function EvolutionTimeline({ patientId, patientName }: EvolutionT
       <div className="flex flex-col items-center gap-0.5">
         <span className={cn(
           "text-xs tabular-nums",
-          cell.source === "historical" && "text-muted-foreground"
+          cell.source === "historical" && !cell.flag && "text-muted-foreground",
+          (cell.flag === "high" || cell.flag === "low") && "text-destructive font-semibold"
         )}>
           {display}
         </span>
