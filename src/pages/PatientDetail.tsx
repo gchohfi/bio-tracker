@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
@@ -45,6 +46,7 @@ import {
   Stethoscope,
   Clock,
   ChevronRight,
+  MoreVertical,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
 import EvolutionTimeline from "@/components/EvolutionTimeline";
@@ -1478,9 +1480,29 @@ export default function PatientDetail() {
               <Plus className="mr-1.5 h-4 w-4" />
               Nova Sessão
             </Button>
-            <Button variant="destructive" size="icon" onClick={handleDeletePatient} title="Excluir paciente">
-              <Trash2 className="h-4 w-4" />
-            </Button>
+
+            {/* Menu secundário — ações menos frequentes e destrutivas */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setProfileOpen(true)}>
+                  <UserCircle2 className="mr-2 h-4 w-4" />
+                  Editar perfil
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={handleDeletePatient}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Excluir paciente
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
