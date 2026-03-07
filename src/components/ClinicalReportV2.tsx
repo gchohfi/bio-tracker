@@ -24,6 +24,7 @@ import {
   X,
   Undo2,
   MessageSquare,
+  FileDown,
 } from "lucide-react";
 import {
   useReviewState,
@@ -32,6 +33,10 @@ import {
   type ReviewState,
   type ReviewStats,
 } from "@/hooks/useReviewState";
+import { buildReviewedReport } from "@/lib/buildReviewedReport";
+import { generateReportV2Pdf } from "@/lib/generateReportV2Pdf";
+
+
 
 // ── Types matching analysisResponseV2.types.ts ──────────────────────────
 
@@ -669,11 +674,12 @@ function ReviewSummaryBar({ stats }: { stats: ReviewStats }) {
 
 interface ClinicalReportV2Props {
   data: AnalysisV2Data;
+  patientName?: string;
   initialReviewState?: ReviewState;
   onReviewChange?: (reviews: ReviewState) => void;
 }
 
-export default function ClinicalReportV2({ data, initialReviewState, onReviewChange }: ClinicalReportV2Props) {
+export default function ClinicalReportV2({ data, patientName, initialReviewState, onReviewChange }: ClinicalReportV2Props) {
   const [reviewMode, setReviewMode] = useState(false);
   const { reviews, setDecision, clearDecision, getReview, getStats } = useReviewState(initialReviewState);
 
@@ -728,6 +734,20 @@ export default function ClinicalReportV2({ data, initialReviewState, onReviewCha
               <Stethoscope className="h-3.5 w-3.5 mr-1" />
               {reviewMode ? "Revisando" : "Revisar"}
             </Button>
+            {reviewMode && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-[11px] px-3"
+                onClick={() => {
+                  const reviewed = buildReviewedReport(data, reviews);
+                  generateReportV2Pdf(reviewed, patientName || "Paciente");
+                }}
+              >
+                <FileDown className="h-3.5 w-3.5 mr-1" />
+                Exportar PDF
+              </Button>
+            )}
           </div>
         </div>
         {reviewMode && <ReviewSummaryBar stats={stats} />}
