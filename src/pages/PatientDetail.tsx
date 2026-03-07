@@ -271,6 +271,8 @@ export default function PatientDetail() {
   const [activeEncounterId, setActiveEncounterId] = useState<string | null>(null);
   const [savedAnalyses, setSavedAnalyses] = useState<any[]>([]);
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
+  const [encountersForFilter, setEncountersForFilter] = useState<Array<{ id: string; encounter_date: string; chief_complaint: string | null }>>([]);
+  const [analysisEncounterFilter, setAnalysisEncounterFilter] = useState<string>("all");
   const [extracting, setExtracting] = useState(false);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const [editingName, setEditingName] = useState(false);
