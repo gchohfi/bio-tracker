@@ -167,6 +167,7 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
   });
 
   // Column widths
+  const sex = patientSex ?? "M";
   const evoColumns: Partial<ExcelJS.Column>[] = [
     { width: 32, key: "analito" }, // Analyte name
   ];
@@ -174,7 +175,10 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
     evoColumns.push({ width: 14, key: `d${i}` });
   }
   evoColumns.push({ width: 18, key: "ref" }); // Reference
+  evoColumns.push({ width: 22, key: "ref_func" }); // Ref. Funcional
+  evoColumns.push({ width: 14, key: "status_func" }); // Status Funcional
   wsEvo.columns = evoColumns;
+  const totalEvoCols = numDates + 4; // analito + dates + ref + ref_func + status_func
 
   // Title row
   const evoTitle = wsEvo.addRow([
