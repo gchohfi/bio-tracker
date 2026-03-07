@@ -30,7 +30,10 @@ import { EncounterPrescriptionEditor } from "@/components/EncounterPrescriptionE
 
 interface ClinicalEvolutionTabProps {
   patientId: string;
+  patientName?: string;
   specialtyId: string;
+  specialtyName?: string;
+  practitionerName?: string;
   onRequestAnalysis?: (encounterId: string) => void;
   onViewAnalysis?: (analysisId: string) => void;
 }
@@ -66,7 +69,7 @@ const EMPTY_NOTE: Omit<EvolutionNote, "encounter_id"> = {
   free_notes: "",
 };
 
-export function ClinicalEvolutionTab({ patientId, specialtyId, onRequestAnalysis, onViewAnalysis }: ClinicalEvolutionTabProps) {
+export function ClinicalEvolutionTab({ patientId, patientName, specialtyId, specialtyName, practitionerName, onRequestAnalysis, onViewAnalysis }: ClinicalEvolutionTabProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [encounters, setEncounters] = useState<Encounter[]>([]);
@@ -426,6 +429,10 @@ export function ClinicalEvolutionTab({ patientId, specialtyId, onRequestAnalysis
           patientId={patientId}
           specialtyId={specialtyId}
           isFinalized={isFinalized}
+          patientName={patientName}
+          encounterDate={format(parseISO(activeEncounter.encounter_date), "dd/MM/yyyy")}
+          specialtyName={specialtyName}
+          practitionerName={practitionerName}
           legacyPrescription={
             linkedAnalyses.length > 0
               ? (linkedAnalyses[0].prescription_table as any[] | undefined) ?? undefined

@@ -22,7 +22,9 @@ import {
   X,
   User,
   Undo2,
+  FileDown,
 } from "lucide-react";
+import { generatePrescriptionPdf } from "@/lib/generatePrescriptionPdf";
 
 // ── Types ──
 
@@ -57,6 +59,11 @@ interface EncounterPrescriptionEditorProps {
   isFinalized: boolean;
   /** Legacy prescription from analysis to use as fallback seed */
   legacyPrescription?: any[];
+  /** Metadata for PDF export */
+  patientName?: string;
+  encounterDate?: string;
+  specialtyName?: string;
+  practitionerName?: string;
 }
 
 const EMPTY_CORE: PrescriptionItemCore = {
@@ -117,6 +124,10 @@ export function EncounterPrescriptionEditor({
   specialtyId,
   isFinalized,
   legacyPrescription,
+  patientName,
+  encounterDate,
+  specialtyName,
+  practitionerName,
 }: EncounterPrescriptionEditorProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -321,6 +332,25 @@ export function EncounterPrescriptionEditor({
                     Finalizar
                   </Button>
                 </>
+              )}
+              {status === "finalized" && items.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1"
+                  onClick={() =>
+                    generatePrescriptionPdf({
+                      items,
+                      patientName: patientName ?? "Paciente",
+                      encounterDate: encounterDate ?? new Date().toLocaleDateString("pt-BR"),
+                      specialtyName: specialtyName ?? specialtyId,
+                      practitionerName: practitionerName ?? "Profissional",
+                    })
+                  }
+                >
+                  <FileDown className="h-3 w-3" />
+                  PDF
+                </Button>
               )}
             </div>
           </div>

@@ -1991,7 +1991,10 @@ export default function PatientDetail() {
             {patient && (
               <ClinicalEvolutionTab
                 patientId={patient.id}
+                patientName={patient.name}
                 specialtyId={selectedSpecialty}
+                specialtyName={availableSpecialties.find(s => s.specialty_id === selectedSpecialty)?.specialty_name}
+                practitionerName={user?.user_metadata?.name || user?.email || "Profissional"}
                 onRequestAnalysis={(encounterId) => {
                   setActiveEncounterId(encounterId);
                   handleGenerateAnalysis(encounterId);
