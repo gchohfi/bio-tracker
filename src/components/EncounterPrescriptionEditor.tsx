@@ -206,14 +206,14 @@ export function EncounterPrescriptionEditor({
 
   // ── Item actions ──
   const addItem = () =>
-    setItems((prev) => [...prev, { ...EMPTY_CORE, origin: "manually_added" }]);
+    setItems((prev) => [...prev, { ...EMPTY_CORE, origin: "manually_added" as ItemOrigin }]);
 
   const softRemoveItem = (idx: number) =>
     setItems((prev) =>
       prev.map((item, i) => {
         if (i !== idx) return item;
         // AI items → mark removed; manual items → hard delete handled below
-        if (item.ai_original) return { ...item, origin: "removed_by_physician" };
+        if (item.ai_original) return { ...item, origin: "removed_by_physician" as ItemOrigin };
         return item;
       }).filter((item, i) => {
         // Hard-delete manual items
@@ -226,7 +226,7 @@ export function EncounterPrescriptionEditor({
     setItems((prev) =>
       prev.map((item, i) =>
         i === idx && item.ai_original
-          ? { ...item, ...item.ai_original, origin: "suggested_by_ai" }
+          ? { ...item, ...item.ai_original, origin: "suggested_by_ai" as ItemOrigin }
           : item
       )
     );
@@ -234,7 +234,7 @@ export function EncounterPrescriptionEditor({
   const acceptItem = (idx: number) =>
     setItems((prev) =>
       prev.map((item, i) =>
-        i === idx ? { ...item, origin: "accepted_by_physician" } : item
+        i === idx ? { ...item, origin: "accepted_by_physician" as ItemOrigin } : item
       )
     );
 
