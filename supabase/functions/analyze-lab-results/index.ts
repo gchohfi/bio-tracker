@@ -1368,7 +1368,7 @@ serve(async (req) => {
       contextLoaded.labs.clinicallyRelevantNormals + " relevant normals, " + contextLoaded.labs.trendsCount + " trends | " +
       abnormalResults.length + " abnormal | " + scoredActives.length + " actives scored | " +
       matchedProtocols.length + " protocols matched | has_protocols: " + specialtyHasProtocols +
-      " | context: anamnesis=" + contextLoaded.anamnesis + " notes=" + contextLoaded.doctorNotes + " profile=" + contextLoaded.patientProfile
+      " | context: anamnesis=" + contextLoaded.anamnesis + " notes=" + contextLoaded.doctorNotes + " profile=" + contextLoaded.patientProfile + " bodyComp=" + contextLoaded.bodyComposition
     );
 
     // ── Dynamic max_tokens by mode ──
