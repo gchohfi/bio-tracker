@@ -687,17 +687,15 @@ export default function ClinicalReportV2({ data, initialReviewState, onReviewCha
 
   const handleDecision: ReviewControlsProps["onDecision"] = (id, decision, opts) => {
     setDecision(id, decision, opts);
-    // Notify parent of review change (next tick to get updated state)
-    setTimeout(() => {
-      onReviewChange?.({ ...reviews, [id]: { decision, ...opts, reviewed_at: new Date().toISOString() } });
-    }, 0);
+    const updatedEntry = { decision, ...opts, reviewed_at: new Date().toISOString() };
+    onReviewChange?.({ ...reviews, [id]: updatedEntry });
   };
 
   const handleClear: ReviewControlsProps["onClear"] = (id) => {
     clearDecision(id);
     const next = { ...reviews };
     delete next[id];
-    setTimeout(() => onReviewChange?.(next), 0);
+    onReviewChange?.(next);
   };
 
   const reviewProps: ReviewSectionProps = {
