@@ -55,6 +55,7 @@ import { AnamneseTab } from "@/components/AnamneseTab";
 import { DoctorNotesTab } from "@/components/DoctorNotesTab";
 import { generatePatientReport } from "@/lib/generateReport";
 import { exportPrescriptionCSV } from "@/lib/exportPrescriptionCSV";
+import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
 import {
   CATEGORIES,
   CATEGORY_COLORS,
@@ -292,6 +293,7 @@ export default function PatientDetail() {
   const [reportEditOpen, setReportEditOpen] = useState(false);
   const [reportResults, setReportResults] = useState<any[]>([]);
   const [reportWithAI, setReportWithAI] = useState(false);
+  const [analysisV2Map, setAnalysisV2Map] = useState<Record<string, AnalysisV2Data>>({});
   const [selectedSpecialty, setSelectedSpecialty] = useState("medicina_funcional");
   // Especialidade selecionada na tela de Nova Sessão (para referências funcionais)
   const [sessionSpecialty, setSessionSpecialty] = useState("medicina_funcional");
@@ -672,6 +674,7 @@ export default function PatientDetail() {
       });
       if (error) throw error;
       const analysis = analysisData?.analysis;
+      const v2 = analysisData?.analysis_v2 as AnalysisV2Data | undefined;
       // Log diagnostics
       if (analysisData?._diagnostics) {
         console.log("[AI Diagnostics]", analysisData._diagnostics);
@@ -710,6 +713,9 @@ export default function PatientDetail() {
         setSavedAnalyses(prev => [savedData, ...prev]);
         setSelectedAnalysis(savedData);
         setDetailTab("analysis");
+        if (v2) {
+          setAnalysisV2Map(prev => ({ ...prev, [savedData.id]: v2 }));
+        }
       }
       toast({ title: "✅ Análise gerada e salva!", description: "Visualize na aba Análise IA." });
     } catch (err: any) {
