@@ -21,6 +21,8 @@ import {
   CheckCircle2,
   PenLine,
   Clock,
+  Brain,
+  ExternalLink,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -28,6 +30,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 interface ClinicalEvolutionTabProps {
   patientId: string;
   specialtyId: string;
+  onRequestAnalysis?: (encounterId: string) => void;
+  onViewAnalysis?: (analysisId: string) => void;
 }
 
 interface Encounter {
@@ -61,7 +65,7 @@ const EMPTY_NOTE: Omit<EvolutionNote, "encounter_id"> = {
   free_notes: "",
 };
 
-export function ClinicalEvolutionTab({ patientId, specialtyId }: ClinicalEvolutionTabProps) {
+export function ClinicalEvolutionTab({ patientId, specialtyId, onRequestAnalysis, onViewAnalysis }: ClinicalEvolutionTabProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [encounters, setEncounters] = useState<Encounter[]>([]);
@@ -72,6 +76,7 @@ export function ClinicalEvolutionTab({ patientId, specialtyId }: ClinicalEvoluti
   const [saving, setSaving] = useState(false);
   const [newDate, setNewDate] = useState<Date>(new Date());
   const [newChief, setNewChief] = useState("");
+  const [linkedAnalyses, setLinkedAnalyses] = useState<any[]>([]);
 
   // ── Load encounters ──
   const loadEncounters = useCallback(async () => {
@@ -129,6 +134,7 @@ export function ClinicalEvolutionTab({ patientId, specialtyId }: ClinicalEvoluti
   // ── Open encounter detail ──
   const openEncounter = async (enc: Encounter) => {
     setActiveEncounter(enc);
+    // Load note
     const { data } = await (supabase as any)
       .from("clinical_evolution_notes")
       .select("*")
@@ -136,6 +142,15 @@ export function ClinicalEvolutionTab({ patientId, specialtyId }: ClinicalEvoluti
       .single();
 
     setNote(data ? { ...data } : { encounter_id: enc.id, ...EMPTY_NOTE });
+
+    // Load linked analyses
+    const { data: analyses } = await (supabase as any)
+      .from("patient_analyses")
+      .select("id, specialty_name, specialty_id, created_at, mode")
+      .eq("encounter_id", enc.id)
+      .order("created_at", { ascending: false });
+    setLinkedAnalyses(analyses ?? []);
+
     setView("form");
   };
 
@@ -314,7 +329,7 @@ export function ClinicalEvolutionTab({ patientId, specialtyId }: ClinicalEvoluti
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => { setView("list"); setActiveEncounter(null); }} className="gap-1.5">
+        <Button variant="ghost" size="sm" onClick={() => { setView("list"); setActiveEncounter(null); setLinkedAnalyses([]); }} className="gap-1.5">
           <ArrowLeft className="h-4 w-4" />
           Voltar
         </Button>
@@ -357,6 +372,51 @@ export function ClinicalEvolutionTab({ patientId, specialtyId }: ClinicalEvoluti
           <p className="text-sm">{activeEncounter.chief_complaint}</p>
         </div>
       )}
+
+      {/* Linked Analyses */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium flex items-center gap-1.5">
+              <Brain className="h-3.5 w-3.5 text-primary" />
+              Análises vinculadas
+            </p>
+            {onRequestAnalysis && activeEncounter && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs gap-1"
+                onClick={() => onRequestAnalysis(activeEncounter.id)}
+              >
+                <Brain className="h-3 w-3" />
+                Gerar Análise IA
+              </Button>
+            )}
+          </div>
+          {linkedAnalyses.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Nenhuma análise vinculada a esta consulta.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {linkedAnalyses.map((a) => (
+                <div
+                  key={a.id}
+                  className="flex items-center justify-between rounded-md border p-2 text-xs cursor-pointer hover:bg-muted/30 transition-colors"
+                  onClick={() => onViewAnalysis?.(a.id)}
+                >
+                  <div className="flex items-center gap-2">
+                    <Brain className="h-3.5 w-3.5 text-primary" />
+                    <span className="font-medium">{a.specialty_name ?? a.specialty_id}</span>
+                    <span className="text-muted-foreground">
+                      {format(parseISO(a.created_at), "dd/MM/yy HH:mm")}
+                    </span>
+                  </div>
+                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* SOAP Fields */}
       <Card>

@@ -117,6 +117,7 @@ export type Database = {
           analysis_id: string
           analysis_v2_hash: string | null
           created_at: string
+          encounter_id: string | null
           id: string
           patient_id: string
           practitioner_id: string
@@ -129,6 +130,7 @@ export type Database = {
           analysis_id: string
           analysis_v2_hash?: string | null
           created_at?: string
+          encounter_id?: string | null
           id?: string
           patient_id: string
           practitioner_id: string
@@ -141,6 +143,7 @@ export type Database = {
           analysis_id?: string
           analysis_v2_hash?: string | null
           created_at?: string
+          encounter_id?: string | null
           id?: string
           patient_id?: string
           practitioner_id?: string
@@ -155,6 +158,13 @@ export type Database = {
             columns: ["analysis_id"]
             isOneToOne: false
             referencedRelation: "patient_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analysis_reviews_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_encounters"
             referencedColumns: ["id"]
           },
           {
@@ -494,6 +504,7 @@ export type Database = {
         Row: {
           analysis_v2_data: Json | null
           created_at: string
+          encounter_id: string | null
           full_text: string | null
           id: string
           mode: string
@@ -514,6 +525,7 @@ export type Database = {
         Insert: {
           analysis_v2_data?: Json | null
           created_at?: string
+          encounter_id?: string | null
           full_text?: string | null
           id?: string
           mode?: string
@@ -534,6 +546,7 @@ export type Database = {
         Update: {
           analysis_v2_data?: Json | null
           created_at?: string
+          encounter_id?: string | null
           full_text?: string | null
           id?: string
           mode?: string
@@ -552,6 +565,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "patient_analyses_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_encounters"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "patient_analyses_patient_id_fkey"
             columns: ["patient_id"]
