@@ -6,9 +6,9 @@
  *   - Frontend (PatientDetail.tsx) → monta e envia
  *   - Edge Function (analyze-lab-results) → consome e injeta no prompt
  *
- * IMPORTANTE: Este arquivo define a ESTRUTURA ALVO. A migração será incremental:
- *   Fase 1 (atual): tipos definidos, não consumidos ainda
- *   Fase 2: buildUserPrompt() consome ClinicalContext.labs
+ * IMPORTANTE: Este arquivo define a ESTRUTURA ALVO. A migração é incremental:
+ *   Fase 1 (done): tipos definidos
+ *   Fase 2 (done): buildUserPrompt() consome ClinicalContext.labs
  *   Fase 3: frontend envia CanonicalLabResult[] no body
  */
 
