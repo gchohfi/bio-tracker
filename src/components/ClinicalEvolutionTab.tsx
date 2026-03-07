@@ -76,6 +76,7 @@ export function ClinicalEvolutionTab({ patientId, specialtyId, onRequestAnalysis
   const [saving, setSaving] = useState(false);
   const [newDate, setNewDate] = useState<Date>(new Date());
   const [newChief, setNewChief] = useState("");
+  const [linkedAnalyses, setLinkedAnalyses] = useState<any[]>([]);
 
   // ── Load encounters ──
   const loadEncounters = useCallback(async () => {
