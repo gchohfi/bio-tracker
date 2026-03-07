@@ -687,29 +687,46 @@ interface ClinicalReportV2Props {
 
 export default function ClinicalReportV2({ data, patientName, analysisId, patientId, specialtyId, initialReviewState, onReviewChange }: ClinicalReportV2Props) {
   const [reviewMode, setReviewMode] = useState(false);
+  const [reviewOutdated, setReviewOutdated] = useState(false);
   const { reviews, setDecision, clearDecision, getReview, getStats, setAll } = useReviewState(initialReviewState);
   const { user } = useAuth();
   const loadedRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const currentHashRef = useRef<string>(computeAnalysisV2HashSync(data));
 
-  // ── Load persisted review state ──
+  // Keep hash in sync if data changes
+  useEffect(() => {
+    currentHashRef.current = computeAnalysisV2HashSync(data);
+  }, [data]);
+
+  // ── Load persisted review state (with version check) ──
   useEffect(() => {
     if (!analysisId || !user?.id || loadedRef.current) return;
     loadedRef.current = true;
     (async () => {
       const { data: row } = await (supabase as any)
         .from("analysis_reviews")
-        .select("review_state_json")
+        .select("review_state_json, analysis_v2_hash, schema_version")
         .eq("analysis_id", analysisId)
         .eq("practitioner_id", user.id)
         .maybeSingle();
-      if (row?.review_state_json && Object.keys(row.review_state_json).length > 0) {
-        setAll(row.review_state_json as ReviewState);
+      if (!row?.review_state_json || Object.keys(row.review_state_json).length === 0) return;
+
+      const savedHash = row.analysis_v2_hash;
+      const currentHash = currentHashRef.current;
+
+      if (savedHash && savedHash !== currentHash) {
+        // Hash mismatch — analysis was re-generated, review is stale
+        console.warn(`[ReviewState] Hash mismatch: saved=${savedHash} current=${currentHash}. Review marked outdated.`);
+        setReviewOutdated(true);
+        return; // Don't rehydrate stale reviews
       }
+
+      setAll(row.review_state_json as ReviewState);
     })();
   }, [analysisId, user?.id]);
 
-  // ── Debounced save ──
+  // ── Debounced save (includes hash + schema version) ──
   const persistReview = useCallback((state: ReviewState) => {
     if (!analysisId || !user?.id || !patientId) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -722,7 +739,10 @@ export default function ClinicalReportV2({ data, patientName, analysisId, patien
           patient_id: patientId,
           specialty_id: specialtyId || "medicina_funcional",
           review_state_json: state,
+          analysis_v2_hash: currentHashRef.current,
+          schema_version: REVIEW_SCHEMA_VERSION,
         }, { onConflict: "analysis_id,practitioner_id" });
+      setReviewOutdated(false); // New save resets outdated
     }, 800);
   }, [analysisId, user?.id, patientId, specialtyId]);
 
