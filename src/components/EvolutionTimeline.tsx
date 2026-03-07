@@ -25,9 +25,10 @@ import { generateEvolutionExcel } from "@/lib/generateEvolutionExcel";
 interface EvolutionTimelineProps {
   patientId: string;
   patientName?: string;
+  patientSex?: "M" | "F";
 }
 
-export default function EvolutionTimeline({ patientId, patientName }: EvolutionTimelineProps) {
+export default function EvolutionTimeline({ patientId, patientName, patientSex }: EvolutionTimelineProps) {
   const [data, setData] = useState<EvolutionReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | "Todos">("Todos");
