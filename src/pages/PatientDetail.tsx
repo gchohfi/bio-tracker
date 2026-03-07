@@ -1869,6 +1869,14 @@ export default function PatientDetail() {
           <TabsContent value="doctor_notes" className="mt-4">
             {patient && <DoctorNotesTab patient={patient} />}
           </TabsContent>
+          <TabsContent value="clinical_evolution" className="mt-4">
+            {patient && (
+              <ClinicalEvolutionTab
+                patientId={patient.id}
+                specialtyId={selectedSpecialty}
+              />
+            )}
+          </TabsContent>
         </Tabs>
       </div>
       {/* Edit report dialog (before PDF export) */}
