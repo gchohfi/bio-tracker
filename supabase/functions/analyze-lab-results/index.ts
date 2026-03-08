@@ -732,6 +732,8 @@ import type {
   LabStatus,
   BodyCompositionSnapshot,
   BodyCompositionContext,
+  ImagingReportSnapshot,
+  ImagingReportsContext,
 } from "./clinicalContext.types.ts";
 import { checkNearLimit, isKeyMarker } from "./clinicalContext.types.ts";
 import { mapV1toV2 } from "./buildV2.ts";
@@ -840,12 +842,14 @@ async function fetchClinicalContext(
     patientProfile: patientProfile ?? null,
     labs,
     bodyComposition: null,
+    imagingReports: null,
   };
 
   const loaded: ContextLoaded = {
     anamnesis: false,
     doctorNotes: false,
     bodyComposition: false,
+    imagingReports: false,
     patientProfile: !!(patientProfile && (
       (patientProfile.objectives && patientProfile.objectives.length > 0) ||
       patientProfile.activity_level || patientProfile.sport_modality ||
@@ -862,11 +866,13 @@ async function fetchClinicalContext(
 
   if (!patientId) return { context: result, loaded };
 
-  // Fetch anamnese, doctor notes, and body composition in parallel
+  // Fetch anamnese, doctor notes, body composition, and imaging reports in parallel
   const bodyCompSpecialties = ["nutrologia", "endocrinologia"];
+  const imagingSpecialties = ["endocrinologia", "nutrologia"];
   const shouldFetchBodyComp = bodyCompSpecialties.includes(specialtyId);
+  const shouldFetchImaging = imagingSpecialties.includes(specialtyId);
 
-  const [anamneseResult, notesResult, bodyCompResult] = await Promise.all([
+  const [anamneseResult, notesResult, bodyCompResult, imagingResult] = await Promise.all([
     supabaseClient
       .from("patient_anamneses")
       .select("*")
@@ -892,6 +898,16 @@ async function fetchClinicalContext(
           .limit(2)
           .then(({ data }: { data: unknown }) => data)
           .catch((err: unknown) => { console.warn("Failed to load body composition:", err); return null; })
+      : Promise.resolve(null),
+    shouldFetchImaging
+      ? supabaseClient
+          .from("imaging_reports")
+          .select("id, report_date, exam_type, exam_region, findings, conclusion, incidental_findings, classifications, source_lab")
+          .eq("patient_id", patientId)
+          .order("report_date", { ascending: false })
+          .limit(6)
+          .then(({ data }: { data: unknown }) => data)
+          .catch((err: unknown) => { console.warn("Failed to load imaging reports:", err); return null; })
       : Promise.resolve(null),
   ]);
 
@@ -957,6 +973,30 @@ async function fetchClinicalContext(
     };
     loaded.bodyComposition = true;
     console.log("Body composition loaded: " + totalCount + " session(s) for patient " + patientId);
+  }
+
+  // Parse imaging reports
+  if (imagingResult && Array.isArray(imagingResult) && imagingResult.length > 0) {
+    const mapReport = (row: Record<string, unknown>): ImagingReportSnapshot => ({
+      id: row.id as string,
+      report_date: row.report_date as string,
+      exam_type: row.exam_type as string,
+      exam_region: (row.exam_region as string | null) ?? null,
+      findings: (row.findings as string | null) ?? null,
+      conclusion: (row.conclusion as string | null) ?? null,
+      incidental_findings: (row.incidental_findings as string | null) ?? null,
+      classifications: (row.classifications as string | null) ?? null,
+      source_lab: (row.source_lab as string | null) ?? null,
+    });
+
+    const allReports = imagingResult.map((r: unknown) => mapReport(r as Record<string, unknown>));
+    result.imagingReports = {
+      current: allReports[0],
+      history: allReports.slice(1),
+      totalReports: allReports.length,
+    };
+    loaded.imagingReports = true;
+    console.log("Imaging reports loaded: " + allReports.length + " report(s) for patient " + patientId);
   }
 
   return { context: result, loaded };

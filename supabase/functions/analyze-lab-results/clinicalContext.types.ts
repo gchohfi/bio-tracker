@@ -124,6 +124,31 @@ export interface BodyCompositionContext {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// IMAGING REPORTS — laudos textuais de exames de imagem
+// ══════════════════════════════════════════════════════════════════════════════
+
+export interface ImagingReportSnapshot {
+  id: string;
+  report_date: string;
+  exam_type: string;
+  exam_region: string | null;
+  findings: string | null;
+  conclusion: string | null;
+  incidental_findings: string | null;
+  classifications: string | null;
+  source_lab: string | null;
+}
+
+export interface ImagingReportsContext {
+  /** Most recent report */
+  current: ImagingReportSnapshot | null;
+  /** Previous reports (ordered by date desc), max 5 */
+  history: ImagingReportSnapshot[];
+  /** Total number of imaging reports for this patient */
+  totalReports: number;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // CLINICAL CONTEXT — estrutura completa para o prompt de análise
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -154,6 +179,7 @@ export interface ClinicalContext {
   doctorNotes?: string | null;
   labs: ClinicalContextLabs;
   bodyComposition?: BodyCompositionContext | null;
+  imagingReports?: ImagingReportsContext | null;
 }
 
 /** Flags retornados no response para indicar o que foi carregado */
@@ -162,6 +188,7 @@ export interface ContextLoaded {
   doctorNotes: boolean;
   patientProfile: boolean;
   bodyComposition: boolean;
+  imagingReports: boolean;
   labs: {
     total: number;
     outOfRange: number;
