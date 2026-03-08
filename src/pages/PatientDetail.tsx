@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { auditResults } from "@/lib/clinicalAudit";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
