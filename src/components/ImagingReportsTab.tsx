@@ -383,6 +383,16 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
           <Textarea value={form.notes ?? ""} onChange={(e) => updateField("notes", e.target.value)} rows={2} className="text-sm resize-none" placeholder="Notas adicionais sobre o laudo..." />
         </CardContent>
       </Card>
+
+      {/* Destructive action — isolated at the bottom */}
+      {activeReport && (
+        <div className="flex justify-end pt-2 border-t">
+          <Button size="sm" variant="ghost" className="h-8 text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleDelete}>
+            <Trash2 className="h-3.5 w-3.5" />
+            Excluir laudo
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
