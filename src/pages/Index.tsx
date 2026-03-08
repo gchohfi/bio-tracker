@@ -121,7 +121,7 @@ export default function Index() {
     const sessionAlertMap = new Map<string, number>();
 
     (results || []).forEach((r) => {
-      const marker = MARKERS.find((m) => m.id === r.marker_id);
+      const marker = MARKER_MAP.get(r.marker_id);
       if (!marker) return;
       // Track found markers
       sessionFoundMarkers.get(r.session_id)?.add(r.marker_id);
