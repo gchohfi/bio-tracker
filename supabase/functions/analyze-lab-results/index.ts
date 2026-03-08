@@ -1158,6 +1158,40 @@ function buildUserPrompt(
     prompt += "\nNOTAS CLINICAS DO MEDICO (" + activeSpecialty.replace(/_/g, " ") + "):\n" + clinicalContext.doctorNotes + "\n";
   }
 
+  // ── Clinical history (previous encounter + analysis) ──
+  const ch = clinicalContext.clinicalHistory;
+  if (ch) {
+    prompt += "\nHISTORICO CLINICO ANTERIOR (contexto longitudinal - dados determinísticos de consultas anteriores):\n";
+    prompt += "IMPORTANTE: Use este historico para identificar evolucao, resposta a tratamentos anteriores, e o que mudou desde a ultima consulta. Nao altere os dados.\n";
+
+    if (ch.previousEncounter) {
+      const enc = ch.previousEncounter;
+      prompt += "\nUltima consulta (" + enc.encounter_date + ")";
+      if (enc.status === "finalized") prompt += " [finalizada]";
+      prompt += ":\n";
+      if (enc.chief_complaint) prompt += "  Queixa principal: " + enc.chief_complaint + "\n";
+      if (enc.subjective) prompt += "  Subjetivo: " + enc.subjective.slice(0, 500) + "\n";
+      if (enc.objective) prompt += "  Objetivo: " + enc.objective.slice(0, 500) + "\n";
+      if (enc.assessment) prompt += "  Avaliacao: " + enc.assessment.slice(0, 500) + "\n";
+      if (enc.plan) prompt += "  Plano/Conduta: " + enc.plan.slice(0, 500) + "\n";
+      if (enc.medications) prompt += "  Medicamentos prescritos: " + enc.medications.slice(0, 300) + "\n";
+      if (enc.exams_requested) prompt += "  Exames solicitados: " + enc.exams_requested.slice(0, 300) + "\n";
+    }
+
+    if (ch.previousAnalysis) {
+      const pa = ch.previousAnalysis;
+      prompt += "\nAnalise IA anterior (" + pa.created_at.slice(0, 10) + "):\n";
+      if (pa.summary) prompt += "  Resumo: " + pa.summary.slice(0, 600) + "\n";
+      if (pa.patterns.length > 0) prompt += "  Padroes identificados: " + pa.patterns.slice(0, 5).join("; ") + "\n";
+      if (pa.suggestions.length > 0) prompt += "  Sugestoes anteriores: " + pa.suggestions.slice(0, 5).join("; ") + "\n";
+    }
+
+    if (ch.totalEncounters > 1) {
+      prompt += "\n(Total de consultas registradas: " + ch.totalEncounters + " | Analises IA para esta especialidade: " + ch.totalAnalyses + ")\n";
+    }
+    prompt += "\n";
+  }
+
   // ── Body composition (nutrologia / endocrinologia only) ──
   const bodyCompSpecialties = ["nutrologia", "endocrinologia"];
   const bc = clinicalContext.bodyComposition;
