@@ -9,10 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import {
   Save, Loader2, CheckCircle2, Heart, Leaf, Activity, Microscope,
-  ClipboardList, Plus, X, AlertTriangle, FileText,
+  ClipboardList, Plus, X, AlertTriangle, FileText, Wand2, Eye, Check, XCircle,
 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
