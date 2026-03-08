@@ -984,9 +984,12 @@ async function fetchClinicalContext(
       exam_region: (row.exam_region as string | null) ?? null,
       findings: (row.findings as string | null) ?? null,
       conclusion: (row.conclusion as string | null) ?? null,
+      recommendations: (row.recommendations as string | null) ?? null,
       incidental_findings: (row.incidental_findings as string | null) ?? null,
       classifications: (row.classifications as string | null) ?? null,
       source_lab: (row.source_lab as string | null) ?? null,
+      source_type: (row.source_type as string) ?? "manual",
+      specialty_id: (row.specialty_id as string | null) ?? null,
     });
 
     const allReports = imagingResult.map((r: unknown) => mapReport(r as Record<string, unknown>));
