@@ -274,6 +274,68 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
     }
   };
 
+  // ── AI Conversion ──
+  const handleConvert = async (specId: string) => {
+    const text = legacyTexts[specId]?.trim();
+    if (!text || text.length < 10) {
+      toast({ title: "Texto insuficiente", description: "A anamnese legada precisa ter pelo menos 10 caracteres.", variant: "destructive" });
+      return;
+    }
+
+    setConverting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("convert-anamnese", {
+        body: { anamnese_text: text },
+      });
+
+      if (error) throw error;
+      if (!data?.structured_data) throw new Error("Nenhuma sugestão retornada");
+
+      setConversionSuggestion(data.structured_data as StructuredAnamnese);
+      setConversionSpecialty(specId);
+      setReviewDialogOpen(true);
+      toast({ title: "Sugestão gerada!", description: "Revise os campos antes de aplicar." });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro na conversão";
+      toast({ title: "Erro na conversão", description: msg, variant: "destructive" });
+    } finally {
+      setConverting(false);
+    }
+  };
+
+  const handleAcceptConversion = () => {
+    if (!conversionSuggestion || !conversionSpecialty) return;
+    // Merge suggestion into current structured data (don't overwrite existing non-empty fields)
+    const current = getStructured(conversionSpecialty);
+    const merged: StructuredAnamnese = { ...EMPTY_STRUCTURED };
+
+    for (const key of Object.keys(EMPTY_STRUCTURED) as (keyof StructuredAnamnese)[]) {
+      const suggested = conversionSuggestion[key];
+      const existing = current[key];
+
+      // Use existing if non-empty, otherwise use suggested
+      if (existing !== undefined && existing !== null && existing !== "" &&
+          !(Array.isArray(existing) && existing.length === 0)) {
+        (merged as any)[key] = existing;
+      } else if (suggested !== undefined && suggested !== null) {
+        (merged as any)[key] = suggested;
+      }
+    }
+
+    setStructuredMap((prev) => ({ ...prev, [conversionSpecialty!]: merged }));
+    setReviewDialogOpen(false);
+    setConversionSuggestion(null);
+    setConversionSpecialty(null);
+    toast({ title: "Sugestão aplicada!", description: "Revise os campos e salve quando estiver satisfeito." });
+  };
+
+  const handleRejectConversion = () => {
+    setReviewDialogOpen(false);
+    setConversionSuggestion(null);
+    setConversionSpecialty(null);
+    toast({ title: "Sugestão descartada", description: "Nenhuma alteração foi feita." });
+  };
+
   // ── Loading state ──
   if (loading) {
     return (
