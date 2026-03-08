@@ -1615,7 +1615,7 @@ export default function PatientDetail() {
                 {sessions.map((session) => (
                   <Card
                     key={session.id}
-                    className="cursor-pointer transition-colors hover:bg-accent/50"
+                    className="group cursor-pointer transition-colors hover:bg-accent/50"
                     onClick={() => openEditSession(session)}
                   >
                     <CardContent className="flex items-center justify-between p-4">
