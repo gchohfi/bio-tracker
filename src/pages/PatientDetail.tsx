@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { auditResults } from "@/lib/clinicalAudit";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -520,7 +521,35 @@ export default function PatientDetail() {
         }
       });
 
+      // ── AUDIT: Consistência clínica antes de persistir ──
       if (allResults.length > 0) {
+        const auditReport = auditResults(
+          allResults.map(r => ({
+            marker_id: r.marker_id,
+            value: r.value || null,
+            text_value: r.text_value,
+            lab_ref_min: r.lab_ref_min,
+            lab_ref_max: r.lab_ref_max,
+            lab_ref_text: r.lab_ref_text,
+          })),
+          {
+            context: "save_session",
+            patientSex: (patient.sex === "F" ? "F" : "M"),
+            patientId: patient.id,
+            sessionId: sessionId ?? undefined,
+          }
+        );
+
+        if (auditReport.has_blocks) {
+          toast({ title: "Dados bloqueados", description: "Inconsistências graves detectadas. Verifique os resultados.", variant: "destructive" });
+          setSaving(false);
+          return;
+        }
+
+        if (auditReport.has_errors) {
+          console.warn("[AUDIT] Erros detectados mas não bloqueantes:", auditReport.issues.filter(i => i.severity === "error"));
+        }
+
         const { error } = await supabase.from("lab_results").insert(allResults as any);
         if (error) throw error;
       }
