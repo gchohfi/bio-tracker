@@ -1633,7 +1633,7 @@ export default function PatientDetail() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={(e) => { e.stopPropagation(); handleDeleteSession(session.id); }}
+                          onClick={(e) => { e.stopPropagation(); setPendingDeleteSessionId(session.id); }}
                           title="Excluir"
                           className="text-destructive hover:text-destructive"
                         >
