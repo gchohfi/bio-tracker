@@ -7,6 +7,7 @@
  */
 
 import jsPDF from "jspdf";
+import { Trace } from "@/lib/traceability";
 import autoTable from "jspdf-autotable";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
