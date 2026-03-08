@@ -472,6 +472,68 @@ export type Database = {
           },
         ]
       }
+      imaging_reports: {
+        Row: {
+          classifications: string | null
+          conclusion: string | null
+          created_at: string
+          exam_region: string | null
+          exam_type: string
+          findings: string | null
+          id: string
+          incidental_findings: string | null
+          measurements: Json | null
+          notes: string | null
+          patient_id: string
+          practitioner_id: string
+          report_date: string
+          source_lab: string | null
+          updated_at: string
+        }
+        Insert: {
+          classifications?: string | null
+          conclusion?: string | null
+          created_at?: string
+          exam_region?: string | null
+          exam_type: string
+          findings?: string | null
+          id?: string
+          incidental_findings?: string | null
+          measurements?: Json | null
+          notes?: string | null
+          patient_id: string
+          practitioner_id: string
+          report_date?: string
+          source_lab?: string | null
+          updated_at?: string
+        }
+        Update: {
+          classifications?: string | null
+          conclusion?: string | null
+          created_at?: string
+          exam_region?: string | null
+          exam_type?: string
+          findings?: string | null
+          id?: string
+          incidental_findings?: string | null
+          measurements?: Json | null
+          notes?: string | null
+          patient_id?: string
+          practitioner_id?: string
+          report_date?: string
+          source_lab?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imaging_reports_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lab_historical_results: {
         Row: {
           conversion_applied: boolean | null
