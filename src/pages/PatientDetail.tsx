@@ -83,7 +83,17 @@ type Patient = Tables<"patients">;
 type LabSession = Tables<"lab_sessions">;
 type LabResult = Tables<"lab_results">;
 
-// ── PDF text extraction helper ──────────────────────────────────────────
+const TAB_LABELS: Record<string, string> = {
+  clinical_evolution: "Prontuário",
+  sessions: "Exames",
+  evolution: "Evolução Clínica",
+  timeline: "Evolutivo de Exames",
+  analysis: "Análise IA",
+  anamnese: "Anamnese",
+  body_composition: "Composição Corporal",
+  imaging: "Laudos de Imagem",
+};
+
 async function extractPdfText(file: File): Promise<{ fullText: string; cleanedText: string }> {
   pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
   const arrayBuffer = await file.arrayBuffer();
