@@ -7,7 +7,7 @@ describe("clinicalAudit", () => {
   it("returns clean report for valid results", () => {
     const results: AuditableResult[] = [
       { marker_id: "hemoglobina", value: 15, lab_ref_min: 13.5, lab_ref_max: 17.5 },
-      { marker_id: "glicemia_jejum", value: 90, lab_ref_min: 70, lab_ref_max: 99 },
+      { marker_id: "glicose_jejum", value: 90, lab_ref_min: 70, lab_ref_max: 99 },
     ];
     const report = auditResults(results, baseOpts);
     expect(report.issues).toHaveLength(0);
