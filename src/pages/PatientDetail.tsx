@@ -681,7 +681,7 @@ export default function PatientDetail() {
   // ── Helper: build enriched results for AI ──────────────────────────────────────────────
   const buildEnrichedResults = (results: any[]) =>
     results.map((r) => {
-      const marker = MARKERS.find((m) => m.id === r.marker_id);
+      const marker = MARKER_MAP.get(r.marker_id);
       const session = sessions.find((s) => s.id === r.session_id);
       const status = marker ? getMarkerStatus(r.value ?? 0, marker, sex, r.text_value ?? undefined) : "normal";
       // Referências funcionais apenas para Nutrologia; demais usam ref. do laboratório
