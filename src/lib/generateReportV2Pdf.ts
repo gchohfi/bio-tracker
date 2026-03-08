@@ -8,6 +8,7 @@
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import type { ReviewedReportData, ReviewedItem } from "./buildReviewedReport";
+import { Trace } from "./traceability";
 
 // Sanitize for Latin-1 (jsPDF limitation)
 function sanitize(text: string): string {
@@ -202,6 +203,9 @@ export function generateReportV2Pdf(
     );
     doc.setTextColor(0);
   }
+
+  // ── TRACE: Rastreabilidade da exportação ──
+  Trace.export("", "", "pdf", "relatorio_v2_revisado");
 
   doc.save(sanitize(`relatorio-v2-${patientName.replace(/\s+/g, "_")}-${new Date().toISOString().slice(0, 10)}.pdf`));
 }

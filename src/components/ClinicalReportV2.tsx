@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Trace } from "@/lib/traceability";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -816,6 +817,11 @@ export default function ClinicalReportV2({ data, patientName, analysisId, patien
         })
         .then(({ error }: { error: any }) => {
           if (error) console.warn("[ReviewSnapshot] insert failed:", error.message);
+          else {
+            // ── TRACE: Rastreabilidade da revisão médica ──
+            const s = getStats([...Object.keys(state)]);
+            Trace.medicalReview(user.id, patientId, analysisId, { accepted: s.accepted, edited: s.edited, rejected: s.rejected });
+          }
         });
     }, 800);
   }, [analysisId, user?.id, patientId, specialtyId]);

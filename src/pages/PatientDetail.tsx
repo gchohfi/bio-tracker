@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { auditResults } from "@/lib/clinicalAudit";
+import { Trace } from "@/lib/traceability";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -626,6 +627,9 @@ export default function PatientDetail() {
         }
       }
 
+      // ── TRACE: Rastreabilidade do salvamento ──
+      Trace.sessionSave(user?.id ?? "", patient.id, sessionId!, allResults.length, !!editingSessionId);
+
       toast({ title: editingSessionId ? "Sessão atualizada!" : "Sessão criada!" });
       setFormOpen(false);
       fetchData();
@@ -827,6 +831,9 @@ export default function PatientDetail() {
           setAnalysisV2Map(prev => ({ ...prev, [savedData.id]: v2 }));
         }
       }
+      // ── TRACE: Rastreabilidade da análise IA ──
+      Trace.aiAnalysis(user?.id ?? "", patient.id, selectedSpecialty, "full", analysisData?.model_used);
+
       toast({ title: "✅ Análise gerada e salva!", description: "Visualize na aba Análise IA." });
     } catch (err: any) {
       handleAiError(err, "Erro na análise");

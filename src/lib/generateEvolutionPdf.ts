@@ -7,6 +7,7 @@
  */
 
 import jsPDF from "jspdf";
+import { Trace } from "@/lib/traceability";
 import autoTable from "jspdf-autotable";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -225,6 +226,9 @@ export function generateEvolutionPdf({ data, patientName }: GenerateOptions) {
   }
 
   // ── Download ──
+  // ── TRACE ──
+  Trace.export("", "", "pdf", "evolutivo");
+
   const safeName = patientName.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
   doc.save(`Evolutivo_${safeName}_${format(new Date(), "yyyyMMdd")}.pdf`);
 }
