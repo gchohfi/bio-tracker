@@ -8,6 +8,7 @@
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import type { ReviewedReportData, ReviewedItem } from "./buildReviewedReport";
+import { Trace } from "./traceability";
 
 // Sanitize for Latin-1 (jsPDF limitation)
 function sanitize(text: string): string {
