@@ -316,7 +316,7 @@ export function EncounterPrescriptionEditor({
                   Itens pendentes de revisão
                 </Badge>
               )}
-            </p>
+            </div>
             <div className="flex gap-1.5 flex-wrap">
               {editable && !seeded && legacyPrescription && legacyPrescription.length > 0 && (
                 <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={seedFromLegacy}>
