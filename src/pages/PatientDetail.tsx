@@ -831,6 +831,9 @@ export default function PatientDetail() {
           setAnalysisV2Map(prev => ({ ...prev, [savedData.id]: v2 }));
         }
       }
+      // ── TRACE: Rastreabilidade da análise IA ──
+      Trace.aiAnalysis(user?.id ?? "", patient.id, selectedSpecialty, "full", analysisData?.model_used);
+
       toast({ title: "✅ Análise gerada e salva!", description: "Visualize na aba Análise IA." });
     } catch (err: any) {
       handleAiError(err, "Erro na análise");
