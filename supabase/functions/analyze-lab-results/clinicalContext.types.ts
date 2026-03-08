@@ -152,6 +152,39 @@ export interface ImagingReportsContext {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// STRUCTURED ANAMNESE — campos estruturados da anamnese híbrida
+// ══════════════════════════════════════════════════════════════════════════════
+
+export interface StructuredAnamnese {
+  queixa_principal?: string;
+  objetivos?: string[];
+  sintomas?: string[];
+  // Hábitos
+  sono_horas?: number | null;
+  qualidade_sono?: "boa" | "regular" | "ruim" | "";
+  nivel_estresse?: "baixo" | "moderado" | "alto" | "";
+  atividade_fisica?: string;
+  tabagismo?: boolean;
+  etilismo?: string;
+  dieta_resumo?: string;
+  // Antecedentes
+  comorbidades?: string[];
+  cirurgias?: string[];
+  historico_familiar?: string;
+  // Medicações
+  medicacoes?: string[];
+  suplementos?: string[];
+  // Restrições
+  alergias?: string[];
+  restricoes_alimentares?: string;
+  // Livre
+  observacoes?: string;
+}
+
+/** Indica a fonte dos dados de anamnese usados no prompt */
+export type AnamneseSource = "structured" | "legacy_text" | "none";
+
+// ══════════════════════════════════════════════════════════════════════════════
 // CLINICAL CONTEXT — estrutura completa para o prompt de análise
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -163,61 +196,14 @@ export interface PatientProfile {
   restrictions?: string | null;
 }
 
-export interface ClinicalContextLabs {
-  /** Todos os resultados canônicos (current + historical) */
-  allResults: CanonicalLabResult[];
-  /** Resultados fora da faixa (low, high, critical_low, critical_high) */
-  outOfRange: CanonicalLabResult[];
-  /** Normais clinicamente relevantes (perto do limite OU marcador-chave) */
-  clinicallyRelevantNormals: CanonicalLabResult[];
-  /** Marcadores derivados (HOMA-IR, relação T3/T4, etc.) */
-  derivedMarkers: CanonicalLabResult[];
-  /** Tendências entre sessões (quando há ≥2 datas) */
-  trends?: LabTrend[];
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// CLINICAL HISTORY — contexto longitudinal de consultas anteriores
-// ══════════════════════════════════════════════════════════════════════════════
-
-/** Resumo da última consulta/evolução clínica */
-export interface PreviousEncounterSnapshot {
-  encounter_date: string;
-  chief_complaint: string | null;
-  status: string;
-  /** Notas SOAP da evolução */
-  subjective: string | null;
-  objective: string | null;
-  assessment: string | null;
-  plan: string | null;
-  medications: string | null;
-  exams_requested: string | null;
-}
-
-/** Resumo compacto de análise IA anterior */
-export interface PreviousAnalysisSummary {
-  created_at: string;
-  specialty_name: string | null;
-  summary: string | null;
-  patterns: string[];
-  suggestions: string[];
-}
-
-/** Contexto do histórico clínico longitudinal */
-export interface ClinicalHistoryContext {
-  /** Última consulta clínica (encounter + evolution notes) */
-  previousEncounter: PreviousEncounterSnapshot | null;
-  /** Resumo da última análise IA para a mesma especialidade */
-  previousAnalysis: PreviousAnalysisSummary | null;
-  /** Número total de consultas registradas */
-  totalEncounters: number;
-  /** Número total de análises IA registradas para a especialidade */
-  totalAnalyses: number;
-}
-
 export interface ClinicalContext {
   patientProfile?: PatientProfile | null;
+  /** Texto legado da anamnese (fallback) */
   anamnese?: string | null;
+  /** Dados estruturados da anamnese (prioritário quando disponível) */
+  structuredAnamnese?: StructuredAnamnese | null;
+  /** Fonte dos dados de anamnese usados */
+  anamneseSource?: AnamneseSource;
   doctorNotes?: string | null;
   labs: ClinicalContextLabs;
   bodyComposition?: BodyCompositionContext | null;
