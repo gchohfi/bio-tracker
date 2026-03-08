@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.analyze-lab-results]
 verify_jwt = false
+
+[functions.parse-imaging-report]
+verify_jwt = false

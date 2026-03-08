@@ -12,13 +12,17 @@ import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  Plus, ArrowLeft, Save, CalendarIcon, FileImage, Trash2, Clock,
+  Plus, ArrowLeft, Save, CalendarIcon, FileImage, Trash2, Clock, Upload, Loader2, FileText,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import * as pdfjsLib from "pdfjs-dist";
+
+// PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 // ── Types ──
 
@@ -39,6 +43,8 @@ interface ImagingReport {
   source_type: string;
   specialty_id: string | null;
   notes: string | null;
+  raw_text: string | null;
+  original_file_name: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -88,6 +94,20 @@ interface ImagingReportsTabProps {
   patientId: string;
 }
 
+// ── PDF text extraction (client-side) ──
+async function extractTextFromPdf(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+  const pages: string[] = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const text = content.items.map((item: any) => item.str).join(" ");
+    pages.push(text);
+  }
+  return pages.join("\n\n");
+}
+
 export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -98,6 +118,13 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
   const [form, setForm] = useState<FormFields>({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
   const [newDate, setNewDate] = useState<Date>(new Date());
+
+  // PDF import state
+  const [importing, setImporting] = useState(false);
+  const [pdfRawText, setPdfRawText] = useState<string | null>(null);
+  const [pdfFileName, setPdfFileName] = useState<string | null>(null);
+  const [pdfParserVersion, setPdfParserVersion] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadReports = useCallback(async () => {
     if (!user?.id) return;
@@ -117,12 +144,18 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
 
   const handleCreate = () => {
     setActiveReport(null);
+    setPdfRawText(null);
+    setPdfFileName(null);
+    setPdfParserVersion(null);
     setForm({ ...EMPTY_FORM, report_date: format(newDate, "yyyy-MM-dd") });
     setView("form");
   };
 
   const openReport = (r: ImagingReport) => {
     setActiveReport(r);
+    setPdfRawText(r.raw_text ?? null);
+    setPdfFileName(r.original_file_name ?? null);
+    setPdfParserVersion(null);
     setForm({
       report_date: r.report_date,
       exam_type: r.exam_type,
@@ -138,6 +171,79 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
     setView("form");
   };
 
+  // ── PDF Import flow ──
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      toast({ title: "Apenas arquivos PDF são aceitos", variant: "destructive" });
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande (máx 20MB)", variant: "destructive" });
+      return;
+    }
+
+    setImporting(true);
+    const fileName = file.name;
+
+    try {
+      // 1. Extract text client-side
+      const rawText = await extractTextFromPdf(file);
+      if (rawText.trim().length < 20) {
+        toast({ title: "PDF sem texto legível", description: "O PDF pode conter apenas imagens. Cadastre manualmente.", variant: "destructive" });
+        setImporting(false);
+        return;
+      }
+
+      // 2. Send to AI for structuring
+      const { data, error } = await supabase.functions.invoke("parse-imaging-report", {
+        body: { text: rawText, file_name: fileName },
+      });
+
+      if (error) throw new Error(error.message ?? "Erro na extração IA");
+      if (data?.error) throw new Error(data.error);
+
+      const fields = data?.fields ?? {};
+
+      // 3. Pre-fill form
+      setForm({
+        report_date: fields.report_date || format(newDate, "yyyy-MM-dd"),
+        exam_type: fields.exam_type || "",
+        exam_region: fields.exam_region || null,
+        findings: fields.findings || null,
+        conclusion: fields.conclusion || null,
+        recommendations: fields.recommendations || null,
+        incidental_findings: fields.incidental_findings || null,
+        classifications: fields.classifications || null,
+        source_lab: fields.source_lab || null,
+        notes: null,
+      });
+
+      setPdfRawText(rawText);
+      setPdfFileName(fileName);
+      setPdfParserVersion(data?.parser_version ?? null);
+      setActiveReport(null);
+      setView("form");
+
+      toast({
+        title: "Laudo extraído com sucesso",
+        description: `${data?.field_count ?? 0} campos identificados. Confira antes de salvar.`,
+      });
+    } catch (err: any) {
+      console.error("PDF import error:", err);
+      toast({
+        title: "Erro ao importar PDF",
+        description: err.message ?? "Tente novamente ou cadastre manualmente",
+        variant: "destructive",
+      });
+    } finally {
+      setImporting(false);
+      // Reset file input so same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const handleSave = async () => {
     if (!user?.id) return;
     if (!form.exam_type) {
@@ -145,7 +251,10 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
       return;
     }
     setSaving(true);
-    const payload = {
+
+    const sourceType = pdfRawText && !activeReport ? "pdf_parsed_ai" : (activeReport?.source_type ?? "manual");
+
+    const payload: Record<string, unknown> = {
       patient_id: patientId,
       practitioner_id: user.id,
       report_date: form.report_date,
@@ -158,7 +267,14 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
       classifications: form.classifications || null,
       source_lab: form.source_lab || null,
       notes: form.notes || null,
+      source_type: sourceType,
     };
+
+    // Add PDF metadata only for new PDF imports
+    if (pdfRawText && !activeReport) {
+      payload.raw_text = pdfRawText;
+      payload.original_file_name = pdfFileName;
+    }
 
     if (activeReport) {
       const { error } = await (supabase as any)
@@ -186,6 +302,8 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
       toast({ title: "Laudo excluído" });
       setView("list");
       setActiveReport(null);
+      setPdfRawText(null);
+      setPdfFileName(null);
       await loadReports();
     }
   };
@@ -209,7 +327,7 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-3 items-end">
+            <div className="flex flex-wrap gap-3 items-end">
               <div className="space-y-1.5">
                 <Label className="text-xs">Data do exame</Label>
                 <Popover>
@@ -228,6 +346,32 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
                 <Plus className="h-3.5 w-3.5 mr-1" />
                 Registrar
               </Button>
+
+              {/* PDF Upload */}
+              <div className="relative">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={handlePdfUpload}
+                  disabled={importing}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1.5"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={importing}
+                >
+                  {importing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="h-3.5 w-3.5" />
+                  )}
+                  {importing ? "Extraindo..." : "Importar PDF"}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -240,7 +384,7 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
               <FileImage className="mb-4 h-12 w-12 text-muted-foreground/50" />
               <p className="text-lg font-medium">Nenhum laudo de imagem</p>
               <p className="text-sm text-muted-foreground">
-                Registre o primeiro laudo de exame de imagem deste paciente.
+                Registre manualmente ou importe o PDF do laudo.
               </p>
             </CardContent>
           </Card>
@@ -263,6 +407,12 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {r.source_type === "pdf_parsed_ai" && (
+                        <Badge variant="outline" className="text-[10px] gap-1">
+                          <FileText className="h-2.5 w-2.5" />
+                          PDF
+                        </Badge>
+                      )}
                       {r.classifications && (
                         <Badge variant="secondary" className="text-[10px]">{r.classifications}</Badge>
                       )}
@@ -288,17 +438,39 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => { setView("list"); setActiveReport(null); }} className="gap-1.5">
+        <Button variant="ghost" size="sm" onClick={() => { setView("list"); setActiveReport(null); setPdfRawText(null); setPdfFileName(null); }} className="gap-1.5">
           <ArrowLeft className="h-4 w-4" />
           Voltar
         </Button>
         <div className="flex gap-2">
+          {pdfRawText && !activeReport && (
+            <Badge variant="outline" className="text-[10px] gap-1 self-center">
+              <FileText className="h-3 w-3" />
+              Importado de PDF
+            </Badge>
+          )}
           <Button size="sm" onClick={handleSave} disabled={saving} className="h-8 text-xs gap-1">
             <Save className="h-3.5 w-3.5" />
             {activeReport ? "Atualizar" : "Salvar"}
           </Button>
         </div>
       </div>
+
+      {/* PDF origin banner */}
+      {pdfFileName && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="p-3 flex items-center gap-2 text-xs">
+            <FileText className="h-4 w-4 text-primary shrink-0" />
+            <div>
+              <span className="font-medium">Arquivo: </span>
+              <span className="text-muted-foreground">{pdfFileName}</span>
+              {pdfParserVersion && (
+                <span className="text-muted-foreground ml-2">({pdfParserVersion})</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Metadata */}
       <Card>
@@ -378,6 +550,26 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Raw text preview (collapsible) */}
+      {pdfRawText && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              Texto original extraído do PDF
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <Textarea
+              value={pdfRawText}
+              readOnly
+              rows={6}
+              className="text-[11px] resize-y bg-muted/30 font-mono"
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Notes */}
       <Card>
