@@ -1257,7 +1257,7 @@ function buildUserPrompt(
   const bc = clinicalContext.bodyComposition;
   if (bc?.current && bodyCompSpecialties.includes(activeSpecialty)) {
     prompt += "\nCOMPOSICAO CORPORAL (dados deterministicos - bioimpedancia/InBody):\n";
-    prompt += "IMPORTANTE: Estes sao dados objetivos de composicao corporal. Use-os como contexto complementar aos exames laboratoriais. Nao altere os valores.\n";
+    prompt += "IMPORTANTE: Estes sao dados objetivos de composicao corporal obtidos por bioimpedancia. Use-os como contexto complementar aos exames laboratoriais. Nao altere os valores. Voce DEVE integrar estes dados nas seguintes secoes da sua resposta quando clinicamente relevante: executive_summary, clinical_findings, diagnostic_hypotheses, suggested_actions e follow_up.\n";
     const c = bc.current;
     prompt += "Sessao atual (" + c.session_date + "):\n";
     if (c.weight_kg !== null) prompt += "- Peso: " + c.weight_kg + " kg\n";
@@ -1273,7 +1273,37 @@ function buildUserPrompt(
     if (c.hip_cm !== null) prompt += "- Quadril: " + c.hip_cm + " cm\n";
     if (c.waist_hip_ratio !== null) prompt += "- Relacao cintura/quadril: " + c.waist_hip_ratio + "\n";
 
-    // Trends vs previous session
+    // ── Deterministic risk alerts ──
+    const alerts: string[] = [];
+    if (c.bmi !== null) {
+      if (c.bmi >= 30) alerts.push("ALERTA: IMC " + c.bmi + " — Obesidade (>=30). Correlacionar com resistencia insulinica, perfil lipidico e inflamacao.");
+      else if (c.bmi >= 25) alerts.push("ATENCAO: IMC " + c.bmi + " — Sobrepeso (25-29.9). Avaliar composicao corporal relativa e risco metabolico.");
+      else if (c.bmi < 18.5) alerts.push("ALERTA: IMC " + c.bmi + " — Baixo peso (<18.5). Avaliar desnutricao, sarcopenia e causas secundarias.");
+    }
+    if (c.visceral_fat_level !== null) {
+      if (c.visceral_fat_level >= 13) alerts.push("ALERTA: Gordura visceral nivel " + c.visceral_fat_level + " — Risco elevado (>=13). Forte correlacao com sindrome metabolica e risco cardiovascular.");
+      else if (c.visceral_fat_level >= 10) alerts.push("ATENCAO: Gordura visceral nivel " + c.visceral_fat_level + " — Moderadamente elevada (10-12). Monitorar evolucao e correlacionar com marcadores metabolicos.");
+    }
+    if (c.ecw_tbw_ratio !== null && c.ecw_tbw_ratio > 0.39) {
+      alerts.push("ATENCAO: Relacao ECW/TBW " + c.ecw_tbw_ratio + " — Acima do ideal (>0.39). Pode indicar retencao hidrica, inflamacao ou disfuncao renal.");
+    }
+    if (c.body_fat_pct !== null) {
+      // Use sex from outer scope (body.sex)
+      const highFatThreshold = patientSex === "F" ? 32 : 25;
+      const lowFatThreshold = patientSex === "F" ? 14 : 6;
+      if (c.body_fat_pct >= highFatThreshold) alerts.push("ATENCAO: Percentual de gordura " + c.body_fat_pct + "% — Acima do ideal para " + (patientSex === "F" ? "mulheres" : "homens") + " (>=" + highFatThreshold + "%). Correlacionar com perfil metabolico.");
+      if (c.body_fat_pct < lowFatThreshold) alerts.push("ATENCAO: Percentual de gordura " + c.body_fat_pct + "% — Abaixo do ideal para " + (patientSex === "F" ? "mulheres" : "homens") + " (<" + lowFatThreshold + "%). Avaliar impacto hormonal e imunologico.");
+    }
+    if (c.waist_hip_ratio !== null) {
+      const highWHR = patientSex === "F" ? 0.85 : 0.90;
+      if (c.waist_hip_ratio > highWHR) alerts.push("ATENCAO: Relacao cintura/quadril " + c.waist_hip_ratio + " — Acima do recomendado (>" + highWHR + "). Risco cardiovascular aumentado.");
+    }
+    if (alerts.length > 0) {
+      prompt += "\nAlertas de composicao corporal (deterministicos):\n";
+      for (const a of alerts) prompt += "- " + a + "\n";
+    }
+
+    // ── Trends vs previous session ──
     if (bc.previous) {
       const prev = bc.previous;
       prompt += "\nTendencia vs sessao anterior (" + prev.session_date + "):\n";
@@ -1283,6 +1313,8 @@ function buildUserPrompt(
         { label: "Massa muscular", curr: c.skeletal_muscle_kg, prev: prev.skeletal_muscle_kg, unit: "kg", upIsBad: false },
         { label: "Gordura visceral", curr: c.visceral_fat_level, prev: prev.visceral_fat_level, unit: "", upIsBad: true },
         { label: "IMC", curr: c.bmi, prev: prev.bmi, unit: "", upIsBad: true },
+        { label: "Agua corporal", curr: c.total_body_water_l, prev: prev.total_body_water_l, unit: "L", upIsBad: false },
+        { label: "TMB/BMR", curr: c.bmr_kcal, prev: prev.bmr_kcal, unit: "kcal", upIsBad: false },
       ];
       for (const cmp of comparisons) {
         if (cmp.curr !== null && cmp.prev !== null) {
@@ -1295,6 +1327,12 @@ function buildUserPrompt(
         }
       }
     }
+
+    prompt += "\nOrientacoes para uso da composicao corporal na analise:\n";
+    prompt += "- Correlacione composicao corporal com marcadores metabolicos (glicose, insulina, HOMA-IR, perfil lipidico)\n";
+    prompt += "- Se houver tendencias, mencione evolucao no executive_summary\n";
+    prompt += "- Use os alertas deterministicos como evidencia em diagnostic_hypotheses (ex: sindrome metabolica, sarcopenia)\n";
+    prompt += "- Sugira repeticao de bioimpedancia em suggested_actions/follow_up quando pertinente\n";
     prompt += "\n";
   }
 
