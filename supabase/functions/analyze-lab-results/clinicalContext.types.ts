@@ -176,6 +176,45 @@ export interface ClinicalContextLabs {
   trends?: LabTrend[];
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// CLINICAL HISTORY — contexto longitudinal de consultas anteriores
+// ══════════════════════════════════════════════════════════════════════════════
+
+/** Resumo da última consulta/evolução clínica */
+export interface PreviousEncounterSnapshot {
+  encounter_date: string;
+  chief_complaint: string | null;
+  status: string;
+  /** Notas SOAP da evolução */
+  subjective: string | null;
+  objective: string | null;
+  assessment: string | null;
+  plan: string | null;
+  medications: string | null;
+  exams_requested: string | null;
+}
+
+/** Resumo compacto de análise IA anterior */
+export interface PreviousAnalysisSummary {
+  created_at: string;
+  specialty_name: string | null;
+  summary: string | null;
+  patterns: string[];
+  suggestions: string[];
+}
+
+/** Contexto do histórico clínico longitudinal */
+export interface ClinicalHistoryContext {
+  /** Última consulta clínica (encounter + evolution notes) */
+  previousEncounter: PreviousEncounterSnapshot | null;
+  /** Resumo da última análise IA para a mesma especialidade */
+  previousAnalysis: PreviousAnalysisSummary | null;
+  /** Número total de consultas registradas */
+  totalEncounters: number;
+  /** Número total de análises IA registradas para a especialidade */
+  totalAnalyses: number;
+}
+
 export interface ClinicalContext {
   patientProfile?: PatientProfile | null;
   anamnese?: string | null;
@@ -183,6 +222,7 @@ export interface ClinicalContext {
   labs: ClinicalContextLabs;
   bodyComposition?: BodyCompositionContext | null;
   imagingReports?: ImagingReportsContext | null;
+  clinicalHistory?: ClinicalHistoryContext | null;
 }
 
 /** Flags retornados no response para indicar o que foi carregado */
@@ -192,6 +232,7 @@ export interface ContextLoaded {
   patientProfile: boolean;
   bodyComposition: boolean;
   imagingReports: boolean;
+  clinicalHistory: boolean;
   labs: {
     total: number;
     outOfRange: number;
