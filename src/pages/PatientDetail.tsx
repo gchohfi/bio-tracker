@@ -627,6 +627,9 @@ export default function PatientDetail() {
         }
       }
 
+      // ── TRACE: Rastreabilidade do salvamento ──
+      Trace.sessionSave(user?.id ?? "", patient.id, sessionId!, allResults.length, !!editingSessionId);
+
       toast({ title: editingSessionId ? "Sessão atualizada!" : "Sessão criada!" });
       setFormOpen(false);
       fetchData();
