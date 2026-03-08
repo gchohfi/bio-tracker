@@ -409,7 +409,7 @@ function RedFlagsSection({ flags, ...rp }: { flags: RedFlagItem[] } & ReviewSect
                   <SourceBadge source={flag.source_type} />
                 </div>
               </div>
-              {flag.evidence.length > 0 && (
+              {Array.isArray(flag.evidence) && flag.evidence.length > 0 && (
                 <div className="text-xs text-muted-foreground space-y-0.5">
                   {flag.evidence.map((e, i) => (
                     <p key={i}>• {e}</p>
@@ -491,7 +491,7 @@ function CollapsibleFindingGroup({ system, items, ...rp }: { system: string; ite
                   <SourceBadge source={item.source_type} />
                 </div>
               </div>
-              {item.markers.length > 0 && (
+              {Array.isArray(item.markers) && item.markers.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {item.markers.map((m, idx) => (
                     <Badge key={`${m}-${idx}`} variant="secondary" className="text-[9px] font-mono">{m}</Badge>
@@ -545,13 +545,19 @@ function HypothesesSection({ hypotheses, ...rp }: { hypotheses: DiagnosticHypoth
                   <SourceBadge source={h.source_type} />
                 </div>
               </div>
-              {h.supporting_findings.length > 0 && (
+              {Array.isArray(h.supporting_findings) && h.supporting_findings.length > 0 && (
                 <div className="text-xs text-muted-foreground">
                   <span className="font-medium">Achados de suporte: </span>
-                  {Array.isArray(h.supporting_findings) ? h.supporting_findings.join("; ") : String(h.supporting_findings ?? "")}
+                  {h.supporting_findings.join("; ")}
                 </div>
               )}
-              {h.confirmatory_exams && h.confirmatory_exams.length > 0 && (
+              {!Array.isArray(h.supporting_findings) && h.supporting_findings && (
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-medium">Achados de suporte: </span>
+                  {String(h.supporting_findings)}
+                </div>
+              )}
+              {Array.isArray(h.confirmatory_exams) && h.confirmatory_exams.length > 0 && (
                 <div className="text-xs text-muted-foreground">
                   <span className="font-medium">Exames confirmatórios: </span>
                   {h.confirmatory_exams.join("; ")}
@@ -615,7 +621,7 @@ function FollowUpSection({ followUp }: { followUp?: FollowUp }) {
         <h3 className="font-bold text-sm text-primary uppercase tracking-wide">Follow-up</h3>
       </div>
       <div className="rounded-md border bg-background p-3 space-y-2">
-        {followUp.suggested_exams.length > 0 && (
+        {Array.isArray(followUp.suggested_exams) && followUp.suggested_exams.length > 0 && (
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1">Exames sugeridos:</p>
             <ul className="space-y-0.5">
