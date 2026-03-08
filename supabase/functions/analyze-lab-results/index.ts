@@ -726,6 +726,9 @@ FORMATO DE SAÍDA (JSON estrito — TODOS os campos são obrigatórios):
 import type {
   ClinicalContext,
   ClinicalContextLabs,
+  ClinicalHistoryContext,
+  PreviousEncounterSnapshot,
+  PreviousAnalysisSummary,
   ContextLoaded,
   CanonicalLabResult,
   LabTrend,
@@ -843,6 +846,7 @@ async function fetchClinicalContext(
     labs,
     bodyComposition: null,
     imagingReports: null,
+    clinicalHistory: null,
   };
 
   const loaded: ContextLoaded = {
@@ -850,6 +854,7 @@ async function fetchClinicalContext(
     doctorNotes: false,
     bodyComposition: false,
     imagingReports: false,
+    clinicalHistory: false,
     patientProfile: !!(patientProfile && (
       (patientProfile.objectives && patientProfile.objectives.length > 0) ||
       patientProfile.activity_level || patientProfile.sport_modality ||
@@ -872,7 +877,7 @@ async function fetchClinicalContext(
   const shouldFetchBodyComp = bodyCompSpecialties.includes(specialtyId);
   const shouldFetchImaging = imagingSpecialties.includes(specialtyId);
 
-  const [anamneseResult, notesResult, bodyCompResult, imagingResult] = await Promise.all([
+  const [anamneseResult, notesResult, bodyCompResult, imagingResult, encountersResult, analysesResult] = await Promise.all([
     supabaseClient
       .from("patient_anamneses")
       .select("*")
@@ -909,6 +914,25 @@ async function fetchClinicalContext(
           .then(({ data }: { data: unknown }) => data)
           .catch((err: unknown) => { console.warn("Failed to load imaging reports:", err); return null; })
       : Promise.resolve(null),
+    // Clinical history: previous encounters
+    supabaseClient
+      .from("clinical_encounters")
+      .select("encounter_date, chief_complaint, status, clinical_evolution_notes(subjective, objective, assessment, plan, medications, exams_requested)")
+      .eq("patient_id", patientId)
+      .order("encounter_date", { ascending: false })
+      .limit(2)
+      .then(({ data }: { data: unknown }) => data)
+      .catch((err: unknown) => { console.warn("Failed to load encounters:", err); return null; }),
+    // Clinical history: previous analyses for same specialty
+    supabaseClient
+      .from("patient_analyses")
+      .select("created_at, specialty_name, summary, patterns, suggestions")
+      .eq("patient_id", patientId)
+      .eq("specialty_id", specialtyId)
+      .order("created_at", { ascending: false })
+      .limit(2)
+      .then(({ data }: { data: unknown }) => data)
+      .catch((err: unknown) => { console.warn("Failed to load analyses:", err); return null; }),
   ]);
 
   // Parse anamnese
@@ -1002,6 +1026,62 @@ async function fetchClinicalContext(
     console.log("Imaging reports loaded: " + allReports.length + " report(s) for patient " + patientId);
   }
 
+  // Parse clinical history (encounters + previous analyses)
+  try {
+    const encounters = (encountersResult && Array.isArray(encountersResult)) ? encountersResult : [];
+    const analyses = (analysesResult && Array.isArray(analysesResult)) ? analysesResult : [];
+
+    let previousEncounter: PreviousEncounterSnapshot | null = null;
+    // Use the most recent finalized encounter as "previous" context
+    if (encounters.length > 0) {
+      const enc = encounters[0] as Record<string, unknown>;
+      const notes = Array.isArray(enc.clinical_evolution_notes)
+        ? (enc.clinical_evolution_notes[0] as Record<string, unknown> | undefined)
+        : null;
+      previousEncounter = {
+        encounter_date: enc.encounter_date as string,
+        chief_complaint: (enc.chief_complaint as string | null) ?? null,
+        status: (enc.status as string) ?? "draft",
+        subjective: (notes?.subjective as string | null) ?? null,
+        objective: (notes?.objective as string | null) ?? null,
+        assessment: (notes?.assessment as string | null) ?? null,
+        plan: (notes?.plan as string | null) ?? null,
+        medications: (notes?.medications as string | null) ?? null,
+        exams_requested: (notes?.exams_requested as string | null) ?? null,
+      };
+    }
+
+    let previousAnalysis: PreviousAnalysisSummary | null = null;
+    // Use the second analysis (first is likely the current one being generated)
+    const prevAnalysisRow = analyses.length > 1
+      ? (analyses[1] as Record<string, unknown>)
+      : analyses.length === 1
+        ? (analyses[0] as Record<string, unknown>)
+        : null;
+    if (prevAnalysisRow) {
+      previousAnalysis = {
+        created_at: prevAnalysisRow.created_at as string,
+        specialty_name: (prevAnalysisRow.specialty_name as string | null) ?? null,
+        summary: (prevAnalysisRow.summary as string | null) ?? null,
+        patterns: Array.isArray(prevAnalysisRow.patterns) ? (prevAnalysisRow.patterns as string[]) : [],
+        suggestions: Array.isArray(prevAnalysisRow.suggestions) ? (prevAnalysisRow.suggestions as string[]) : [],
+      };
+    }
+
+    if (previousEncounter || previousAnalysis) {
+      result.clinicalHistory = {
+        previousEncounter,
+        previousAnalysis,
+        totalEncounters: encounters.length,
+        totalAnalyses: analyses.length,
+      };
+      loaded.clinicalHistory = true;
+      console.log("Clinical history loaded: encounter=" + !!previousEncounter + " analysis=" + !!previousAnalysis + " for patient " + patientId);
+    }
+  } catch (histErr) {
+    console.warn("Failed to parse clinical history (non-fatal):", histErr);
+  }
+
   return { context: result, loaded };
 }
 
@@ -1077,6 +1157,40 @@ function buildUserPrompt(
   }
   if (clinicalContext.doctorNotes) {
     prompt += "\nNOTAS CLINICAS DO MEDICO (" + activeSpecialty.replace(/_/g, " ") + "):\n" + clinicalContext.doctorNotes + "\n";
+  }
+
+  // ── Clinical history (previous encounter + analysis) ──
+  const ch = clinicalContext.clinicalHistory;
+  if (ch) {
+    prompt += "\nHISTORICO CLINICO ANTERIOR (contexto longitudinal - dados determinísticos de consultas anteriores):\n";
+    prompt += "IMPORTANTE: Use este historico para identificar evolucao, resposta a tratamentos anteriores, e o que mudou desde a ultima consulta. Nao altere os dados.\n";
+
+    if (ch.previousEncounter) {
+      const enc = ch.previousEncounter;
+      prompt += "\nUltima consulta (" + enc.encounter_date + ")";
+      if (enc.status === "finalized") prompt += " [finalizada]";
+      prompt += ":\n";
+      if (enc.chief_complaint) prompt += "  Queixa principal: " + enc.chief_complaint + "\n";
+      if (enc.subjective) prompt += "  Subjetivo: " + enc.subjective.slice(0, 500) + "\n";
+      if (enc.objective) prompt += "  Objetivo: " + enc.objective.slice(0, 500) + "\n";
+      if (enc.assessment) prompt += "  Avaliacao: " + enc.assessment.slice(0, 500) + "\n";
+      if (enc.plan) prompt += "  Plano/Conduta: " + enc.plan.slice(0, 500) + "\n";
+      if (enc.medications) prompt += "  Medicamentos prescritos: " + enc.medications.slice(0, 300) + "\n";
+      if (enc.exams_requested) prompt += "  Exames solicitados: " + enc.exams_requested.slice(0, 300) + "\n";
+    }
+
+    if (ch.previousAnalysis) {
+      const pa = ch.previousAnalysis;
+      prompt += "\nAnalise IA anterior (" + pa.created_at.slice(0, 10) + "):\n";
+      if (pa.summary) prompt += "  Resumo: " + pa.summary.slice(0, 600) + "\n";
+      if (pa.patterns.length > 0) prompt += "  Padroes identificados: " + pa.patterns.slice(0, 5).join("; ") + "\n";
+      if (pa.suggestions.length > 0) prompt += "  Sugestoes anteriores: " + pa.suggestions.slice(0, 5).join("; ") + "\n";
+    }
+
+    if (ch.totalEncounters > 1) {
+      prompt += "\n(Total de consultas registradas: " + ch.totalEncounters + " | Analises IA para esta especialidade: " + ch.totalAnalyses + ")\n";
+    }
+    prompt += "\n";
   }
 
   // ── Body composition (nutrologia / endocrinologia only) ──
