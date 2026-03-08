@@ -695,6 +695,8 @@ export default function ClinicalReportV2({ data, patientName, analysisId, patien
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentHashRef = useRef<string>(computeAnalysisV2HashSync(data));
 
+  const [resettingStale, setResettingStale] = useState(false);
+
   // Keep hash in sync if data changes
   useEffect(() => {
     currentHashRef.current = computeAnalysisV2HashSync(data);
@@ -717,15 +719,68 @@ export default function ClinicalReportV2({ data, patientName, analysisId, patien
       const currentHash = currentHashRef.current;
 
       if (savedHash && savedHash !== currentHash) {
-        // Hash mismatch — analysis was re-generated, review is stale
         console.warn(`[ReviewState] Hash mismatch: saved=${savedHash} current=${currentHash}. Review marked outdated.`);
         setReviewOutdated(true);
-        return; // Don't rehydrate stale reviews
+        return;
       }
 
       setAll(row.review_state_json as ReviewState);
     })();
   }, [analysisId, user?.id]);
+
+  // ── Explicit stale reset ──
+  const handleStaleReset = useCallback(async () => {
+    if (!analysisId || !user?.id || !patientId) return;
+    setResettingStale(true);
+    try {
+      // 1. Read the current (stale) review to archive it
+      const { data: staleRow } = await (supabase as any)
+        .from("analysis_reviews")
+        .select("review_state_json, analysis_v2_hash, schema_version")
+        .eq("analysis_id", analysisId)
+        .eq("practitioner_id", user.id)
+        .maybeSingle();
+
+      // 2. If there's a stale review, archive it as a snapshot with reason "stale_reset"
+      if (staleRow?.review_state_json && Object.keys(staleRow.review_state_json).length > 0) {
+        await (supabase as any)
+          .from("review_snapshots")
+          .insert({
+            analysis_id: analysisId,
+            patient_id: patientId,
+            practitioner_id: user.id,
+            analysis_v2_hash: staleRow.analysis_v2_hash,
+            schema_version: staleRow.schema_version ?? REVIEW_SCHEMA_VERSION,
+            review_state_json: staleRow.review_state_json,
+            snapshot_reason: "stale_reset",
+          });
+      }
+
+      // 3. Overwrite active review with empty state + current hash
+      const newHash = currentHashRef.current;
+      await (supabase as any)
+        .from("analysis_reviews")
+        .upsert({
+          analysis_id: analysisId,
+          practitioner_id: user.id,
+          patient_id: patientId,
+          specialty_id: specialtyId || "medicina_funcional",
+          review_state_json: {},
+          analysis_v2_hash: newHash,
+          schema_version: REVIEW_SCHEMA_VERSION,
+        }, { onConflict: "analysis_id,practitioner_id" });
+
+      // 4. Clear local state and mark as current
+      setAll({});
+      setReviewOutdated(false);
+      setReviewMode(true);
+      console.info("[ReviewState] Stale review archived and reset. New review started.");
+    } catch (err) {
+      console.error("[ReviewState] Stale reset failed:", err);
+    } finally {
+      setResettingStale(false);
+    }
+  }, [analysisId, user?.id, patientId, specialtyId, setAll]);
 
   // ── Debounced save (includes hash + schema version) ──
   const persistReview = useCallback((state: ReviewState) => {
