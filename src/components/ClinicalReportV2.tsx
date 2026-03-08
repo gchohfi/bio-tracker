@@ -409,7 +409,7 @@ function RedFlagsSection({ flags, ...rp }: { flags: RedFlagItem[] } & ReviewSect
                   <SourceBadge source={flag.source_type} />
                 </div>
               </div>
-              {flag.evidence.length > 0 && (
+              {Array.isArray(flag.evidence) && flag.evidence.length > 0 && (
                 <div className="text-xs text-muted-foreground space-y-0.5">
                   {flag.evidence.map((e, i) => (
                     <p key={i}>• {e}</p>
