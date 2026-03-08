@@ -385,11 +385,24 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
                   <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800">
                     <CardContent className="p-3 flex items-start gap-2">
                       <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                      <div className="text-sm">
+                      <div className="text-sm flex-1">
                         <p className="font-medium text-amber-800 dark:text-amber-200">Anamnese em texto livre detectada</p>
                         <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                          O texto antigo foi movido para "Observações". Preencha os campos estruturados para melhorar a análise da IA.
+                          Use a IA para converter o texto em campos estruturados, ou preencha manualmente.
                         </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2 h-7 text-xs gap-1.5"
+                          onClick={() => handleConvert(specialty.id)}
+                          disabled={converting}
+                        >
+                          {converting ? (
+                            <><Loader2 className="h-3 w-3 animate-spin" /> Convertendo...</>
+                          ) : (
+                            <><Wand2 className="h-3 w-3" /> Converter com IA</>
+                          )}
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
