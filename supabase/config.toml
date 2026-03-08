@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.parse-imaging-report]
 verify_jwt = false
+
+[functions.parse-inbody-ocr]
+verify_jwt = false

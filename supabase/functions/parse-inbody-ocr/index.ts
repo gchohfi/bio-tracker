@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-const LOVABLE_AI_URL = "https://api.lovable.dev/v1/chat/completions";
+const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 const SYSTEM_PROMPT = `You are a medical data extraction assistant. You receive an image of an InBody body composition report. Extract the following fields as JSON. Use null for any field you cannot confidently read. Do NOT guess or hallucinate values.
 
