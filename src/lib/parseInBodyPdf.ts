@@ -2,10 +2,13 @@
  * parseInBodyPdf.ts
  *
  * Client-side InBody PDF parser using pdfjs-dist.
- * Extracts text → applies regex patterns → returns structured fields.
+ * Strategy:
+ *   1. Try text extraction via pdfjs (for vector/digital PDFs)
+ *   2. If insufficient text, render page to image → send to OCR edge function (Gemini vision)
  */
 
 import * as pdfjsLib from "pdfjs-dist";
+import { supabase } from "@/integrations/supabase/client";
 
 // Worker config — use CDN build matching installed version
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
@@ -30,17 +33,33 @@ export interface InBodyParsedData {
   notes: string | null;
 }
 
+const EMPTY_RESULT: InBodyParsedData = {
+  session_date: null,
+  weight_kg: null,
+  bmi: null,
+  skeletal_muscle_kg: null,
+  body_fat_kg: null,
+  body_fat_pct: null,
+  visceral_fat_level: null,
+  total_body_water_l: null,
+  ecw_tbw_ratio: null,
+  bmr_kcal: null,
+  waist_cm: null,
+  hip_cm: null,
+  waist_hip_ratio: null,
+  device_model: null,
+  notes: null,
+};
+
 // ── Helpers ──
 
 /** Parse Brazilian/international number: "72,5" → 72.5, "1.234" → 1234 */
 function parseNum(s: string): number | null {
   if (!s) return null;
   let c = s.trim().replace(/\s/g, "");
-  // BR thousands: 1.234,5
   if (c.includes(",")) {
     c = c.replace(/\./g, "").replace(",", ".");
   } else {
-    // pure thousands separator: 1.234 (no decimal)
     if (/^\d{1,3}(\.\d{3})+$/.test(c)) {
       c = c.replace(/\./g, "");
     }
@@ -51,7 +70,6 @@ function parseNum(s: string): number | null {
 
 /** Parse date from DD/MM/YYYY or YYYY-MM-DD patterns */
 function parseDate(text: string): string | null {
-  // DD/MM/YYYY
   const brMatch = text.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
   if (brMatch) {
     const [, dd, mm, yyyy] = brMatch;
@@ -60,15 +78,12 @@ function parseDate(text: string): string | null {
       return `${yyyy}-${mm}-${dd}`;
     }
   }
-  // YYYY-MM-DD
   const isoMatch = text.match(/(\d{4})-(\d{2})-(\d{2})/);
   if (isoMatch) return isoMatch[0];
   return null;
 }
 
-// ── Field extraction patterns ──
-// Each pattern: [regex, capture group index for value]
-// Patterns support both PT-BR and EN InBody reports
+// ── Field extraction patterns (for vector PDFs) ──
 
 interface FieldPattern {
   key: keyof InBodyParsedData;
@@ -168,41 +183,13 @@ const DATE_PATTERNS = [
   /(?:data|date)\s*[:\s]\s*(\d{2}[\/\-]\d{2}[\/\-]\d{4})/i,
 ];
 
-// ── Main parse function ──
+// Minimum character count to consider text extraction successful
+const MIN_TEXT_LENGTH = 80;
 
-export async function parseInBodyPdf(file: File): Promise<InBodyParsedData> {
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+// ── Text-based extraction (for vector PDFs) ──
 
-  // Extract all text from all pages
-  const textParts: string[] = [];
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const pageText = content.items
-      .map((item: any) => item.str)
-      .join(" ");
-    textParts.push(pageText);
-  }
-  const fullText = textParts.join("\n");
-
-  const result: InBodyParsedData = {
-    session_date: null,
-    weight_kg: null,
-    bmi: null,
-    skeletal_muscle_kg: null,
-    body_fat_kg: null,
-    body_fat_pct: null,
-    visceral_fat_level: null,
-    total_body_water_l: null,
-    ecw_tbw_ratio: null,
-    bmr_kcal: null,
-    waist_cm: null,
-    hip_cm: null,
-    waist_hip_ratio: null,
-    device_model: null,
-    notes: null,
-  };
+function extractFromText(fullText: string): InBodyParsedData {
+  const result: InBodyParsedData = { ...EMPTY_RESULT };
 
   // Extract date
   for (const pat of DATE_PATTERNS) {
@@ -212,7 +199,6 @@ export async function parseInBodyPdf(file: File): Promise<InBodyParsedData> {
       if (d) { result.session_date = d; break; }
     }
   }
-  // Fallback: any date in the text
   if (!result.session_date) {
     const anyDate = fullText.match(/(\d{2}[\/\-]\d{2}[\/\-]\d{4})/);
     if (anyDate) {
@@ -235,13 +221,8 @@ export async function parseInBodyPdf(file: File): Promise<InBodyParsedData> {
     }
   }
 
-  // Sanity guards — leave blank if implausible
-  if (result.weight_kg !== null && (result.weight_kg < 20 || result.weight_kg > 300)) result.weight_kg = null;
-  if (result.bmi !== null && (result.bmi < 10 || result.bmi > 70)) result.bmi = null;
-  if (result.body_fat_pct !== null && (result.body_fat_pct < 1 || result.body_fat_pct > 70)) result.body_fat_pct = null;
-  if (result.visceral_fat_level !== null && (result.visceral_fat_level < 1 || result.visceral_fat_level > 30)) result.visceral_fat_level = null;
-  if (result.ecw_tbw_ratio !== null && (result.ecw_tbw_ratio < 0.2 || result.ecw_tbw_ratio > 0.6)) result.ecw_tbw_ratio = null;
-  if (result.bmr_kcal !== null && (result.bmr_kcal < 500 || result.bmr_kcal > 5000)) result.bmr_kcal = null;
+  // Sanity guards
+  applySanityGuards(result);
 
   // Extract device model
   for (const pat of DEVICE_PATTERNS) {
@@ -253,4 +234,83 @@ export async function parseInBodyPdf(file: File): Promise<InBodyParsedData> {
   }
 
   return result;
+}
+
+function applySanityGuards(result: InBodyParsedData) {
+  if (result.weight_kg !== null && (result.weight_kg < 20 || result.weight_kg > 300)) result.weight_kg = null;
+  if (result.bmi !== null && (result.bmi < 10 || result.bmi > 70)) result.bmi = null;
+  if (result.body_fat_pct !== null && (result.body_fat_pct < 1 || result.body_fat_pct > 70)) result.body_fat_pct = null;
+  if (result.visceral_fat_level !== null && (result.visceral_fat_level < 1 || result.visceral_fat_level > 30)) result.visceral_fat_level = null;
+  if (result.ecw_tbw_ratio !== null && (result.ecw_tbw_ratio < 0.2 || result.ecw_tbw_ratio > 0.6)) result.ecw_tbw_ratio = null;
+  if (result.bmr_kcal !== null && (result.bmr_kcal < 500 || result.bmr_kcal > 5000)) result.bmr_kcal = null;
+}
+
+// ── OCR fallback: render PDF page to image → send to edge function ──
+
+async function renderPageToBase64(pdf: pdfjsLib.PDFDocumentProxy, pageNum: number): Promise<string> {
+  const page = await pdf.getPage(pageNum);
+  const scale = 2; // Higher resolution for better OCR
+  const viewport = page.getViewport({ scale });
+
+  const canvas = document.createElement("canvas");
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  const ctx = canvas.getContext("2d")!;
+
+  await page.render({ canvasContext: ctx, viewport }).promise;
+
+  // Convert to base64 PNG
+  const dataUrl = canvas.toDataURL("image/png");
+  return dataUrl.replace(/^data:image\/png;base64,/, "");
+}
+
+async function extractViaOcr(pdf: pdfjsLib.PDFDocumentProxy): Promise<InBodyParsedData> {
+  const imageBase64 = await renderPageToBase64(pdf, 1);
+
+  const { data, error } = await supabase.functions.invoke("parse-inbody-ocr", {
+    body: { imageBase64, mimeType: "image/png" },
+  });
+
+  if (error) {
+    console.warn("OCR fallback error:", error);
+    throw new Error("Não foi possível extrair dados via OCR. Preencha manualmente.");
+  }
+
+  // Merge with empty result to ensure all keys exist
+  const result: InBodyParsedData = { ...EMPTY_RESULT, ...data };
+  applySanityGuards(result);
+  return result;
+}
+
+// ── Main parse function ──
+
+export async function parseInBodyPdf(file: File): Promise<InBodyParsedData> {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+  // Step 1: Try text extraction
+  const textParts: string[] = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items
+      .map((item: any) => item.str)
+      .join(" ");
+    textParts.push(pageText);
+  }
+  const fullText = textParts.join("\n");
+
+  // Step 2: If sufficient text, use regex extraction
+  if (fullText.replace(/\s/g, "").length >= MIN_TEXT_LENGTH) {
+    const result = extractFromText(fullText);
+    const filledFields = Object.values(result).filter((v) => v !== null).length;
+    // Only use text extraction if it found at least 3 fields
+    if (filledFields >= 3) {
+      return result;
+    }
+  }
+
+  // Step 3: Fallback to OCR via AI vision
+  console.log("InBody parser: insufficient text extracted, using OCR fallback...");
+  return extractViaOcr(pdf);
 }
