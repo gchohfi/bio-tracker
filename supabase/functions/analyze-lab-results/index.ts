@@ -843,6 +843,7 @@ async function fetchClinicalContext(
     labs,
     bodyComposition: null,
     imagingReports: null,
+    clinicalHistory: null,
   };
 
   const loaded: ContextLoaded = {
@@ -850,6 +851,7 @@ async function fetchClinicalContext(
     doctorNotes: false,
     bodyComposition: false,
     imagingReports: false,
+    clinicalHistory: false,
     patientProfile: !!(patientProfile && (
       (patientProfile.objectives && patientProfile.objectives.length > 0) ||
       patientProfile.activity_level || patientProfile.sport_modality ||
