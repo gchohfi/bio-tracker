@@ -1597,9 +1597,12 @@ export default function PatientDetail() {
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <FlaskConical className="mb-4 h-12 w-12 text-muted-foreground/50" />
-                  <p className="text-lg font-medium">Nenhuma sessão registrada</p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Adicione a primeira sessão de exames para este paciente.
+                  <p className="text-lg font-medium">Nenhuma sessão de exames</p>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Importe um PDF de laudo laboratorial ou preencha manualmente.
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    A análise IA e os relatórios evolutivos dependem dos exames cadastrados.
                   </p>
                   <Button size="sm" onClick={openNewSession}>
                     <Plus className="mr-1.5 h-4 w-4" />
@@ -1612,7 +1615,7 @@ export default function PatientDetail() {
                 {sessions.map((session) => (
                   <Card
                     key={session.id}
-                    className="cursor-pointer transition-colors hover:bg-accent/50"
+                    className="group cursor-pointer transition-colors hover:bg-accent/50"
                     onClick={() => openEditSession(session)}
                   >
                     <CardContent className="flex items-center justify-between p-4">
@@ -1634,10 +1637,10 @@ export default function PatientDetail() {
                           variant="ghost"
                           size="icon"
                           onClick={(e) => { e.stopPropagation(); setPendingDeleteSessionId(session.id); }}
-                          title="Excluir"
-                          className="text-destructive hover:text-destructive"
+                          title="Excluir sessão"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       </div>
@@ -1710,9 +1713,14 @@ export default function PatientDetail() {
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <Brain className="mb-4 h-12 w-12 text-muted-foreground/50" />
-                  <p className="text-lg font-medium">Nenhuma análise gerada ainda</p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Gere a primeira análise clínica com inteligência artificial.
+                  <p className="text-lg font-medium">Nenhuma análise gerada</p>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    A IA analisa os exames, anamnese e histórico do paciente.
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    {sessions.length === 0
+                      ? "Cadastre uma sessão de exames primeiro."
+                      : "Selecione uma especialidade e clique em 'Análise IA' no topo."}
                   </p>
                   {sessions.length > 0 && (
                     <Button
