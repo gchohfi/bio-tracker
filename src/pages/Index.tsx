@@ -31,6 +31,8 @@ type LabSession = Tables<"lab_sessions">;
 
 // Markers the doctor routinely requests (panel: "Padrão")
 const STANDARD_MARKERS = MARKERS.filter((m) => m.panel === "Padrão");
+// Pre-built lookup map for O(1) marker lookups in hot loops
+const MARKER_MAP = new Map(MARKERS.map(m => [m.id, m]));
 
 interface RecentSession extends LabSession {
   patient_name: string;
