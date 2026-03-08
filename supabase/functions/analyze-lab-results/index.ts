@@ -1125,7 +1125,38 @@ function buildUserPrompt(
     prompt += "\n";
   }
 
-  // ── Lab results: out of range ──
+  // ── Imaging reports (endocrinologia / nutrologia only) ──
+  const imagingSpecialties = ["nutrologia", "endocrinologia"];
+  const ir = clinicalContext.imagingReports;
+  if (ir?.current && imagingSpecialties.includes(activeSpecialty)) {
+    prompt += "\nLAUDOS DE EXAMES DE IMAGEM (dados deterministicos - transcritos de laudos oficiais):\n";
+    prompt += "IMPORTANTE: Estes sao dados textuais extraidos de laudos de imagem. A IA interpreta mas NAO altera o conteudo. Camada complementar a exames laboratoriais e composicao corporal.\n";
+
+    const formatReport = (rpt: typeof ir.current, label: string): string => {
+      if (!rpt) return "";
+      let block = label + " (" + rpt.report_date + ") - " + rpt.exam_type.replace(/_/g, " ");
+      if (rpt.exam_region) block += " [" + rpt.exam_region + "]";
+      block += ":\n";
+      if (rpt.findings) block += "  Achados: " + rpt.findings + "\n";
+      if (rpt.conclusion) block += "  Conclusao: " + rpt.conclusion + "\n";
+      if (rpt.recommendations) block += "  Recomendacoes: " + rpt.recommendations + "\n";
+      if (rpt.incidental_findings) block += "  Achados incidentais: " + rpt.incidental_findings + "\n";
+      if (rpt.classifications) block += "  Classificacoes: " + rpt.classifications + "\n";
+      return block;
+    };
+
+    prompt += formatReport(ir.current, "Laudo mais recente");
+
+    if (ir.history.length > 0) {
+      prompt += "\nHistorico de laudos anteriores (" + ir.history.length + "):\n";
+      for (const prev of ir.history) {
+        prompt += formatReport(prev, "Laudo");
+      }
+    }
+    prompt += "\n";
+  }
+
+
   prompt += "\nMARCADORES FORA DA FAIXA LABORATORIAL (" + labs.outOfRange.length + "):\n";
   for (const r of labs.outOfRange) {
     prompt += formatLabLine(r, useFunctionalRefs, true) + "\n";
