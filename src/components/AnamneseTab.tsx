@@ -15,7 +15,9 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Save, Loader2, CheckCircle2, Heart, Leaf, Activity, Microscope,
   ClipboardList, Plus, X, AlertTriangle, FileText, Wand2, Eye, Check, XCircle,
+  Upload,
 } from "lucide-react";
+import { AnamneseImportDialog, type ImportResult } from "./AnamneseImportDialog";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Patient = Tables<"patients">;
