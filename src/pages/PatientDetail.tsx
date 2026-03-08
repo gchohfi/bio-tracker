@@ -85,6 +85,9 @@ type Patient = Tables<"patients">;
 type LabSession = Tables<"lab_sessions">;
 type LabResult = Tables<"lab_results">;
 
+// Pre-built lookup map for O(1) marker lookups in hot loops
+const MARKER_MAP = new Map(MARKERS.map(m => [m.id, m]));
+
 const TAB_LABELS: Record<string, string> = {
   clinical_evolution: "Prontuário",
   sessions: "Exames",
@@ -392,7 +395,7 @@ export default function PatientDetail() {
       supabase.from("patients").select("*").eq("id", id!).single(),
       supabase.from("lab_sessions").select("*").eq("patient_id", id!).order("session_date", { ascending: false }),
       (supabase as any).from("analysis_prompts").select("specialty_id, specialty_name, specialty_icon, has_protocols").eq("is_active", true).order("specialty_name"),
-      (supabase as any).from("patient_analyses").select("*").eq("patient_id", id!).order("created_at", { ascending: false }),
+      (supabase as any).from("patient_analyses").select("id, patient_id, specialty_id, specialty_name, mode, summary, full_text, technical_analysis, patient_plan, patterns, trends, suggestions, prescription_table, protocol_recommendations, analysis_v2_data, encounter_id, model_used, created_at, updated_at").eq("patient_id", id!).order("created_at", { ascending: false }),
       user?.id ? (supabase as any).from("clinical_encounters").select("id, encounter_date, chief_complaint").eq("patient_id", id!).eq("practitioner_id", user.id).order("encounter_date", { ascending: false }) : Promise.resolve({ data: [] }),
     ]);
 
@@ -467,7 +470,7 @@ export default function PatientDetail() {
 
     const vals: Record<string, string> = {};
     data?.forEach((r) => {
-      const marker = MARKERS.find(m => m.id === r.marker_id);
+      const marker = MARKER_MAP.get(r.marker_id);
       if (marker?.qualitative) {
         vals[r.marker_id] = r.text_value || "";
       } else if (r.text_value && /^[<>≤≥]=?\s*\d/.test(r.text_value.trim())) {
@@ -523,7 +526,7 @@ export default function PatientDetail() {
 
       Object.entries(markerValues).forEach(([markerId, v]) => {
         if (v === "") return;
-        const marker = MARKERS.find(m => m.id === markerId);
+        const marker = MARKER_MAP.get(markerId);
         const labRef = labRefRanges[markerId];
         const labRefFields = labRef ? {
           lab_ref_text: labRef.text,
@@ -678,7 +681,7 @@ export default function PatientDetail() {
   // ── Helper: build enriched results for AI ──────────────────────────────────────────────
   const buildEnrichedResults = (results: any[]) =>
     results.map((r) => {
-      const marker = MARKERS.find((m) => m.id === r.marker_id);
+      const marker = MARKER_MAP.get(r.marker_id);
       const session = sessions.find((s) => s.id === r.session_id);
       const status = marker ? getMarkerStatus(r.value ?? 0, marker, sex, r.text_value ?? undefined) : "normal";
       // Referências funcionais apenas para Nutrologia; demais usam ref. do laboratório
