@@ -2021,6 +2021,11 @@ export default function PatientDetail() {
               />
             )}
           </TabsContent>
+          <TabsContent value="imaging" className="mt-4">
+            {patient && (
+              <ImagingReportsTab patientId={patient.id} />
+            )}
+          </TabsContent>
           <TabsContent value="body_composition" className="mt-4">
             {patient && (
               <BodyCompositionTab patientId={patient.id} />
