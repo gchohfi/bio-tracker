@@ -526,7 +526,7 @@ export default function PatientDetail() {
 
       Object.entries(markerValues).forEach(([markerId, v]) => {
         if (v === "") return;
-        const marker = MARKERS.find(m => m.id === markerId);
+        const marker = MARKER_MAP.get(markerId);
         const labRef = labRefRanges[markerId];
         const labRefFields = labRef ? {
           lab_ref_text: labRef.text,
