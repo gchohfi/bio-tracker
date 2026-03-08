@@ -381,12 +381,45 @@ export default function PatientDetail() {
 
   useEffect(() => {
     if (!id) return;
-    fetchData();
-    loadSpecialties();
-    loadSavedAnalyses();
-    loadEncountersForFilter();
+    // Batch all initial loads into a single Promise.all for faster mount
+    fetchAllInitialData();
   }, [id]);
 
+  const fetchAllInitialData = async () => {
+    setLoading(true);
+    const [patientRes, sessionsRes, specialtiesRes, analysesRes, encountersRes] = await Promise.all([
+      supabase.from("patients").select("*").eq("id", id!).single(),
+      supabase.from("lab_sessions").select("*").eq("patient_id", id!).order("session_date", { ascending: false }),
+      (supabase as any).from("analysis_prompts").select("specialty_id, specialty_name, specialty_icon, has_protocols").eq("is_active", true).order("specialty_name"),
+      (supabase as any).from("patient_analyses").select("*").eq("patient_id", id!).order("created_at", { ascending: false }),
+      user?.id ? (supabase as any).from("clinical_encounters").select("id, encounter_date, chief_complaint").eq("patient_id", id!).eq("practitioner_id", user.id).order("encounter_date", { ascending: false }) : Promise.resolve({ data: [] }),
+    ]);
+
+    if (patientRes.error) {
+      toast({ title: "Erro", description: patientRes.error.message, variant: "destructive" });
+      navigate("/");
+      return;
+    }
+    setPatient(patientRes.data);
+    setSessions(sessionsRes.data || []);
+
+    if (specialtiesRes.data?.length > 0) setAvailableSpecialties(specialtiesRes.data);
+
+    if (analysesRes.data) {
+      setSavedAnalyses(analysesRes.data);
+      if (analysesRes.data.length > 0) setSelectedAnalysis(analysesRes.data[0]);
+      const v2Entries: Record<string, AnalysisV2Data> = {};
+      for (const a of analysesRes.data) {
+        if (a.analysis_v2_data) v2Entries[a.id] = a.analysis_v2_data as AnalysisV2Data;
+      }
+      if (Object.keys(v2Entries).length > 0) setAnalysisV2Map(prev => ({ ...prev, ...v2Entries }));
+    }
+
+    setEncountersForFilter(encountersRes.data ?? []);
+    setLoading(false);
+  };
+
+  // Keep individual loaders for refresh after mutations
   const loadSpecialties = async () => {
     try {
       const { data } = await (supabase as any)
@@ -394,25 +427,16 @@ export default function PatientDetail() {
         .select("specialty_id, specialty_name, specialty_icon, has_protocols")
         .eq("is_active", true)
         .order("specialty_name");
-      if (data && data.length > 0) {
-        setAvailableSpecialties(data);
-      }
-    } catch {
-      // Silently fail — table may not exist yet
-    }
+      if (data && data.length > 0) setAvailableSpecialties(data);
+    } catch { /* Silently fail */ }
   };
 
   const fetchData = async () => {
     setLoading(true);
     const [patientRes, sessionsRes] = await Promise.all([
       supabase.from("patients").select("*").eq("id", id!).single(),
-      supabase
-        .from("lab_sessions")
-        .select("*")
-        .eq("patient_id", id!)
-        .order("session_date", { ascending: false }),
+      supabase.from("lab_sessions").select("*").eq("patient_id", id!).order("session_date", { ascending: false }),
     ]);
-
     if (patientRes.error) {
       toast({ title: "Erro", description: patientRes.error.message, variant: "destructive" });
       navigate("/");
