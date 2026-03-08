@@ -864,11 +864,13 @@ async function fetchClinicalContext(
 
   if (!patientId) return { context: result, loaded };
 
-  // Fetch anamnese, doctor notes, and body composition in parallel
+  // Fetch anamnese, doctor notes, body composition, and imaging reports in parallel
   const bodyCompSpecialties = ["nutrologia", "endocrinologia"];
+  const imagingSpecialties = ["endocrinologia", "nutrologia"];
   const shouldFetchBodyComp = bodyCompSpecialties.includes(specialtyId);
+  const shouldFetchImaging = imagingSpecialties.includes(specialtyId);
 
-  const [anamneseResult, notesResult, bodyCompResult] = await Promise.all([
+  const [anamneseResult, notesResult, bodyCompResult, imagingResult] = await Promise.all([
     supabaseClient
       .from("patient_anamneses")
       .select("*")
@@ -894,6 +896,16 @@ async function fetchClinicalContext(
           .limit(2)
           .then(({ data }: { data: unknown }) => data)
           .catch((err: unknown) => { console.warn("Failed to load body composition:", err); return null; })
+      : Promise.resolve(null),
+    shouldFetchImaging
+      ? supabaseClient
+          .from("imaging_reports")
+          .select("id, report_date, exam_type, exam_region, findings, conclusion, incidental_findings, classifications, source_lab")
+          .eq("patient_id", patientId)
+          .order("report_date", { ascending: false })
+          .limit(6)
+          .then(({ data }: { data: unknown }) => data)
+          .catch((err: unknown) => { console.warn("Failed to load imaging reports:", err); return null; })
       : Promise.resolve(null),
   ]);
 
