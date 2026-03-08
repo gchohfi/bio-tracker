@@ -85,6 +85,9 @@ type Patient = Tables<"patients">;
 type LabSession = Tables<"lab_sessions">;
 type LabResult = Tables<"lab_results">;
 
+// Pre-built lookup map for O(1) marker lookups in hot loops
+const MARKER_MAP = new Map(MARKERS.map(m => [m.id, m]));
+
 const TAB_LABELS: Record<string, string> = {
   clinical_evolution: "Prontuário",
   sessions: "Exames",
