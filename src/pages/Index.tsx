@@ -170,8 +170,7 @@ export default function Index() {
       setNewName("");
       setNewBirthDate("");
       setDialogOpen(false);
-      fetchPatients();
-      fetchDashboardData();
+      fetchAllData();
       toast({ title: "Paciente criado!" });
     }
   };
