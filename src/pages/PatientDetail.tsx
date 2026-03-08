@@ -1335,63 +1335,78 @@ export default function PatientDetail() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        {/* Header */}
+        {/* Breadcrumb + Patient info */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold text-primary">
-                {patient.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                {editingName ? (
-                  <div className="flex items-center gap-1">
-                    <Input
-                      value={nameValue}
-                      onChange={(e) => setNameValue(e.target.value)}
-                      className="h-8 w-48 text-base font-bold"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSaveName();
-                        if (e.key === "Escape") setEditingName(false);
-                      }}
-                    />
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSaveName}>
-                      <Check className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingName(false)}>
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1">
-                    <h1 className="text-xl font-bold">{patient.name}</h1>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleEditName}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="secondary">
-                    {sex === "M" ? "Masculino" : "Feminino"}
-                  </Badge>
-                  {patient.birth_date && (() => {
-                    const today = new Date();
-                    const birth = new Date(patient.birth_date);
-                    const age = today.getFullYear() - birth.getFullYear() -
-                      (today < new Date(today.getFullYear(), birth.getMonth(), birth.getDate()) ? 1 : 0);
-                    return (
-                      <Badge variant="outline" className="text-xs">
-                        {age} anos
-                      </Badge>
-                    );
-                  })()}
-                  <span className="text-xs text-muted-foreground">
-                    {sessions.length} sessão(ões)
-                  </span>
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold text-primary">
+              {patient.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              {/* Breadcrumb */}
+              <Breadcrumb>
+                <BreadcrumbList className="text-xs">
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <button onClick={() => navigate("/")} className="hover:text-foreground transition-colors">Dashboard</button>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage className="font-medium">{patient.name}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{TAB_LABELS[detailTab] || detailTab}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+
+              {/* Patient name + edit */}
+              {editingName ? (
+                <div className="flex items-center gap-1 mt-0.5">
+                  <Input
+                    value={nameValue}
+                    onChange={(e) => setNameValue(e.target.value)}
+                    className="h-8 w-48 text-base font-bold"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveName();
+                      if (e.key === "Escape") setEditingName(false);
+                    }}
+                  />
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSaveName}>
+                    <Check className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingName(false)}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
+              ) : (
+                <div className="flex items-center gap-1 mt-0.5">
+                  <h1 className="text-xl font-bold">{patient.name}</h1>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleEditName}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="secondary">
+                  {sex === "M" ? "Masculino" : "Feminino"}
+                </Badge>
+                {patient.birth_date && (() => {
+                  const today = new Date();
+                  const birth = new Date(patient.birth_date);
+                  const age = today.getFullYear() - birth.getFullYear() -
+                    (today < new Date(today.getFullYear(), birth.getMonth(), birth.getDate()) ? 1 : 0);
+                  return (
+                    <Badge variant="outline" className="text-xs">
+                      {age} anos
+                    </Badge>
+                  );
+                })()}
+                <span className="text-xs text-muted-foreground">
+                  {sessions.length} sessão(ões)
+                </span>
               </div>
             </div>
           </div>
