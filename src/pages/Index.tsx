@@ -193,9 +193,9 @@ export default function Index() {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">LabTrack</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Painel Geral</h1>
             <p className="text-sm text-muted-foreground">
-              Gestão de exames laboratoriais
+              Visão geral dos pacientes e sessões recentes
             </p>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
