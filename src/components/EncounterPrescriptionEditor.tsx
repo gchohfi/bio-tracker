@@ -346,6 +346,18 @@ export function EncounterPrescriptionEditor({
                   </Button>
                 </>
               )}
+              {status === "finalized" && !isFinalized && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/30"
+                  onClick={handleReopen}
+                  disabled={saving}
+                >
+                  <Undo2 className="h-3 w-3" />
+                  Reabrir
+                </Button>
+              )}
               {status === "finalized" && items.length > 0 && (
                 <Button
                   size="sm"
