@@ -133,7 +133,7 @@ describe("Prescription PDF — sanitize", () => {
   it("replaces special chars for Latin-1 compat", () => {
     expect(sanitize("≤ 500 ≥ 100")).toBe("<= 500 >= 100");
     expect(sanitize("dose – 2x")).toBe("dose - 2x");
-    expect(sanitize(""texto"")).toBe('"texto"');
+    expect(sanitize("\u201ctexto\u201d")).toBe('"texto"');
   });
 
   it("strips non-Latin-1 unicode", () => {
