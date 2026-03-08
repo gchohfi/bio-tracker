@@ -936,6 +936,7 @@ async function fetchClinicalContext(
   ]);
 
   // Parse anamnese
+  if (anamneseResult) {
     const a = anamneseResult as Record<string, unknown>;
     const text = a.anamnese_text as string | null;
     if (text && text.trim().length > 0) {
