@@ -249,7 +249,7 @@ function applySanityGuards(result: InBodyParsedData) {
 
 async function renderPageToBase64(pdf: pdfjsLib.PDFDocumentProxy, pageNum: number): Promise<string> {
   const page = await pdf.getPage(pageNum);
-  const scale = 2; // Higher resolution for better OCR
+  const scale = 1.5; // Balance quality vs payload size
   const viewport = page.getViewport({ scale });
 
   const canvas = document.createElement("canvas");
@@ -259,21 +259,29 @@ async function renderPageToBase64(pdf: pdfjsLib.PDFDocumentProxy, pageNum: numbe
 
   await page.render({ canvasContext: ctx, viewport }).promise;
 
-  // Convert to base64 PNG
-  const dataUrl = canvas.toDataURL("image/png");
-  return dataUrl.replace(/^data:image\/png;base64,/, "");
+  // Use JPEG for smaller payload (typically 3-5x smaller than PNG)
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+  return dataUrl.replace(/^data:image\/jpeg;base64,/, "");
 }
 
 async function extractViaOcr(pdf: pdfjsLib.PDFDocumentProxy): Promise<InBodyParsedData> {
   const imageBase64 = await renderPageToBase64(pdf, 1);
+  console.log("OCR fallback: sending image to AI, base64 length:", imageBase64.length);
 
   const { data, error } = await supabase.functions.invoke("parse-inbody-ocr", {
-    body: { imageBase64, mimeType: "image/png" },
+    body: { imageBase64, mimeType: "image/jpeg" },
   });
 
   if (error) {
     console.warn("OCR fallback error:", error);
-    throw new Error("Não foi possível extrair dados via OCR. Preencha manualmente.");
+    // Try to extract error message from response
+    const msg = typeof error === "object" && error.message ? error.message : "Não foi possível extrair dados via OCR. Preencha manualmente.";
+    throw new Error(msg);
+  }
+
+  // Handle case where data contains an error field
+  if (data?.error) {
+    throw new Error(data.error);
   }
 
   // Merge with empty result to ensure all keys exist
