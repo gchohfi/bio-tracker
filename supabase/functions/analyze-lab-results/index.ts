@@ -840,12 +840,14 @@ async function fetchClinicalContext(
     patientProfile: patientProfile ?? null,
     labs,
     bodyComposition: null,
+    imagingReports: null,
   };
 
   const loaded: ContextLoaded = {
     anamnesis: false,
     doctorNotes: false,
     bodyComposition: false,
+    imagingReports: false,
     patientProfile: !!(patientProfile && (
       (patientProfile.objectives && patientProfile.objectives.length > 0) ||
       patientProfile.activity_level || patientProfile.sport_modality ||
