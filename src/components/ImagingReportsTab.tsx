@@ -171,6 +171,8 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
       if (error) toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       else { setActiveReport(data); toast({ title: "Laudo registrado" }); }
     }
+    // ── TRACE: Rastreabilidade ──
+    Trace.imagingReport(user.id, patientId, form.exam_type);
     setSaving(false);
     await loadReports();
   };

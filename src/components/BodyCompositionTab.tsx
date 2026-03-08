@@ -276,6 +276,9 @@ export function BodyCompositionTab({ patientId }: BodyCompositionTabProps) {
       }
     }
 
+    // ── TRACE: Rastreabilidade ──
+    Trace.bodyComposition(user.id, patientId, sourceType);
+
     setSaving(false);
     await loadSessions();
   };
