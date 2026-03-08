@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { Trace } from "@/lib/traceability";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -274,6 +275,9 @@ export function BodyCompositionTab({ patientId }: BodyCompositionTabProps) {
         toast({ title: "Avaliação corporal registrada" });
       }
     }
+
+    // ── TRACE: Rastreabilidade ──
+    Trace.bodyComposition(user.id, patientId, sourceType);
 
     setSaving(false);
     await loadSessions();

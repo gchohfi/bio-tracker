@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { Trace } from "@/lib/traceability";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -170,6 +171,8 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
       if (error) toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       else { setActiveReport(data); toast({ title: "Laudo registrado" }); }
     }
+    // ── TRACE: Rastreabilidade ──
+    Trace.imagingReport(user.id, patientId, form.exam_type);
     setSaving(false);
     await loadReports();
   };
