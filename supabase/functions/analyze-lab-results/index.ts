@@ -877,7 +877,7 @@ async function fetchClinicalContext(
   const shouldFetchBodyComp = bodyCompSpecialties.includes(specialtyId);
   const shouldFetchImaging = imagingSpecialties.includes(specialtyId);
 
-  const [anamneseResult, notesResult, bodyCompResult, imagingResult] = await Promise.all([
+  const [anamneseResult, notesResult, bodyCompResult, imagingResult, encountersResult, analysesResult] = await Promise.all([
     supabaseClient
       .from("patient_anamneses")
       .select("*")
@@ -914,7 +914,7 @@ async function fetchClinicalContext(
           .then(({ data }: { data: unknown }) => data)
           .catch((err: unknown) => { console.warn("Failed to load imaging reports:", err); return null; })
       : Promise.resolve(null),
-    // Fetch previous encounter + previous analysis in parallel
+    // Clinical history: previous encounters
     supabaseClient
       .from("clinical_encounters")
       .select("encounter_date, chief_complaint, status, clinical_evolution_notes(subjective, objective, assessment, plan, medications, exams_requested)")
@@ -923,6 +923,7 @@ async function fetchClinicalContext(
       .limit(2)
       .then(({ data }: { data: unknown }) => data)
       .catch((err: unknown) => { console.warn("Failed to load encounters:", err); return null; }),
+    // Clinical history: previous analyses for same specialty
     supabaseClient
       .from("patient_analyses")
       .select("created_at, specialty_name, summary, patterns, suggestions")
@@ -933,7 +934,8 @@ async function fetchClinicalContext(
       .then(({ data }: { data: unknown }) => data)
       .catch((err: unknown) => { console.warn("Failed to load analyses:", err); return null; }),
   ]);
-  if (anamneseResult) {
+
+  // Parse anamnese
     const a = anamneseResult as Record<string, unknown>;
     const text = a.anamnese_text as string | null;
     if (text && text.trim().length > 0) {
