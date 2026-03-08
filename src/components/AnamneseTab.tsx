@@ -162,6 +162,10 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
   const [conversionSpecialty, setConversionSpecialty] = useState<string | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
 
+  // Import state
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importSpecialty, setImportSpecialty] = useState<string | null>(null);
+
   // ── Load ──
   useEffect(() => {
     const load = async () => {
