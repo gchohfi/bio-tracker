@@ -264,6 +264,19 @@ export function EncounterPrescriptionEditor({
       })
     );
 
+  // ── Reopen ──
+  const handleReopen = async () => {
+    if (!prescriptionId) return;
+    setSaving(true);
+    await (supabase as any)
+      .from("clinical_prescriptions")
+      .update({ status: "draft" })
+      .eq("id", prescriptionId);
+    setStatus("draft");
+    toast({ title: "Prescrição reaberta", description: "Agora você pode editar os itens novamente." });
+    setSaving(false);
+  };
+
   const editable = !isFinalized && status !== "finalized";
   const activeItems = items.filter((i) => i.origin !== "removed_by_physician");
   const removedItems = items.filter((i) => i.origin === "removed_by_physician");
