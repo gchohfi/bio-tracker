@@ -1181,9 +1181,38 @@ function buildUserPrompt(
     if (p.restrictions) prompt += "- Restricoes/alergias: " + p.restrictions + "\n";
   }
 
-  // ── Clinical context sections ──
-  if (clinicalContext.anamnese) {
-    prompt += "\nANAMNESE DO PACIENTE (" + activeSpecialty.replace(/_/g, " ") + "):\n" + clinicalContext.anamnese + "\n";
+  // ── Clinical context sections: Anamnese ──
+  const sa = clinicalContext.structuredAnamnese;
+  if (sa && clinicalContext.anamneseSource === "structured") {
+    prompt += "\nANAMNESE DO PACIENTE (" + activeSpecialty.replace(/_/g, " ") + ") — CAMPOS ESTRUTURADOS:\n";
+    if (sa.queixa_principal) prompt += "- Queixa principal: " + sa.queixa_principal + "\n";
+    if (sa.objetivos && sa.objetivos.length > 0) prompt += "- Objetivos: " + sa.objetivos.join(", ") + "\n";
+    if (sa.sintomas && sa.sintomas.length > 0) prompt += "- Sintomas relevantes: " + sa.sintomas.join(", ") + "\n";
+    if (sa.comorbidades && sa.comorbidades.length > 0) prompt += "- Comorbidades: " + sa.comorbidades.join(", ") + "\n";
+    if (sa.medicacoes && sa.medicacoes.length > 0) prompt += "- Medicacoes em uso: " + sa.medicacoes.join(", ") + "\n";
+    if (sa.suplementos && sa.suplementos.length > 0) prompt += "- Suplementos: " + sa.suplementos.join(", ") + "\n";
+    if (sa.alergias && sa.alergias.length > 0) prompt += "- Alergias: " + sa.alergias.join(", ") + "\n";
+    if (sa.restricoes_alimentares) prompt += "- Restricoes alimentares: " + sa.restricoes_alimentares + "\n";
+    if (sa.cirurgias && sa.cirurgias.length > 0) prompt += "- Cirurgias previas: " + sa.cirurgias.join(", ") + "\n";
+    if (sa.historico_familiar) prompt += "- Historico familiar: " + sa.historico_familiar + "\n";
+    // Hábitos
+    const habitLines: string[] = [];
+    if (sa.atividade_fisica) habitLines.push("Atividade fisica: " + sa.atividade_fisica);
+    if (sa.qualidade_sono) habitLines.push("Sono: " + (sa.sono_horas ? sa.sono_horas + "h" : "") + " (" + sa.qualidade_sono + ")");
+    if (sa.nivel_estresse) habitLines.push("Estresse: " + sa.nivel_estresse);
+    if (sa.tabagismo) habitLines.push("Tabagismo: sim");
+    if (sa.etilismo) habitLines.push("Etilismo: " + sa.etilismo);
+    if (sa.dieta_resumo) habitLines.push("Dieta: " + sa.dieta_resumo);
+    if (habitLines.length > 0) {
+      prompt += "- Habitos/Estilo de vida: " + habitLines.join("; ") + "\n";
+    }
+    // Observações livres
+    if (sa.observacoes) {
+      prompt += "\nOBSERVACOES LIVRES DO MEDICO (texto livre complementar):\n" + sa.observacoes + "\n";
+    }
+  } else if (clinicalContext.anamnese) {
+    // Fallback: texto legado
+    prompt += "\nANAMNESE DO PACIENTE (" + activeSpecialty.replace(/_/g, " ") + ") — TEXTO LEGADO:\n" + clinicalContext.anamnese + "\n";
   }
   if (clinicalContext.doctorNotes) {
     prompt += "\nNOTAS CLINICAS DO MEDICO (" + activeSpecialty.replace(/_/g, " ") + "):\n" + clinicalContext.doctorNotes + "\n";
