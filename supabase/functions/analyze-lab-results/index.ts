@@ -1025,6 +1025,62 @@ async function fetchClinicalContext(
     console.log("Imaging reports loaded: " + allReports.length + " report(s) for patient " + patientId);
   }
 
+  // Parse clinical history (encounters + previous analyses)
+  try {
+    const encounters = (encountersResult && Array.isArray(encountersResult)) ? encountersResult : [];
+    const analyses = (analysesResult && Array.isArray(analysesResult)) ? analysesResult : [];
+
+    let previousEncounter: PreviousEncounterSnapshot | null = null;
+    // Use the most recent finalized encounter as "previous" context
+    if (encounters.length > 0) {
+      const enc = encounters[0] as Record<string, unknown>;
+      const notes = Array.isArray(enc.clinical_evolution_notes)
+        ? (enc.clinical_evolution_notes[0] as Record<string, unknown> | undefined)
+        : null;
+      previousEncounter = {
+        encounter_date: enc.encounter_date as string,
+        chief_complaint: (enc.chief_complaint as string | null) ?? null,
+        status: (enc.status as string) ?? "draft",
+        subjective: (notes?.subjective as string | null) ?? null,
+        objective: (notes?.objective as string | null) ?? null,
+        assessment: (notes?.assessment as string | null) ?? null,
+        plan: (notes?.plan as string | null) ?? null,
+        medications: (notes?.medications as string | null) ?? null,
+        exams_requested: (notes?.exams_requested as string | null) ?? null,
+      };
+    }
+
+    let previousAnalysis: PreviousAnalysisSummary | null = null;
+    // Use the second analysis (first is likely the current one being generated)
+    const prevAnalysisRow = analyses.length > 1
+      ? (analyses[1] as Record<string, unknown>)
+      : analyses.length === 1
+        ? (analyses[0] as Record<string, unknown>)
+        : null;
+    if (prevAnalysisRow) {
+      previousAnalysis = {
+        created_at: prevAnalysisRow.created_at as string,
+        specialty_name: (prevAnalysisRow.specialty_name as string | null) ?? null,
+        summary: (prevAnalysisRow.summary as string | null) ?? null,
+        patterns: Array.isArray(prevAnalysisRow.patterns) ? (prevAnalysisRow.patterns as string[]) : [],
+        suggestions: Array.isArray(prevAnalysisRow.suggestions) ? (prevAnalysisRow.suggestions as string[]) : [],
+      };
+    }
+
+    if (previousEncounter || previousAnalysis) {
+      result.clinicalHistory = {
+        previousEncounter,
+        previousAnalysis,
+        totalEncounters: encounters.length,
+        totalAnalyses: analyses.length,
+      };
+      loaded.clinicalHistory = true;
+      console.log("Clinical history loaded: encounter=" + !!previousEncounter + " analysis=" + !!previousAnalysis + " for patient " + patientId);
+    }
+  } catch (histErr) {
+    console.warn("Failed to parse clinical history (non-fatal):", histErr);
+  }
+
   return { context: result, loaded };
 }
 
