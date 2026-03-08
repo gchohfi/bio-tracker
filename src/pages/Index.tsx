@@ -31,6 +31,8 @@ type LabSession = Tables<"lab_sessions">;
 
 // Markers the doctor routinely requests (panel: "Padrão")
 const STANDARD_MARKERS = MARKERS.filter((m) => m.panel === "Padrão");
+// Pre-built lookup map for O(1) marker lookups in hot loops
+const MARKER_MAP = new Map(MARKERS.map(m => [m.id, m]));
 
 interface RecentSession extends LabSession {
   patient_name: string;
@@ -56,41 +58,37 @@ export default function Index() {
   const [totalAlerts, setTotalAlerts] = useState(0);
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([]);
 
-  const fetchPatients = async () => {
+  const fetchAllData = async () => {
     if (!user) return;
-    const { data, error } = await supabase
-      .from("patients")
-      .select("*")
-      .eq("practitioner_id", user.id)
-      .order("created_at", { ascending: false });
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    setLoading(true);
+
+    // Batch all initial queries into a single Promise.all
+    const [patientsRes, sessionsRes] = await Promise.all([
+      supabase.from("patients").select("*").eq("practitioner_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("lab_sessions").select("*, patients(name, sex)").order("session_date", { ascending: false }),
+    ]);
+
+    if (patientsRes.error) {
+      toast({ title: "Erro", description: patientsRes.error.message, variant: "destructive" });
     } else {
-      setPatients(data || []);
+      setPatients(patientsRes.data || []);
     }
-    setLoading(false);
-  };
 
-  const fetchDashboardData = async () => {
-    const { data: sessions } = await supabase
-      .from("lab_sessions")
-      .select("*, patients(name, sex)")
-      .order("session_date", { ascending: false });
-
+    const sessions = sessionsRes.data;
     if (!sessions || sessions.length === 0) {
       setTotalSessions(0);
       setTotalAlerts(0);
       setRecentSessions([]);
+      setLoading(false);
       return;
     }
 
     setTotalSessions(sessions.length);
-
     const sessionIds = sessions.map((s) => s.id);
 
     const { data: results } = await supabase
       .from("lab_results")
-      .select("*")
+      .select("marker_id, session_id, value")
       .in("session_id", sessionIds);
 
     // Build session → patient info map
@@ -119,11 +117,9 @@ export default function Index() {
     const sessionAlertMap = new Map<string, number>();
 
     (results || []).forEach((r) => {
-      const marker = MARKERS.find((m) => m.id === r.marker_id);
+      const marker = MARKER_MAP.get(r.marker_id);
       if (!marker) return;
-      // Track found markers
       sessionFoundMarkers.get(r.session_id)?.add(r.marker_id);
-      // Count alerts
       const patientInfo = sessionPatientMap.get(r.session_id);
       const sex = (patientInfo?.sex || "F") as "M" | "F";
       const status = getMarkerStatus(r.value, marker, sex);
@@ -137,7 +133,6 @@ export default function Index() {
 
     setTotalAlerts(alertCount);
 
-    // Build recent sessions (last 8) with missing standard markers
     const recent: RecentSession[] = sessions.slice(0, 8).map((s) => {
       const info = sessionPatientMap.get(s.id)!;
       const found = sessionFoundMarkers.get(s.id) || new Set();
@@ -153,13 +148,11 @@ export default function Index() {
       };
     });
     setRecentSessions(recent);
+    setLoading(false);
   };
 
   useEffect(() => {
-    if (user) {
-      fetchPatients();
-      fetchDashboardData();
-    }
+    if (user) fetchAllData();
   }, [user]);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -177,8 +170,7 @@ export default function Index() {
       setNewName("");
       setNewBirthDate("");
       setDialogOpen(false);
-      fetchPatients();
-      fetchDashboardData();
+      fetchAllData();
       toast({ title: "Paciente criado!" });
     }
   };
