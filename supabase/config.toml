@@ -2,3 +2,9 @@ project_id = "lkzcbaxecjmdteqvkxox"
 
 [functions.extract-lab-results]
 verify_jwt = false
+
+[functions.convert-anamnese]
+verify_jwt = false
+
+[functions.analyze-lab-results]
+verify_jwt = false
