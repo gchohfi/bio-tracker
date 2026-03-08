@@ -545,13 +545,19 @@ function HypothesesSection({ hypotheses, ...rp }: { hypotheses: DiagnosticHypoth
                   <SourceBadge source={h.source_type} />
                 </div>
               </div>
-              {h.supporting_findings.length > 0 && (
+              {Array.isArray(h.supporting_findings) && h.supporting_findings.length > 0 && (
                 <div className="text-xs text-muted-foreground">
                   <span className="font-medium">Achados de suporte: </span>
-                  {Array.isArray(h.supporting_findings) ? h.supporting_findings.join("; ") : String(h.supporting_findings ?? "")}
+                  {h.supporting_findings.join("; ")}
                 </div>
               )}
-              {h.confirmatory_exams && h.confirmatory_exams.length > 0 && (
+              {!Array.isArray(h.supporting_findings) && h.supporting_findings && (
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-medium">Achados de suporte: </span>
+                  {String(h.supporting_findings)}
+                </div>
+              )}
+              {Array.isArray(h.confirmatory_exams) && h.confirmatory_exams.length > 0 && (
                 <div className="text-xs text-muted-foreground">
                   <span className="font-medium">Exames confirmatórios: </span>
                   {h.confirmatory_exams.join("; ")}
