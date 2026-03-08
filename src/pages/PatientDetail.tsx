@@ -901,7 +901,6 @@ export default function PatientDetail() {
 
   const handleDeletePatient = async () => {
     if (!patient) return;
-    if (!confirm("Excluir este paciente e todos os seus dados? Esta ação não pode ser desfeita.")) return;
     const { error } = await supabase.from("patients").delete().eq("id", patient.id);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
