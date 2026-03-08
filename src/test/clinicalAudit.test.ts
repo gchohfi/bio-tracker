@@ -25,7 +25,7 @@ describe("clinicalAudit", () => {
 
   it("detects negative value", () => {
     const results: AuditableResult[] = [
-      { marker_id: "glicemia", value: -5 },
+      { marker_id: "glicemia_jejum", value: -5 },
     ];
     const report = auditResults(results, baseOpts);
     expect(report.issues.some(i => i.code === "NEGATIVE_VALUE")).toBe(true);
