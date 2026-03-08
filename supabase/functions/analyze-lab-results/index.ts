@@ -842,6 +842,8 @@ async function fetchClinicalContext(
 
   const result: ClinicalContext = {
     anamnese: null,
+    structuredAnamnese: null,
+    anamneseSource: "none",
     doctorNotes: null,
     patientProfile: patientProfile ?? null,
     labs,
