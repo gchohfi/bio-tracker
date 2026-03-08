@@ -45,6 +45,7 @@ import {
   ClipboardList,
   Stethoscope,
   Scale,
+  FileImage,
   Clock,
   ChevronRight,
   MoreVertical,
