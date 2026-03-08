@@ -1162,6 +1162,7 @@ function buildUserPrompt(
   const sexLabel = req.sex === "M" ? "Masculino" : "Feminino";
   const ageLabel = age ? age + " anos" : "idade nao informada";
   const labs = clinicalContext.labs;
+  const patientSex = req.sex;
 
   const sessionDates = [...new Set(labs.allResults.map((r) => r.session_date))].sort();
 
