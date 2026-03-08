@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { auditResults } from "@/lib/clinicalAudit";
+import { Trace } from "@/lib/traceability";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
