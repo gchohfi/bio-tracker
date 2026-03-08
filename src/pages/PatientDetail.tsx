@@ -1397,18 +1397,7 @@ export default function PatientDetail() {
             </div>
           </div>
           <div className="flex gap-2 flex-wrap items-center">
-            {/* Perfil do paciente */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setProfileOpen(true)}
-              className="border-blue-200 text-blue-700 hover:bg-blue-50"
-              title="Editar perfil e objetivos do paciente"
-            >
-              <UserCircle2 className="mr-1.5 h-4 w-4" />
-              {(patient?.objectives?.length ?? 0) > 0 ? `Perfil (${patient!.objectives!.length})` : "Perfil"}
-            </Button>
-
+            {/* ── Ações primárias ── */}
             {sessions.length > 0 && (
               <>
                 {/* Exportar PDF simples */}
@@ -1485,7 +1474,7 @@ export default function PatientDetail() {
               Nova Sessão
             </Button>
 
-            {/* Menu secundário — ações menos frequentes e destrutivas */}
+            {/* ── Menu secundário — ações menos frequentes e destrutivas ── */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1497,14 +1486,40 @@ export default function PatientDetail() {
                   <UserCircle2 className="mr-2 h-4 w-4" />
                   Editar perfil
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={handleDeletePatient}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Excluir paciente
+                <DropdownMenuItem onClick={() => setAliasConfigOpen(true)}>
+                  <Settings2 className="mr-2 h-4 w-4" />
+                  Configurar aliases
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Excluir paciente
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir paciente</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja excluir <strong>{patient?.name}</strong> e todos os seus dados?
+                        Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDeletePatient}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
