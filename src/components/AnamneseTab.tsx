@@ -9,10 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import {
   Save, Loader2, CheckCircle2, Heart, Leaf, Activity, Microscope,
-  ClipboardList, Plus, X, AlertTriangle, FileText,
+  ClipboardList, Plus, X, AlertTriangle, FileText, Wand2, Eye, Check, XCircle,
 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -152,6 +154,12 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
   const [loading, setLoading] = useState(true);
   const [showLegacy, setShowLegacy] = useState<Record<string, boolean>>({});
 
+  // Conversion state
+  const [converting, setConverting] = useState(false);
+  const [conversionSuggestion, setConversionSuggestion] = useState<StructuredAnamnese | null>(null);
+  const [conversionSpecialty, setConversionSpecialty] = useState<string | null>(null);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+
   // ── Load ──
   useEffect(() => {
     const load = async () => {
@@ -266,6 +274,68 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
     }
   };
 
+  // ── AI Conversion ──
+  const handleConvert = async (specId: string) => {
+    const text = legacyTexts[specId]?.trim();
+    if (!text || text.length < 10) {
+      toast({ title: "Texto insuficiente", description: "A anamnese legada precisa ter pelo menos 10 caracteres.", variant: "destructive" });
+      return;
+    }
+
+    setConverting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("convert-anamnese", {
+        body: { anamnese_text: text },
+      });
+
+      if (error) throw error;
+      if (!data?.structured_data) throw new Error("Nenhuma sugestão retornada");
+
+      setConversionSuggestion(data.structured_data as StructuredAnamnese);
+      setConversionSpecialty(specId);
+      setReviewDialogOpen(true);
+      toast({ title: "Sugestão gerada!", description: "Revise os campos antes de aplicar." });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro na conversão";
+      toast({ title: "Erro na conversão", description: msg, variant: "destructive" });
+    } finally {
+      setConverting(false);
+    }
+  };
+
+  const handleAcceptConversion = () => {
+    if (!conversionSuggestion || !conversionSpecialty) return;
+    // Merge suggestion into current structured data (don't overwrite existing non-empty fields)
+    const current = getStructured(conversionSpecialty);
+    const merged: StructuredAnamnese = { ...EMPTY_STRUCTURED };
+
+    for (const key of Object.keys(EMPTY_STRUCTURED) as (keyof StructuredAnamnese)[]) {
+      const suggested = conversionSuggestion[key];
+      const existing = current[key];
+
+      // Use existing if non-empty, otherwise use suggested
+      if (existing !== undefined && existing !== null && existing !== "" &&
+          !(Array.isArray(existing) && existing.length === 0)) {
+        (merged as any)[key] = existing;
+      } else if (suggested !== undefined && suggested !== null) {
+        (merged as any)[key] = suggested;
+      }
+    }
+
+    setStructuredMap((prev) => ({ ...prev, [conversionSpecialty!]: merged }));
+    setReviewDialogOpen(false);
+    setConversionSuggestion(null);
+    setConversionSpecialty(null);
+    toast({ title: "Sugestão aplicada!", description: "Revise os campos e salve quando estiver satisfeito." });
+  };
+
+  const handleRejectConversion = () => {
+    setReviewDialogOpen(false);
+    setConversionSuggestion(null);
+    setConversionSpecialty(null);
+    toast({ title: "Sugestão descartada", description: "Nenhuma alteração foi feita." });
+  };
+
   // ── Loading state ──
   if (loading) {
     return (
@@ -315,11 +385,24 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
                   <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800">
                     <CardContent className="p-3 flex items-start gap-2">
                       <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                      <div className="text-sm">
+                      <div className="text-sm flex-1">
                         <p className="font-medium text-amber-800 dark:text-amber-200">Anamnese em texto livre detectada</p>
                         <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                          O texto antigo foi movido para "Observações". Preencha os campos estruturados para melhorar a análise da IA.
+                          Use a IA para converter o texto em campos estruturados, ou preencha manualmente.
                         </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2 h-7 text-xs gap-1.5"
+                          onClick={() => handleConvert(specialty.id)}
+                          disabled={converting}
+                        >
+                          {converting ? (
+                            <><Loader2 className="h-3 w-3 animate-spin" /> Convertendo...</>
+                          ) : (
+                            <><Wand2 className="h-3 w-3" /> Converter com IA</>
+                          )}
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -587,6 +670,99 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
           );
         })}
       </Tabs>
+
+      {/* ── Conversion Review Dialog ── */}
+      <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-primary" />
+              Revisão da conversão por IA
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Revise os campos extraídos do texto legado. Ao aceitar, os campos serão aplicados ao formulário
+              (sem sobrescrever campos já preenchidos). Você poderá editar antes de salvar.
+            </DialogDescription>
+          </DialogHeader>
+
+          {conversionSuggestion && (
+            <ScrollArea className="max-h-[55vh] pr-4">
+              <div className="space-y-3">
+                {conversionSuggestion.queixa_principal && (
+                  <ReviewField label="Queixa principal" value={conversionSuggestion.queixa_principal} />
+                )}
+                {(conversionSuggestion.objetivos?.length ?? 0) > 0 && (
+                  <ReviewField label="Objetivos" value={conversionSuggestion.objetivos!.join(", ")} />
+                )}
+                {(conversionSuggestion.sintomas?.length ?? 0) > 0 && (
+                  <ReviewField label="Sintomas" value={conversionSuggestion.sintomas!.join(", ")} />
+                )}
+                {(conversionSuggestion.comorbidades?.length ?? 0) > 0 && (
+                  <ReviewField label="Comorbidades" value={conversionSuggestion.comorbidades!.join(", ")} />
+                )}
+                {(conversionSuggestion.medicacoes?.length ?? 0) > 0 && (
+                  <ReviewField label="Medicações" value={conversionSuggestion.medicacoes!.join(", ")} />
+                )}
+                {(conversionSuggestion.suplementos?.length ?? 0) > 0 && (
+                  <ReviewField label="Suplementos" value={conversionSuggestion.suplementos!.join(", ")} />
+                )}
+                {(conversionSuggestion.alergias?.length ?? 0) > 0 && (
+                  <ReviewField label="Alergias" value={conversionSuggestion.alergias!.join(", ")} />
+                )}
+                {conversionSuggestion.restricoes_alimentares && (
+                  <ReviewField label="Restrições alimentares" value={conversionSuggestion.restricoes_alimentares} />
+                )}
+                {(conversionSuggestion.cirurgias?.length ?? 0) > 0 && (
+                  <ReviewField label="Cirurgias" value={conversionSuggestion.cirurgias!.join(", ")} />
+                )}
+                {conversionSuggestion.historico_familiar && (
+                  <ReviewField label="Histórico familiar" value={conversionSuggestion.historico_familiar} />
+                )}
+                {conversionSuggestion.atividade_fisica && (
+                  <ReviewField label="Atividade física" value={conversionSuggestion.atividade_fisica} />
+                )}
+                {conversionSuggestion.qualidade_sono && (
+                  <ReviewField label="Sono" value={`${conversionSuggestion.sono_horas ?? "?"}h (${conversionSuggestion.qualidade_sono})`} />
+                )}
+                {conversionSuggestion.nivel_estresse && (
+                  <ReviewField label="Estresse" value={conversionSuggestion.nivel_estresse} />
+                )}
+                {conversionSuggestion.etilismo && (
+                  <ReviewField label="Etilismo" value={conversionSuggestion.etilismo} />
+                )}
+                {conversionSuggestion.tabagismo && (
+                  <ReviewField label="Tabagismo" value="Sim" />
+                )}
+                {conversionSuggestion.dieta_resumo && (
+                  <ReviewField label="Dieta" value={conversionSuggestion.dieta_resumo} />
+                )}
+                {conversionSuggestion.observacoes && (
+                  <ReviewField label="Observações" value={conversionSuggestion.observacoes} />
+                )}
+              </div>
+            </ScrollArea>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={handleRejectConversion} className="gap-1.5">
+              <XCircle className="h-4 w-4" /> Descartar
+            </Button>
+            <Button onClick={handleAcceptConversion} className="gap-1.5">
+              <Check className="h-4 w-4" /> Aplicar ao formulário
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ── Review field component ──
+function ReviewField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-border bg-muted/30 p-2.5">
+      <p className="text-xs font-medium text-muted-foreground mb-0.5">{label}</p>
+      <p className="text-sm text-foreground">{value}</p>
     </div>
   );
 }
