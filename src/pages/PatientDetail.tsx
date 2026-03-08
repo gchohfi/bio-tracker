@@ -288,6 +288,7 @@ export default function PatientDetail() {
   const [markerValues, setMarkerValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [detailTab, setDetailTab] = useState<"clinical_evolution" | "sessions" | "evolution" | "timeline" | "analysis" | "anamnese">("clinical_evolution");
+  const [pendingDeleteSessionId, setPendingDeleteSessionId] = useState<string | null>(null);
   const [activeEncounterId, setActiveEncounterId] = useState<string | null>(null);
   const [savedAnalyses, setSavedAnalyses] = useState<any[]>([]);
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
@@ -583,7 +584,6 @@ export default function PatientDetail() {
   };
 
   const handleDeleteSession = async (sessionId: string) => {
-    if (!confirm("Excluir esta sessão e todos os resultados?")) return;
     // Delete lab_results and historical results first (foreign key constraint)
     await supabase.from("lab_historical_results").delete().eq("session_id", sessionId);
     const { error: resultsError } = await supabase.from("lab_results").delete().eq("session_id", sessionId);
@@ -1552,43 +1552,45 @@ export default function PatientDetail() {
 
         {/* Tabs for Sessions, Evolution and AI Analysis */}
         <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as any)}>
-          <TabsList>
-            <TabsTrigger value="clinical_evolution" className="gap-1.5">
-              <FileText className="h-3.5 w-3.5" />
-              Prontuário
-            </TabsTrigger>
-            <TabsTrigger value="sessions" className="gap-1.5">
-              <FlaskConical className="h-3.5 w-3.5" />
-              Exames
-            </TabsTrigger>
-            <TabsTrigger value="evolution" className="gap-1.5">
-              <BarChart3 className="h-3.5 w-3.5" />
-              Evolução Clínica
-            </TabsTrigger>
-            <TabsTrigger value="timeline" className="gap-1.5">
-              <Clock className="h-3.5 w-3.5" />
-              Evolutivo de Exames
-            </TabsTrigger>
-            <TabsTrigger value="analysis" className="gap-1.5">
-              <Brain className="h-3.5 w-3.5" />
-              Análise IA
-              {savedAnalyses.length > 0 && (
-                <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{savedAnalyses.length}</Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="anamnese" className="gap-1.5">
-              <ClipboardList className="h-3.5 w-3.5" />
-              Anamnese
-            </TabsTrigger>
-            <TabsTrigger value="body_composition" className="gap-1.5">
-              <Scale className="h-3.5 w-3.5" />
-              Composição Corporal
-            </TabsTrigger>
-            <TabsTrigger value="imaging" className="gap-1.5">
-              <FileImage className="h-3.5 w-3.5" />
-              Laudos de Imagem
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-1 px-1">
+            <TabsList className="w-max">
+              <TabsTrigger value="clinical_evolution" className="gap-1.5">
+                <FileText className="h-3.5 w-3.5" />
+                Prontuário
+              </TabsTrigger>
+              <TabsTrigger value="sessions" className="gap-1.5">
+                <FlaskConical className="h-3.5 w-3.5" />
+                Exames
+              </TabsTrigger>
+              <TabsTrigger value="evolution" className="gap-1.5">
+                <BarChart3 className="h-3.5 w-3.5" />
+                Evolução Clínica
+              </TabsTrigger>
+              <TabsTrigger value="timeline" className="gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                Evolutivo de Exames
+              </TabsTrigger>
+              <TabsTrigger value="analysis" className="gap-1.5">
+                <Brain className="h-3.5 w-3.5" />
+                Análise IA
+                {savedAnalyses.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{savedAnalyses.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="anamnese" className="gap-1.5">
+                <ClipboardList className="h-3.5 w-3.5" />
+                Anamnese
+              </TabsTrigger>
+              <TabsTrigger value="body_composition" className="gap-1.5">
+                <Scale className="h-3.5 w-3.5" />
+                Composição Corporal
+              </TabsTrigger>
+              <TabsTrigger value="imaging" className="gap-1.5">
+                <FileImage className="h-3.5 w-3.5" />
+                Laudos de Imagem
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="sessions" className="mt-4">
             {sessions.length === 0 ? (
@@ -1596,9 +1598,13 @@ export default function PatientDetail() {
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <FlaskConical className="mb-4 h-12 w-12 text-muted-foreground/50" />
                   <p className="text-lg font-medium">Nenhuma sessão registrada</p>
-                  <p className="text-sm text-muted-foreground">
-                    Clique em "Nova Sessão" para adicionar exames
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Adicione a primeira sessão de exames para este paciente.
                   </p>
+                  <Button size="sm" onClick={openNewSession}>
+                    <Plus className="mr-1.5 h-4 w-4" />
+                    Nova Sessão
+                  </Button>
                 </CardContent>
               </Card>
             ) : (
@@ -1627,7 +1633,7 @@ export default function PatientDetail() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={(e) => { e.stopPropagation(); handleDeleteSession(session.id); }}
+                          onClick={(e) => { e.stopPropagation(); setPendingDeleteSessionId(session.id); }}
                           title="Excluir"
                           className="text-destructive hover:text-destructive"
                         >
@@ -1640,6 +1646,32 @@ export default function PatientDetail() {
                 ))}
               </div>
             )}
+
+            {/* Session delete confirmation */}
+            <AlertDialog open={!!pendingDeleteSessionId} onOpenChange={(open) => { if (!open) setPendingDeleteSessionId(null); }}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir sessão</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tem certeza que deseja excluir esta sessão e todos os seus resultados? Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      if (pendingDeleteSessionId) {
+                        handleDeleteSession(pendingDeleteSessionId);
+                        setPendingDeleteSessionId(null);
+                      }
+                    }}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </TabsContent>
 
           <TabsContent value="evolution" className="mt-4">
@@ -1679,9 +1711,21 @@ export default function PatientDetail() {
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <Brain className="mb-4 h-12 w-12 text-muted-foreground/50" />
                   <p className="text-lg font-medium">Nenhuma análise gerada ainda</p>
-                  <p className="text-sm text-muted-foreground">
-                    Clique em "✨ Análise IA" para gerar a primeira análise com IA
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Gere a primeira análise clínica com inteligência artificial.
                   </p>
+                  {sessions.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleGenerateAnalysis()}
+                      disabled={isAnalyzing}
+                      className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                    >
+                      <Brain className="mr-1.5 h-4 w-4" />
+                      Gerar Análise IA
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ) : (
