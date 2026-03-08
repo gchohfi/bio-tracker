@@ -1772,7 +1772,7 @@ serve(async (req) => {
         analysis_v2: analysisV2,
         specialty_id: specialtyId,
         _truncated: isTruncated,
-        _context_loaded: contextLoaded,
+        _context_loaded: { ...contextLoaded, anamneseSource: clinicalContext.anamneseSource ?? "none" },
         _diagnostics: {
           finish_reason: finishReason,
           completion_tokens: usage?.completion_tokens,
