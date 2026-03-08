@@ -1646,6 +1646,32 @@ export default function PatientDetail() {
                 ))}
               </div>
             )}
+
+            {/* Session delete confirmation */}
+            <AlertDialog open={!!pendingDeleteSessionId} onOpenChange={(open) => { if (!open) setPendingDeleteSessionId(null); }}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir sessão</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tem certeza que deseja excluir esta sessão e todos os seus resultados? Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      if (pendingDeleteSessionId) {
+                        handleDeleteSession(pendingDeleteSessionId);
+                        setPendingDeleteSessionId(null);
+                      }
+                    }}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </TabsContent>
 
           <TabsContent value="evolution" className="mt-4">
