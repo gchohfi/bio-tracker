@@ -1,0 +1,1 @@
+ALTER TABLE public.patient_anamneses ADD COLUMN IF NOT EXISTS structured_data jsonb DEFAULT NULL;
