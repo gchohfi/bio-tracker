@@ -486,8 +486,11 @@ export type Database = {
           notes: string | null
           patient_id: string
           practitioner_id: string
+          recommendations: string | null
           report_date: string
           source_lab: string | null
+          source_type: string
+          specialty_id: string | null
           updated_at: string
         }
         Insert: {
@@ -503,8 +506,11 @@ export type Database = {
           notes?: string | null
           patient_id: string
           practitioner_id: string
+          recommendations?: string | null
           report_date?: string
           source_lab?: string | null
+          source_type?: string
+          specialty_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -520,8 +526,11 @@ export type Database = {
           notes?: string | null
           patient_id?: string
           practitioner_id?: string
+          recommendations?: string | null
           report_date?: string
           source_lab?: string | null
+          source_type?: string
+          specialty_id?: string | null
           updated_at?: string
         }
         Relationships: [
