@@ -548,7 +548,7 @@ function HypothesesSection({ hypotheses, ...rp }: { hypotheses: DiagnosticHypoth
               {h.supporting_findings.length > 0 && (
                 <div className="text-xs text-muted-foreground">
                   <span className="font-medium">Achados de suporte: </span>
-                  {h.supporting_findings.join("; ")}
+                  {Array.isArray(h.supporting_findings) ? h.supporting_findings.join("; ") : String(h.supporting_findings ?? "")}
                 </div>
               )}
               {h.confirmatory_exams && h.confirmatory_exams.length > 0 && (
