@@ -71,6 +71,7 @@ const REASON_LABELS: Record<string, string> = {
   auto_save: "Salvamento automático",
   manual_save: "Salvamento manual",
   review_completed: "Revisão finalizada",
+  stale_reset: "Revisão arquivada (análise atualizada)",
 };
 
 const SECTION_LABELS: Record<string, string> = {
