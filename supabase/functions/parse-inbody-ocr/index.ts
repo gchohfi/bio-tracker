@@ -1,5 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -36,13 +41,7 @@ Rules:
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-      },
-    });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
@@ -51,11 +50,36 @@ Deno.serve(async (req) => {
     if (!imageBase64) {
       return new Response(JSON.stringify({ error: "imageBase64 is required" }), {
         status: 400,
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const dataUrl = `data:${mimeType || "image/png"};base64,${imageBase64}`;
+    const mime = mimeType || "image/jpeg";
+    const dataUrl = `data:${mime};base64,${imageBase64}`;
+
+    const payload = {
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: { url: dataUrl },
+            },
+            {
+              type: "text",
+              text: "Extract all body composition data from this InBody report image. Return only the JSON object.",
+            },
+          ],
+        },
+      ],
+      temperature: 0.1,
+      max_tokens: 1000,
+    };
+
+    console.log("Sending request to AI gateway, image size:", imageBase64.length, "chars, mime:", mime);
 
     const response = await fetch(LOVABLE_AI_URL, {
       method: "POST",
@@ -63,39 +87,35 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
       },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: [
-              {
-                type: "image_url",
-                image_url: { url: dataUrl },
-              },
-              {
-                type: "text",
-                text: "Extract all body composition data from this InBody report image. Return only the JSON object.",
-              },
-            ],
-          },
-        ],
-        temperature: 0.1,
-        max_tokens: 1000,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("Lovable AI error:", errText);
-      return new Response(JSON.stringify({ error: "AI extraction failed" }), {
+      console.error("AI gateway error:", response.status, errText);
+
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns segundos." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Créditos insuficientes. Adicione créditos no workspace." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ error: `AI extraction failed (${response.status}): ${errText}` }), {
         status: 502,
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const aiResult = await response.json();
+    console.log("AI response received, finish_reason:", aiResult.choices?.[0]?.finish_reason);
+    
     const content = aiResult.choices?.[0]?.message?.content || "";
 
     // Parse JSON from response (strip markdown fences if present)
@@ -106,7 +126,7 @@ Deno.serve(async (req) => {
 
     const parsed = JSON.parse(jsonStr);
 
-    // Sanity guards matching client-side parser
+    // Sanity guards
     if (parsed.weight_kg !== null && (parsed.weight_kg < 20 || parsed.weight_kg > 300)) parsed.weight_kg = null;
     if (parsed.bmi !== null && (parsed.bmi < 10 || parsed.bmi > 70)) parsed.bmi = null;
     if (parsed.body_fat_pct !== null && (parsed.body_fat_pct < 1 || parsed.body_fat_pct > 70)) parsed.body_fat_pct = null;
@@ -115,13 +135,13 @@ Deno.serve(async (req) => {
     if (parsed.bmr_kcal !== null && (parsed.bmr_kcal < 500 || parsed.bmr_kcal > 5000)) parsed.bmr_kcal = null;
 
     return new Response(JSON.stringify(parsed), {
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error("parse-inbody-ocr error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: err.message || "Erro ao processar PDF" }), {
       status: 500,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
