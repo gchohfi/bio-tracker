@@ -264,6 +264,19 @@ export function EncounterPrescriptionEditor({
       })
     );
 
+  // ── Reopen ──
+  const handleReopen = async () => {
+    if (!prescriptionId) return;
+    setSaving(true);
+    await (supabase as any)
+      .from("clinical_prescriptions")
+      .update({ status: "draft" })
+      .eq("id", prescriptionId);
+    setStatus("draft");
+    toast({ title: "Prescrição reaberta", description: "Agora você pode editar os itens novamente." });
+    setSaving(false);
+  };
+
   const editable = !isFinalized && status !== "finalized";
   const activeItems = items.filter((i) => i.origin !== "removed_by_physician");
   const removedItems = items.filter((i) => i.origin === "removed_by_physician");
@@ -332,6 +345,18 @@ export function EncounterPrescriptionEditor({
                     Finalizar
                   </Button>
                 </>
+              )}
+              {status === "finalized" && !isFinalized && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/30"
+                  onClick={handleReopen}
+                  disabled={saving}
+                >
+                  <Undo2 className="h-3 w-3" />
+                  Reabrir
+                </Button>
               )}
               {status === "finalized" && items.length > 0 && (
                 <Button
