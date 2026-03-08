@@ -897,10 +897,22 @@ export default function ClinicalReportV2({ data, patientName, analysisId, patien
             )}
           </div>
         </div>
-        {reviewMode && reviewOutdated && (
+        {reviewOutdated && (
           <div className="flex items-center gap-2 rounded-md border border-yellow-300 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950/30 px-3 py-2 text-xs text-yellow-800 dark:text-yellow-300">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-            <span>A análise foi re-gerada desde a última revisão. A revisão anterior não corresponde mais aos itens atuais e foi descartada. Inicie uma nova revisão.</span>
+            <div className="flex-1 space-y-1">
+              <p className="font-medium">Revisão desatualizada</p>
+              <p>A análise foi re-gerada desde a última revisão. Os itens mudaram e a revisão anterior não corresponde mais ao conteúdo atual. A revisão antiga foi preservada no histórico.</p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-[11px] px-3 shrink-0 border-yellow-400 text-yellow-800 hover:bg-yellow-100 dark:border-yellow-700 dark:text-yellow-300 dark:hover:bg-yellow-900/30"
+              disabled={resettingStale}
+              onClick={handleStaleReset}
+            >
+              {resettingStale ? "Arquivando…" : "Iniciar nova revisão"}
+            </Button>
           </div>
         )}
         {reviewMode && <ReviewSummaryBar stats={stats} />}
