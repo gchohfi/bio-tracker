@@ -868,7 +868,7 @@ async function fetchClinicalContext(
 
   // Fetch anamnese, doctor notes, body composition, and imaging reports in parallel
   const bodyCompSpecialties = ["nutrologia", "endocrinologia"];
-  const imagingSpecialties = ["endocrinologia", "nutrologia"];
+  const imagingSpecialties = ["endocrinologia", "nutrologia", "ginecologia"];
   const shouldFetchBodyComp = bodyCompSpecialties.includes(specialtyId);
   const shouldFetchImaging = imagingSpecialties.includes(specialtyId);
 
@@ -1126,7 +1126,7 @@ function buildUserPrompt(
   }
 
   // ── Imaging reports (endocrinologia / nutrologia only) ──
-  const imagingSpecialties = ["nutrologia", "endocrinologia"];
+  const imagingSpecialties = ["nutrologia", "endocrinologia", "ginecologia"];
   const ir = clinicalContext.imagingReports;
   if (ir?.current && imagingSpecialties.includes(activeSpecialty)) {
     prompt += "\nLAUDOS DE EXAMES DE IMAGEM (dados deterministicos - transcritos de laudos oficiais):\n";
