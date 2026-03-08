@@ -621,7 +621,7 @@ function FollowUpSection({ followUp }: { followUp?: FollowUp }) {
         <h3 className="font-bold text-sm text-primary uppercase tracking-wide">Follow-up</h3>
       </div>
       <div className="rounded-md border bg-background p-3 space-y-2">
-        {followUp.suggested_exams.length > 0 && (
+        {Array.isArray(followUp.suggested_exams) && followUp.suggested_exams.length > 0 && (
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1">Exames sugeridos:</p>
             <ul className="space-y-0.5">
