@@ -15,7 +15,9 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Save, Loader2, CheckCircle2, Heart, Leaf, Activity, Microscope,
   ClipboardList, Plus, X, AlertTriangle, FileText, Wand2, Eye, Check, XCircle,
+  Upload,
 } from "lucide-react";
+import { AnamneseImportDialog, type ImportResult } from "./AnamneseImportDialog";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Patient = Tables<"patients">;
@@ -159,6 +161,10 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
   const [conversionSuggestion, setConversionSuggestion] = useState<StructuredAnamnese | null>(null);
   const [conversionSpecialty, setConversionSpecialty] = useState<string | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+
+  // Import state
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importSpecialty, setImportSpecialty] = useState<string | null>(null);
 
   // ── Load ──
   useEffect(() => {
@@ -336,6 +342,33 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
     toast({ title: "Sugestão descartada", description: "Nenhuma alteração foi feita." });
   };
 
+  // ── Import handler ──
+  const handleImportConfirm = (result: ImportResult) => {
+    if (!importSpecialty) return;
+    const current = getStructured(importSpecialty);
+    const merged: StructuredAnamnese = { ...current };
+
+    // Apply imported fields — overwrite target fields
+    for (const [key, value] of Object.entries(result.fields)) {
+      (merged as any)[key] = value;
+    }
+
+    setStructuredMap((prev) => ({ ...prev, [importSpecialty!]: merged }));
+
+    // Store original imported text in legacy for auditability
+    setLegacyTexts((prev) => ({
+      ...prev,
+      [importSpecialty!]: result.importedText,
+    }));
+
+    setImportSpecialty(null);
+  };
+
+  const openImportDialog = (specId: string) => {
+    setImportSpecialty(specId);
+    setImportDialogOpen(true);
+  };
+
   // ── Loading state ──
   if (loading) {
     return (
@@ -407,6 +440,28 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* ── Import button ── */}
+                <Card className="border-dashed border-primary/30">
+                  <CardContent className="p-3 flex items-center gap-3">
+                    <Upload className="h-4 w-4 text-primary shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Importar anamnese pronta</p>
+                      <p className="text-xs text-muted-foreground">
+                        Cole texto ou suba um arquivo .txt para extrair campos automaticamente.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1.5 shrink-0"
+                      onClick={() => openImportDialog(specialty.id)}
+                    >
+                      <Upload className="h-3 w-3" />
+                      Importar
+                    </Button>
+                  </CardContent>
+                </Card>
 
                 {/* ── Queixa & Objetivos ── */}
                 <Card>
@@ -753,6 +808,14 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Import Dialog ── */}
+      <AnamneseImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onConfirm={handleImportConfirm}
+        currentData={getStructured(importSpecialty ?? activeSpecialty)}
+      />
     </div>
   );
 }
