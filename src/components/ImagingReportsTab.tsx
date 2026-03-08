@@ -290,12 +290,6 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
           Voltar
         </Button>
         <div className="flex gap-2">
-          {activeReport && (
-            <Button size="sm" variant="destructive" className="h-8 text-xs gap-1" onClick={handleDelete}>
-              <Trash2 className="h-3.5 w-3.5" />
-              Excluir
-            </Button>
-          )}
           <Button size="sm" onClick={handleSave} disabled={saving} className="h-8 text-xs gap-1">
             <Save className="h-3.5 w-3.5" />
             {activeReport ? "Atualizar" : "Salvar"}
