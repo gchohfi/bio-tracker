@@ -938,14 +938,41 @@ async function fetchClinicalContext(
       .catch((err: unknown) => { console.warn("Failed to load analyses:", err); return null; }),
   ]);
 
-  // Parse anamnese
+  // Parse anamnese — prefer structured_data, fallback to anamnese_text
   if (anamneseResult) {
     const a = anamneseResult as Record<string, unknown>;
+    const structuredData = a.structured_data as StructuredAnamnese | null;
     const text = a.anamnese_text as string | null;
-    if (text && text.trim().length > 0) {
-      result.anamnese = text.trim();
+
+    // Check if structured_data has meaningful content
+    const hasStructured = structuredData && (
+      structuredData.queixa_principal ||
+      (structuredData.objetivos && structuredData.objetivos.length > 0) ||
+      (structuredData.sintomas && structuredData.sintomas.length > 0) ||
+      (structuredData.medicacoes && structuredData.medicacoes.length > 0) ||
+      (structuredData.comorbidades && structuredData.comorbidades.length > 0) ||
+      (structuredData.suplementos && structuredData.suplementos.length > 0) ||
+      (structuredData.alergias && structuredData.alergias.length > 0)
+    );
+
+    if (hasStructured) {
+      result.structuredAnamnese = structuredData;
+      result.anamneseSource = "structured";
+      // Keep legacy text for fallback/audit
+      if (text && text.trim().length > 0) {
+        result.anamnese = text.trim();
+      }
       loaded.anamnesis = true;
-      console.log("Anamnese loaded: " + text.length + " chars for patient " + patientId);
+      console.log("Structured anamnese loaded for patient " + patientId + " (fields: " +
+        Object.keys(structuredData!).filter(k => {
+          const v = (structuredData as Record<string, unknown>)[k];
+          return v && (typeof v === "string" ? v.trim().length > 0 : Array.isArray(v) ? v.length > 0 : v !== null);
+        }).length + ")");
+    } else if (text && text.trim().length > 0) {
+      result.anamnese = text.trim();
+      result.anamneseSource = "legacy_text";
+      loaded.anamnesis = true;
+      console.log("Legacy anamnese text loaded: " + text.length + " chars for patient " + patientId);
     }
   }
 
