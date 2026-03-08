@@ -726,6 +726,9 @@ FORMATO DE SAÍDA (JSON estrito — TODOS os campos são obrigatórios):
 import type {
   ClinicalContext,
   ClinicalContextLabs,
+  ClinicalHistoryContext,
+  PreviousEncounterSnapshot,
+  PreviousAnalysisSummary,
   ContextLoaded,
   CanonicalLabResult,
   LabTrend,
@@ -911,9 +914,25 @@ async function fetchClinicalContext(
           .then(({ data }: { data: unknown }) => data)
           .catch((err: unknown) => { console.warn("Failed to load imaging reports:", err); return null; })
       : Promise.resolve(null),
+    // Fetch previous encounter + previous analysis in parallel
+    supabaseClient
+      .from("clinical_encounters")
+      .select("encounter_date, chief_complaint, status, clinical_evolution_notes(subjective, objective, assessment, plan, medications, exams_requested)")
+      .eq("patient_id", patientId)
+      .order("encounter_date", { ascending: false })
+      .limit(2)
+      .then(({ data }: { data: unknown }) => data)
+      .catch((err: unknown) => { console.warn("Failed to load encounters:", err); return null; }),
+    supabaseClient
+      .from("patient_analyses")
+      .select("created_at, specialty_name, summary, patterns, suggestions")
+      .eq("patient_id", patientId)
+      .eq("specialty_id", specialtyId)
+      .order("created_at", { ascending: false })
+      .limit(2)
+      .then(({ data }: { data: unknown }) => data)
+      .catch((err: unknown) => { console.warn("Failed to load analyses:", err); return null; }),
   ]);
-
-  // Parse anamnese
   if (anamneseResult) {
     const a = anamneseResult as Record<string, unknown>;
     const text = a.anamnese_text as string | null;
