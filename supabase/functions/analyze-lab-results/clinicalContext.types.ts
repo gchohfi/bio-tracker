@@ -134,9 +134,12 @@ export interface ImagingReportSnapshot {
   exam_region: string | null;
   findings: string | null;
   conclusion: string | null;
+  recommendations: string | null;
   incidental_findings: string | null;
   classifications: string | null;
   source_lab: string | null;
+  source_type: string;
+  specialty_id: string | null;
 }
 
 export interface ImagingReportsContext {
