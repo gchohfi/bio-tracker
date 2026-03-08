@@ -732,6 +732,8 @@ import type {
   LabStatus,
   BodyCompositionSnapshot,
   BodyCompositionContext,
+  ImagingReportSnapshot,
+  ImagingReportsContext,
 } from "./clinicalContext.types.ts";
 import { checkNearLimit, isKeyMarker } from "./clinicalContext.types.ts";
 import { mapV1toV2 } from "./buildV2.ts";
@@ -971,6 +973,30 @@ async function fetchClinicalContext(
     };
     loaded.bodyComposition = true;
     console.log("Body composition loaded: " + totalCount + " session(s) for patient " + patientId);
+  }
+
+  // Parse imaging reports
+  if (imagingResult && Array.isArray(imagingResult) && imagingResult.length > 0) {
+    const mapReport = (row: Record<string, unknown>): ImagingReportSnapshot => ({
+      id: row.id as string,
+      report_date: row.report_date as string,
+      exam_type: row.exam_type as string,
+      exam_region: (row.exam_region as string | null) ?? null,
+      findings: (row.findings as string | null) ?? null,
+      conclusion: (row.conclusion as string | null) ?? null,
+      incidental_findings: (row.incidental_findings as string | null) ?? null,
+      classifications: (row.classifications as string | null) ?? null,
+      source_lab: (row.source_lab as string | null) ?? null,
+    });
+
+    const allReports = imagingResult.map((r: unknown) => mapReport(r as Record<string, unknown>));
+    result.imagingReports = {
+      current: allReports[0],
+      history: allReports.slice(1),
+      totalReports: allReports.length,
+    };
+    loaded.imagingReports = true;
+    console.log("Imaging reports loaded: " + allReports.length + " report(s) for patient " + patientId);
   }
 
   return { context: result, loaded };
