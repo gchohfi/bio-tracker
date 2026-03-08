@@ -441,6 +441,28 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
                   </Card>
                 )}
 
+                {/* ── Import button ── */}
+                <Card className="border-dashed border-primary/30">
+                  <CardContent className="p-3 flex items-center gap-3">
+                    <Upload className="h-4 w-4 text-primary shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Importar anamnese pronta</p>
+                      <p className="text-xs text-muted-foreground">
+                        Cole texto ou suba um arquivo .txt para extrair campos automaticamente.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1.5 shrink-0"
+                      onClick={() => openImportDialog(specialty.id)}
+                    >
+                      <Upload className="h-3 w-3" />
+                      Importar
+                    </Button>
+                  </CardContent>
+                </Card>
+
                 {/* ── Queixa & Objetivos ── */}
                 <Card>
                   <CardHeader className="pb-2">
