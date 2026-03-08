@@ -902,7 +902,7 @@ async function fetchClinicalContext(
     shouldFetchImaging
       ? supabaseClient
           .from("imaging_reports")
-          .select("id, report_date, exam_type, exam_region, findings, conclusion, incidental_findings, classifications, source_lab")
+          .select("id, report_date, exam_type, exam_region, findings, conclusion, recommendations, incidental_findings, classifications, source_lab, source_type, specialty_id")
           .eq("patient_id", patientId)
           .order("report_date", { ascending: false })
           .limit(6)
