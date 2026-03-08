@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Manual do Usuário – LabTrack</title>
+  <title>Manual do Usuário – LabTrack v3.0</title>
   <style>
     :root {
       --bg: #f8fafc;
@@ -30,6 +30,7 @@
     }
     .hero h1 { font-size: 2rem; margin-bottom: 0.5rem; }
     .hero p { opacity: 0.85; font-size: 1.1rem; }
+    .hero .version { opacity: 0.7; font-size: 0.85rem; margin-top: 0.5rem; }
     .container { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem; }
     .toc {
       background: var(--card);
@@ -128,9 +129,8 @@
       vertical-align: middle;
       margin-left: 0.25rem;
     }
-    .badge-green {
-      background: #22c55e;
-    }
+    .badge-green { background: #22c55e; }
+    .badge-purple { background: #8b5cf6; }
     footer {
       text-align: center;
       padding: 2rem;
@@ -147,7 +147,8 @@
 
 <div class="hero">
   <h1>🧪 Manual do Usuário – LabTrack</h1>
-  <p>Guia completo para acompanhamento de exames laboratoriais</p>
+  <p>Guia completo para acompanhamento clínico e laboratorial</p>
+  <p class="version">Versão 3.0 – Março 2026</p>
 </div>
 
 <div class="container">
@@ -162,8 +163,14 @@
       <li><a href="#revisao">Revisão e Correção dos Resultados</a></li>
       <li><a href="#evolucao">Tabela de Evolução</a></li>
       <li><a href="#analise">Análise com IA por Especialidade</a></li>
-      <li><a href="#protocolos">Protocolos Essentia com IA</a></li>
-      <li><a href="#relatorio">Gerando Relatórios em PDF</a></li>
+      <li><a href="#review">Revisão Médica da Análise IA</a></li>
+      <li><a href="#prontuario">Prontuário Clínico</a></li>
+      <li><a href="#prescricao">Prescrições por Consulta</a></li>
+      <li><a href="#anamnese">Anamnese Estruturada</a></li>
+      <li><a href="#composicao">Composição Corporal</a></li>
+      <li><a href="#laudos">Laudos de Imagem</a></li>
+      <li><a href="#notas">Notas do Médico por Especialidade</a></li>
+      <li><a href="#relatorio">Gerando Relatórios (PDF e Excel)</a></li>
       <li><a href="#aliases">Configurando Aliases de Marcadores</a></li>
       <li><a href="#perfil">Perfil do Paciente</a></li>
       <li><a href="#prompts">Gerenciador de Prompts (Especialidades)</a></li>
@@ -215,7 +222,7 @@
     <ul>
       <li>Nome do paciente e data do exame</li>
       <li>Número de <strong>alertas</strong> (marcadores alterados)</li>
-      <li><strong>Marcadores ausentes</strong> – exames do painel padrão que não foram encontrados na sessão (indicados com ícone laranja)</li>
+      <li><strong>Marcadores ausentes</strong> – exames do painel padrão que não foram encontrados na sessão</li>
     </ul>
     <p>Clique em qualquer sessão para ir diretamente ao paciente correspondente.</p>
 
@@ -258,13 +265,13 @@
     <p>Use a <strong>barra de busca</strong> na tela inicial para filtrar pacientes pelo nome. A busca é instantânea.</p>
 
     <h3>Editando o nome do paciente</h3>
-    <p>Na página do paciente, clique no <strong>ícone de lápis</strong> ao lado do nome para editá-lo diretamente. Pressione <kbd>Enter</kbd> para salvar ou <kbd>Esc</kbd> para cancelar.</p>
+    <p>Na página do paciente, clique no <strong>ícone de lápis</strong> ao lado do nome para editá-lo. Pressione <kbd>Enter</kbd> para salvar ou <kbd>Esc</kbd> para cancelar.</p>
 
     <h3>Excluindo um paciente</h3>
     <p>Na página do paciente, clique no <strong>ícone de lixeira vermelho</strong>. Uma confirmação será solicitada antes da exclusão permanente.</p>
 
     <div class="warn">
-      <strong>⚠️ Atenção:</strong> A exclusão de um paciente remove também todas as suas sessões, resultados e análises de forma permanente.
+      <strong>⚠️ Atenção:</strong> A exclusão de um paciente remove também todas as suas sessões, resultados, análises, consultas e prescrições de forma permanente.
     </div>
   </section>
 
@@ -288,23 +295,19 @@
     </div>
     <div class="step">
       <div class="step-num">4</div>
-      <div>A <strong>data do exame</strong> é detectada automaticamente do PDF. Caso não seja detectada, selecione manualmente no calendário.</div>
+      <div>A <strong>data do exame</strong> é detectada automaticamente. Caso não seja detectada, selecione manualmente.</div>
     </div>
     <div class="step">
       <div class="step-num">5</div>
       <div>Após revisar, confirme e clique em <strong>"Salvar"</strong>.</div>
     </div>
 
-    <div class="new">
-      <strong>🆕 Múltiplos PDFs:</strong> Agora é possível importar vários PDFs de uma vez para a mesma sessão. Basta selecionar múltiplos arquivos ou clicar em <strong>"Adicionar PDF"</strong> para importar PDFs adicionais. Os marcadores são acumulados.
-    </div>
-
     <div class="tip">
-      <strong>💡 Dica:</strong> PDFs digitais (não escaneados) geram melhores resultados na extração. Laboratórios como DASA, Fleury e similares têm alta taxa de reconhecimento.
+      <strong>💡 Dica:</strong> É possível importar vários PDFs de uma vez. Os marcadores são acumulados na mesma sessão. PDFs digitais geram melhores resultados que PDFs escaneados.
     </div>
 
     <div class="warn">
-      <strong>⚠️ Atenção:</strong> Sempre revise os valores extraídos antes de salvar. A extração automática pode ocasionalmente confundir valores em PDFs com formatação não-padrão.
+      <strong>⚠️ Atenção:</strong> Sempre revise os valores extraídos antes de salvar. A extração automática pode confundir valores em PDFs com formatação não-padrão.
     </div>
   </section>
 
@@ -313,16 +316,13 @@
     <h2>5. Revisão e Correção dos Resultados</h2>
 
     <h3>Tela de Revisão (pós-importação)</h3>
-    <p>Após a extração do PDF, uma tela de revisão é aberta automaticamente com todos os marcadores detectados:</p>
+    <p>Após a extração do PDF, uma tela de revisão mostra todos os marcadores detectados:</p>
     <ul>
       <li><strong>Verde</strong> = valor dentro da faixa funcional</li>
       <li><strong>Vermelho</strong> = valor fora da faixa (alto ou baixo)</li>
       <li><strong>Ícone de lápis</strong> = clique para editar o valor</li>
     </ul>
     <p>Você pode <strong>remover</strong> marcadores incorretos ou <strong>corrigir</strong> valores antes de salvar.</p>
-
-    <h3>Botão "Revisar"</h3>
-    <p>Após a importação, o botão <strong>"Revisar"</strong> fica disponível na barra superior da sessão, permitindo reabrir a tela de edição dos valores extraídos a qualquer momento antes de salvar.</p>
 
     <h3>Tela de Verificação</h3>
     <p>Após confirmar a revisão, uma segunda tela de <strong>verificação</strong> mostra um resumo final com o texto original do PDF lado a lado para conferência.</p>
@@ -335,14 +335,11 @@
   <section id="evolucao">
     <h2>6. Tabela de Evolução</h2>
 
-    <p>A tabela de evolução é o coração do LabTrack. Ela mostra todos os marcadores do paciente organizados por <strong>categorias</strong> e por <strong>data do exame</strong>.</p>
-
-    <h3>Acessando a tabela</h3>
-    <p>Na página do paciente, clique na aba <strong>"Evolução"</strong> (ícone de gráfico) para alternar da visualização de sessões para a tabela de evolução.</p>
+    <p>A tabela de evolução mostra todos os marcadores do paciente organizados por <strong>categorias</strong> e por <strong>data do exame</strong>.</p>
 
     <h3>Navegando pela tabela</h3>
     <ul>
-      <li>As categorias são identificadas por <strong>cores</strong> e organizadas em grupos (Hemograma, Ferro, Glicemia, Lipídios, Tireoide, Hormônios, etc.)</li>
+      <li>Categorias identificadas por <strong>cores</strong> (Hemograma, Ferro, Glicemia, Lipídios, Tireoide, Hormônios, etc.)</li>
       <li>Cada coluna representa uma <strong>sessão de exame</strong> (data)</li>
       <li>Use a <strong>barra de busca</strong> para encontrar marcadores específicos</li>
     </ul>
@@ -353,28 +350,24 @@
       <li>🔴 <strong>Vermelho</strong>: valor acima ou abaixo da faixa funcional</li>
     </ul>
 
-    <h3>Referências funcionais vs. laboratoriais</h3>
-    <p>O LabTrack utiliza faixas de referência <strong>funcionais</strong> (baseadas em medicina funcional), que são tipicamente mais estreitas que as faixas convencionais dos laboratórios. Os relatórios em PDF incluem ambas as referências para comparação.</p>
+    <h3>Exportação</h3>
+    <p>A tabela de evolução pode ser exportada em <strong>Excel</strong> (com todas as datas e valores) ou em <strong>PDF</strong> para compartilhamento.</p>
   </section>
 
   <!-- 7. Análise IA -->
   <section id="analise">
     <h2>7. Análise com IA por Especialidade <span class="badge">IA</span></h2>
 
-    <p>O LabTrack conta com inteligência artificial para gerar análises clínicas completas, agora com suporte a <strong>múltiplas especialidades</strong>.</p>
+    <p>O LabTrack conta com inteligência artificial para gerar análises clínicas completas por especialidade.</p>
 
     <h3>Escolhendo a especialidade</h3>
-    <p>Na página do paciente, antes de gerar a análise, selecione a especialidade no <strong>seletor dropdown</strong> ao lado do botão "Análise IA". As especialidades disponíveis incluem:</p>
+    <p>Selecione a especialidade no <strong>seletor dropdown</strong> antes de gerar a análise. Especialidades incluem:</p>
     <ul>
-      <li>🧬 <strong>Medicina Funcional</strong> – foco em causas-raiz, medicina integrativa e saúde global</li>
-      <li>🍎 <strong>Nutrologia</strong> – foco em emagrecimento, composição corporal e estado nutricional</li>
-      <li>⚗️ <strong>Endocrinologia</strong> – foco em eixos hormonais, tireoide e metabolismo</li>
-      <li>🧴 <strong>Dermatologia</strong> – foco em marcadores inflamatórios e nutricionais que impactam a pele</li>
+      <li>🧬 <strong>Medicina Funcional</strong> – causas-raiz e saúde global</li>
+      <li>🍎 <strong>Nutrologia</strong> – emagrecimento, composição corporal, estado nutricional</li>
+      <li>⚗️ <strong>Endocrinologia</strong> – eixos hormonais, tireoide, metabolismo</li>
+      <li>🧴 <strong>Dermatologia</strong> – marcadores que impactam a pele</li>
     </ul>
-
-    <div class="new">
-      <strong>🆕 Framework CERTO:</strong> Todos os prompts seguem o padrão <strong>CERTO</strong> (Contexto, Exigência, Referências, Tarefas, Observações), garantindo análises técnicas de alta qualidade com linguagem de <em>médico para médico</em>.
-    </div>
 
     <h3>Gerando a análise</h3>
     <div class="step">
@@ -383,89 +376,326 @@
     </div>
     <div class="step">
       <div class="step-num">2</div>
-      <div>Clique no botão <strong>"Análise IA"</strong> (ícone de cérebro).</div>
+      <div>Clique no botão <strong>"Análise IA"</strong>.</div>
     </div>
     <div class="step">
       <div class="step-num">3</div>
-      <div>A IA analisará todos os marcadores considerando o perfil do paciente e a especialidade selecionada.</div>
+      <div>A IA analisará marcadores, anamnese, composição corporal e laudos de imagem do paciente.</div>
     </div>
     <div class="step">
       <div class="step-num">4</div>
-      <div>O resultado inclui: <strong>resumo clínico</strong>, <strong>padrões identificados</strong>, <strong>tendências</strong>, <strong>sugestões de conduta</strong> e (se aplicável) <strong>recomendações de protocolos</strong>.</div>
+      <div>O resultado inclui: <strong>resumo clínico</strong>, <strong>análise por categoria</strong>, <strong>hipóteses diagnósticas</strong>, <strong>condutas sugeridas</strong> e <strong>tabela de prescrição</strong>.</div>
     </div>
 
     <div class="tip">
-      <strong>💡 Dica:</strong> Para análises mais precisas, preencha o <strong>perfil completo</strong> do paciente (queixas, objetivos, nível de atividade, modalidade esportiva e restrições) antes de gerar a análise.
+      <strong>💡 Dica:</strong> A IA considera automaticamente a anamnese, composição corporal e laudos de imagem como contexto clínico adicional. Quanto mais dados, melhor a análise.
     </div>
   </section>
 
-  <!-- 8. Protocolos -->
-  <section id="protocolos">
-    <h2>8. Protocolos Essentia com IA <span class="badge badge-green">Novo</span></h2>
+  <!-- 8. Revisão Médica -->
+  <section id="review">
+    <h2>8. Revisão Médica da Análise IA <span class="badge badge-green">Novo</span></h2>
 
-    <p>O LabTrack pode sugerir <strong>protocolos de injetáveis Essentia Pharma</strong> personalizados com base nos exames do paciente.</p>
+    <p>Após a IA gerar a análise, o médico pode <strong>revisar e editar</strong> cada seção antes de considerar o relatório como final.</p>
 
+    <h3>Como funciona</h3>
     <div class="step">
       <div class="step-num">1</div>
-      <div>Na página do paciente, clique no botão <strong>"Protocolos IA"</strong> (ícone de seringa, verde).</div>
+      <div>Após a análise ser gerada, clique em <strong>"Revisar"</strong> para abrir o painel de revisão.</div>
     </div>
     <div class="step">
       <div class="step-num">2</div>
-      <div>A IA analisará os marcadores alterados e sugerirá protocolos injetáveis específicos.</div>
+      <div>Cada seção do relatório (resumo, categorias, condutas) pode ser <strong>aprovada</strong>, <strong>editada</strong> ou ter o texto modificado.</div>
     </div>
     <div class="step">
       <div class="step-num">3</div>
-      <div>Os protocolos sugeridos são incluídos no relatório PDF quando gerado com análise IA.</div>
+      <div>O estado de revisão é salvo automaticamente e preservado entre sessões.</div>
     </div>
 
-    <p>Os protocolos disponíveis incluem: protocolo imunidade, reposição de aminoácidos, vitaminas e minerais, ALA, vitamina D, B12, CoQ10, nanomicelas de curcuminoides e resveratrol, e Morosil.</p>
+    <h3>Detecção de análise desatualizada</h3>
+    <p>Se uma nova análise IA for gerada para o mesmo paciente/especialidade, o sistema detecta automaticamente que a revisão anterior ficou <strong>obsoleta</strong> (stale) e alerta o médico para re-revisar.</p>
+
+    <h3>Histórico de revisões</h3>
+    <p>O sistema mantém <strong>snapshots</strong> de cada estado de revisão, permitindo rastrear o histórico de alterações feitas pelo médico na análise da IA.</p>
 
     <div class="tip">
-      <strong>💡 Dica:</strong> A geração de protocolos depende da especialidade ter a opção "Protocolos Essentia" habilitada no Gerenciador de Prompts.
+      <strong>💡 Dica:</strong> O relatório PDF/Excel utiliza o texto revisado pelo médico quando disponível, garantindo que o documento final reflita as correções profissionais.
     </div>
   </section>
 
-  <!-- 9. Relatórios -->
+  <!-- 9. Prontuário Clínico -->
+  <section id="prontuario">
+    <h2>9. Prontuário Clínico <span class="badge badge-green">Novo</span></h2>
+
+    <p>O prontuário clínico permite registrar <strong>consultas</strong> com notas de evolução no formato <strong>SOAP</strong> (Subjetivo, Objetivo, Avaliação, Plano).</p>
+
+    <h3>Criando uma consulta</h3>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Na página do paciente, acesse a aba <strong>"Evolução Clínica"</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>Selecione a data e clique em <strong>"Nova Consulta"</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>Preencha a queixa principal e as seções SOAP: <strong>Subjetivo</strong>, <strong>Objetivo</strong>, <strong>Avaliação</strong> e <strong>Plano</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>Campos opcionais: <strong>Medicamentos</strong>, <strong>Exames solicitados</strong> e <strong>Notas livres</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div>Clique em <strong>"Salvar"</strong> para registrar a consulta.</div>
+    </div>
+
+    <h3>Status da consulta</h3>
+    <p>Cada consulta possui um status: <strong>Rascunho</strong> ou <strong>Finalizada</strong>. Consultas finalizadas não podem mais ser editadas, garantindo a integridade do registro clínico.</p>
+
+    <h3>Timeline</h3>
+    <p>Todas as consultas são exibidas em uma <strong>timeline</strong> organizada cronologicamente, com resumo visual de cada encontro.</p>
+  </section>
+
+  <!-- 10. Prescrições -->
+  <section id="prescricao">
+    <h2>10. Prescrições por Consulta <span class="badge badge-green">Novo</span></h2>
+
+    <p>Cada consulta pode ter uma <strong>prescrição</strong> associada, seja gerada pela IA ou criada manualmente.</p>
+
+    <h3>Criando uma prescrição</h3>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Dentro de uma consulta, acesse a seção de <strong>Prescrição</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>Adicione itens manualmente ou <strong>importe da análise IA</strong> (se disponível).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>Cada item de prescrição inclui: <strong>suplemento/medicamento</strong>, <strong>dosagem</strong>, <strong>posologia</strong>, <strong>duração</strong> e <strong>observações</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>Clique em <strong>"Salvar"</strong> para registrar a prescrição.</div>
+    </div>
+
+    <h3>Exportação</h3>
+    <p>A prescrição pode ser exportada em <strong>PDF</strong> ou <strong>CSV</strong> para envio ao paciente ou farmácia.</p>
+
+    <div class="tip">
+      <strong>💡 Dica:</strong> Quando a análise IA sugere suplementos, a tabela de prescrição já vem pré-preenchida. Basta revisar e ajustar conforme sua conduta.
+    </div>
+  </section>
+
+  <!-- 11. Anamnese -->
+  <section id="anamnese">
+    <h2>11. Anamnese Estruturada <span class="badge badge-green">Novo</span></h2>
+
+    <p>O LabTrack permite registrar a anamnese do paciente de forma <strong>estruturada por especialidade</strong>, incluindo extração automática de texto livre com IA.</p>
+
+    <h3>Preenchendo a anamnese</h3>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Na página do paciente, acesse a aba <strong>"Anamnese"</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>Selecione a <strong>especialidade</strong> (cada uma tem campos específicos).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>Preencha os campos manualmente ou cole um texto de anamnese e clique em <strong>"Converter com IA"</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>A IA extrai e preenche automaticamente os campos estruturados a partir do texto livre.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div>Revise os campos e clique em <strong>"Salvar"</strong>.</div>
+    </div>
+
+    <h3>Campos disponíveis</h3>
+    <p>Incluem: queixas, objetivos, nota de saúde, comorbidades, medicamentos, suplementação, hábitos, sintomas, sono, estresse, alimentação, intestino, ciclo menstrual, entre outros.</p>
+
+    <div class="tip">
+      <strong>💡 Dica:</strong> A anamnese estruturada é utilizada como contexto pela IA na análise clínica. Quanto mais completa, melhor a qualidade das sugestões.
+    </div>
+  </section>
+
+  <!-- 12. Composição Corporal -->
+  <section id="composicao">
+    <h2>12. Composição Corporal <span class="badge badge-green">Novo</span></h2>
+
+    <p>Registre dados de composição corporal por bioimpedância (InBody, Tanita, etc.) para acompanhar a evolução do paciente.</p>
+
+    <h3>Cadastro manual</h3>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Na página do paciente, acesse a aba <strong>"Composição Corporal"</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>Clique em <strong>"Registrar"</strong> e preencha os campos disponíveis.</div>
+    </div>
+
+    <h3>Importação de PDF InBody</h3>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Clique em <strong>"Importar PDF"</strong> e selecione o relatório de bioimpedância InBody.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>O sistema extrai automaticamente os valores (peso, gordura, massa muscular, TMB, etc.).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>Revise os campos pré-preenchidos e clique em <strong>"Salvar"</strong>.</div>
+    </div>
+
+    <h3>Métricas registradas</h3>
+    <ul>
+      <li><strong>Peso</strong>, <strong>IMC</strong>, <strong>Gordura corporal</strong> (kg e %)</li>
+      <li><strong>Massa muscular esquelética</strong> (kg)</li>
+      <li><strong>Gordura visceral</strong> (nível)</li>
+      <li><strong>Água corporal total</strong> (L), <strong>Relação AEC/ACT</strong></li>
+      <li><strong>TMB</strong> (kcal), <strong>Cintura</strong>, <strong>Quadril</strong>, <strong>Relação C/Q</strong></li>
+    </ul>
+
+    <div class="tip">
+      <strong>💡 Dica:</strong> Os dados de composição corporal são enviados como contexto para a IA durante a análise clínica, enriquecendo as sugestões de conduta.
+    </div>
+  </section>
+
+  <!-- 13. Laudos de Imagem -->
+  <section id="laudos">
+    <h2>13. Laudos de Imagem <span class="badge badge-green">Novo</span></h2>
+
+    <p>Registre laudos textuais de exames de imagem (ultrassom, tomografia, ressonância, densitometria, etc.) para complementar o prontuário.</p>
+
+    <h3>Cadastro manual</h3>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Na página do paciente, acesse a aba <strong>"Laudos de Imagem"</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>Selecione a data e clique em <strong>"Registrar"</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>Preencha: tipo de exame, região anatômica, achados, conclusão, recomendações, classificações (TI-RADS, BI-RADS, T-score, etc.).</div>
+    </div>
+
+    <h3>Importação de PDF com IA</h3>
+    <div class="new">
+      <strong>🆕 Novo:</strong> Agora é possível importar o PDF do laudo e ter os campos preenchidos automaticamente pela IA.
+    </div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Clique em <strong>"Importar PDF"</strong> e selecione o arquivo do laudo.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>O sistema extrai o texto do PDF e usa IA para identificar os campos estruturados.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>O formulário abre <strong>pré-preenchido</strong> com os dados extraídos e um banner indicando "Importado de PDF".</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>Revise todos os campos, corrija se necessário e clique em <strong>"Salvar"</strong>.</div>
+    </div>
+
+    <h3>Rastreabilidade</h3>
+    <ul>
+      <li>Laudos importados são salvos com <strong>source_type = "pdf_parsed_ai"</strong></li>
+      <li>O <strong>texto original</strong> extraído do PDF é preservado para auditoria</li>
+      <li>O <strong>nome do arquivo original</strong> é registrado</li>
+      <li>Laudos importados são identificados com badge <strong>"PDF"</strong> na listagem</li>
+    </ul>
+
+    <h3>Tipos de exame suportados</h3>
+    <ul>
+      <li>Ultrassom (tireoide, abdome, pelve, mama)</li>
+      <li>Densitometria óssea</li>
+      <li>Ressonância magnética</li>
+      <li>Tomografia</li>
+      <li>Raio-X, Mamografia, Ecocardiograma</li>
+      <li>Elastografia hepática</li>
+    </ul>
+
+    <div class="warn">
+      <strong>⚠️ Importante:</strong> A IA extrai apenas o texto do laudo — não interpreta imagens. Campos ambíguos ficam vazios. Sempre confira os dados antes de salvar.
+    </div>
+
+    <div class="tip">
+      <strong>💡 Dica:</strong> Laudos de imagem são utilizados como contexto complementar pela IA durante a análise clínica (Endocrinologia, Nutrologia, Ginecologia).
+    </div>
+  </section>
+
+  <!-- 14. Notas do Médico -->
+  <section id="notas">
+    <h2>14. Notas do Médico por Especialidade</h2>
+
+    <p>Registre observações clínicas específicas por especialidade que não se encaixam nos demais módulos.</p>
+
+    <h3>Campos disponíveis</h3>
+    <ul>
+      <li><strong>Impressão clínica</strong> e <strong>Hipóteses diagnósticas</strong></li>
+      <li><strong>Foco da consulta</strong> e <strong>Conduta planejada</strong></li>
+      <li><strong>Medicamentos prescritos</strong> e <strong>Resposta ao tratamento</strong></li>
+      <li><strong>Adesão ao tratamento</strong> e <strong>Motivação do paciente</strong></li>
+      <li><strong>Pontos de atenção</strong> e <strong>Próximos passos</strong></li>
+      <li><strong>Notas livres</strong></li>
+    </ul>
+
+    <p>As notas são organizadas por especialidade e paciente, servindo como registro longitudinal da evolução clínica.</p>
+  </section>
+
+  <!-- 15. Relatórios -->
   <section id="relatorio">
-    <h2>9. Gerando Relatórios em PDF</h2>
+    <h2>15. Gerando Relatórios (PDF e Excel)</h2>
 
+    <h3>Relatório PDF de Exames</h3>
     <div class="step">
       <div class="step-num">1</div>
-      <div>Na página do paciente, clique no botão <strong>"Exportar PDF"</strong> (ícone de download).</div>
+      <div>Na página do paciente, clique em <strong>"Exportar PDF"</strong>.</div>
     </div>
     <div class="step">
       <div class="step-num">2</div>
-      <div>Uma tela de revisão será exibida com todos os valores que entrarão no relatório.</div>
+      <div>Revise os valores na tela de pré-visualização.</div>
     </div>
     <div class="step">
       <div class="step-num">3</div>
-      <div>Revise e corrija qualquer valor, se necessário (clique no lápis ao lado do valor).</div>
-    </div>
-    <div class="step">
-      <div class="step-num">4</div>
       <div>Clique em <strong>"Gerar PDF"</strong> para baixar o relatório.</div>
     </div>
 
-    <p>O relatório gerado em layout <strong>paisagem</strong> inclui:</p>
-    <ul>
-      <li>Dados do paciente (nome, sexo, idade)</li>
-      <li>Tabela com Marcador, Valor, Unidade, Referência Funcional e Referência Laboratorial</li>
-      <li>Indicação visual com símbolos: ✓ (normal), ↑ (alto), ↓ (baixo)</li>
-      <li>Seção de <strong>Observações</strong> para detalhamento clínico</li>
-      <li>Seção de <strong>Protocolos Essentia Pharma</strong> (quando gerados com IA)</li>
-      <li>Data do exame</li>
-    </ul>
+    <p>O relatório inclui: dados do paciente, tabela de marcadores com valores, referências funcionais e laboratoriais, indicação visual de status (✓ normal, ↑ alto, ↓ baixo), e a análise IA revisada (quando disponível).</p>
+
+    <h3>Relatório V2 (Análise Clínica)</h3>
+    <p>Quando a análise IA V2 está disponível, o relatório inclui automaticamente as seções clínicas: resumo, análise por categoria, hipóteses e condutas.</p>
+
+    <h3>Excel de Evolução</h3>
+    <p>A tabela de evolução pode ser exportada em <strong>Excel</strong> com todas as datas, valores e referências para análise detalhada em planilha.</p>
+
+    <h3>PDF de Prescrição</h3>
+    <p>Prescrições podem ser exportadas em <strong>PDF</strong> individual ou <strong>CSV</strong> para integração com outros sistemas.</p>
   </section>
 
-  <!-- 10. Aliases -->
+  <!-- 16. Aliases -->
   <section id="aliases">
-    <h2>10. Configurando Aliases de Marcadores</h2>
+    <h2>16. Configurando Aliases de Marcadores</h2>
 
-    <p>Diferentes laboratórios podem usar nomes diferentes para o mesmo exame (ex: "TSH Ultra-Sensível" vs "TSH"). O sistema de <strong>aliases</strong> permite mapear esses nomes alternativos.</p>
+    <p>Diferentes laboratórios podem usar nomes diferentes para o mesmo exame. O sistema de <strong>aliases</strong> permite mapear esses nomes alternativos.</p>
 
     <div class="step">
       <div class="step-num">1</div>
-      <div>Na tela de nova sessão, clique no ícone de <strong>engrenagem ⚙️</strong> (configurações de aliases).</div>
+      <div>Na tela de nova sessão, clique no ícone de <strong>engrenagem ⚙️</strong>.</div>
     </div>
     <div class="step">
       <div class="step-num">2</div>
@@ -473,104 +703,81 @@
     </div>
     <div class="step">
       <div class="step-num">3</div>
-      <div>Adicione os <strong>nomes alternativos</strong> que o laboratório usa para aquele marcador.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">4</div>
-      <div>Na próxima importação, o sistema reconhecerá automaticamente os aliases configurados.</div>
+      <div>Adicione os <strong>nomes alternativos</strong> usados pelo laboratório.</div>
     </div>
 
     <div class="tip">
-      <strong>💡 Dica:</strong> O sistema já vem com diversos aliases pré-configurados para os laboratórios mais comuns. Você só precisa adicionar novos aliases quando encontrar um nome que não foi reconhecido automaticamente.
+      <strong>💡 Dica:</strong> O sistema já vem com centenas de aliases pré-configurados. Adicione novos apenas quando um nome não for reconhecido automaticamente.
     </div>
   </section>
 
-  <!-- 11. Perfil -->
+  <!-- 17. Perfil -->
   <section id="perfil">
-    <h2>11. Perfil do Paciente</h2>
+    <h2>17. Perfil do Paciente</h2>
 
-    <p>O perfil do paciente enriquece as análises da IA com contexto clínico. Para editar, clique no botão <strong>"Perfil"</strong> (ícone de pessoa, azul) na página do paciente.</p>
+    <p>O perfil enriquece as análises da IA com contexto clínico. Clique em <strong>"Perfil"</strong> na página do paciente.</p>
 
     <h3>Campos disponíveis</h3>
     <ul>
-      <li><strong>Nome</strong> e <strong>Sexo</strong> (obrigatórios, definidos no cadastro)</li>
-      <li><strong>Data de nascimento</strong> – usada para calcular a idade automaticamente</li>
-      <li><strong>Queixas principais</strong> – sintomas reportados pelo paciente</li>
-      <li><strong>Objetivos</strong> – metas de saúde (ex: emagrecimento, performance, longevidade)</li>
+      <li><strong>Nome</strong> e <strong>Sexo</strong> (obrigatórios)</li>
+      <li><strong>Data de nascimento</strong> – idade calculada automaticamente</li>
+      <li><strong>Queixas principais</strong> – sintomas reportados</li>
+      <li><strong>Objetivos</strong> – metas de saúde (emagrecimento, performance, longevidade)</li>
       <li><strong>Nível de atividade</strong> – sedentário, leve, moderado, intenso</li>
       <li><strong>Modalidade esportiva</strong> – tipo de exercício praticado</li>
-      <li><strong>Restrições</strong> – alergias, intolerâncias, restrições alimentares</li>
+      <li><strong>Restrições</strong> – alergias, intolerâncias, restrições</li>
     </ul>
 
-    <p>O botão "Perfil" exibe entre parênteses a quantidade de objetivos preenchidos, facilitando a identificação rápida de pacientes com perfil completo.</p>
-
     <div class="tip">
-      <strong>💡 Dica:</strong> Quanto mais completo o perfil, mais precisa será a análise da IA. Preencha ao menos as queixas e objetivos para melhores resultados.
+      <strong>💡 Dica:</strong> Quanto mais completo o perfil, mais precisa será a análise da IA.
     </div>
   </section>
 
-  <!-- 12. Gerenciador de Prompts -->
+  <!-- 18. Prompts -->
   <section id="prompts">
-    <h2>12. Gerenciador de Prompts <span class="badge badge-green">Novo</span></h2>
+    <h2>18. Gerenciador de Prompts</h2>
 
-    <p>O Gerenciador de Prompts permite configurar os <strong>prompts de análise clínica</strong> enviados à IA para cada especialidade. Acesse pelo botão <strong>"Prompts IA"</strong> no cabeçalho do sistema.</p>
+    <p>Configure os <strong>prompts de análise clínica</strong> para cada especialidade. Acesse pelo botão <strong>"Prompts IA"</strong> no cabeçalho.</p>
 
     <h3>Funcionalidades</h3>
     <ul>
-      <li><strong>Visualizar</strong> todos os prompts configurados com prévia do conteúdo</li>
-      <li><strong>Editar</strong> o prompt, nome, ícone e descrição de cada especialidade</li>
-      <li><strong>Ativar/Desativar</strong> especialidades (somente as ativas aparecem no seletor)</li>
-      <li><strong>Habilitar Protocolos Essentia</strong> por especialidade (toggle individual)</li>
-      <li><strong>Criar novas especialidades</strong> com ID, nome, ícone e prompt personalizado</li>
-      <li><strong>Controle de versão</strong> – cada prompt possui versão e autor registrados</li>
+      <li><strong>Visualizar</strong> e <strong>editar</strong> prompts por especialidade</li>
+      <li><strong>Ativar/Desativar</strong> especialidades</li>
+      <li><strong>Criar novas especialidades</strong> com ID, nome, ícone e prompt</li>
+      <li><strong>Controle de versão</strong> – versão e autor registrados</li>
     </ul>
 
-    <h3>Criando uma nova especialidade</h3>
-    <div class="step">
-      <div class="step-num">1</div>
-      <div>Clique em <strong>"Nova Especialidade"</strong>.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div>Preencha o <strong>ID</strong> (slug único, ex: "cardiologia"), <strong>nome</strong>, <strong>ícone</strong> (emoji) e o <strong>prompt do sistema</strong>.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div>Opcionalmente, habilite o <strong>sistema de Protocolos Essentia</strong> para que a IA sugira injetáveis.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">4</div>
-      <div>Clique em <strong>"Criar Especialidade"</strong>.</div>
-    </div>
-
     <div class="tip">
-      <strong>💡 Dica:</strong> Recomendamos seguir o framework <strong>CERTO</strong> (Contexto, Exigência, Referências, Tarefas, Observações) ao escrever novos prompts para garantir análises consistentes e completas.
+      <strong>💡 Dica:</strong> Use o framework <strong>CERTO</strong> (Contexto, Exigência, Referências, Tarefas, Observações) ao escrever prompts para resultados consistentes.
     </div>
   </section>
 
-  <!-- 13. Dicas -->
+  <!-- 19. Dicas -->
   <section id="dicas">
-    <h2>13. Dicas e Boas Práticas</h2>
+    <h2>19. Dicas e Boas Práticas</h2>
 
     <ul>
-      <li>📋 <strong>Sempre revise</strong> os valores extraídos do PDF antes de confirmar a importação.</li>
-      <li>📅 <strong>Mantenha as datas corretas</strong> – a evolução depende de datas precisas para cada sessão.</li>
-      <li>👤 <strong>Preencha o perfil completo</strong> – quanto mais informações sobre o paciente, melhor será a análise da IA.</li>
-      <li>🔍 <strong>Use a busca</strong> para encontrar rapidamente marcadores na tabela de evolução ou pacientes no dashboard.</li>
-      <li>📄 <strong>PDFs de boa qualidade</strong> – PDFs digitais (não escaneados) geram melhores resultados na extração.</li>
-      <li>🔄 <strong>Importe múltiplos exames</strong> – o LabTrack brilha quando há dados de múltiplas datas para comparação.</li>
-      <li>⚙️ <strong>Configure aliases</strong> quando um marcador não for reconhecido automaticamente.</li>
-      <li>🧠 <strong>Escolha a especialidade correta</strong> antes de gerar a análise IA para obter condutas mais direcionadas.</li>
-      <li>💉 <strong>Use Protocolos IA</strong> para receber sugestões de injetáveis baseadas nos achados laboratoriais.</li>
-      <li>🎛️ <strong>Personalize os prompts</strong> no Gerenciador para adequar a linguagem e o foco da IA à sua prática clínica.</li>
+      <li>📋 <strong>Sempre revise</strong> valores extraídos do PDF antes de confirmar.</li>
+      <li>📅 <strong>Mantenha datas corretas</strong> – a evolução depende de datas precisas.</li>
+      <li>👤 <strong>Preencha o perfil completo</strong> e a <strong>anamnese</strong> para melhores análises IA.</li>
+      <li>🏋️ <strong>Registre composição corporal</strong> regularmente para acompanhar tendências.</li>
+      <li>🩻 <strong>Cadastre laudos de imagem</strong> para contexto clínico mais completo.</li>
+      <li>📝 <strong>Use o prontuário</strong> para registrar cada consulta com notas SOAP.</li>
+      <li>✅ <strong>Revise a análise IA</strong> antes de gerar o relatório final.</li>
+      <li>🔍 <strong>Use a busca</strong> para encontrar marcadores e pacientes rapidamente.</li>
+      <li>📄 <strong>PDFs digitais</strong> geram melhores resultados que PDFs escaneados.</li>
+      <li>🔄 <strong>Importe múltiplos exames</strong> para comparação longitudinal.</li>
+      <li>⚙️ <strong>Configure aliases</strong> quando marcadores não forem reconhecidos.</li>
+      <li>🧠 <strong>Escolha a especialidade correta</strong> antes de gerar a análise IA.</li>
+      <li>🎛️ <strong>Personalize os prompts</strong> para adequar à sua prática clínica.</li>
     </ul>
   </section>
 
 </div>
 
 <footer>
-  <p>LabTrack – Acompanhamento Inteligente de Exames Laboratoriais</p>
-  <p>Manual v2.0 – Março 2026</p>
+  <p>LabTrack – Acompanhamento Clínico e Laboratorial Inteligente</p>
+  <p>Manual v3.0 – Março 2026</p>
 </footer>
 
 </body>
