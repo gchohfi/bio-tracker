@@ -395,7 +395,7 @@ export default function PatientDetail() {
       supabase.from("patients").select("*").eq("id", id!).single(),
       supabase.from("lab_sessions").select("*").eq("patient_id", id!).order("session_date", { ascending: false }),
       (supabase as any).from("analysis_prompts").select("specialty_id, specialty_name, specialty_icon, has_protocols").eq("is_active", true).order("specialty_name"),
-      (supabase as any).from("patient_analyses").select("*").eq("patient_id", id!).order("created_at", { ascending: false }),
+      (supabase as any).from("patient_analyses").select("id, patient_id, specialty_id, specialty_name, mode, summary, full_text, technical_analysis, patient_plan, patterns, trends, suggestions, prescription_table, protocol_recommendations, analysis_v2_data, encounter_id, model_used, created_at, updated_at").eq("patient_id", id!).order("created_at", { ascending: false }),
       user?.id ? (supabase as any).from("clinical_encounters").select("id, encounter_date, chief_complaint").eq("patient_id", id!).eq("practitioner_id", user.id).order("encounter_date", { ascending: false }) : Promise.resolve({ data: [] }),
     ]);
 
