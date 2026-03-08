@@ -1637,10 +1637,10 @@ export default function PatientDetail() {
                           variant="ghost"
                           size="icon"
                           onClick={(e) => { e.stopPropagation(); setPendingDeleteSessionId(session.id); }}
-                          title="Excluir"
-                          className="text-destructive hover:text-destructive"
+                          title="Excluir sessão"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       </div>
