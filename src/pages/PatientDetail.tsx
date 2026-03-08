@@ -470,7 +470,7 @@ export default function PatientDetail() {
 
     const vals: Record<string, string> = {};
     data?.forEach((r) => {
-      const marker = MARKERS.find(m => m.id === r.marker_id);
+      const marker = MARKER_MAP.get(r.marker_id);
       if (marker?.qualitative) {
         vals[r.marker_id] = r.text_value || "";
       } else if (r.text_value && /^[<>≤≥]=?\s*\d/.test(r.text_value.trim())) {
