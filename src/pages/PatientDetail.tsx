@@ -1552,43 +1552,45 @@ export default function PatientDetail() {
 
         {/* Tabs for Sessions, Evolution and AI Analysis */}
         <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as any)}>
-          <TabsList>
-            <TabsTrigger value="clinical_evolution" className="gap-1.5">
-              <FileText className="h-3.5 w-3.5" />
-              Prontuário
-            </TabsTrigger>
-            <TabsTrigger value="sessions" className="gap-1.5">
-              <FlaskConical className="h-3.5 w-3.5" />
-              Exames
-            </TabsTrigger>
-            <TabsTrigger value="evolution" className="gap-1.5">
-              <BarChart3 className="h-3.5 w-3.5" />
-              Evolução Clínica
-            </TabsTrigger>
-            <TabsTrigger value="timeline" className="gap-1.5">
-              <Clock className="h-3.5 w-3.5" />
-              Evolutivo de Exames
-            </TabsTrigger>
-            <TabsTrigger value="analysis" className="gap-1.5">
-              <Brain className="h-3.5 w-3.5" />
-              Análise IA
-              {savedAnalyses.length > 0 && (
-                <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{savedAnalyses.length}</Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="anamnese" className="gap-1.5">
-              <ClipboardList className="h-3.5 w-3.5" />
-              Anamnese
-            </TabsTrigger>
-            <TabsTrigger value="body_composition" className="gap-1.5">
-              <Scale className="h-3.5 w-3.5" />
-              Composição Corporal
-            </TabsTrigger>
-            <TabsTrigger value="imaging" className="gap-1.5">
-              <FileImage className="h-3.5 w-3.5" />
-              Laudos de Imagem
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-1 px-1">
+            <TabsList className="w-max">
+              <TabsTrigger value="clinical_evolution" className="gap-1.5">
+                <FileText className="h-3.5 w-3.5" />
+                Prontuário
+              </TabsTrigger>
+              <TabsTrigger value="sessions" className="gap-1.5">
+                <FlaskConical className="h-3.5 w-3.5" />
+                Exames
+              </TabsTrigger>
+              <TabsTrigger value="evolution" className="gap-1.5">
+                <BarChart3 className="h-3.5 w-3.5" />
+                Evolução Clínica
+              </TabsTrigger>
+              <TabsTrigger value="timeline" className="gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                Evolutivo de Exames
+              </TabsTrigger>
+              <TabsTrigger value="analysis" className="gap-1.5">
+                <Brain className="h-3.5 w-3.5" />
+                Análise IA
+                {savedAnalyses.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{savedAnalyses.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="anamnese" className="gap-1.5">
+                <ClipboardList className="h-3.5 w-3.5" />
+                Anamnese
+              </TabsTrigger>
+              <TabsTrigger value="body_composition" className="gap-1.5">
+                <Scale className="h-3.5 w-3.5" />
+                Composição Corporal
+              </TabsTrigger>
+              <TabsTrigger value="imaging" className="gap-1.5">
+                <FileImage className="h-3.5 w-3.5" />
+                Laudos de Imagem
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="sessions" className="mt-4">
             {sessions.length === 0 ? (
