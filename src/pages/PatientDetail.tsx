@@ -1598,9 +1598,13 @@ export default function PatientDetail() {
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <FlaskConical className="mb-4 h-12 w-12 text-muted-foreground/50" />
                   <p className="text-lg font-medium">Nenhuma sessão registrada</p>
-                  <p className="text-sm text-muted-foreground">
-                    Clique em "Nova Sessão" para adicionar exames
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Adicione a primeira sessão de exames para este paciente.
                   </p>
+                  <Button size="sm" onClick={openNewSession}>
+                    <Plus className="mr-1.5 h-4 w-4" />
+                    Nova Sessão
+                  </Button>
                 </CardContent>
               </Card>
             ) : (
