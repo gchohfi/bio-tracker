@@ -298,7 +298,7 @@ export function EncounterPrescriptionEditor({
         <CardContent className="p-4 space-y-3">
           {/* Header */}
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <p className="text-xs font-medium flex items-center gap-1.5">
+            <div className="text-xs font-medium flex items-center gap-1.5">
               <Pill className="h-3.5 w-3.5 text-primary" />
               Prescrição da Consulta
               <Badge
