@@ -808,6 +808,14 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Import Dialog ── */}
+      <AnamneseImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onConfirm={handleImportConfirm}
+        currentData={getStructured(importSpecialty ?? activeSpecialty)}
+      />
     </div>
   );
 }
