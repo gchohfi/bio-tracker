@@ -226,6 +226,9 @@ export function generateEvolutionPdf({ data, patientName }: GenerateOptions) {
   }
 
   // ── Download ──
+  // ── TRACE ──
+  Trace.export("", "", "pdf", "evolutivo");
+
   const safeName = patientName.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 30);
   doc.save(`Evolutivo_${safeName}_${format(new Date(), "yyyyMMdd")}.pdf`);
 }
