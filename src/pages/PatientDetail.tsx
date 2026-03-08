@@ -1544,6 +1544,10 @@ export default function PatientDetail() {
               <Scale className="h-3.5 w-3.5" />
               Composição Corporal
             </TabsTrigger>
+            <TabsTrigger value="imaging" className="gap-1.5">
+              <FileImage className="h-3.5 w-3.5" />
+              Laudos de Imagem
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="sessions" className="mt-4">
