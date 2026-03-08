@@ -45,6 +45,7 @@ import {
   ClipboardList,
   Stethoscope,
   Scale,
+  FileImage,
   Clock,
   ChevronRight,
   MoreVertical,
@@ -62,6 +63,7 @@ import { AnamneseTab } from "@/components/AnamneseTab";
 import { ClinicalEvolutionTab } from "@/components/ClinicalEvolutionTab";
 import { ClinicalEvolutionSummary } from "@/components/ClinicalEvolutionSummary";
 import { BodyCompositionTab } from "@/components/BodyCompositionTab";
+import { ImagingReportsTab } from "@/components/ImagingReportsTab";
 import { generatePatientReport } from "@/lib/generateReport";
 import { exportPrescriptionCSV } from "@/lib/exportPrescriptionCSV";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
@@ -1542,6 +1544,10 @@ export default function PatientDetail() {
               <Scale className="h-3.5 w-3.5" />
               Composição Corporal
             </TabsTrigger>
+            <TabsTrigger value="imaging" className="gap-1.5">
+              <FileImage className="h-3.5 w-3.5" />
+              Laudos de Imagem
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="sessions" className="mt-4">
@@ -2013,6 +2019,11 @@ export default function PatientDetail() {
                   }
                 }}
               />
+            )}
+          </TabsContent>
+          <TabsContent value="imaging" className="mt-4">
+            {patient && (
+              <ImagingReportsTab patientId={patient.id} />
             )}
           </TabsContent>
           <TabsContent value="body_composition" className="mt-4">
