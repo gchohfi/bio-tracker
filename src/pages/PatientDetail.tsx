@@ -1713,9 +1713,14 @@ export default function PatientDetail() {
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <Brain className="mb-4 h-12 w-12 text-muted-foreground/50" />
-                  <p className="text-lg font-medium">Nenhuma análise gerada ainda</p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Gere a primeira análise clínica com inteligência artificial.
+                  <p className="text-lg font-medium">Nenhuma análise gerada</p>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    A IA analisa os exames, anamnese e histórico do paciente.
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    {sessions.length === 0
+                      ? "Cadastre uma sessão de exames primeiro."
+                      : "Selecione uma especialidade e clique em 'Análise IA' no topo."}
                   </p>
                   {sessions.length > 0 && (
                     <Button

@@ -396,26 +396,45 @@ export default function Index() {
             </Card>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((p) => (
-                <Card
-                  key={p.id}
-                  className="cursor-pointer transition-colors hover:bg-muted/50"
-                  onClick={() => navigate(`/patient/${p.id}`)}
-                >
-                  <CardContent className="flex items-center gap-3 p-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                      {p.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(p.created_at).toLocaleDateString("pt-BR")}
-                      </p>
-                    </div>
-                    <Badge variant="secondary">{p.sex === "M" ? "Masc" : "Fem"}</Badge>
-                  </CardContent>
-                </Card>
-              ))}
+              {filtered.map((p) => {
+                const age = p.birth_date ? (() => {
+                  const today = new Date();
+                  const birth = new Date(p.birth_date);
+                  return today.getFullYear() - birth.getFullYear() -
+                    (today < new Date(today.getFullYear(), birth.getMonth(), birth.getDate()) ? 1 : 0);
+                })() : null;
+
+                return (
+                  <Card
+                    key={p.id}
+                    className="cursor-pointer transition-colors hover:bg-muted/50"
+                    onClick={() => navigate(`/patient/${p.id}`)}
+                  >
+                    <CardContent className="flex items-center gap-3 p-4">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                        {p.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{p.name}</p>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <span>{p.sex === "M" ? "Masc" : "Fem"}</span>
+                          {age !== null && (
+                            <>
+                              <span>•</span>
+                              <span>{age} anos</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      {p.objectives && p.objectives.length > 0 && (
+                        <Badge variant="outline" className="text-[10px] shrink-0">
+                          {p.objectives.length} obj.
+                        </Badge>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
