@@ -790,6 +790,7 @@ export type Database = {
           id: string
           patient_id: string
           specialty_id: string
+          structured_data: Json | null
           updated_at: string | null
         }
         Insert: {
@@ -798,6 +799,7 @@ export type Database = {
           id?: string
           patient_id: string
           specialty_id: string
+          structured_data?: Json | null
           updated_at?: string | null
         }
         Update: {
@@ -806,6 +808,7 @@ export type Database = {
           id?: string
           patient_id?: string
           specialty_id?: string
+          structured_data?: Json | null
           updated_at?: string | null
         }
         Relationships: [
