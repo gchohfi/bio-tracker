@@ -1685,9 +1685,21 @@ export default function PatientDetail() {
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <Brain className="mb-4 h-12 w-12 text-muted-foreground/50" />
                   <p className="text-lg font-medium">Nenhuma análise gerada ainda</p>
-                  <p className="text-sm text-muted-foreground">
-                    Clique em "✨ Análise IA" para gerar a primeira análise com IA
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Gere a primeira análise clínica com inteligência artificial.
                   </p>
+                  {sessions.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleGenerateAnalysis()}
+                      disabled={isAnalyzing}
+                      className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                    >
+                      <Brain className="mr-1.5 h-4 w-4" />
+                      Gerar Análise IA
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ) : (
