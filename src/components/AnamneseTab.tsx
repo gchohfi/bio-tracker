@@ -154,6 +154,12 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
   const [loading, setLoading] = useState(true);
   const [showLegacy, setShowLegacy] = useState<Record<string, boolean>>({});
 
+  // Conversion state
+  const [converting, setConverting] = useState(false);
+  const [conversionSuggestion, setConversionSuggestion] = useState<StructuredAnamnese | null>(null);
+  const [conversionSpecialty, setConversionSpecialty] = useState<string | null>(null);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+
   // ── Load ──
   useEffect(() => {
     const load = async () => {
