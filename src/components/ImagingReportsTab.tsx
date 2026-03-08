@@ -30,10 +30,13 @@ interface ImagingReport {
   exam_region: string | null;
   findings: string | null;
   conclusion: string | null;
+  recommendations: string | null;
   incidental_findings: string | null;
   measurements: Record<string, unknown> | null;
   classifications: string | null;
   source_lab: string | null;
+  source_type: string;
+  specialty_id: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -45,6 +48,7 @@ interface FormFields {
   exam_region: string | null;
   findings: string | null;
   conclusion: string | null;
+  recommendations: string | null;
   incidental_findings: string | null;
   classifications: string | null;
   source_lab: string | null;
@@ -57,6 +61,7 @@ const EMPTY_FORM: FormFields = {
   exam_region: null,
   findings: null,
   conclusion: null,
+  recommendations: null,
   incidental_findings: null,
   classifications: null,
   source_lab: null,
@@ -123,6 +128,7 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
       exam_region: r.exam_region,
       findings: r.findings,
       conclusion: r.conclusion,
+      recommendations: r.recommendations,
       incidental_findings: r.incidental_findings,
       classifications: r.classifications,
       source_lab: r.source_lab,
@@ -146,6 +152,7 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
       exam_region: form.exam_region || null,
       findings: form.findings || null,
       conclusion: form.conclusion || null,
+      recommendations: form.recommendations || null,
       incidental_findings: form.incidental_findings || null,
       classifications: form.classifications || null,
       source_lab: form.source_lab || null,
@@ -359,6 +366,10 @@ export function ImagingReportsTab({ patientId }: ImagingReportsTabProps) {
           <div className="space-y-1.5">
             <Label className="text-xs">Conclusão</Label>
             <Textarea value={form.conclusion ?? ""} onChange={(e) => updateField("conclusion", e.target.value)} rows={3} className="text-sm resize-none" placeholder="Conclusão do radiologista / médico..." />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Recomendações</Label>
+            <Textarea value={form.recommendations ?? ""} onChange={(e) => updateField("recommendations", e.target.value)} rows={2} className="text-sm resize-none" placeholder="Recomendações do laudo (acompanhamento, repetir em X meses...)" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Achados incidentais</Label>
