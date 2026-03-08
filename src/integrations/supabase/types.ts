@@ -484,8 +484,10 @@ export type Database = {
           incidental_findings: string | null
           measurements: Json | null
           notes: string | null
+          original_file_name: string | null
           patient_id: string
           practitioner_id: string
+          raw_text: string | null
           recommendations: string | null
           report_date: string
           source_lab: string | null
@@ -504,8 +506,10 @@ export type Database = {
           incidental_findings?: string | null
           measurements?: Json | null
           notes?: string | null
+          original_file_name?: string | null
           patient_id: string
           practitioner_id: string
+          raw_text?: string | null
           recommendations?: string | null
           report_date?: string
           source_lab?: string | null
@@ -524,8 +528,10 @@ export type Database = {
           incidental_findings?: string | null
           measurements?: Json | null
           notes?: string | null
+          original_file_name?: string | null
           patient_id?: string
           practitioner_id?: string
+          raw_text?: string | null
           recommendations?: string | null
           report_date?: string
           source_lab?: string | null
