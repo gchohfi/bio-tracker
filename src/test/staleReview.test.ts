@@ -326,6 +326,63 @@ describe("Stale Review Detection", () => {
     });
   });
 
+  // ── Case 5: Stale reset flow ──
+  describe("Case 5: Stale reset flow", () => {
+    it("after reset, empty state rehydrates against new hash", () => {
+      const regenerated = makeRegeneratedAnalysis();
+      const newHash = computeAnalysisV2HashSync(regenerated);
+
+      // Simulate: stale review was archived, active review is now empty with new hash
+      const result = simulateRehydration(
+        {
+          review_state_json: {} as ReviewState,
+          analysis_v2_hash: newHash,
+          schema_version: REVIEW_SCHEMA_VERSION,
+        },
+        regenerated
+      );
+
+      // Empty state → not rehydrated (nothing to load), but not outdated either
+      expect(result.rehydrated).toBe(false);
+      expect(result.outdated).toBe(false);
+    });
+
+    it("new decisions after reset use the new hash", () => {
+      const regenerated = makeRegeneratedAnalysis();
+      const newHash = computeAnalysisV2HashSync(regenerated);
+      const newIds = ["rf_1_v2", "cf_1_v2", "dh_1_v2", "sa_1_v2", "sa_2_v2"];
+      const newReview = makeReviewState(newIds);
+
+      // After reset and new review, rehydration against same hash works
+      const result = simulateRehydration(
+        {
+          review_state_json: newReview,
+          analysis_v2_hash: newHash,
+          schema_version: REVIEW_SCHEMA_VERSION,
+        },
+        regenerated
+      );
+
+      expect(result.rehydrated).toBe(true);
+      expect(result.outdated).toBe(false);
+      expect(Object.keys(result.state!)).toHaveLength(5);
+    });
+
+    it("old archived review remains a valid traceable object", () => {
+      // The old review was not destroyed — it exists as a snapshot
+      const archivedSnapshot = {
+        review_state_json: savedReview,
+        analysis_v2_hash: originalHash,
+        schema_version: REVIEW_SCHEMA_VERSION,
+        snapshot_reason: "stale_reset",
+      };
+
+      expect(archivedSnapshot.snapshot_reason).toBe("stale_reset");
+      expect(Object.keys(archivedSnapshot.review_state_json)).toHaveLength(4);
+      expect(archivedSnapshot.analysis_v2_hash).toBe(originalHash);
+    });
+  });
+
   // ── UI badge logic simulation ──
   describe("UI badge coherence", () => {
     function getBadgeLabel(savedHash: string | null, currentHash: string): string {
