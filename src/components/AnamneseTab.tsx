@@ -342,6 +342,33 @@ export function AnamneseTab({ patient }: AnamneseTabProps) {
     toast({ title: "Sugestão descartada", description: "Nenhuma alteração foi feita." });
   };
 
+  // ── Import handler ──
+  const handleImportConfirm = (result: ImportResult) => {
+    if (!importSpecialty) return;
+    const current = getStructured(importSpecialty);
+    const merged: StructuredAnamnese = { ...current };
+
+    // Apply imported fields — overwrite target fields
+    for (const [key, value] of Object.entries(result.fields)) {
+      (merged as any)[key] = value;
+    }
+
+    setStructuredMap((prev) => ({ ...prev, [importSpecialty!]: merged }));
+
+    // Store original imported text in legacy for auditability
+    setLegacyTexts((prev) => ({
+      ...prev,
+      [importSpecialty!]: result.importedText,
+    }));
+
+    setImportSpecialty(null);
+  };
+
+  const openImportDialog = (specId: string) => {
+    setImportSpecialty(specId);
+    setImportDialogOpen(true);
+  };
+
   // ── Loading state ──
   if (loading) {
     return (
