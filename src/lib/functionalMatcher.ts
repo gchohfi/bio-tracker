@@ -271,6 +271,7 @@ export interface FunctionalMatchLog {
   originalName: string;
   normalizedName: string;
   markerId: string;
+  context: string; // "sérico" | "não-sérico" | "derivado"
   matchType: MatchType;
   matchedFuncId: string | null;
   score: number;
