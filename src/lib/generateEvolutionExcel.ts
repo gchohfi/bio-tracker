@@ -186,7 +186,6 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
   });
 
   // Column widths
-  const sex = patientSex ?? "M";
   const evoColumns: Partial<ExcelJS.Column>[] = [
     { width: 32, key: "analito" }, // Analyte name
   ];
