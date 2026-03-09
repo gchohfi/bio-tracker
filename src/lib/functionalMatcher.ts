@@ -445,14 +445,14 @@ export function matchFunctionalRef(
       if (areUnitsIncompatible(canonicalUnit, byAlias.unit)) {
         const converted = resolveFunctionalRef(aliasId, value, sex, canonicalUnit);
         if (converted) {
-          const log = makeLog("alias", aliasId, 90, `match por alias "${normalizedName}" → ${aliasId} + conversão`, byAlias.unit, true);
-          return { result: converted, score: 90, log };
+          const log = makeLog("alias", aliasId, 95, `match por alias "${normalizedName}" → ${aliasId} + conversão`, byAlias.unit, true);
+          return { result: converted, score: 95, log };
         }
         const log = makeLog("alias", aliasId, score, `alias match mas unidade incompatível: ${canonicalUnit} vs ${byAlias.unit}`, byAlias.unit, false);
         return { result: null, score, log };
       }
 
-      if (score >= 90) {
+      if (score >= 95) {
         const result = resolveFunctionalRef(aliasId, value, sex, canonicalUnit);
         if (result) {
           const log = makeLog("alias", aliasId, score, `match por alias "${normalizedName}" → ${aliasId}`, byAlias.unit, true);
