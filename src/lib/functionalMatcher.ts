@@ -340,10 +340,30 @@ export function matchFunctionalRef(
     filled,
   });
 
-  // ── Step 0: Skip urine / fecal markers (they must NOT match blood markers) ──
+  // ── Step 0: Context blocker — skip non-serum markers ──
+  // Markers whose name or ID contain specimen-specific terms must NOT match
+  // generic serum/blood functional references.
+  const CONTEXT_BLOCK_TERMS = [
+    "urina", "fezes", "fecal", "saliva", "24h",
+    "liquido", "liquor", "abs", "quantitativo",
+  ];
   const EXCLUDED_PREFIXES = ["urina_", "copro_"];
-  if (EXCLUDED_PREFIXES.some((p) => markerId.startsWith(p))) {
-    const log = makeLog("none", null, 0, "marcador de urina/fezes — excluído do matching funcional", "", false);
+  const nameLower = markerName
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+  const blockedByPrefix = EXCLUDED_PREFIXES.some((p) => markerId.startsWith(p));
+  const blockedByTerm = CONTEXT_BLOCK_TERMS.some((term) => {
+    // Match as whole word or in parentheses to avoid false positives
+    // e.g. "urina" matches "(urina)" and "Hemoglobina (urina)" but not "urinase"
+    const re = new RegExp(`(\\b${term}\\b|\\(${term}\\))`, "i");
+    return re.test(nameLower);
+  });
+
+  if (blockedByPrefix || blockedByTerm) {
+    const context = blockedByPrefix
+      ? `prefixo bloqueado: ${markerId}`
+      : `termo bloqueado detectado no nome: "${markerName}"`;
+    const log = makeLog("none", null, 0, `contexto não-sérico — ${context}`, "", false);
     return { result: null, score: 0, log };
   }
 
