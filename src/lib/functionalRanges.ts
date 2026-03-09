@@ -262,7 +262,10 @@ export function resolveFunctionalRef(
     displayUnit = canonicalUnit;
   }
 
-  const [min, max] = effectiveRange;
+  const [rawMin, rawMax] = effectiveRange;
+  // Round to avoid floating-point artifacts (e.g. 0.11000000000000001)
+  const min = parseFloat(rawMin.toPrecision(10));
+  const max = parseFloat(rawMax.toPrecision(10));
   const refText = max >= 9000
     ? `> ${min} ${displayUnit}`
     : min === 0
