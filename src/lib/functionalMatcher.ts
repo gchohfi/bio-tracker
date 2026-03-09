@@ -12,8 +12,8 @@
  *   4. Tentar match por aliases controlados
  *   5. Validar compatibilidade de unidade
  *   6. Validar sexo
- *   7. Calcular score de confiança
- *   8. Preencher somente quando score >= 90 (ou 85 com candidato único)
+ *   7. Calcular score de confiança (100=exato+unit, 95=alias+unit, 85=exato+vazio)
+ *   8. Preencher somente quando score >= 95 (ou 85 com candidato único exato)
  */
 
 import { MARKERS, type MarkerDef } from "@/lib/markers";
@@ -255,7 +255,7 @@ function computeScore(
   const isExact = matchType === "exact_id" || matchType === "exact_name";
 
   if (isExact && unitCompat && !unitEmpty) return 100;
-  if (!isExact && unitCompat && !unitEmpty) return 90; // alias
+  if (!isExact && unitCompat && !unitEmpty) return 95; // alias + unit OK
   if (isExact && unitEmpty) return 85;
   if (!isExact && unitEmpty) return 75;
   // incompatible unit
@@ -445,14 +445,14 @@ export function matchFunctionalRef(
       if (areUnitsIncompatible(canonicalUnit, byAlias.unit)) {
         const converted = resolveFunctionalRef(aliasId, value, sex, canonicalUnit);
         if (converted) {
-          const log = makeLog("alias", aliasId, 90, `match por alias "${normalizedName}" → ${aliasId} + conversão`, byAlias.unit, true);
-          return { result: converted, score: 90, log };
+          const log = makeLog("alias", aliasId, 95, `match por alias "${normalizedName}" → ${aliasId} + conversão`, byAlias.unit, true);
+          return { result: converted, score: 95, log };
         }
         const log = makeLog("alias", aliasId, score, `alias match mas unidade incompatível: ${canonicalUnit} vs ${byAlias.unit}`, byAlias.unit, false);
         return { result: null, score, log };
       }
 
-      if (score >= 90) {
+      if (score >= 95) {
         const result = resolveFunctionalRef(aliasId, value, sex, canonicalUnit);
         if (result) {
           const log = makeLog("alias", aliasId, score, `match por alias "${normalizedName}" → ${aliasId}`, byAlias.unit, true);
