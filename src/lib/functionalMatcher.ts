@@ -366,10 +366,11 @@ export function matchFunctionalRef(
   });
 
   if (blockedByPrefix || blockedByTerm) {
-    const context = blockedByPrefix
+    const ctxDetail = blockedByPrefix
       ? `prefixo bloqueado: ${markerId}`
       : `termo bloqueado detectado no nome: "${markerName}"`;
-    const log = makeLog("none", null, 0, `contexto não-sérico — ${context}`, "", false);
+    const log = makeLog("none", null, 0, `contexto não-sérico — ${ctxDetail}`, "", false);
+    log.context = "não-sérico";
     return { result: null, score: 0, log };
   }
 
