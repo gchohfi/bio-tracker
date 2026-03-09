@@ -98,6 +98,25 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
 
   const numDates = data.dates.length;
   const totalMarkers = data.sections.reduce((acc, s) => acc + s.markers.length, 0);
+  const sex = patientSex ?? "M";
+
+  // ── Batch functional matching with logs ──
+  const allMarkers: Array<{ markerId: string; markerName: string; value: number | null; unit: string }> = [];
+  for (const section of data.sections) {
+    for (const marker of section.markers) {
+      let lastValue: number | null = null;
+      for (let di = data.dates.length - 1; di >= 0; di--) {
+        const c = marker.values_by_date[data.dates[di]];
+        if (c?.value !== null && c?.value !== undefined) {
+          lastValue = c.value;
+          break;
+        }
+      }
+      allMarkers.push({ markerId: marker.marker_id, markerName: marker.marker_name, value: lastValue, unit: marker.unit });
+    }
+  }
+  // Log matching results to console for debugging
+  batchMatchFunctionalRefs(allMarkers, sex, true);
 
   // ════════════════════════════════════════════════════════════════════════
   // ABA 1 — Resumo
