@@ -531,7 +531,7 @@ export function batchMatchFunctionalRefs(
       const icon = log.filled ? "✅" : log.matchType === "none" ? "⬜" : "⚠️";
       console.log(
         `${icon} ${log.originalName} → norm:"${log.normalizedName}" | ` +
-        `type:${log.matchType} | func:${log.matchedFuncId ?? "—"} | ` +
+        `ctx:${log.context} | type:${log.matchType} | func:${log.matchedFuncId ?? "—"} | ` +
         `score:${log.score} | ${log.reason}`
       );
     }
