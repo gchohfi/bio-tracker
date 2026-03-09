@@ -201,12 +201,15 @@ export async function buildEvolutionReport(patientId: string): Promise<Evolution
     if (labRefText && !referenceMap[markerId]) referenceMap[markerId] = labRefText;
 
     // Compute flag using resolveReference (with sanity checking + correct sex)
+    // For DERIVED markers, ignore stored lab_ref_text and use labRange directly
+    // to stay consistent with the displayed reference (buildFallbackRef uses labRange)
     const markerDef = markerDefMap.get(markerId);
+    const flagLabRef = DERIVED_MARKERS.has(markerId) ? undefined : labRefText;
     const flag = computeFlag(
       r.value ?? null,
       markerDef,
       patientSex,
-      labRefText,
+      flagLabRef,
     );
 
     cellMap[markerId][sessionDate] = {
