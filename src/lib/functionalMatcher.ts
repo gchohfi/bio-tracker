@@ -81,6 +81,10 @@ const NAME_ALIASES: Record<string, string> = {
   "apoa1": "apo_a1",
   "apo a1": "apo_a1",
   "apo a-1": "apo_a1",
+
+  // Ferro — painel metabólico como alias do sérico
+  "ferro": "ferro_serico",
+  "ferro painel metabolismo do ferro": "ferro_serico",
   "apolipoproteina b": "apo_b",
   "apob": "apo_b",
   "apo b": "apo_b",
