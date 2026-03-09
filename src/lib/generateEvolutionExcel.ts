@@ -20,7 +20,7 @@ import type {
   EvolutionReportData,
   EvolutionCellValue,
 } from "@/lib/evolutionReportBuilder";
-import { resolveFunctionalRef } from "@/lib/functionalRanges";
+import { matchFunctionalRef, batchMatchFunctionalRefs } from "@/lib/functionalMatcher";
 
 /* ── Color helpers ── */
 function rgbToArgb(rgb: { r: number; g: number; b: number }): string {
