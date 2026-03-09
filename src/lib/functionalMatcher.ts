@@ -336,6 +336,7 @@ export function matchFunctionalRef(
     originalName: markerName,
     normalizedName,
     markerId,
+    context: "sérico", // default; overridden by blocker
     matchType,
     matchedFuncId,
     score,
