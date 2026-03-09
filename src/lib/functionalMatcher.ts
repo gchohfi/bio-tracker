@@ -340,6 +340,13 @@ export function matchFunctionalRef(
     filled,
   });
 
+  // ── Step 0: Skip urine / fecal markers (they must NOT match blood markers) ──
+  const EXCLUDED_PREFIXES = ["urina_", "copro_"];
+  if (EXCLUDED_PREFIXES.some((p) => markerId.startsWith(p))) {
+    const log = makeLog("none", null, 0, "marcador de urina/fezes — excluído do matching funcional", "", false);
+    return { result: null, score: 0, log };
+  }
+
   // ── Step 1: Try exact marker_id match ──
   const byId = FUNC_BY_ID.get(markerId);
   if (byId) {
