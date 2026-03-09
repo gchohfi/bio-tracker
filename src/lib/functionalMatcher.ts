@@ -81,6 +81,10 @@ const NAME_ALIASES: Record<string, string> = {
   "apoa1": "apo_a1",
   "apo a1": "apo_a1",
   "apo a-1": "apo_a1",
+
+  // Ferro — painel metabólico como alias do sérico
+  "ferro": "ferro_serico",
+  "ferro painel metabolismo do ferro": "ferro_serico",
   "apolipoproteina b": "apo_b",
   "apob": "apo_b",
   "apo b": "apo_b",
@@ -267,6 +271,7 @@ export interface FunctionalMatchLog {
   originalName: string;
   normalizedName: string;
   markerId: string;
+  context: string; // "sérico" | "não-sérico" | "derivado"
   matchType: MatchType;
   matchedFuncId: string | null;
   score: number;
@@ -331,6 +336,7 @@ export function matchFunctionalRef(
     originalName: markerName,
     normalizedName,
     markerId,
+    context: "sérico", // default; overridden by blocker
     matchType,
     matchedFuncId,
     score,
@@ -340,10 +346,31 @@ export function matchFunctionalRef(
     filled,
   });
 
-  // ── Step 0: Skip urine / fecal markers (they must NOT match blood markers) ──
+  // ── Step 0: Context blocker — skip non-serum markers ──
+  // Markers whose name or ID contain specimen-specific terms must NOT match
+  // generic serum/blood functional references.
+  const CONTEXT_BLOCK_TERMS = [
+    "urina", "fezes", "fecal", "saliva", "24h",
+    "liquido", "liquor", "abs", "quantitativo",
+  ];
   const EXCLUDED_PREFIXES = ["urina_", "copro_"];
-  if (EXCLUDED_PREFIXES.some((p) => markerId.startsWith(p))) {
-    const log = makeLog("none", null, 0, "marcador de urina/fezes — excluído do matching funcional", "", false);
+  const nameLower = markerName
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+  const blockedByPrefix = EXCLUDED_PREFIXES.some((p) => markerId.startsWith(p));
+  const blockedByTerm = CONTEXT_BLOCK_TERMS.some((term) => {
+    // Match as whole word or in parentheses to avoid false positives
+    // e.g. "urina" matches "(urina)" and "Hemoglobina (urina)" but not "urinase"
+    const re = new RegExp(`(\\b${term}\\b|\\(${term}\\))`, "i");
+    return re.test(nameLower);
+  });
+
+  if (blockedByPrefix || blockedByTerm) {
+    const ctxDetail = blockedByPrefix
+      ? `prefixo bloqueado: ${markerId}`
+      : `termo bloqueado detectado no nome: "${markerName}"`;
+    const log = makeLog("none", null, 0, `contexto não-sérico — ${ctxDetail}`, "", false);
+    log.context = "não-sérico";
     return { result: null, score: 0, log };
   }
 
@@ -504,7 +531,7 @@ export function batchMatchFunctionalRefs(
       const icon = log.filled ? "✅" : log.matchType === "none" ? "⬜" : "⚠️";
       console.log(
         `${icon} ${log.originalName} → norm:"${log.normalizedName}" | ` +
-        `type:${log.matchType} | func:${log.matchedFuncId ?? "—"} | ` +
+        `ctx:${log.context} | type:${log.matchType} | func:${log.matchedFuncId ?? "—"} | ` +
         `score:${log.score} | ${log.reason}`
       );
     }
