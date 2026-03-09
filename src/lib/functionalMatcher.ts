@@ -12,8 +12,8 @@
  *   4. Tentar match por aliases controlados
  *   5. Validar compatibilidade de unidade
  *   6. Validar sexo
- *   7. Calcular score de confiança
- *   8. Preencher somente quando score >= 90 (ou 85 com candidato único)
+ *   7. Calcular score de confiança (100=exato+unit, 95=alias+unit, 85=exato+vazio)
+ *   8. Preencher somente quando score >= 95 (ou 85 com candidato único exato)
  */
 
 import { MARKERS, type MarkerDef } from "@/lib/markers";
