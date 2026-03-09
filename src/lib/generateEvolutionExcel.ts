@@ -20,7 +20,7 @@ import type {
   EvolutionReportData,
   EvolutionCellValue,
 } from "@/lib/evolutionReportBuilder";
-import { resolveFunctionalRef } from "@/lib/functionalRanges";
+import { matchFunctionalRef, batchMatchFunctionalRefs } from "@/lib/functionalMatcher";
 
 /* ── Color helpers ── */
 function rgbToArgb(rgb: { r: number; g: number; b: number }): string {
@@ -98,6 +98,25 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
 
   const numDates = data.dates.length;
   const totalMarkers = data.sections.reduce((acc, s) => acc + s.markers.length, 0);
+  const sex = patientSex ?? "M";
+
+  // ── Batch functional matching with logs ──
+  const allMarkers: Array<{ markerId: string; markerName: string; value: number | null; unit: string }> = [];
+  for (const section of data.sections) {
+    for (const marker of section.markers) {
+      let lastValue: number | null = null;
+      for (let di = data.dates.length - 1; di >= 0; di--) {
+        const c = marker.values_by_date[data.dates[di]];
+        if (c?.value !== null && c?.value !== undefined) {
+          lastValue = c.value;
+          break;
+        }
+      }
+      allMarkers.push({ markerId: marker.marker_id, markerName: marker.marker_name, value: lastValue, unit: marker.unit });
+    }
+  }
+  // Log matching results to console for debugging
+  batchMatchFunctionalRefs(allMarkers, sex, true);
 
   // ════════════════════════════════════════════════════════════════════════
   // ABA 1 — Resumo
@@ -167,7 +186,6 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
   });
 
   // Column widths
-  const sex = patientSex ?? "M";
   const evoColumns: Partial<ExcelJS.Column>[] = [
     { width: 32, key: "analito" }, // Analyte name
   ];
@@ -254,7 +272,7 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
       }
       rowValues.push(marker.reference_text || "—");
 
-      // ── Functional reference (parallel layer) ──
+      // ── Functional reference (parallel layer via matcher) ──
       // Use last available numeric value for status evaluation
       let lastValue: number | null = null;
       for (let di = data.dates.length - 1; di >= 0; di--) {
@@ -265,7 +283,8 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
         }
       }
 
-      const funcResult = resolveFunctionalRef(marker.marker_id, lastValue, sex, marker.unit);
+      const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, lastValue, sex, marker.unit);
+      const funcResult = funcMatch.result;
       rowValues.push(funcResult?.refText ?? "");
       rowValues.push(
         funcResult === null ? ""
@@ -384,7 +403,8 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
         if (!cell) continue;
 
         const status = cell.flag === "high" ? "Alto" : cell.flag === "low" ? "Baixo" : "Normal";
-        const funcResult = resolveFunctionalRef(marker.marker_id, cell.value, sex, marker.unit);
+        const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, cell.value, sex, marker.unit);
+        const funcResult = funcMatch.result;
 
         const row = wsDados.addRow({
           category: section.category,
