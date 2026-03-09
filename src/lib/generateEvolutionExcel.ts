@@ -254,7 +254,7 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
       }
       rowValues.push(marker.reference_text || "—");
 
-      // ── Functional reference (parallel layer) ──
+      // ── Functional reference (parallel layer via matcher) ──
       // Use last available numeric value for status evaluation
       let lastValue: number | null = null;
       for (let di = data.dates.length - 1; di >= 0; di--) {
@@ -265,7 +265,8 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
         }
       }
 
-      const funcResult = resolveFunctionalRef(marker.marker_id, lastValue, sex, marker.unit);
+      const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, lastValue, sex, marker.unit);
+      const funcResult = funcMatch.result;
       rowValues.push(funcResult?.refText ?? "");
       rowValues.push(
         funcResult === null ? ""
