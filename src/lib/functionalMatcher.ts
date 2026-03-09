@@ -255,7 +255,7 @@ function computeScore(
   const isExact = matchType === "exact_id" || matchType === "exact_name";
 
   if (isExact && unitCompat && !unitEmpty) return 100;
-  if (!isExact && unitCompat && !unitEmpty) return 90; // alias
+  if (!isExact && unitCompat && !unitEmpty) return 95; // alias + unit OK
   if (isExact && unitEmpty) return 85;
   if (!isExact && unitEmpty) return 75;
   // incompatible unit
