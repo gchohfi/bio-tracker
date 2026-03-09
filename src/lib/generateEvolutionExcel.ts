@@ -385,7 +385,8 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
         if (!cell) continue;
 
         const status = cell.flag === "high" ? "Alto" : cell.flag === "low" ? "Baixo" : "Normal";
-        const funcResult = resolveFunctionalRef(marker.marker_id, cell.value, sex, marker.unit);
+        const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, cell.value, sex, marker.unit);
+        const funcResult = funcMatch.result;
 
         const row = wsDados.addRow({
           category: section.category,
