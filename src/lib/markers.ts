@@ -331,26 +331,26 @@ export const MARKERS: MarkerDef[] = [
   { id: "iodo_urinario",   name: "Iodo Urinário",    unit: "µg/L",         category: "Minerais",
     labRange: { M: [100, 300], F: [100, 300] }, panel: "Adicional" },
 
-  // ── Toxicologia ───────────────────────────────────────────────────────────
-  { id: "chumbo",          name: "Chumbo",           unit: "µg/dL",        category: "Toxicologia",
+  // ── Metais Pesados ──────────────────────────────────────────────────────
+  { id: "chumbo",          name: "Chumbo",           unit: "µg/dL",        category: "Metais Pesados",
     labRange: { M: [0, 5], F: [0, 5] }, panel: "Padrão" },
 
-  { id: "mercurio",        name: "Mercúrio",         unit: "µg/L",         category: "Toxicologia",
+  { id: "mercurio",        name: "Mercúrio",         unit: "µg/L",         category: "Metais Pesados",
     labRange: { M: [0, 5.9], F: [0, 5.9] }, panel: "Padrão" },
 
-  { id: "cadmio",          name: "Cádmio",           unit: "µg/L",         category: "Toxicologia",
+  { id: "cadmio",          name: "Cádmio",           unit: "µg/L",         category: "Metais Pesados",
     labRange: { M: [0, 1.2], F: [0, 1.2] }, panel: "Adicional" },
 
-  { id: "aluminio",        name: "Alumínio",         unit: "µg/L",         category: "Toxicologia",
+  { id: "aluminio",        name: "Alumínio",         unit: "µg/L",         category: "Metais Pesados",
     labRange: { M: [0, 10], F: [0, 10] }, panel: "Padrão" },
 
-  { id: "cobalto",         name: "Cobalto",          unit: "µg/L",         category: "Toxicologia",
+  { id: "cobalto",         name: "Cobalto",          unit: "µg/L",         category: "Metais Pesados",
     labRange: { M: [0, 0.9], F: [0, 0.9] }, panel: "Adicional" },
 
-  { id: "arsenico",        name: "Arsênico",         unit: "mcg/L",        category: "Toxicologia",
+  { id: "arsenico",        name: "Arsênico",         unit: "mcg/L",        category: "Metais Pesados",
     labRange: { M: [0, 10], F: [0, 10] }, panel: "Adicional" },
 
-  { id: "niquel",          name: "Níquel",           unit: "µg/L",         category: "Toxicologia",
+  { id: "niquel",          name: "Níquel",           unit: "µg/L",         category: "Metais Pesados",
     labRange: { M: [0, 2.5], F: [0, 2.5] }, panel: "Adicional" },
 
   // ── Hepático ──────────────────────────────────────────────────────────────
