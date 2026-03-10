@@ -116,7 +116,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "vitamina_d",      range: { M: [40, 100], F: [40, 100] },       unit: "ng/mL" },
   { marker_id: "vitamina_b12",    range: { M: [650, 9999], F: [650, 9999] },   unit: "pg/mL" },
   { marker_id: "acido_folico",    range: { M: [15, 9999], F: [15, 9999] },     unit: "ng/mL" },
-  { marker_id: "vitamina_a",      range: { M: [0.5, 0.7], F: [0.5, 0.7] },     unit: "mg/L" },
+  { marker_id: "vitamina_a",      range: { M: [0.5, 0.7], F: [0.5, 0.7] },     unit: "µg/L" },
   { marker_id: "vitamina_c",      range: { M: [1.0, 9999], F: [1.0, 9999] },   unit: "mg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
