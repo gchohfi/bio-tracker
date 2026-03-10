@@ -192,6 +192,278 @@ export function getFunctionalRange(markerId: string): FunctionalRange | undefine
   return _index.get(markerId);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// QUALITATIVE FUNCTIONAL REFERENCES
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Referência funcional qualitativa para marcadores textuais (urina, fezes etc.).
+ * Estrutura separada das referências numéricas — sem min/max.
+ */
+export interface QualitativeFunctionalRef {
+  marker_id: string;
+  reference_type: "qualitative";
+  /** Texto esperado como "normal" (exibido na coluna Ref. Funcional) */
+  expected_text: string;
+  /** Todos os valores textuais considerados normais (já normalizados) */
+  accepted_values: string[];
+  /** Map de equivalências brutas → valor normalizado para comparação */
+  normalization_map?: Record<string, string>;
+}
+
+/**
+ * Normaliza texto qualitativo para comparação:
+ * - lowercase, sem acentos, sem espaços extras, sem pontuação
+ */
+export function normalizeQualitativeText(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[.,;:!?()]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Mapa global de normalização: variantes brutas → forma canônica */
+const GLOBAL_NORMALIZATION: Record<string, string> = {
+  // negativo
+  "negativo": "negativo",
+  "neg": "negativo",
+  "nao detectado": "negativo",
+  "não detectado": "negativo",
+  "nao detectavel": "negativo",
+  "não detectável": "negativo",
+  "n/d": "negativo",
+  "nenhum": "negativo",
+  "nao reativo": "negativo",
+  "não reativo": "negativo",
+  "indetectavel": "negativo",
+  "indetectável": "negativo",
+  // ausente
+  "ausente": "ausente",
+  "ausentes": "ausente",
+  "nao observado": "ausente",
+  "não observado": "ausente",
+  "nao observados": "ausente",
+  "não observados": "ausente",
+  "nao encontrado": "ausente",
+  "não encontrado": "ausente",
+  "nao encontrados": "ausente",
+  "não encontrados": "ausente",
+  "nao visualizado": "ausente",
+  "nao visualizados": "ausente",
+  // raríssimos
+  "rarissimos": "rarissimos",
+  "raríssimos": "rarissimos",
+  "rarissimas": "rarissimos",
+  "raros": "raros",
+  "raras": "raros",
+  // normal
+  "normal": "normal",
+  "normals": "normal",
+  "dentro da normalidade": "normal",
+  // presente
+  "presente": "presente",
+  "presentes": "presente",
+  "positivo": "presente",
+  "pos": "presente",
+  "detectado": "presente",
+  "detectavel": "presente",
+  "reativo": "presente",
+};
+
+/**
+ * Tabela de referências funcionais qualitativas.
+ * Cada entrada define o valor esperado e equivalências aceitas como "normal".
+ */
+export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
+  // ═══════════════════════════════════════════════════════════════════
+  // URINA
+  // ═══════════════════════════════════════════════════════════════════
+  {
+    marker_id: "urina_nitritos",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo"],
+  },
+  {
+    marker_id: "urina_bilirrubina",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo"],
+  },
+  {
+    marker_id: "urina_cetona",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo"],
+  },
+  {
+    marker_id: "urina_proteinas",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "urina_glicose",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "normal"],
+  },
+  {
+    marker_id: "urina_hemoglobina",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "urina_cilindros",
+    reference_type: "qualitative",
+    expected_text: "Ausente",
+    accepted_values: ["ausente", "negativo", "rarissimos"],
+  },
+  {
+    marker_id: "urina_celulas",
+    reference_type: "qualitative",
+    expected_text: "Raras",
+    accepted_values: ["raros", "rarissimos", "ausente", "negativo"],
+  },
+  {
+    marker_id: "urina_bacterias",
+    reference_type: "qualitative",
+    expected_text: "Ausente",
+    accepted_values: ["ausente", "negativo", "rarissimos", "raros"],
+  },
+  {
+    marker_id: "urina_cristais",
+    reference_type: "qualitative",
+    expected_text: "Ausente",
+    accepted_values: ["ausente", "negativo"],
+  },
+  {
+    marker_id: "urina_muco",
+    reference_type: "qualitative",
+    expected_text: "Ausente",
+    accepted_values: ["ausente", "negativo", "rarissimos"],
+  },
+  {
+    marker_id: "urina_urobilinogenio",
+    reference_type: "qualitative",
+    expected_text: "Normal",
+    accepted_values: ["normal", "negativo"],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // COPROLÓGICO
+  // ═══════════════════════════════════════════════════════════════════
+  {
+    marker_id: "copro_parasitas",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "copro_sangue",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "copro_muco",
+    reference_type: "qualitative",
+    expected_text: "Ausente",
+    accepted_values: ["ausente", "negativo"],
+  },
+  {
+    marker_id: "copro_leucocitos",
+    reference_type: "qualitative",
+    expected_text: "Ausente",
+    accepted_values: ["ausente", "negativo", "rarissimos", "raros"],
+  },
+  {
+    marker_id: "copro_hemacias",
+    reference_type: "qualitative",
+    expected_text: "Ausente",
+    accepted_values: ["ausente", "negativo"],
+  },
+  {
+    marker_id: "copro_gordura",
+    reference_type: "qualitative",
+    expected_text: "Ausente",
+    accepted_values: ["ausente", "negativo"],
+  },
+  {
+    marker_id: "copro_fibras",
+    reference_type: "qualitative",
+    expected_text: "Ausente",
+    accepted_values: ["ausente", "negativo", "rarissimos", "raros"],
+  },
+  {
+    marker_id: "copro_amido",
+    reference_type: "qualitative",
+    expected_text: "Ausente",
+    accepted_values: ["ausente", "negativo"],
+  },
+  {
+    marker_id: "copro_residuos",
+    reference_type: "qualitative",
+    expected_text: "Ausente",
+    accepted_values: ["ausente", "negativo"],
+  },
+  {
+    marker_id: "copro_ac_graxos",
+    reference_type: "qualitative",
+    expected_text: "Ausente",
+    accepted_values: ["ausente", "negativo"],
+  },
+  {
+    marker_id: "copro_celulose",
+    reference_type: "qualitative",
+    expected_text: "Ausente",
+    accepted_values: ["ausente", "negativo", "rarissimos"],
+  },
+];
+
+// ── Qualitative index ──
+const _qualIndex = new Map<string, QualitativeFunctionalRef>();
+for (const qr of QUALITATIVE_FUNCTIONAL_RANGES) {
+  _qualIndex.set(qr.marker_id, qr);
+}
+
+export function getQualitativeFunctionalRef(markerId: string): QualitativeFunctionalRef | undefined {
+  return _qualIndex.get(markerId);
+}
+
+/**
+ * Resolve qualitative functional reference status.
+ * Returns FunctionalResult with refText and status.
+ */
+export function resolveQualitativeFunctionalRef(
+  markerId: string,
+  textValue: string | null | undefined,
+): FunctionalResult | null {
+  const qr = _qualIndex.get(markerId);
+  if (!qr) return null;
+
+  const refText = qr.expected_text;
+
+  if (!textValue || textValue.trim() === "") {
+    return { refText, status: null };
+  }
+
+  // Normalize the input text
+  const normalized = normalizeQualitativeText(textValue);
+
+  // Try global normalization map first
+  const mapped = GLOBAL_NORMALIZATION[normalized] ?? normalized;
+
+  // Check if mapped value is in accepted_values
+  const isNormal = qr.accepted_values.includes(mapped);
+
+  return { refText, status: isNormal ? "normal" : "fora" };
+}
+
 // ── Simple unit conversion for functional range adaptation ──
 // Only converts the *functional range* to match the marker's canonical unit.
 

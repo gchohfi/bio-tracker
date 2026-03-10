@@ -21,6 +21,7 @@ import {
   FUNCTIONAL_RANGES,
   type FunctionalRange,
   type FunctionalResult,
+  resolveQualitativeFunctionalRef,
 } from "@/lib/functionalRanges";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -331,6 +332,7 @@ export function matchFunctionalRef(
   value: number | null,
   sex: "M" | "F",
   canonicalUnit: string,
+  textValue?: string | null,
 ): FunctionalMatchResult {
   const normalizedName = normalizeAnalyteName(markerName);
 
@@ -355,9 +357,17 @@ export function matchFunctionalRef(
     filled,
   });
 
-  // ── Step 0: Context blocker — skip non-serum markers ──
-  // Markers whose name or ID contain specimen-specific terms must NOT match
-  // generic serum/blood functional references.
+  // ── Step 0a: Try qualitative functional ref BEFORE context blocker ──
+  // Qualitative refs are specifically designed for urine/stool markers
+  // and should bypass the serum context blocker.
+  const qualResult = resolveQualitativeFunctionalRef(markerId, textValue);
+  if (qualResult) {
+    const log = makeLog("exact_id", markerId, 100, "match qualitativo funcional", "", true);
+    log.context = "qualitativo";
+    return { result: qualResult, score: 100, log };
+  }
+
+  // ── Step 0b: Context blocker — skip non-serum markers ──
   const CONTEXT_BLOCK_TERMS = [
     "urina", "fezes", "fecal", "saliva", "24h",
     "liquido", "liquor", "abs", "quantitativo",
@@ -368,8 +378,6 @@ export function matchFunctionalRef(
 
   const blockedByPrefix = EXCLUDED_PREFIXES.some((p) => markerId.startsWith(p));
   const blockedByTerm = CONTEXT_BLOCK_TERMS.some((term) => {
-    // Match as whole word or in parentheses to avoid false positives
-    // e.g. "urina" matches "(urina)" and "Hemoglobina (urina)" but not "urinase"
     const re = new RegExp(`(\\b${term}\\b|\\(${term}\\))`, "i");
     return re.test(nameLower);
   });

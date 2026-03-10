@@ -283,7 +283,14 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
         }
       }
 
-      const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, lastValue, sex, marker.unit);
+      const lastTextValue = (() => {
+        for (let di = data.dates.length - 1; di >= 0; di--) {
+          const c = marker.values_by_date[data.dates[di]];
+          if (c?.text_value) return c.text_value;
+        }
+        return null;
+      })();
+      const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, lastValue, sex, marker.unit, lastTextValue);
       const funcResult = funcMatch.result;
       rowValues.push(funcResult?.refText ?? "");
       rowValues.push(
@@ -403,7 +410,7 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
         if (!cell) continue;
 
         const status = cell.flag === "high" ? "Alto" : cell.flag === "low" ? "Baixo" : "Normal";
-        const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, cell.value, sex, marker.unit);
+        const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, cell.value, sex, marker.unit, cell.text_value || null);
         const funcResult = funcMatch.result;
 
         const row = wsDados.addRow({
