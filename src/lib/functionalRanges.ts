@@ -74,7 +74,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "apo_a1",          range: { M: [140, 9999], F: [140, 9999] },   unit: "mg/dL" },
   { marker_id: "apo_b",           range: { M: [0, 90], F: [0, 90] },           unit: "mg/dL" },
   { marker_id: "lipoproteina_a",  range: { M: [0, 30], F: [0, 30] },           unit: "nmol/L" },
-  { marker_id: "colesterol_nao_hdl", range: { M: [0, 130], F: [0, 130] },    unit: "mg/dL" }, // convenção funcional
+  // colesterol_nao_hdl: removido — não encontrado no V2
 
   // ── Relações lipídicas (V2) ──
   { marker_id: "relacao_ct_hdl",  range: { M: [0, 3.5], F: [0, 3.5] },         unit: "" },
