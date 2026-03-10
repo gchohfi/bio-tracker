@@ -98,7 +98,10 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
 
   const numDates = data.dates.length;
   const totalMarkers = data.sections.reduce((acc, s) => acc + s.markers.length, 0);
-  const sex = patientSex ?? "M";
+
+  // RULE: If patient sex is unknown, functional refs that depend on sex must be blank.
+  // Never default to "M" — that would apply male references to a female patient.
+  const sex: "M" | "F" | null = patientSex ?? null;
 
   // ── Batch functional matching with logs ──
   // RULE: Only use the most recent GLOBAL date. If a marker has no data there, skip it.
@@ -112,7 +115,12 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
     }
   }
   // Log matching results to console for debugging
-  batchMatchFunctionalRefs(allMarkers, sex, true);
+  if (sex) {
+    console.log(`[FunctionalMatcher] Sexo do paciente: ${sex === "M" ? "MASCULINO" : "FEMININO"} — referências funcionais usarão coluna ${sex}`);
+    batchMatchFunctionalRefs(allMarkers, sex, true);
+  } else {
+    console.warn("[FunctionalMatcher] Sexo do paciente AUSENTE — referências funcionais desabilitadas para evitar mistura M/F");
+  }
 
   // ════════════════════════════════════════════════════════════════════════
   // ABA 1 — Resumo
@@ -277,7 +285,7 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
         ((mostRecentCell.value !== null && mostRecentCell.value !== undefined) || mostRecentCell.text_value);
 
       let funcResult: { refText: string; status: string } | null = null;
-      if (hasDataOnMostRecent) {
+      if (sex && hasDataOnMostRecent) {
         const lastValue = mostRecentCell.value ?? null;
         const lastTextValue = mostRecentCell.text_value || null;
         const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, lastValue, sex, marker.unit, lastTextValue);
@@ -405,7 +413,7 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
         ((mrCell.value !== null && mrCell.value !== undefined) || mrCell.text_value);
 
       let funcResult: { refText: string; status: string } | null = null;
-      if (hasDataOnMostRecent) {
+      if (sex && hasDataOnMostRecent) {
         const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, mrCell.value ?? null, sex, marker.unit, mrCell.text_value || null);
         funcResult = funcMatch.result;
       }
