@@ -72,6 +72,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "apo_a1",          range: { M: [120, 9999], F: [120, 9999] },   unit: "mg/dL" },
   { marker_id: "apo_b",           range: { M: [0, 100], F: [0, 100] },         unit: "mg/dL" },
   { marker_id: "lipoproteina_a",  range: { M: [0, 30], F: [0, 30] },           unit: "nmol/L" },
+  { marker_id: "colesterol_nao_hdl", range: { M: [0, 130], F: [0, 130] },    unit: "mg/dL" }, // fonte: convenção funcional
 
   // ── Relações lipídicas ──
   { marker_id: "relacao_ct_hdl",  range: { M: [0, 3.5], F: [0, 3.5] },         unit: "" },
@@ -113,6 +114,8 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "fsh",             range: { M: [0, 10], F: [3.5, 12.5] },       unit: "mUI/mL" },
   { marker_id: "lh",              range: { M: [0, 9], F: [2.4, 12.6] },        unit: "mUI/mL" },
   { marker_id: "psa_total",       range: { M: [0, 2.5], F: [0, 2.5] },         unit: "ng/mL" },
+  { marker_id: "dihidrotestosterona", range: { M: [30, 85], F: [4, 22] },     unit: "ng/dL" }, // fonte: convenção funcional
+  // FAI, PSA Livre, PSA Ratio: sem fonte no PDF — não adicionados
 
   // ═══════════════════════════════════════════════════════════════════
   // VITAMINAS
