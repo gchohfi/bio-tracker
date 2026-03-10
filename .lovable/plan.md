@@ -1,84 +1,111 @@
 
-# Plano de Refatoração: Pipeline de Extração de Exames
 
-## Estado Atual
+## Reconciliation: VR_feita_pelo_claude.xlsx vs VR_BARBARA-2.pdf
 
-`index.ts` = 3334 linhas monolíticas. Diretório `pipeline/` existe com módulos (types, normalize, infer_unit, convert, validate) usados **apenas pelos testes** — não integrados ao fluxo real.
+After a thorough line-by-line comparison of both documents (including visual inspection of all 8 PDF pages), here are the findings:
 
-## Inventário de Funções no index.ts
+### Result: The XLSX is already highly faithful to the PDF
 
-| Linhas | Função | Módulo Alvo |
-|--------|--------|-------------|
-| 10-228 | `MARKER_LIST` | `constants.ts` |
-| 230 | `QUALITATIVE_IDS` | `constants.ts` |
-| 232-702 | `systemPrompt` | `extract.ts` |
-| 706-773 | `normalizeOperatorText()` + `deduplicateResults()` | `normalize.ts` |
-| 776-1311 | `validateAndFixValues()` | Dividir: conversões→`convert.ts`, anti-alucinação→`normalize.ts`, sanity→`validate.ts` |
-| 1319-1563 | `convertLabRefUnits()` | Dividir: ref fixes→`normalize.ts`, sanity→`validate.ts` |
-| 1566-1713 | `postProcessResults()` | `derive.ts` |
-| 1722-1912 | `toFloat()` + `parseLabRefRanges()` | `utils.ts` + `normalize.ts` |
-| 1920-2666 | `regexFallback()` | `extract.ts` |
-| 2668-2908 | `crossCheckAllMarkers()` | `validate.ts` |
-| 2910-2989 | `validateExtraction()` | `validate.ts` |
-| 2992-3334 | `serve()` handler | `index.ts` (orquestrador) |
+The spreadsheet (both the visual tab and the structured data tab) matches the PDF source of truth on virtually all markers. Below is the detailed audit:
 
-## Fontes de Dupla Conversão (A ELIMINAR)
+---
 
-### 1. Prompt pede conversão + sanityRanges.fix() faz a mesma
-Prompt pede: T3L ×10, estradiol ×10, zinco ×100, PCR ×10, testosterona_livre ÷34.7.
-Depois `fix()` aplica de novo.
+### Markers flagged as "corrigir obrigatoriamente"
 
-### 2. Fixes que são conversões disfarçadas
-- `t3_livre.fix`: `v < 1.0 ? v * 10` — conversão ng/dL→pg/mL
-- `estradiol.fix`: conversão ng/dL→pg/mL
-- `zinco.fix`: conversão µg/mL→µg/dL
-- `testosterona_livre.fix`: conversão pmol/L→ng/dL
-- `pcr.fix`: conversão mg/dL→mg/L
+| Marcador | Valor XLSX | Valor PDF | Ação |
+|---|---|---|---|
+| Hemoglobina | F: 12-15,5 / M: 13,5-17,5 | F: 12-15.5 / M: 13.5-17,5 | manter |
+| Hematócrito | F: 35-45 / M: 40-50 | F: 35-45 / M: 40-50 | manter |
+| VCM | 85-95 | 85-95 | manter |
+| HCM | 26-34 | 26-34 | manter |
+| CHCM | 31-36 | 31-36 | manter |
+| RDW | 10-13 | 10-13 | manter |
+| Leucócitos | 3.500-6.500 | 3.500-6500 | manter |
+| Plaquetas | 150.000-300.000 | 150.000-300.000 | manter |
+| Sat. Transferrina | 20-50 | 20-50 | manter |
+| HbA1c | < 5,4 | < 5.4 | manter |
+| Insulina Jejum | < 7 | < 7 | manter |
+| HOMA-BETA | 167-175 | 167-175 | manter |
+| HDL | F: > 46 / M: > 40 | F: >46 / M: >40 | manter |
+| LDL | < 115 | < 115 | manter |
+| ApoA1 | > 120 | > 120 | manter |
+| ApoB | < 100 | < 100 | manter |
+| Lipase | < 80 | < 80 | manter |
+| Fibrinogênio | < 300 | < 300 | manter |
+| TSH | 0,3-2,5 | 0.3-2.5 | manter |
+| T4 Livre | 0,9-1,5 | 0.9-1.5 | manter |
+| T3 Livre | 2,3-4,2 | 2.3-4.2 | manter |
+| T3 Reverso | 11-18 | 11-18 | manter |
+| T3T / T3R | < 0,6 | < 0.6 | manter |
+| Anti-TPO | Negativo | Negativo | manter |
+| Anti-Tireoglobulina | Negativo | Negativo | manter |
+| TRAb | Negativo | Negativo | manter |
+| T3L / T4L | > 0,33 | > 0.33 | manter |
+| Tireoglobulina | 10-15 ng/dL / 7-14 mCg/L | 10-15 ng/dL ou 7-14 mCg/L | manter |
+| Testosterona Total F | 25-50 | 25-50 | manter |
+| Prolactina F | < 30 | < 30 | manter |
+| Testosterona Livre M | 6,6-19,1 | >470 OU 6.6-19.1 | manter |
+| PSA Total | < 2,5 | < 2,5 | manter |
+| PSA Livre/Total | < 25% | < 25% | manter |
+| pH Fecal | 6,5-7,5 | 6.5-7.5 | manter |
+| Fibras | Presentes | Presentes | manter |
+| Bactérias | Normal | Normal | manter |
 
-### 3. Bloco PCR (linhas 948-974)
-Conversão explícita duplicada.
+### Blocos confirmados como corretos
 
-## Sequência de Implementação
+| Bloco | Status |
+|---|---|
+| Adrenais (Cortisol, Aldosterona, ACTH) | ✅ Correto |
+| Vitaminas/Minerais | ✅ Correto |
+| Função Hepática (GGT, TGO, TGP, FA, Albumina, Prot. Totais) | ✅ Correto |
+| Função Renal (Ureia, Creatinina) | ✅ Correto |
+| Eletrólitos (Na, K, Cl, CO2) | ✅ Correto |
+| Crescimento (IGFBP3, IGF-1 sem VR) | ✅ Correto |
+| Metais Pesados | ✅ Correto |
+| Autoimunidade | ✅ Correto |
+| Intolerâncias | ✅ Correto |
+| Coprológico | ✅ Correto |
+| CPK e LDH | ✅ Correto |
 
-### Fase 1: Extrair constantes e utils (baixo risco)
-1. `constants.ts` ← MARKER_LIST, QUALITATIVE_IDS, MARKER_TEXT_TERMS, CALCULATED_MARKERS
-2. `utils.ts` ← toFloat, OPERATOR_PATTERNS, parseBrNum
-3. Atualizar imports no index.ts
+### Campos vazios no XLSX porque o PDF não traz referência
 
-### Fase 2: Extrair módulos de processamento (risco médio)
-4. Expandir `normalize.ts` ← normalizeOperatorText, deduplicateResults, anti-alucinação, parseLabRefRanges, fixes de referência
-5. `derive.ts` ← postProcessResults, DHEA-S, reference overrides
-6. Expandir `validate.ts` ← crossCheckAllMarkers, validateExtraction, sanityRanges (sem fixes de conversão)
-7. `extract.ts` ← systemPrompt, regexFallback, chamada Gemini
+Estes marcadores estão corretamente marcados como `sem_vr`:
+- SDHEA (feminino) -- PDF lista marcador sem valor
+- Estradiol (feminino) -- varia por fase do ciclo
+- Progesterona (feminino) -- varia por fase do ciclo
+- 17-Hidroxiprogesterona -- sem VR no PDF
+- LH (feminino) -- varia por fase do ciclo
+- FSH (feminino) -- varia por fase do ciclo
+- DHT -- PDF lista apenas o nome sem valor
+- IGF-1 -- PDF lista "IGF 1" sem valor numérico
 
-### Fase 3: Eliminar dupla conversão (risco alto)
-8. Remover instruções de conversão do prompt
-9. Remover fixes de conversão do sanityRanges
-10. Remover bloco PCR separado
-11. Integrar inferUnits() + convertResults() do pipeline
+### Ponto de atenção: T3T/T3R vs T3L/T3R
 
-### Fase 4: Simplificar orquestrador
-12. Reescrever serve() handler
+Você pediu para corrigir para **T3L / T3R** (T3 Livre / T3 Reverso), mas o PDF diz explicitamente **"T3T / T3R"** com fórmula **"T3 Total / T3 Reverso"**. Seguindo a regra de usar o PDF como única fonte de verdade, o XLSX mantém T3T/T3R corretamente. Se quiser alterar para T3L/T3R, seria uma decisão clínica fora do escopo da reconciliação documental.
 
-## Trechos a REMOVER (dupla conversão)
+---
 
-### No prompt:
-- L396: T3L "multiply by 10"
-- L407: Testosterona Livre "DIVIDE by 34.7"
-- L411: Estradiol "MULTIPLY by 10"
-- L456: Zinco "MULTIPLY by 100"
-- L531: PCR "multiply by 10"
-- L671: bloco T3L conversão
+### Divergência real encontrada: `functionalRanges.ts` (código) vs PDF
 
-### Nos sanityRanges:
-- `t3_livre.fix`, `estradiol.fix`, `zinco.fix`, `testosterona_livre.fix`, `pcr.fix`
+A planilha XLSX está correta, mas o **código-fonte** (`src/lib/functionalRanges.ts`) que alimenta o sistema tem uma divergência:
 
-### Bloco PCR (L948-974)
+| Marcador | Código atual | PDF | Ação necessária |
+|---|---|---|---|
+| T3 Reverso | min: **9**, max: 18 | min: **11**, max: 18 | **Corrigir no código** |
+| VHS | [0,10] M / [0,15] F | **Não existe no PDF** | Marcar como "não no PDF" ou remover |
+| Vitamina A (Retinol) | unit: "mg/L" | unit: MCG/L (= µg/L) | **Corrigir unidade no código** |
+| Zinco | unit: "µg/dL" | unit: MCG/L (= µg/L) | **Corrigir unidade no código** |
 
-## Trechos a MANTER (fixes de decimal genuínos)
+### Conclusão
 
-- `leucocitos.fix`: escalonamento de milhar
-- `eritrocitos.fix`, `plaquetas.fix`: decimal/milhar
-- `prolactina.fix`, `insulina_jejum.fix`, `tsh.fix`: decimal
-- `tgo_ast.fix`, `tgp_alt.fix`, `acido_urico.fix`, `ferritina.fix`, `transferrina.fix`: decimal
-- WBC absolutos: escalonamento mil/mm³→/mm³
+**A planilha XLSX já está fiel ao PDF.** Não há correções necessárias no conteúdo da planilha.
+
+O que precisa de correção é o **código `functionalRanges.ts`** que tem 4 divergências em relação ao PDF fonte. O plano de implementação seria:
+
+1. Corrigir `t3_reverso` min de 9 para 11
+2. Corrigir `vitamina_a` unit de `"mg/L"` para `"µg/L"`
+3. Corrigir `zinco` unit de `"µg/dL"` para `"µg/L"`
+4. Avaliar se `vhs` deve permanecer (não está no PDF) ou ser removido/marcado
+
+Quer que eu prossiga com essas correções no código?
+
