@@ -184,6 +184,17 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "amilase",         range: { M: [30, 110], F: [30, 110] },       unit: "U/L" },
   { marker_id: "lipase",          range: { M: [10, 140], F: [10, 140] },       unit: "U/L" },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // METAIS PESADOS  (limites funcionais ideais — quanto menor, melhor)
+  // ═══════════════════════════════════════════════════════════════════
+  { marker_id: "chumbo",          range: { M: [0, 2], F: [0, 2] },             unit: "µg/dL" },   // lab: <5, funcional ideal: <2
+  { marker_id: "mercurio",        range: { M: [0, 1], F: [0, 1] },             unit: "µg/L" },    // lab: <5.9, funcional ideal: <1
+  { marker_id: "aluminio",        range: { M: [0, 5], F: [0, 5] },             unit: "µg/L" },    // lab: <10, funcional ideal: <5
+  { marker_id: "cadmio",          range: { M: [0, 0.5], F: [0, 0.5] },         unit: "µg/L" },    // lab: <1.2, funcional ideal: <0.5
+  { marker_id: "cobalto",         range: { M: [0, 0.4], F: [0, 0.4] },         unit: "µg/L" },    // lab: <0.9, funcional ideal: <0.4
+  { marker_id: "arsenio",         range: { M: [0, 5], F: [0, 5] },             unit: "µg/L" },    // lab: <10, funcional ideal: <5
+  { marker_id: "niquel",          range: { M: [0, 1], F: [0, 1] },             unit: "µg/L" },    // lab: <2.5, funcional ideal: <1
 ];
 
 // ── Index for fast lookup ──
