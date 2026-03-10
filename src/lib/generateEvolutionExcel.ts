@@ -285,7 +285,7 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
         ((mostRecentCell.value !== null && mostRecentCell.value !== undefined) || mostRecentCell.text_value);
 
       let funcResult: { refText: string; status: string } | null = null;
-      if (hasDataOnMostRecent) {
+      if (sex && hasDataOnMostRecent) {
         const lastValue = mostRecentCell.value ?? null;
         const lastTextValue = mostRecentCell.text_value || null;
         const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, lastValue, sex, marker.unit, lastTextValue);
