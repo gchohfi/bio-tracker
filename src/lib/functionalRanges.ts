@@ -105,17 +105,17 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "testosterona_total", range: { M: [600, 900], F: [35, 50] },    unit: "ng/dL" },
   { marker_id: "testosterona_livre", range: { M: [70, 9999], F: [1.1, 2.2] },  unit: "pg/mL" }, // V2: M >70 pg/mL, F 1.1-2.2 pg/mL
-  { marker_id: "estradiol",       range: { M: [20, 30], F: [50, 350] },        unit: "pg/mL" },
-  { marker_id: "progesterona",    range: { M: [0.1, 1.0], F: [1.0, 20.0] },   unit: "ng/mL" },
-  { marker_id: "dhea_s",          range: { M: [200, 450], F: [100, 350] },     unit: "µg/dL" },
+  { marker_id: "estradiol",       range: { M: [20, 30], F: [0, 9999] },        unit: "pg/mL" }, // V2: só M definido; F vazio no V2
+  // progesterona: removido — vazio no V2 para ambos os sexos
+  // dhea_s: removido — vazio no V2 para ambos os sexos
   { marker_id: "cortisol",        range: { M: [10, 18], F: [10, 18] },         unit: "µg/dL" },
   { marker_id: "shbg",            range: { M: [20, 40], F: [60, 90] },         unit: "nmol/L" },
   { marker_id: "prolactina",      range: { M: [5, 10], F: [5, 15] },           unit: "ng/mL" },
-  { marker_id: "amh",             range: { M: [0.7, 19], F: [1.5, 4.0] },      unit: "ng/mL" },
-  { marker_id: "fsh",             range: { M: [2, 5], F: [3.5, 12.5] },        unit: "mUI/mL" },
-  { marker_id: "lh",              range: { M: [2, 5], F: [2.4, 12.6] },        unit: "mUI/mL" },
+  { marker_id: "amh",             range: { M: [0, 9999], F: [1.5, 4.0] },      unit: "ng/mL" }, // V2: só F definido; M não mencionado
+  { marker_id: "fsh",             range: { M: [2, 5], F: [0, 9999] },           unit: "mUI/mL" }, // V2: só M definido; F vazio no V2
+  { marker_id: "lh",              range: { M: [2, 5], F: [0, 9999] },           unit: "mUI/mL" }, // V2: só M definido; F vazio no V2
   { marker_id: "psa_total",       range: { M: [0, 2.5], F: [0, 2.5] },         unit: "ng/mL" },
-  { marker_id: "dihidrotestosterona", range: { M: [30, 85], F: [4, 22] },     unit: "ng/dL" }, // convenção funcional
+  // dihidrotestosterona: removido — vazio no V2
 
   // ═══════════════════════════════════════════════════════════════════
   // VITAMINAS  (V2)
