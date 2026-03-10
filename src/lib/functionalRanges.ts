@@ -83,7 +83,8 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "homocisteina",    range: { M: [0, 7], F: [0, 7] },             unit: "µmol/L" },
   { marker_id: "pcr",             range: { M: [0, 1.0], F: [0, 1.0] },         unit: "mg/L" },
-  { marker_id: "vhs",             range: { M: [0, 10], F: [0, 15] },           unit: "mm/h" },
+  // VHS: não consta no PDF fonte (VR_BARBARA.pdf) — mantido com flag
+  { marker_id: "vhs",             range: { M: [0, 10], F: [0, 15] },           unit: "mm/h" }, // fonte: convenção clínica, NÃO presente no PDF
   { marker_id: "fibrinogenio",    range: { M: [0, 300], F: [0, 300] },         unit: "mg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
@@ -92,7 +93,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "tsh",             range: { M: [0.3, 2.5], F: [0.3, 2.5] },     unit: "mUI/L" },
   { marker_id: "t4_livre",        range: { M: [0.9, 1.5], F: [0.9, 1.5] },     unit: "ng/dL" },
   { marker_id: "t3_livre",        range: { M: [2.3, 4.2], F: [2.3, 4.2] },     unit: "pg/mL" },
-  { marker_id: "t3_reverso",      range: { M: [9, 18], F: [9, 18] },           unit: "ng/dL" },
+  { marker_id: "t3_reverso",      range: { M: [11, 18], F: [11, 18] },         unit: "ng/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
   // HORMÔNIOS
@@ -116,14 +117,14 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "vitamina_d",      range: { M: [40, 100], F: [40, 100] },       unit: "ng/mL" },
   { marker_id: "vitamina_b12",    range: { M: [650, 9999], F: [650, 9999] },   unit: "pg/mL" },
   { marker_id: "acido_folico",    range: { M: [15, 9999], F: [15, 9999] },     unit: "ng/mL" },
-  { marker_id: "vitamina_a",      range: { M: [0.5, 0.7], F: [0.5, 0.7] },     unit: "mg/L" },
+  { marker_id: "vitamina_a",      range: { M: [0.5, 0.7], F: [0.5, 0.7] },     unit: "µg/L" },
   { marker_id: "vitamina_c",      range: { M: [1.0, 9999], F: [1.0, 9999] },   unit: "mg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
   // MINERAIS
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "magnesio",        range: { M: [2.1, 2.5], F: [2.1, 2.5] },     unit: "mg/dL" },
-  { marker_id: "zinco",           range: { M: [90, 120], F: [90, 120] },        unit: "µg/dL" },
+  { marker_id: "zinco",           range: { M: [90, 120], F: [90, 120] },        unit: "µg/L" },
   { marker_id: "selenio",         range: { M: [90, 150], F: [90, 150] },        unit: "µg/L" },
   { marker_id: "cobre",           range: { M: [90, 130], F: [90, 130] },        unit: "µg/dL" },
 
