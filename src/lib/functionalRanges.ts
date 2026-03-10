@@ -514,6 +514,66 @@ export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
     expected_text: "Ausente",
     accepted_values: ["ausente", "negativo", "rarissimos"],
   },
+  // ═══════════════════════════════════════════════════════════════════
+  // METAIS PESADOS (V2: qualitativo — "<5 negativo", "<10 negativo")
+  // ═══════════════════════════════════════════════════════════════════
+  {
+    marker_id: "mercurio",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "chumbo",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "aluminio",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "cadmio",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "cobalto",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "arsenio",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "niquel",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  // ═══════════════════════════════════════════════════════════════════
+  // AUTOIMUNIDADE adicional (V2)
+  // ═══════════════════════════════════════════════════════════════════
+  {
+    marker_id: "anti_endomisio_iga",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "anti_transglutaminase_iga",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
 ];
 
 // ── Qualitative index ──
