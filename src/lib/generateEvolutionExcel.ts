@@ -395,23 +395,20 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
   };
 
   // Populate data rows
-  // RULE: Functional ref/status is computed ONCE per marker using ONLY the most recent value.
-  // Historical rows display the same funcResult for consistency (single classification per marker).
+  // RULE: Functional ref/status uses ONLY the most recent GLOBAL date.
+  // If a marker has no data on that date, functional columns stay blank.
+  const mostRecentDateDados = data.dates[data.dates.length - 1];
   for (const section of data.sections) {
     for (const marker of section.markers) {
-      // Pre-compute functional match using the most recent value for this marker
-      let lastVal: number | null = null;
-      let lastTxt: string | null = null;
-      for (let di = data.dates.length - 1; di >= 0; di--) {
-        const c = marker.values_by_date[data.dates[di]];
-        if (c && (c.value !== null && c.value !== undefined || c.text_value)) {
-          lastVal = c.value ?? null;
-          lastTxt = c.text_value || null;
-          break;
-        }
+      const mrCell = marker.values_by_date[mostRecentDateDados];
+      const hasDataOnMostRecent = mrCell &&
+        ((mrCell.value !== null && mrCell.value !== undefined) || mrCell.text_value);
+
+      let funcResult: { refText: string; status: string } | null = null;
+      if (hasDataOnMostRecent) {
+        const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, mrCell.value ?? null, sex, marker.unit, mrCell.text_value || null);
+        funcResult = funcMatch.result;
       }
-      const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, lastVal, sex, marker.unit, lastTxt);
-      const funcResult = funcMatch.result;
 
       for (const d of data.dates) {
         const cell = marker.values_by_date[d];
