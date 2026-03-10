@@ -228,38 +228,54 @@ export function normalizeQualitativeText(text: string): string {
 
 /** Mapa global de normalização: variantes brutas → forma canônica */
 const GLOBAL_NORMALIZATION: Record<string, string> = {
-  // negativo
+  // negativo (inclui formas femininas e variantes)
   "negativo": "negativo",
+  "negativa": "negativo",
   "neg": "negativo",
   "nao detectado": "negativo",
+  "nao detectada": "negativo",
   "não detectado": "negativo",
+  "não detectada": "negativo",
   "nao detectavel": "negativo",
   "não detectável": "negativo",
   "n/d": "negativo",
   "nenhum": "negativo",
+  "nenhuma": "negativo",
   "nao reativo": "negativo",
+  "nao reativa": "negativo",
   "não reativo": "negativo",
+  "não reativa": "negativo",
+  "nao reagente": "negativo",
+  "não reagente": "negativo",
   "indetectavel": "negativo",
   "indetectável": "negativo",
   // ausente
   "ausente": "ausente",
   "ausentes": "ausente",
   "nao observado": "ausente",
+  "nao observada": "ausente",
   "não observado": "ausente",
+  "não observada": "ausente",
   "nao observados": "ausente",
   "não observados": "ausente",
   "nao encontrado": "ausente",
+  "nao encontrada": "ausente",
   "não encontrado": "ausente",
+  "não encontrada": "ausente",
   "nao encontrados": "ausente",
   "não encontrados": "ausente",
   "nao visualizado": "ausente",
+  "nao visualizada": "ausente",
   "nao visualizados": "ausente",
   // raríssimos
   "rarissimos": "rarissimos",
   "raríssimos": "rarissimos",
   "rarissimas": "rarissimos",
+  "rarissima": "rarissimos",
   "raros": "raros",
   "raras": "raros",
+  "raro": "raros",
+  "rara": "raros",
   // normal
   "normal": "normal",
   "normals": "normal",
@@ -268,10 +284,36 @@ const GLOBAL_NORMALIZATION: Record<string, string> = {
   "presente": "presente",
   "presentes": "presente",
   "positivo": "presente",
+  "positiva": "presente",
   "pos": "presente",
   "detectado": "presente",
+  "detectada": "presente",
   "detectavel": "presente",
   "reativo": "presente",
+  "reativa": "presente",
+  "reagente": "presente",
+};
+
+/**
+ * Detects "below detection limit" patterns like "< 0.10", "< 0,3", "<1.0"
+ * These are lab results that mean the substance was not detected at measurable levels.
+ * Returns the canonical form they should map to, or null if not a BDL pattern.
+ */
+function detectBelowDetectionLimit(text: string): string | null {
+  // Match patterns: < number, <= number, with optional spaces, commas as decimal
+  const bdlPattern = /^[<≤]\s*\d+[.,]?\d*$/;
+  if (bdlPattern.test(text.trim())) {
+    return "negativo";
+  }
+  return null;
+}
+
+/**
+ * Map of marker_ids where below-detection-limit should map to a specific
+ * canonical form OTHER than "negativo". E.g. urobilinogênio: "< 1.0" → "normal"
+ */
+const BDL_MARKER_OVERRIDES: Record<string, string> = {
+  "urina_urobilinogenio": "normal",
 };
 
 /**
@@ -493,7 +535,18 @@ export function resolveQualitativeFunctionalRef(
   const normalized = normalizeQualitativeText(textValue);
 
   // Try global normalization map first
-  const mapped = GLOBAL_NORMALIZATION[normalized] ?? normalized;
+  let mapped = GLOBAL_NORMALIZATION[normalized] ?? null;
+
+  // If no direct match, try below-detection-limit pattern (e.g. "< 0.10")
+  if (!mapped) {
+    const bdl = detectBelowDetectionLimit(normalized);
+    if (bdl) {
+      // Some markers override BDL mapping (e.g. urobilinogênio → "normal" instead of "negativo")
+      mapped = BDL_MARKER_OVERRIDES[markerId] ?? bdl;
+    } else {
+      mapped = normalized; // fallback to normalized text as-is
+    }
+  }
 
   // Check if mapped value is in accepted_values
   const isNormal = qr.accepted_values.includes(mapped);
