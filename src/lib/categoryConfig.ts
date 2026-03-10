@@ -76,7 +76,7 @@ export const CATEGORY_CONFIG = {
   Sorologia:           cat("200 65% 45%", "Sorologia"),
   "Proteínas":         cat("180 50% 45%", "Proteínas"),
   "Marcadores Tumorais": cat("350 65% 50%", "Marcadores Tumorais"),
-  Toxicologia:         cat("15 80% 45%",  "Toxicologia"),
+  "Metais Pesados":    cat("15 80% 45%",  "Metais Pesados"),
   Urina:               cat("55 70% 50%",  "Urina"),
   Fezes:               cat("35 60% 45%",  "Fezes"),
 } as const;
