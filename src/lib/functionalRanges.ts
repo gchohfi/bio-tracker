@@ -157,6 +157,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "potassio",        range: { M: [4.5, 5.1], F: [4.5, 5.1] },     unit: "mEq/L" },
   { marker_id: "cloro",           range: { M: [100, 106], F: [100, 106] },     unit: "mEq/L" },
   { marker_id: "calcio_total",    range: { M: [8.6, 10.3], F: [8.6, 10.3] },   unit: "mg/dL" },
+  { marker_id: "calcio_ionico",  range: { M: [1.18, 1.32], F: [1.18, 1.32] }, unit: "mmol/L" }, // fonte: convenção funcional, NÃO presente no PDF
   { marker_id: "pth",             range: { M: [15, 50], F: [15, 50] },         unit: "pg/mL" },
 
   // ═══════════════════════════════════════════════════════════════════
