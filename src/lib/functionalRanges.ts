@@ -94,6 +94,9 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "t4_livre",        range: { M: [0.9, 1.5], F: [0.9, 1.5] },     unit: "ng/dL" },
   { marker_id: "t3_livre",        range: { M: [2.3, 4.2], F: [2.3, 4.2] },     unit: "pg/mL" },
   { marker_id: "t3_reverso",      range: { M: [11, 18], F: [11, 18] },         unit: "ng/dL" },
+  { marker_id: "anti_tpo",        range: { M: [0, 10], F: [0, 10] },           unit: "UI/mL" },  // PDF: < 10 UI/mL (funcional)
+  { marker_id: "anti_tg",         range: { M: [0, 1.0], F: [0, 1.0] },         unit: "UI/mL" },  // PDF: < 1 UI/mL (funcional)
+  { marker_id: "trab",            range: { M: [0, 1.0], F: [0, 1.0] },         unit: "UI/L" },   // PDF: < 1 UI/L (funcional)
 
   // ═══════════════════════════════════════════════════════════════════
   // HORMÔNIOS

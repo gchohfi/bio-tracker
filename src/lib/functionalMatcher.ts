@@ -100,6 +100,15 @@ const NAME_ALIASES: Record<string, string> = {
   // Tireoide
   "anti-tireoglobulina": "anti_tg",
   "antitireoglobulina": "anti_tg",
+  "anti-tg": "anti_tg",
+  "anti tg": "anti_tg",
+  "anticorpos anti-tireoglobulina": "anti_tg",
+  "anti-tpo": "anti_tpo",
+  "antitpo": "anti_tpo",
+  "anticorpos anti-peroxidase": "anti_tpo",
+  "anticorpos anti-tireoperoxidase": "anti_tpo",
+  "trab": "trab",
+  "anticorpos anti-receptor de tsh": "trab",
 
   // Inflamação
   "pcr-hs": "pcr",
