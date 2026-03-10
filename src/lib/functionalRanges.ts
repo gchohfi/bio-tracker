@@ -114,6 +114,8 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "fsh",             range: { M: [0, 10], F: [3.5, 12.5] },       unit: "mUI/mL" },
   { marker_id: "lh",              range: { M: [0, 9], F: [2.4, 12.6] },        unit: "mUI/mL" },
   { marker_id: "psa_total",       range: { M: [0, 2.5], F: [0, 2.5] },         unit: "ng/mL" },
+  { marker_id: "dihidrotestosterona", range: { M: [30, 85], F: [4, 22] },     unit: "ng/dL" }, // fonte: convenção funcional
+  // FAI, PSA Livre, PSA Ratio: sem fonte no PDF — não adicionados
 
   // ═══════════════════════════════════════════════════════════════════
   // VITAMINAS
