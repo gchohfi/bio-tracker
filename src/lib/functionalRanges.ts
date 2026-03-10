@@ -86,7 +86,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "homocisteina",    range: { M: [5, 7], F: [5, 7] },             unit: "µmol/L" },
   { marker_id: "pcr",             range: { M: [0, 1.0], F: [0, 1.0] },         unit: "mg/L" },
-  { marker_id: "vhs",             range: { M: [0, 10], F: [0, 15] },           unit: "mm/h" }, // convenção clínica, não no V2
+  // vhs: removido — não encontrado no V2
   { marker_id: "fibrinogenio",    range: { M: [200, 300], F: [200, 300] },     unit: "mg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
