@@ -403,15 +403,29 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
   };
 
   // Populate data rows
+  // RULE: Functional ref/status is computed ONCE per marker using ONLY the most recent value.
+  // Historical rows display the same funcResult for consistency (single classification per marker).
   for (const section of data.sections) {
     for (const marker of section.markers) {
+      // Pre-compute functional match using the most recent value for this marker
+      let lastVal: number | null = null;
+      let lastTxt: string | null = null;
+      for (let di = data.dates.length - 1; di >= 0; di--) {
+        const c = marker.values_by_date[data.dates[di]];
+        if (c && (c.value !== null && c.value !== undefined || c.text_value)) {
+          lastVal = c.value ?? null;
+          lastTxt = c.text_value || null;
+          break;
+        }
+      }
+      const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, lastVal, sex, marker.unit, lastTxt);
+      const funcResult = funcMatch.result;
+
       for (const d of data.dates) {
         const cell = marker.values_by_date[d];
         if (!cell) continue;
 
         const status = cell.flag === "high" ? "Alto" : cell.flag === "low" ? "Baixo" : "Normal";
-        const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, cell.value, sex, marker.unit, cell.text_value || null);
-        const funcResult = funcMatch.result;
 
         const row = wsDados.addRow({
           category: section.category,
