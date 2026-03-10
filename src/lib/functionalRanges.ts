@@ -185,16 +185,9 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "amilase",         range: { M: [30, 110], F: [30, 110] },       unit: "U/L" },
   { marker_id: "lipase",          range: { M: [10, 140], F: [10, 140] },       unit: "U/L" },
 
-  // ═══════════════════════════════════════════════════════════════════
-  // METAIS PESADOS  (limites funcionais ideais — quanto menor, melhor)
-  // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "chumbo",          range: { M: [0, 2], F: [0, 2] },             unit: "µg/dL" },   // lab: <5, funcional ideal: <2
-  { marker_id: "mercurio",        range: { M: [0, 1], F: [0, 1] },             unit: "µg/L" },    // lab: <5.9, funcional ideal: <1
-  { marker_id: "aluminio",        range: { M: [0, 5], F: [0, 5] },             unit: "µg/L" },    // lab: <10, funcional ideal: <5
-  { marker_id: "cadmio",          range: { M: [0, 0.5], F: [0, 0.5] },         unit: "µg/L" },    // lab: <1.2, funcional ideal: <0.5
-  { marker_id: "cobalto",         range: { M: [0, 0.4], F: [0, 0.4] },         unit: "µg/L" },    // lab: <0.9, funcional ideal: <0.4
-  { marker_id: "arsenio",         range: { M: [0, 5], F: [0, 5] },             unit: "µg/L" },    // lab: <10, funcional ideal: <5
-  { marker_id: "niquel",          range: { M: [0, 1], F: [0, 1] },             unit: "µg/L" },    // lab: <2.5, funcional ideal: <1
+  // METAIS PESADOS: removidos da camada numérica.
+  // No V2, metais são tratados como qualitativos ("<5 negativo", "<10 negativo").
+  // Referências movidas para QUALITATIVE_FUNCTIONAL_RANGES.
 
   // ═══════════════════════════════════════════════════════════════════
   // COPROLÓGICO  (V2)
@@ -520,6 +513,66 @@ export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
     reference_type: "qualitative",
     expected_text: "Ausente",
     accepted_values: ["ausente", "negativo", "rarissimos"],
+  },
+  // ═══════════════════════════════════════════════════════════════════
+  // METAIS PESADOS (V2: qualitativo — "<5 negativo", "<10 negativo")
+  // ═══════════════════════════════════════════════════════════════════
+  {
+    marker_id: "mercurio",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "chumbo",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "aluminio",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "cadmio",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "cobalto",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "arsenio",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "niquel",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  // ═══════════════════════════════════════════════════════════════════
+  // AUTOIMUNIDADE adicional (V2)
+  // ═══════════════════════════════════════════════════════════════════
+  {
+    marker_id: "anti_endomisio_iga",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "anti_transglutaminase_iga",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
   },
 ];
 
