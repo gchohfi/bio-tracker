@@ -21,6 +21,7 @@ import {
   FUNCTIONAL_RANGES,
   type FunctionalRange,
   type FunctionalResult,
+  resolveQualitativeFunctionalRef,
 } from "@/lib/functionalRanges";
 
 // ═══════════════════════════════════════════════════════════════════════════
