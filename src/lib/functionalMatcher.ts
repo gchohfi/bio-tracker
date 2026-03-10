@@ -367,7 +367,23 @@ export function matchFunctionalRef(
     return { result: qualResult, score: 100, log };
   }
 
-  // ── Step 0b: Context blocker — skip non-serum markers ──
+  // ── Step 0b: Numeric functional ref for non-serum markers ──
+  // Some non-serum markers (e.g. copro_ph) have numeric functional ranges
+  // and must be resolved BEFORE the context blocker discards them.
+  const NON_SERUM_NUMERIC_EXCEPTIONS = new Set(["copro_ph"]);
+  if (NON_SERUM_NUMERIC_EXCEPTIONS.has(markerId)) {
+    const byIdDirect = FUNC_BY_ID.get(markerId);
+    if (byIdDirect) {
+      const result = resolveFunctionalRef(markerId, value, sex, canonicalUnit);
+      if (result) {
+        const log = makeLog("exact_id", markerId, 100, "match numérico não-sérico (exceção)", byIdDirect.unit, true);
+        log.context = "não-sérico";
+        return { result, score: 100, log };
+      }
+    }
+  }
+
+  // ── Step 0c: Context blocker — skip non-serum markers ──
   const CONTEXT_BLOCK_TERMS = [
     "urina", "fezes", "fecal", "saliva", "24h",
     "liquido", "liquor", "abs", "quantitativo",
