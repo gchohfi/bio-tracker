@@ -195,6 +195,11 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "cobalto",         range: { M: [0, 0.4], F: [0, 0.4] },         unit: "µg/L" },    // lab: <0.9, funcional ideal: <0.4
   { marker_id: "arsenio",         range: { M: [0, 5], F: [0, 5] },             unit: "µg/L" },    // lab: <10, funcional ideal: <5
   { marker_id: "niquel",          range: { M: [0, 1], F: [0, 1] },             unit: "µg/L" },    // lab: <2.5, funcional ideal: <1
+
+  // ═══════════════════════════════════════════════════════════════════
+  // COPROLÓGICO  (V2)
+  // ═══════════════════════════════════════════════════════════════════
+  { marker_id: "copro_ph",        range: { M: [6.5, 7.5], F: [6.5, 7.5] },     unit: "" },        // V2: pH fecal 6,5–7,5
 ];
 
 // ── Index for fast lookup ──
