@@ -273,23 +273,18 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
       rowValues.push(marker.reference_text || "—");
 
       // ── Functional reference (parallel layer via matcher) ──
-      // Use last available numeric value for status evaluation
+      // RULE: Use ONLY the most recent session with any valid data (value OR text_value).
+      // Both value and text_value MUST come from the SAME date — never mix sessions.
       let lastValue: number | null = null;
+      let lastTextValue: string | null = null;
       for (let di = data.dates.length - 1; di >= 0; di--) {
         const c = marker.values_by_date[data.dates[di]];
-        if (c?.value !== null && c?.value !== undefined) {
-          lastValue = c.value;
+        if (c && ((c.value !== null && c.value !== undefined) || c.text_value)) {
+          lastValue = c.value ?? null;
+          lastTextValue = c.text_value || null;
           break;
         }
       }
-
-      const lastTextValue = (() => {
-        for (let di = data.dates.length - 1; di >= 0; di--) {
-          const c = marker.values_by_date[data.dates[di]];
-          if (c?.text_value) return c.text_value;
-        }
-        return null;
-      })();
       const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, lastValue, sex, marker.unit, lastTextValue);
       const funcResult = funcMatch.result;
       rowValues.push(funcResult?.refText ?? "");
