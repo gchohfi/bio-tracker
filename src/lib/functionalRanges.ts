@@ -103,7 +103,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   // HORMÔNIOS
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "testosterona_total", range: { M: [600, 900], F: [25, 50] },    unit: "ng/dL" },
-  { marker_id: "testosterona_livre", range: { M: [6.6, 19.1], F: [1.1, 2.2] }, unit: "pg/mL" },
+  { marker_id: "testosterona_livre", range: { M: [6.6, 19.1], F: [1.1, 2.2] }, unit: "ng/dL" }, // PDF valores já em escala ng/dL (canônica do sistema)
   { marker_id: "estradiol",       range: { M: [11, 43], F: [50, 350] },        unit: "pg/mL" },
   { marker_id: "progesterona",    range: { M: [0.1, 1.0], F: [1.0, 20.0] },   unit: "ng/mL" },
   { marker_id: "dhea_s",          range: { M: [200, 450], F: [100, 350] },     unit: "µg/dL" },
