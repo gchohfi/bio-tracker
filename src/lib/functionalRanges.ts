@@ -123,7 +123,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   // MINERAIS
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "magnesio",        range: { M: [2.1, 2.5], F: [2.1, 2.5] },     unit: "mg/dL" },
-  { marker_id: "zinco",           range: { M: [90, 120], F: [90, 120] },        unit: "µg/dL" },
+  { marker_id: "zinco",           range: { M: [90, 120], F: [90, 120] },        unit: "µg/L" },
   { marker_id: "selenio",         range: { M: [90, 150], F: [90, 150] },        unit: "µg/L" },
   { marker_id: "cobre",           range: { M: [90, 130], F: [90, 130] },        unit: "µg/dL" },
 
