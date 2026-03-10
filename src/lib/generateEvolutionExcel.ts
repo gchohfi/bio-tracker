@@ -289,6 +289,7 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
       }
       const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, lastValue, sex, marker.unit, lastTextValue);
       const funcResult = funcMatch.result;
+
       rowValues.push(funcResult?.refText ?? "");
       rowValues.push(
         funcResult === null ? ""
