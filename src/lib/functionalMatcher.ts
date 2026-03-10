@@ -332,6 +332,7 @@ export function matchFunctionalRef(
   value: number | null,
   sex: "M" | "F",
   canonicalUnit: string,
+  textValue?: string | null,
 ): FunctionalMatchResult {
   const normalizedName = normalizeAnalyteName(markerName);
 
