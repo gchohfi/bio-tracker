@@ -105,7 +105,10 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "testosterona_total", range: { M: [600, 900], F: [35, 50] },    unit: "ng/dL" },
   { marker_id: "testosterona_livre", range: { M: [70, 9999], F: [1.1, 2.2] },  unit: "pg/mL" }, // V2: M >70 pg/mL, F 1.1-2.2 pg/mL
-  { marker_id: "estradiol",       range: { M: [20, 30], F: [0, 9999] },        unit: "pg/mL" }, // V2: só M definido; F vazio no V2
+  // estradiol: removido — F depende de fase do ciclo (vazio no V2); M tem faixa 20-30 pg/mL
+  // mas manter aqui geraria "> 0 pg/mL" para F, violando regra de branco no PDF.
+  // Para evitar alucinação, removido completamente. Estradiol M pode ser adicionado
+  // quando houver suporte a "range por sexo sem sentinel".
   // progesterona: removido — vazio no V2 para ambos os sexos
   // dhea_s: removido — vazio no V2 para ambos os sexos
   { marker_id: "cortisol",        range: { M: [10, 18], F: [10, 18] },         unit: "µg/dL" },
