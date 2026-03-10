@@ -535,7 +535,18 @@ export function resolveQualitativeFunctionalRef(
   const normalized = normalizeQualitativeText(textValue);
 
   // Try global normalization map first
-  const mapped = GLOBAL_NORMALIZATION[normalized] ?? normalized;
+  let mapped = GLOBAL_NORMALIZATION[normalized] ?? null;
+
+  // If no direct match, try below-detection-limit pattern (e.g. "< 0.10")
+  if (!mapped) {
+    const bdl = detectBelowDetectionLimit(normalized);
+    if (bdl) {
+      // Some markers override BDL mapping (e.g. urobilinogênio → "normal" instead of "negativo")
+      mapped = BDL_MARKER_OVERRIDES[markerId] ?? bdl;
+    } else {
+      mapped = normalized; // fallback to normalized text as-is
+    }
+  }
 
   // Check if mapped value is in accepted_values
   const isNormal = qr.accepted_values.includes(mapped);
