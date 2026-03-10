@@ -287,8 +287,30 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
           break;
         }
       }
+      // Log which date was chosen for audited markers
+      const AUDITED = ["ferritina","ldl","tsh","t3_livre","estradiol","progesterona","dht","urina_proteinas","urina_nitritos","urina_urobilinogenio"];
+      const chosenDate = (() => {
+        for (let di = data.dates.length - 1; di >= 0; di--) {
+          const c = marker.values_by_date[data.dates[di]];
+          if (c && ((c.value !== null && c.value !== undefined) || c.text_value)) return data.dates[di];
+        }
+        return null;
+      })();
+      if (AUDITED.includes(marker.marker_id)) {
+        const allDatesInfo = data.dates.map(d => {
+          const c = marker.values_by_date[d];
+          return `${formatDate(d)}: val=${c?.value ?? "∅"} txt="${c?.text_value ?? ""}"`;
+        }).join(" | ");
+        console.log(`🔍 AUDIT [${marker.marker_id}] dates=[${allDatesInfo}] → CHOSEN=${chosenDate ? formatDate(chosenDate) : "none"} val=${lastValue} txt="${lastTextValue ?? ""}"`);
+      }
+
       const funcMatch = matchFunctionalRef(marker.marker_id, marker.marker_name, lastValue, sex, marker.unit, lastTextValue);
       const funcResult = funcMatch.result;
+
+      if (AUDITED.includes(marker.marker_id)) {
+        console.log(`🔍 AUDIT [${marker.marker_id}] ref="${funcResult?.refText ?? "—"}" status="${funcResult?.status ?? "none"}"`);
+      }
+
       rowValues.push(funcResult?.refText ?? "");
       rowValues.push(
         funcResult === null ? ""
