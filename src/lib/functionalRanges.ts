@@ -345,14 +345,26 @@ export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
   {
     marker_id: "urina_muco",
     reference_type: "qualitative",
-    expected_text: "Ausente",
-    accepted_values: ["ausente", "negativo", "rarissimos"],
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
   },
   {
     marker_id: "urina_urobilinogenio",
     reference_type: "qualitative",
     expected_text: "Normal",
     accepted_values: ["normal", "negativo"],
+  },
+  {
+    marker_id: "urina_fungos",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "urina_fibras",
+    reference_type: "qualitative",
+    expected_text: "Presentes",
+    accepted_values: ["presente"],
   },
 
   // ═══════════════════════════════════════════════════════════════════
