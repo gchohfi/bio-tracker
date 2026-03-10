@@ -403,14 +403,38 @@ export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
   {
     marker_id: "copro_gordura",
     reference_type: "qualitative",
-    expected_text: "Ausente",
-    accepted_values: ["ausente", "negativo"],
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
   },
   {
     marker_id: "copro_fibras",
     reference_type: "qualitative",
     expected_text: "Ausente",
     accepted_values: ["ausente", "negativo", "rarissimos", "raros"],
+  },
+  // ═══════════════════════════════════════════════════════════════════
+  // TIREOIDE QUALITATIVO (V2)
+  // ═══════════════════════════════════════════════════════════════════
+  {
+    marker_id: "trab",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  // ═══════════════════════════════════════════════════════════════════
+  // AUTOIMUNIDADE (V2)
+  // ═══════════════════════════════════════════════════════════════════
+  {
+    marker_id: "fan",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "anti_endomisio",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
   },
   {
     marker_id: "copro_amido",
