@@ -83,7 +83,8 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "homocisteina",    range: { M: [0, 7], F: [0, 7] },             unit: "µmol/L" },
   { marker_id: "pcr",             range: { M: [0, 1.0], F: [0, 1.0] },         unit: "mg/L" },
-  { marker_id: "vhs",             range: { M: [0, 10], F: [0, 15] },           unit: "mm/h" },
+  // VHS: não consta no PDF fonte (VR_BARBARA.pdf) — mantido com flag
+  { marker_id: "vhs",             range: { M: [0, 10], F: [0, 15] },           unit: "mm/h" }, // fonte: convenção clínica, NÃO presente no PDF
   { marker_id: "fibrinogenio",    range: { M: [0, 300], F: [0, 300] },         unit: "mg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
