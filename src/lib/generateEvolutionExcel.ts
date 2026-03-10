@@ -101,14 +101,16 @@ export async function generateEvolutionExcel({ data, patientName, patientSex }: 
   const sex = patientSex ?? "M";
 
   // ── Batch functional matching with logs ──
+  // RULE: For each marker, find the SINGLE most recent date with any valid data,
+  // then use value + text_value from THAT SAME date. Never mix sessions.
   const allMarkers: Array<{ markerId: string; markerName: string; value: number | null; unit: string }> = [];
   for (const section of data.sections) {
     for (const marker of section.markers) {
       let lastValue: number | null = null;
       for (let di = data.dates.length - 1; di >= 0; di--) {
         const c = marker.values_by_date[data.dates[di]];
-        if (c?.value !== null && c?.value !== undefined) {
-          lastValue = c.value;
+        if (c && ((c.value !== null && c.value !== undefined) || c.text_value)) {
+          lastValue = c.value ?? null;
           break;
         }
       }
