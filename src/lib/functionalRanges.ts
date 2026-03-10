@@ -92,7 +92,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "tsh",             range: { M: [0.3, 2.5], F: [0.3, 2.5] },     unit: "mUI/L" },
   { marker_id: "t4_livre",        range: { M: [0.9, 1.5], F: [0.9, 1.5] },     unit: "ng/dL" },
   { marker_id: "t3_livre",        range: { M: [2.3, 4.2], F: [2.3, 4.2] },     unit: "pg/mL" },
-  { marker_id: "t3_reverso",      range: { M: [9, 18], F: [9, 18] },           unit: "ng/dL" },
+  { marker_id: "t3_reverso",      range: { M: [11, 18], F: [11, 18] },         unit: "ng/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
   // HORMÔNIOS
