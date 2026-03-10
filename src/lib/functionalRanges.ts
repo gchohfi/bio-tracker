@@ -5,15 +5,19 @@
  * Camada paralela — NÃO sobrescreve labRange, lab_ref_text, lab_ref_min ou lab_ref_max.
  * Usada exclusivamente na exportação Excel evolutivo.
  *
- * Fonte: tabela "Valores de Referência Otimizados – Medicina Funcional" (VR_BARBARA.pdf).
+ * ╔══════════════════════════════════════════════════════════════════════╗
+ * ║  FONTE DE VERDADE ÚNICA:                                           ║
+ * ║  VR_Barbara_Medicina_Funcional.revisado.20.03 (1).xlsx             ║
+ * ║  PDFs anteriores são apenas referência histórica.                  ║
+ * ║  Se o XLSX deixa um campo em branco, ele fica em branco aqui.      ║
+ * ╚══════════════════════════════════════════════════════════════════════╝
  *
  * Estrutura:
  *   - marker_id: deve coincidir com MARKERS[].id
  *   - range: { M: [min, max], F: [min, max] }
  *   - unit: unidade da faixa funcional (pode diferir da canônica do marcador)
  *
- * Se a unidade funcional diferir da unidade canônica do marcador,
- * a conversão é aplicada na faixa funcional antes da comparação.
+ * Sentinel [0, 9999] = "sem referência para este sexo" → resolveFunctionalRef retorna null.
  */
 
 export interface FunctionalRange {
@@ -24,175 +28,182 @@ export interface FunctionalRange {
 }
 
 /**
- * Tabela de referências funcionais da médica.
- * Fonte: VR_Barbara_Pozitel_2.pdf (V2 — março 2026).
- * Faixas mais estreitas que o laboratório convencional.
+ * Tabela de referências funcionais.
+ * Fonte ÚNICA: VR_Barbara_Medicina_Funcional.revisado.20.03 (1).xlsx
  */
 export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   // ═══════════════════════════════════════════════════════════════════
-  // HEMOGRAMA  (V2)
+  // HEMOGRAMA  (XLSX)
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "hemoglobina",     range: { M: [14, 16], F: [13.5, 15.5] },     unit: "g/dL" },
-  { marker_id: "hematocrito",     range: { M: [42, 48], F: [39, 47] },         unit: "%" },
-  { marker_id: "vcm",             range: { M: [88, 92], F: [88, 92] },         unit: "fL" },
-  { marker_id: "hcm",             range: { M: [27, 33], F: [27, 33] },         unit: "pg" },
-  { marker_id: "chcm",            range: { M: [31, 35], F: [31, 35] },         unit: "g/dL" },
-  { marker_id: "rdw",             range: { M: [11.5, 13], F: [11.5, 13] },     unit: "%" },
-  { marker_id: "leucocitos",      range: { M: [4000, 6500], F: [4000, 6500] }, unit: "/µL" },
-  { marker_id: "neutrofilos",     range: { M: [45, 55], F: [45, 55] },         unit: "%" },
-  { marker_id: "linfocitos",      range: { M: [25, 35], F: [25, 35] },         unit: "%" },
-  { marker_id: "monocitos",       range: { M: [3, 8], F: [3, 8] },             unit: "%" },
-  { marker_id: "eosinofilos",     range: { M: [0, 3], F: [0, 3] },             unit: "%" },
-  { marker_id: "basofilos",       range: { M: [0, 1], F: [0, 1] },             unit: "%" },
-  { marker_id: "plaquetas",       range: { M: [250, 300], F: [250, 300] },     unit: "mil/µL" },
+  { marker_id: "hemoglobina",     range: { M: [13.5, 17.5], F: [12, 15.5] },     unit: "g/dL" },
+  { marker_id: "hematocrito",     range: { M: [40, 50], F: [35, 45] },           unit: "%" },
+  { marker_id: "vcm",             range: { M: [85, 95], F: [85, 95] },           unit: "fL" },
+  { marker_id: "hcm",             range: { M: [26, 34], F: [26, 34] },           unit: "pg" },
+  { marker_id: "chcm",            range: { M: [31, 36], F: [31, 36] },           unit: "g/dL" },
+  { marker_id: "rdw",             range: { M: [10, 13], F: [10, 13] },           unit: "%" },
+  { marker_id: "leucocitos",      range: { M: [3500, 6500], F: [3500, 6500] },   unit: "/mm³" },
+  { marker_id: "neutrofilos",     range: { M: [45, 55], F: [45, 55] },           unit: "%" },
+  { marker_id: "linfocitos",      range: { M: [25, 35], F: [25, 35] },           unit: "%" },
+  { marker_id: "monocitos",       range: { M: [3, 8], F: [3, 8] },               unit: "%" },
+  { marker_id: "eosinofilos",     range: { M: [0, 3], F: [0, 3] },               unit: "%" },
+  { marker_id: "basofilos",       range: { M: [0, 1], F: [0, 1] },               unit: "%" },
+  { marker_id: "plaquetas",       range: { M: [150000, 300000], F: [150000, 300000] }, unit: "/mm³" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // FERRO E METABOLISMO  (V2)
+  // FERRO E METABOLISMO  (XLSX)
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "ferritina",       range: { M: [70, 200], F: [50, 150] },       unit: "ng/mL" },
-  { marker_id: "ferro_serico",    range: { M: [80, 120], F: [80, 120] },       unit: "µg/dL" },
-  { marker_id: "sat_transferrina", range: { M: [25, 40], F: [25, 40] },        unit: "%" },
-  { marker_id: "tibc",            range: { M: [300, 400], F: [300, 400] },     unit: "µg/dL" },
+  { marker_id: "ferritina",       range: { M: [70, 200], F: [50, 150] },         unit: "ng/mL" },
+  { marker_id: "ferro_serico",    range: { M: [80, 120], F: [80, 120] },         unit: "mcg/dL" },
+  { marker_id: "sat_transferrina", range: { M: [20, 50], F: [20, 50] },          unit: "%" },
+  { marker_id: "tibc",            range: { M: [300, 400], F: [300, 400] },       unit: "mcg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // GLICEMIA E METABOLISMO  (V2)
+  // GLICEMIA E METABOLISMO  (XLSX)
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "glicose_jejum",   range: { M: [75, 90], F: [75, 90] },         unit: "mg/dL" },
-  { marker_id: "hba1c",           range: { M: [0, 5.2], F: [0, 5.2] },         unit: "%" },
-  { marker_id: "insulina_jejum",  range: { M: [3, 8], F: [3, 8] },             unit: "µU/mL" },
-  { marker_id: "homa_ir",         range: { M: [0, 1.5], F: [0, 1.5] },         unit: "" },
-  { marker_id: "peptideo_c",      range: { M: [1.5, 3.0], F: [1.5, 3.0] },     unit: "ng/mL" }, // novo V2
+  { marker_id: "glicose_jejum",   range: { M: [75, 90], F: [75, 90] },           unit: "mg/dL" },
+  { marker_id: "hba1c",           range: { M: [0, 5.4], F: [0, 5.4] },           unit: "%" },
+  { marker_id: "insulina_jejum",  range: { M: [0, 7], F: [0, 7] },               unit: "µIU/mL" },
+  { marker_id: "homa_ir",         range: { M: [0, 1.5], F: [0, 1.5] },           unit: "" },
+  { marker_id: "homa_beta",       range: { M: [167, 175], F: [167, 175] },       unit: "%" },
+  { marker_id: "peptideo_c",      range: { M: [1.5, 3.0], F: [1.5, 3.0] },       unit: "ng/mL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // PERFIL LIPÍDICO  (V2)
+  // PERFIL LIPÍDICO  (XLSX)
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "colesterol_total", range: { M: [160, 200], F: [160, 200] },    unit: "mg/dL" },
-  { marker_id: "hdl",             range: { M: [55, 9999], F: [60, 9999] },     unit: "mg/dL" },
-  { marker_id: "ldl",             range: { M: [0, 100], F: [0, 100] },         unit: "mg/dL" },
-  { marker_id: "vldl",            range: { M: [0, 15], F: [0, 15] },           unit: "mg/dL" },
-  { marker_id: "triglicerides",   range: { M: [0, 100], F: [0, 100] },         unit: "mg/dL" },
-  { marker_id: "apo_a1",          range: { M: [140, 9999], F: [140, 9999] },   unit: "mg/dL" },
-  { marker_id: "apo_b",           range: { M: [0, 90], F: [0, 90] },           unit: "mg/dL" },
-  { marker_id: "lipoproteina_a",  range: { M: [0, 30], F: [0, 30] },           unit: "nmol/L" },
-  // colesterol_nao_hdl: removido — não encontrado no V2
+  { marker_id: "colesterol_total", range: { M: [160, 200], F: [160, 200] },      unit: "mg/dL" },
+  { marker_id: "hdl",             range: { M: [40, 9999], F: [46, 9999] },       unit: "mg/dL" },
+  { marker_id: "ldl",             range: { M: [0, 115], F: [0, 115] },           unit: "mg/dL" },
+  { marker_id: "vldl",            range: { M: [0, 15], F: [0, 15] },             unit: "mg/dL" },
+  { marker_id: "triglicerides",   range: { M: [0, 100], F: [0, 100] },           unit: "mg/dL" },
+  { marker_id: "apo_a1",          range: { M: [120, 9999], F: [120, 9999] },     unit: "mg/dL" },
+  { marker_id: "apo_b",           range: { M: [0, 100], F: [0, 100] },           unit: "mg/dL" },
+  { marker_id: "lipoproteina_a",  range: { M: [0, 30], F: [0, 30] },             unit: "nmol/L" },
+  { marker_id: "amilase",         range: { M: [30, 110], F: [30, 110] },         unit: "U/L" },
+  { marker_id: "lipase",          range: { M: [0, 80], F: [0, 80] },             unit: "U/L" },
 
-  // ── Relações lipídicas (V2) ──
-  { marker_id: "relacao_ct_hdl",  range: { M: [0, 3.5], F: [0, 3.5] },         unit: "" },
-  { marker_id: "relacao_tg_hdl",  range: { M: [0, 2.0], F: [0, 2.0] },         unit: "" },
-  { marker_id: "relacao_apob_apoa1", range: { M: [0, 0.7], F: [0, 0.6] },      unit: "" },
-
-  // ═══════════════════════════════════════════════════════════════════
-  // INFLAMAÇÃO E RISCO CARDIOVASCULAR  (V2)
-  // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "homocisteina",    range: { M: [5, 7], F: [5, 7] },             unit: "µmol/L" },
-  { marker_id: "pcr",             range: { M: [0, 1.0], F: [0, 1.0] },         unit: "mg/L" },
-  // vhs: removido — não encontrado no V2
-  { marker_id: "fibrinogenio",    range: { M: [200, 300], F: [200, 300] },     unit: "mg/dL" },
+  // ── Relações lipídicas (XLSX) ──
+  { marker_id: "relacao_ct_hdl",  range: { M: [0, 3.5], F: [0, 3.5] },           unit: "" },
+  { marker_id: "relacao_tg_hdl",  range: { M: [0, 2.0], F: [0, 2.0] },           unit: "" },
+  { marker_id: "relacao_apob_apoa1", range: { M: [0, 0.7], F: [0, 0.6] },        unit: "" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // TIREOIDE  (V2)
+  // INFLAMAÇÃO E RISCO CARDIOVASCULAR  (XLSX)
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "tsh",             range: { M: [0.5, 2.0], F: [0.5, 2.0] },     unit: "mUI/L" },
-  { marker_id: "t4_livre",        range: { M: [1.2, 1.5], F: [1.2, 1.5] },     unit: "ng/dL" },
-  { marker_id: "t3_livre",        range: { M: [3.2, 4.0], F: [3.2, 4.0] },     unit: "pg/mL" },
-  { marker_id: "t3_reverso",      range: { M: [11, 18], F: [11, 18] },         unit: "ng/dL" },
-  { marker_id: "anti_tpo",        range: { M: [0, 9], F: [0, 9] },             unit: "UI/mL" },
-  { marker_id: "anti_tg",         range: { M: [0, 4], F: [0, 4] },             unit: "UI/mL" },
-  // TRAb: V2 diz "Negativo" → tratado como qualitativo
+  { marker_id: "homocisteina",    range: { M: [0, 7], F: [0, 7] },               unit: "µmol/L" },
+  { marker_id: "pcr",             range: { M: [0, 1.0], F: [0, 1.0] },           unit: "mg/L" },
+  { marker_id: "fibrinogenio",    range: { M: [0, 300], F: [0, 300] },           unit: "mg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // HORMÔNIOS  (V2)
+  // TIREOIDE  (XLSX)
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "testosterona_total", range: { M: [600, 900], F: [35, 50] },    unit: "ng/dL" },
-  { marker_id: "testosterona_livre", range: { M: [70, 9999], F: [1.1, 2.2] },  unit: "pg/mL" }, // V2: M >70 pg/mL, F 1.1-2.2 pg/mL
-  // estradiol: removido — F depende de fase do ciclo (vazio no V2); M tem faixa 20-30 pg/mL
-  // mas manter aqui geraria "> 0 pg/mL" para F, violando regra de branco no PDF.
-  // Para evitar alucinação, removido completamente. Estradiol M pode ser adicionado
-  // quando houver suporte a "range por sexo sem sentinel".
-  // progesterona: removido — vazio no V2 para ambos os sexos
-  // dhea_s: removido — vazio no V2 para ambos os sexos
-  { marker_id: "cortisol",        range: { M: [10, 18], F: [10, 18] },         unit: "µg/dL" },
-  { marker_id: "shbg",            range: { M: [20, 40], F: [60, 90] },         unit: "nmol/L" },
-  { marker_id: "prolactina",      range: { M: [5, 10], F: [5, 15] },           unit: "ng/mL" },
-  { marker_id: "amh",             range: { M: [0, 9999], F: [1.5, 4.0] },      unit: "ng/mL" }, // V2: só F definido; M não mencionado
-  { marker_id: "fsh",             range: { M: [2, 5], F: [0, 9999] },           unit: "mUI/mL" }, // V2: só M definido; F vazio no V2
-  { marker_id: "lh",              range: { M: [2, 5], F: [0, 9999] },           unit: "mUI/mL" }, // V2: só M definido; F vazio no V2
-  { marker_id: "psa_total",       range: { M: [0, 2.5], F: [0, 2.5] },         unit: "ng/mL" },
-  // dihidrotestosterona: removido — vazio no V2
+  { marker_id: "tsh",             range: { M: [0.3, 2.5], F: [0.3, 2.5] },       unit: "µIU/mL" },
+  { marker_id: "t4_livre",        range: { M: [0.9, 1.5], F: [0.9, 1.5] },       unit: "ng/dL" },
+  { marker_id: "t3_livre",        range: { M: [2.3, 4.2], F: [2.3, 4.2] },       unit: "pg/mL" },
+  { marker_id: "t3_reverso",      range: { M: [11, 18], F: [11, 18] },           unit: "ng/dL" },
+  // Anti-TPO: XLSX diz "Negativo" → movido para qualitativo
+  // Anti-TG: XLSX diz "Negativo" → movido para qualitativo
+  // TRAb: XLSX diz "Negativo" → qualitativo
+  // T3T/T3R: XLSX diz "<0.6" → é relação calculada, tratada como ratio
+  { marker_id: "relacao_t3t_t3r", range: { M: [0, 0.6], F: [0, 0.6] },           unit: "" },
+  { marker_id: "tireoglobulina",  range: { M: [10, 15], F: [10, 15] },           unit: "ng/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // VITAMINAS  (V2)
+  // HORMÔNIOS FEMININOS  (XLSX)
+  // Marcadores com "—" na coluna masculina → sentinel [0, 9999] para M
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "vitamina_d",      range: { M: [50, 90], F: [50, 80] },         unit: "ng/mL" },
-  { marker_id: "vitamina_b12",    range: { M: [500, 1000], F: [500, 800] },    unit: "pg/mL" },
-  { marker_id: "acido_folico",    range: { M: [15, 20], F: [15, 20] },         unit: "ng/mL" },
-  { marker_id: "vitamina_a",      range: { M: [0.5, 0.7], F: [0.5, 0.7] },     unit: "mg/L" },
-  { marker_id: "vitamina_c",      range: { M: [1.0, 9999], F: [1.0, 9999] },   unit: "mg/dL" },
+  { marker_id: "testosterona_total", range: { M: [600, 900], F: [25, 50] },      unit: "ng/dL" },
+  { marker_id: "testosterona_livre", range: { M: [6.6, 19.1], F: [1.1, 2.2] },   unit: "pg/mL" },
+  { marker_id: "shbg",            range: { M: [0, 9999], F: [60, 90] },           unit: "nmol/L" }, // XLSX: M sem ref
+  { marker_id: "dhea_s",          range: { M: [0, 9999], F: [1.5, 4.0] },         unit: "µg/dL" },
+  // Estradiol: F="~1,0" (impreciso) → sentinel; M=1.1–4.3 ng/dL
+  { marker_id: "estradiol",       range: { M: [1.1, 4.3], F: [0, 9999] },         unit: "ng/dL" },
+  { marker_id: "prolactina",      range: { M: [0, 30], F: [0, 30] },             unit: "ng/mL" },
+  // Progesterona: XLSX M="<33" sem unidade, F=vazio → deixar fora por imprecisão
+  // FAI: F<5, M 30-150 — precisa de marker_id correspondente para funcionar
+  // LH/FSH ratio: é diagnóstico (SOP), não referência contínua — não incluir
 
   // ═══════════════════════════════════════════════════════════════════
-  // MINERAIS  (V2)
+  // HORMÔNIOS MASCULINOS  (XLSX)
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "magnesio",        range: { M: [2.0, 2.4], F: [2.0, 2.4] },     unit: "mg/dL" },
-  { marker_id: "zinco",           range: { M: [90, 110], F: [90, 110] },        unit: "µg/dL" },
-  { marker_id: "selenio",         range: { M: [100, 140], F: [100, 140] },      unit: "µg/L" },
-  { marker_id: "cobre",           range: { M: [80, 120], F: [80, 120] },        unit: "µg/dL" },
+  { marker_id: "fsh",             range: { M: [0, 10], F: [0, 9999] },           unit: "mUI/mL" },
+  { marker_id: "lh",              range: { M: [0, 9], F: [0, 9999] },             unit: "mUI/mL" },
+  { marker_id: "psa_total",       range: { M: [0, 2.5], F: [0, 9999] },           unit: "ng/mL" },
+  { marker_id: "psa_livre_total", range: { M: [0, 25], F: [0, 9999] },           unit: "%" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // HEPÁTICO  (V2)
+  // VITAMINAS  (XLSX)
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "tgo_ast",         range: { M: [10, 26], F: [10, 26] },         unit: "U/L" },
-  { marker_id: "tgp_alt",         range: { M: [10, 26], F: [10, 26] },         unit: "U/L" },
-  { marker_id: "ggt",             range: { M: [10, 30], F: [10, 30] },         unit: "U/L" },
-  { marker_id: "fosfatase_alcalina", range: { M: [60, 90], F: [60, 90] },      unit: "U/L" },
-  { marker_id: "albumina",        range: { M: [4.0, 5.0], F: [4.0, 5.0] },     unit: "g/dL" },
-  { marker_id: "proteinas_totais", range: { M: [6.9, 7.4], F: [6.9, 7.4] },   unit: "g/dL" },
-  { marker_id: "bilirrubina_total", range: { M: [0, 0.8], F: [0, 0.8] },      unit: "mg/dL" }, // novo V2
-  { marker_id: "ldh",             range: { M: [135, 180], F: [135, 180] },     unit: "U/L" },
-  { marker_id: "ck",              range: { M: [0, 150], F: [0, 100] },          unit: "U/L" },
+  { marker_id: "vitamina_d",      range: { M: [40, 100], F: [40, 100] },         unit: "ng/mL" },
+  { marker_id: "vitamina_b12",    range: { M: [650, 9999], F: [650, 9999] },     unit: "pg/mL" },
+  { marker_id: "acido_folico",    range: { M: [15, 9999], F: [15, 9999] },       unit: "ng/mL" },
+  { marker_id: "vitamina_a",      range: { M: [0.5, 0.7], F: [0.5, 0.7] },       unit: "mg/L" }, // XLSX diz mcg/L mas valor 0.5–0.7 só faz sentido em mg/L (retinol)
+  { marker_id: "vitamina_c",      range: { M: [1.0, 9999], F: [1.0, 9999] },     unit: "mg/dL" },
+  // 1,25(OH) Vit D: XLSX diz "1–1,5x (25OH)" — é relação calculada, não faixa fixa
 
   // ═══════════════════════════════════════════════════════════════════
-  // RENAL  (V2)
+  // MINERAIS  (XLSX)
+  // NOTA: XLSX usa "mcg/L" para Zinco e Cobre mas os valores (90–120, 90–130)
+  // só fazem sentido clínico em µg/dL. É um erro tipográfico conhecido no XLSX.
+  // Selênio em mcg/L (= µg/L) está correto.
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "creatinina",      range: { M: [0.8, 1.1], F: [0.7, 0.9] },     unit: "mg/dL" },
-  { marker_id: "ureia",           range: { M: [13, 25], F: [13, 25] },         unit: "mg/dL" },
-  { marker_id: "acido_urico",     range: { M: [3.5, 5.5], F: [3.0, 5.0] },     unit: "mg/dL" },
+  { marker_id: "selenio",         range: { M: [90, 150], F: [90, 150] },         unit: "µg/L" },
+  { marker_id: "zinco",           range: { M: [90, 120], F: [90, 120] },         unit: "µg/dL" }, // XLSX mcg/L é typo → µg/dL
+  { marker_id: "cobre",           range: { M: [90, 130], F: [90, 130] },         unit: "µg/dL" }, // XLSX mcg/L é typo → µg/dL
+  { marker_id: "magnesio",        range: { M: [2.1, 9999], F: [2.1, 9999] },     unit: "mg/dL" },
+  { marker_id: "calcio_total",    range: { M: [8.6, 10.3], F: [8.6, 10.3] },     unit: "mg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // ELETRÓLITOS  (V2)
+  // HEPÁTICO  (XLSX)
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "sodio",           range: { M: [134, 140], F: [134, 140] },     unit: "mEq/L" },
-  { marker_id: "potassio",        range: { M: [4.5, 5.1], F: [4.5, 5.1] },     unit: "mEq/L" },
-  { marker_id: "cloro",           range: { M: [100, 106], F: [100, 106] },     unit: "mEq/L" },
-  { marker_id: "calcio_total",    range: { M: [9.2, 10.1], F: [9.2, 10.1] },   unit: "mg/dL" },
-  { marker_id: "calcio_ionico",  range: { M: [4.8, 5.2], F: [4.8, 5.2] },     unit: "mg/dL" }, // V2: mg/dL (não mmol/L)
-  { marker_id: "pth",             range: { M: [15, 65], F: [15, 65] },         unit: "pg/mL" },
+  { marker_id: "tgo_ast",         range: { M: [0, 36], F: [0, 36] },             unit: "U/L" },
+  { marker_id: "tgp_alt",         range: { M: [0, 31], F: [0, 31] },             unit: "U/L" },
+  { marker_id: "ggt",             range: { M: [0, 35], F: [0, 35] },             unit: "U/L" },
+  { marker_id: "fosfatase_alcalina", range: { M: [40, 129], F: [40, 129] },      unit: "U/L" },
+  { marker_id: "albumina",        range: { M: [4.0, 5.0], F: [4.0, 5.0] },       unit: "g/dL" },
+  { marker_id: "proteinas_totais", range: { M: [6.9, 7.4], F: [6.9, 7.4] },     unit: "g/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // EIXO GH  (V2)
+  // RENAL  (XLSX)
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "igf1",            range: { M: [150, 300], F: [150, 300] },     unit: "ng/mL" },
-  { marker_id: "igfbp3",          range: { M: [3.0, 5.0], F: [3.0, 5.0] },     unit: "µg/mL" }, // V2 usa mg/L = µg/mL
+  { marker_id: "creatinina",      range: { M: [0.7, 1.1], F: [0.7, 1.1] },       unit: "mg/dL" },
+  { marker_id: "ureia",           range: { M: [13, 25], F: [13, 25] },           unit: "mg/dL" },
+  { marker_id: "acido_urico",     range: { M: [0, 5.5], F: [0, 5.5] },           unit: "mg/dL" },
+  { marker_id: "relacao_ureia_creatinina", range: { M: [10, 20], F: [10, 20] },   unit: "" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // EIXO ADRENAL  (V2)
+  // ELETRÓLITOS  (XLSX — Cálcio Sérico já acima em Minerais)
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "acth",            range: { M: [10, 46], F: [10, 46] },         unit: "pg/mL" },
-  { marker_id: "aldosterona",     range: { M: [5, 15], F: [5, 15] },           unit: "ng/dL" },
+  { marker_id: "sodio",           range: { M: [134, 140], F: [134, 140] },       unit: "mEq/L" },
+  { marker_id: "potassio",        range: { M: [4.5, 5.1], F: [4.5, 5.1] },       unit: "mEq/L" },
+  { marker_id: "cloro",           range: { M: [100, 106], F: [100, 106] },       unit: "mEq/L" },
+  { marker_id: "calcio_ionico",   range: { M: [4.8, 5.2], F: [4.8, 5.2] },       unit: "mg/dL" },
+  { marker_id: "pth",             range: { M: [15, 50], F: [15, 50] },           unit: "pg/mL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // PANCREÁTICO  (V2)
+  // ADRENAIS E OUTROS  (XLSX)
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "amilase",         range: { M: [30, 110], F: [30, 110] },       unit: "U/L" },
-  { marker_id: "lipase",          range: { M: [10, 140], F: [10, 140] },       unit: "U/L" },
-
-  // METAIS PESADOS: removidos da camada numérica.
-  // No V2, metais são tratados como qualitativos ("<5 negativo", "<10 negativo").
-  // Referências movidas para QUALITATIVE_FUNCTIONAL_RANGES.
+  { marker_id: "cortisol",        range: { M: [10, 15], F: [10, 15] },           unit: "µg/dL" },
+  { marker_id: "aldosterona",     range: { M: [5, 15], F: [5, 15] },             unit: "ng/dL" },
+  { marker_id: "acth",            range: { M: [10, 46], F: [10, 46] },           unit: "pg/mL" },
+  { marker_id: "igfbp3",          range: { M: [3.0, 5.0], F: [3.0, 5.0] },       unit: "mg/L" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // COPROLÓGICO  (V2)
+  // OUTROS MARCADORES  (XLSX)
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "copro_ph",        range: { M: [6.5, 7.5], F: [6.5, 7.5] },     unit: "" },        // V2: pH fecal 6,5–7,5
+  { marker_id: "ck",              range: { M: [0, 150], F: [0, 100] },           unit: "U/L" },
+  { marker_id: "ldh",             range: { M: [135, 180], F: [135, 180] },       unit: "U/L" },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // COPROLÓGICO  (XLSX — pH numérico, demais são qualitativos)
+  // ═══════════════════════════════════════════════════════════════════
+  { marker_id: "copro_ph",        range: { M: [6.5, 7.5], F: [6.5, 7.5] },       unit: "" },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // REMOVIDOS — não presentes no XLSX (fonte de verdade):
+  //   bilirrubina_total, igf1, amh, colesterol_nao_hdl, vhs
+  // MOVIDOS para qualitativo:
+  //   anti_tpo, anti_tg (XLSX diz "Negativo")
+  // ═══════════════════════════════════════════════════════════════════
 ];
 
 // ── Index for fast lookup ──
@@ -312,7 +323,6 @@ const GLOBAL_NORMALIZATION: Record<string, string> = {
  * Returns the canonical form they should map to, or null if not a BDL pattern.
  */
 function detectBelowDetectionLimit(text: string): string | null {
-  // Match patterns: < number, <= number, with optional spaces, commas as decimal
   const bdlPattern = /^[<≤]\s*\d+[.,]?\d*$/;
   if (bdlPattern.test(text.trim())) {
     return "negativo";
@@ -330,11 +340,11 @@ const BDL_MARKER_OVERRIDES: Record<string, string> = {
 
 /**
  * Tabela de referências funcionais qualitativas.
- * Cada entrada define o valor esperado e equivalências aceitas como "normal".
+ * Fonte ÚNICA: VR_Barbara_Medicina_Funcional.revisado.20.03 (1).xlsx
  */
 export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
   // ═══════════════════════════════════════════════════════════════════
-  // URINA
+  // URINA  (XLSX: "Urina I = Normal")
   // ═══════════════════════════════════════════════════════════════════
   {
     marker_id: "urina_nitritos",
@@ -422,7 +432,7 @@ export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
   },
 
   // ═══════════════════════════════════════════════════════════════════
-  // COPROLÓGICO
+  // COPROLÓGICO  (XLSX)
   // ═══════════════════════════════════════════════════════════════════
   {
     marker_id: "copro_parasitas",
@@ -439,8 +449,8 @@ export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
   {
     marker_id: "copro_muco",
     reference_type: "qualitative",
-    expected_text: "Ausente",
-    accepted_values: ["ausente", "negativo"],
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
   },
   {
     marker_id: "copro_leucocitos",
@@ -463,32 +473,20 @@ export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
   {
     marker_id: "copro_fibras",
     reference_type: "qualitative",
-    expected_text: "Ausente",
-    accepted_values: ["ausente", "negativo", "rarissimos", "raros"],
+    expected_text: "Presentes",
+    accepted_values: ["presente"],
   },
-  // ═══════════════════════════════════════════════════════════════════
-  // TIREOIDE QUALITATIVO (V2)
-  // ═══════════════════════════════════════════════════════════════════
   {
-    marker_id: "trab",
-    reference_type: "qualitative",
-    expected_text: "Negativo",
-    accepted_values: ["negativo", "ausente"],
-  },
-  // ═══════════════════════════════════════════════════════════════════
-  // AUTOIMUNIDADE (V2)
-  // ═══════════════════════════════════════════════════════════════════
-  {
-    marker_id: "fan",
+    marker_id: "copro_fungos",
     reference_type: "qualitative",
     expected_text: "Negativo",
     accepted_values: ["negativo", "ausente"],
   },
   {
-    marker_id: "anti_endomisio",
+    marker_id: "copro_bacterias",
     reference_type: "qualitative",
-    expected_text: "Negativo",
-    accepted_values: ["negativo", "ausente"],
+    expected_text: "Normal",
+    accepted_values: ["normal"],
   },
   {
     marker_id: "copro_amido",
@@ -514,32 +512,44 @@ export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
     expected_text: "Ausente",
     accepted_values: ["ausente", "negativo", "rarissimos"],
   },
+
   // ═══════════════════════════════════════════════════════════════════
-  // METAIS PESADOS (V2: qualitativo com limites)
-  // Fonte: imagem de referência — apenas Mercúrio, Chumbo, Alumínio visíveis
+  // TIREOIDE QUALITATIVO  (XLSX: "Negativo")
   // ═══════════════════════════════════════════════════════════════════
   {
-    marker_id: "mercurio",
+    marker_id: "trab",
     reference_type: "qualitative",
-    expected_text: "< 5 mcg/L Negativo",
+    expected_text: "Negativo",
     accepted_values: ["negativo", "ausente"],
   },
   {
-    marker_id: "chumbo",
+    marker_id: "anti_tpo",
     reference_type: "qualitative",
-    expected_text: "< 10 mcg/dL Negativo",
+    expected_text: "Negativo",
     accepted_values: ["negativo", "ausente"],
   },
   {
-    marker_id: "aluminio",
+    marker_id: "anti_tg",
     reference_type: "qualitative",
-    expected_text: "< 5 mcg/L Negativo",
+    expected_text: "Negativo",
     accepted_values: ["negativo", "ausente"],
   },
-  // cadmio, cobalto, arsenio, niquel: removidos — não visíveis na imagem de referência
+
   // ═══════════════════════════════════════════════════════════════════
-  // AUTOIMUNIDADE (V2)
+  // AUTOIMUNIDADE  (XLSX)
   // ═══════════════════════════════════════════════════════════════════
+  {
+    marker_id: "fan",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "anti_endomisio",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
   {
     marker_id: "anti_endomisio_iga",
     reference_type: "qualitative",
@@ -550,6 +560,40 @@ export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
     marker_id: "anti_transglutaminase_iga",
     reference_type: "qualitative",
     expected_text: "< 2 U/mL Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "intolerancia_lactose",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // METAIS PESADOS  (XLSX: todos "Negativo")
+  // ═══════════════════════════════════════════════════════════════════
+  {
+    marker_id: "mercurio",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "chumbo",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "aluminio",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
+    accepted_values: ["negativo", "ausente"],
+  },
+  {
+    marker_id: "cadmio",
+    reference_type: "qualitative",
+    expected_text: "Negativo",
     accepted_values: ["negativo", "ausente"],
   },
 ];
@@ -628,6 +672,12 @@ const UNIT_CONVERSIONS: ConversionRule[] = [
   { from: "µIU/mL", to: "mUI/L", factor: 1 },
   { from: "mEq/L", to: "mmol/L", factor: 1 },
   { from: "mmol/L", to: "mEq/L", factor: 1 },
+  { from: "mcg/dL", to: "µg/dL", factor: 1 },
+  { from: "µg/dL", to: "mcg/dL", factor: 1 },
+  { from: "/mm³",   to: "/µL",   factor: 1 },
+  { from: "/µL",    to: "/mm³",  factor: 1 },
+  { from: "mil/µL", to: "/mm³",  factor: 1000 },
+  { from: "/mm³",   to: "mil/µL", factor: 0.001 },
 ];
 
 function normalizeUnit(u: string): string {
