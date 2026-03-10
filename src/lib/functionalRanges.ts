@@ -635,6 +635,8 @@ export function resolveFunctionalRef(
   if (!fr) return null;
 
   const rawRange = fr.range[sex];
+  // If range is a sentinel [0, 9999] (meaning "no ref for this sex"), return null
+  if (rawRange[0] === 0 && rawRange[1] >= 9000) return null;
   let effectiveRange = rawRange;
   let displayUnit = fr.unit;
 
