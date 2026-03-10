@@ -515,52 +515,30 @@ export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
     accepted_values: ["ausente", "negativo", "rarissimos"],
   },
   // ═══════════════════════════════════════════════════════════════════
-  // METAIS PESADOS (V2: qualitativo — "<5 negativo", "<10 negativo")
+  // METAIS PESADOS (V2: qualitativo com limites)
+  // Fonte: imagem de referência — apenas Mercúrio, Chumbo, Alumínio visíveis
   // ═══════════════════════════════════════════════════════════════════
   {
     marker_id: "mercurio",
     reference_type: "qualitative",
-    expected_text: "Negativo",
+    expected_text: "< 5 mcg/L Negativo",
     accepted_values: ["negativo", "ausente"],
   },
   {
     marker_id: "chumbo",
     reference_type: "qualitative",
-    expected_text: "Negativo",
+    expected_text: "< 10 mcg/dL Negativo",
     accepted_values: ["negativo", "ausente"],
   },
   {
     marker_id: "aluminio",
     reference_type: "qualitative",
-    expected_text: "Negativo",
+    expected_text: "< 5 mcg/L Negativo",
     accepted_values: ["negativo", "ausente"],
   },
-  {
-    marker_id: "cadmio",
-    reference_type: "qualitative",
-    expected_text: "Negativo",
-    accepted_values: ["negativo", "ausente"],
-  },
-  {
-    marker_id: "cobalto",
-    reference_type: "qualitative",
-    expected_text: "Negativo",
-    accepted_values: ["negativo", "ausente"],
-  },
-  {
-    marker_id: "arsenio",
-    reference_type: "qualitative",
-    expected_text: "Negativo",
-    accepted_values: ["negativo", "ausente"],
-  },
-  {
-    marker_id: "niquel",
-    reference_type: "qualitative",
-    expected_text: "Negativo",
-    accepted_values: ["negativo", "ausente"],
-  },
+  // cadmio, cobalto, arsenio, niquel: removidos — não visíveis na imagem de referência
   // ═══════════════════════════════════════════════════════════════════
-  // AUTOIMUNIDADE adicional (V2)
+  // AUTOIMUNIDADE (V2)
   // ═══════════════════════════════════════════════════════════════════
   {
     marker_id: "anti_endomisio_iga",
@@ -571,7 +549,7 @@ export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
   {
     marker_id: "anti_transglutaminase_iga",
     reference_type: "qualitative",
-    expected_text: "Negativo",
+    expected_text: "< 2 U/mL Negativo",
     accepted_values: ["negativo", "ausente"],
   },
 ];
