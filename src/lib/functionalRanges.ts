@@ -18,7 +18,16 @@
  *   - unit: unidade da faixa funcional (pode diferir da canônica do marcador)
  *
  * Sentinel [0, 9999] = "sem referência para este sexo" → resolveFunctionalRef retorna null.
+ *
+ * Baseline congelada: .lovable/functional-ranges-baseline.md
  */
+
+/**
+ * Versão da baseline de referências funcionais.
+ * Alterar SOMENTE quando o XLSX canônico for atualizado.
+ * Documentar a mudança em .lovable/functional-ranges-baseline.md e CHANGELOG.md.
+ */
+export const FUNCTIONAL_RANGES_VERSION = "FUNC_REF_V1_2026_03_20";
 
 export interface FunctionalRange {
   marker_id: string;
