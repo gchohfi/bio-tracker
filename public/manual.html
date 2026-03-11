@@ -494,9 +494,9 @@
   <section id="anamnese">
     <h2>11. Anamnese Estruturada <span class="badge badge-green">Novo</span></h2>
 
-    <p>O LabTrack permite registrar a anamnese do paciente de forma <strong>estruturada por especialidade</strong>, incluindo extração automática de texto livre com IA.</p>
+    <p>O LabTrack permite registrar a anamnese do paciente de forma <strong>estruturada por especialidade</strong>, incluindo extração automática de texto livre com IA e importação assistida.</p>
 
-    <h3>Preenchendo a anamnese</h3>
+    <h3>Preenchendo a anamnese manualmente</h3>
     <div class="step">
       <div class="step-num">1</div>
       <div>Na página do paciente, acesse a aba <strong>"Anamnese"</strong>.</div>
@@ -518,11 +518,64 @@
       <div>Revise os campos e clique em <strong>"Salvar"</strong>.</div>
     </div>
 
-    <h3>Campos disponíveis</h3>
-    <p>Incluem: queixas, objetivos, nota de saúde, comorbidades, medicamentos, suplementação, hábitos, sintomas, sono, estresse, alimentação, intestino, ciclo menstrual, entre outros.</p>
+    <h3>Importação assistida de anamnese pronta <span class="badge badge-green">Novo</span></h3>
+    <p>Permite importar uma anamnese já escrita (texto colado ou arquivo <kbd>.txt</kbd>) e extrair automaticamente os dados para os campos estruturados, com revisão obrigatória antes de aplicar.</p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Na aba Anamnese, clique em <strong>"Importar Anamnese"</strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div><strong>Cole o texto</strong> da anamnese no campo ou <strong>suba um arquivo <kbd>.txt</kbd></strong>.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>Clique em <strong>"Extrair para campos"</strong>. O sistema analisa o texto e mapeia automaticamente para os 12 campos estruturados.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>Na <strong>tela de revisão</strong>, cada campo mostra: valor extraído, nível de confiança (Alta/Média), e se há conflito com dados já preenchidos.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div>Para cada campo, escolha: <strong>Aceitar</strong> (usar o valor extraído) ou <strong>Ignorar</strong> (manter o valor atual).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">6</div>
+      <div>Clique em <strong>"Aplicar campos selecionados"</strong> para confirmar. Os dados são aplicados à anamnese base do paciente.</div>
+    </div>
+
+    <div class="warn">
+      <strong>⚠️ Importante:</strong> A importação <strong>nunca</strong> salva dados diretamente nos campos finais sem a etapa de revisão. O texto bruto original é preservado para auditoria.
+    </div>
+
+    <h3>Campos extraíveis</h3>
+    <ul>
+      <li><strong>Queixa principal</strong> – motivo da consulta</li>
+      <li><strong>Objetivos</strong> – metas de saúde do paciente</li>
+      <li><strong>Sintomas</strong> – sintomas relatados</li>
+      <li><strong>Antecedentes</strong> – comorbidades e histórico</li>
+      <li><strong>Alergias</strong> – alergias conhecidas</li>
+      <li><strong>Medicações em uso</strong> – fármacos atuais</li>
+      <li><strong>Suplementos em uso</strong> – suplementação ativa</li>
+      <li><strong>Restrições alimentares</strong> – intolerâncias e restrições</li>
+      <li><strong>Hábitos</strong> – tabagismo, etilismo, etc.</li>
+      <li><strong>Atividade física</strong> – tipo e frequência</li>
+      <li><strong>Sono</strong> – qualidade e horas de sono</li>
+      <li><strong>Observações livres</strong> – dados complementares</li>
+    </ul>
+
+    <h3>Uso pela IA na análise clínica <span class="badge badge-green">Novo</span></h3>
+    <p>A anamnese estruturada confirmada é <strong>automaticamente utilizada como contexto</strong> pela IA durante a análise clínica. A precedência é:</p>
+    <ol>
+      <li><strong>Campos estruturados confirmados</strong> – fonte principal (queixa, objetivos, medicações, hábitos, etc.)</li>
+      <li><strong>Texto legado</strong> – usado apenas como fallback quando não há dados estruturados</li>
+    </ol>
+    <p>No prompt da IA, os campos aparecem organizados por seção, não como texto bruto, melhorando a qualidade e precisão da análise.</p>
 
     <div class="tip">
-      <strong>💡 Dica:</strong> A anamnese estruturada é utilizada como contexto pela IA na análise clínica. Quanto mais completa, melhor a qualidade das sugestões.
+      <strong>💡 Dica:</strong> A anamnese estruturada é utilizada como contexto pela IA na análise clínica. Quanto mais completa, melhor a qualidade das sugestões. Use a importação assistida para preencher rapidamente a partir de anamneses já escritas.
     </div>
   </section>
 
