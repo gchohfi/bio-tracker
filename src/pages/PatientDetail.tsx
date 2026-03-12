@@ -68,6 +68,7 @@ import { ClinicalEvolutionSummary } from "@/components/ClinicalEvolutionSummary"
 import { BodyCompositionTab } from "@/components/BodyCompositionTab";
 import { ImagingReportsTab } from "@/components/ImagingReportsTab";
 import PatientChatPanel from "@/components/PatientChatPanel";
+import AISummaryPanel from "@/components/AISummaryPanel";
 import { generatePatientReport } from "@/lib/generateReport";
 import { exportPrescriptionCSV } from "@/lib/exportPrescriptionCSV";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
@@ -1663,6 +1664,19 @@ export default function PatientDetail() {
               </TabsTrigger>
             </TabsList>
           </div>
+
+          {/* AI Summary collapsible panel — visible on all tabs except analysis */}
+          {detailTab !== "analysis" && selectedAnalysis && (
+            <div className="mt-3">
+              <AISummaryPanel
+                analysis={selectedAnalysis}
+                v2Data={analysisV2Map[selectedAnalysis.id] ?? null}
+                onOpenFullAnalysis={() => {
+                  setDetailTab("analysis");
+                }}
+              />
+            </div>
+          )}
 
           <TabsContent value="sessions" className="mt-4">
             {sessions.length === 0 ? (
