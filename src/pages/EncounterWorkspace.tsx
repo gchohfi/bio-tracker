@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +14,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { detectStaleness, type AnalysisSourceContext } from "@/lib/analysisSourceContext";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -31,6 +32,8 @@ import {
   ClipboardList,
   LayoutDashboard,
   AlertTriangle,
+  RefreshCw,
+  Info,
 } from "lucide-react";
 import { EncounterPrescriptionEditor } from "@/components/EncounterPrescriptionEditor";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
