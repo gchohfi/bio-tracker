@@ -292,6 +292,14 @@ export default function Index() {
           </Card>
         </div>
 
+        {/* Quick Actions */}
+        <div>
+          <h2 className="mb-3 text-base font-semibold flex items-center gap-2">
+            Ações Rápidas
+          </h2>
+          <QuickActions />
+        </div>
+
         {/* Recent Sessions with missing-marker preview */}
         {recentSessions.length > 0 && (
           <Card>
