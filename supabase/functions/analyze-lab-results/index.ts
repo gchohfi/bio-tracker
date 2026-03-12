@@ -889,6 +889,8 @@ async function fetchClinicalContext(
       .single()
       .then(({ data }: { data: unknown }) => data)
       .catch((err: unknown) => { console.warn("Failed to load anamnese:", err); return null; }),
+    // DEPRECATED: doctor_specialty_notes is legacy. Kept for backward compat.
+    // Superseded by SOAP notes in clinical_evolution_notes.
     supabaseClient
       .from("doctor_specialty_notes")
       .select("*")
@@ -896,7 +898,7 @@ async function fetchClinicalContext(
       .eq("specialty_id", specialtyId)
       .single()
       .then(({ data }: { data: unknown }) => data)
-      .catch((err: unknown) => { console.warn("Failed to load doctor notes:", err); return null; }),
+      .catch((err: unknown) => { console.warn("[DEPRECATED] Failed to load doctor notes:", err); return null; }),
     shouldFetchBodyComp
       ? supabaseClient
           .from("body_composition_sessions")

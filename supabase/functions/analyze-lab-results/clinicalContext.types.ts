@@ -219,6 +219,7 @@ export interface ClinicalContext {
 /** Flags retornados no response para indicar o que foi carregado */
 export interface ContextLoaded {
   anamnesis: boolean;
+  /** @deprecated From legacy `doctor_specialty_notes`. Will be removed. */
   doctorNotes: boolean;
   patientProfile: boolean;
   bodyComposition: boolean;
