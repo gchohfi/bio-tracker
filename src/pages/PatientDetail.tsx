@@ -1653,6 +1653,15 @@ export default function PatientDetail() {
           )}
         </div>
 
+        {/* ── Clinical Brief ── */}
+        <PatientClinicalBrief
+          lastEncounter={encountersForFilter.length > 0 ? encountersForFilter[0] : null}
+          lastAnalysis={savedAnalyses.length > 0 ? savedAnalyses[0] : null}
+          v2Data={selectedAnalysis ? analysisV2Map[selectedAnalysis.id] ?? null : null}
+          sessionsCount={sessions.length}
+          lastSessionDate={sessions.length > 0 ? sessions[0].session_date : null}
+        />
+
         {/* Tabs for Sessions, Evolution and AI Analysis */}
         <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as any)}>
           <div className="overflow-x-auto -mx-1 px-1">
