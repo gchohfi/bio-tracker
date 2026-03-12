@@ -68,6 +68,7 @@ import { ClinicalEvolutionSummary } from "@/components/ClinicalEvolutionSummary"
 import { BodyCompositionTab } from "@/components/BodyCompositionTab";
 import { ImagingReportsTab } from "@/components/ImagingReportsTab";
 import PatientChatPanel from "@/components/PatientChatPanel";
+import AISidePanel from "@/components/AISidePanel";
 import AISummaryPanel from "@/components/AISummaryPanel";
 import PatientClinicalBrief from "@/components/PatientClinicalBrief";
 import { generatePatientReport } from "@/lib/generateReport";
