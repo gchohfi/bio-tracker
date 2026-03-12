@@ -69,6 +69,7 @@ import { BodyCompositionTab } from "@/components/BodyCompositionTab";
 import { ImagingReportsTab } from "@/components/ImagingReportsTab";
 import PatientChatPanel from "@/components/PatientChatPanel";
 import AISummaryPanel from "@/components/AISummaryPanel";
+import PatientClinicalBrief from "@/components/PatientClinicalBrief";
 import { generatePatientReport } from "@/lib/generateReport";
 import { exportPrescriptionCSV } from "@/lib/exportPrescriptionCSV";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
@@ -1651,6 +1652,15 @@ export default function PatientDetail() {
             </>
           )}
         </div>
+
+        {/* ── Clinical Brief ── */}
+        <PatientClinicalBrief
+          lastEncounter={encountersForFilter.length > 0 ? encountersForFilter[0] : null}
+          lastAnalysis={savedAnalyses.length > 0 ? savedAnalyses[0] : null}
+          v2Data={selectedAnalysis ? analysisV2Map[selectedAnalysis.id] ?? null : null}
+          sessionsCount={sessions.length}
+          lastSessionDate={sessions.length > 0 ? sessions[0].session_date : null}
+        />
 
         {/* Tabs for Sessions, Evolution and AI Analysis */}
         <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as any)}>
