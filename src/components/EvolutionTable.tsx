@@ -397,17 +397,39 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                         const resolvedRef = resolveReference(marker, sex, labRefText);
                         const min = resolvedRef.min ?? marker.labRange[sex][0];
                         const max = resolvedRef.max ?? marker.labRange[sex][1];
-                        // refRange removido — apenas labRange é usado
                         const isQualitative = marker.qualitative;
                         const markerPanel = (marker as any).panel as string | undefined;
+
+                        // Check if any value in the latest session is altered
+                        const latestSession = sortedSessions[sortedSessions.length - 1];
+                        const latestVal = latestSession ? resultMap[marker.id]?.[latestSession.id] : undefined;
+                        const latestStatus = latestVal !== undefined && !isQualitative
+                          ? getStatusWithOperator(latestVal, marker, latestSession.id)
+                          : "normal";
+                        const rowHighlight = latestStatus === "low" || latestStatus === "high";
+
                         return (
                           <tr
                             key={marker.id}
-                            className="border-b last:border-0 hover:bg-muted/20 transition-colors"
+                            className={cn(
+                              "border-b last:border-0 transition-colors",
+                              rowHighlight
+                                ? "bg-destructive/[0.04] hover:bg-destructive/[0.08]"
+                                : "hover:bg-muted/20"
+                            )}
                           >
-                            <td className="sticky left-0 z-10 bg-card px-2 py-1.5">
+                            <td className={cn(
+                              "sticky left-0 z-10 px-2 py-1.5",
+                              rowHighlight ? "bg-destructive/[0.04]" : "bg-card"
+                            )}>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-xs font-medium">{marker.name}</span>
+                                {rowHighlight && (
+                                  <span className="flex h-1.5 w-1.5 shrink-0 rounded-full bg-destructive" />
+                                )}
+                                <span className={cn(
+                                  "text-xs font-medium",
+                                  rowHighlight && "text-destructive"
+                                )}>{marker.name}</span>
                                 {panelFilter === "all" && markerPanel && (
                                   <span className={cn(
                                     "inline-flex items-center rounded-full px-1.5 py-0 text-[9px] font-semibold",
@@ -421,7 +443,10 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                                 {isQualitative ? "qualitativo" : marker.unit}
                               </div>
                             </td>
-                            <td className="px-1 py-1.5 text-[10px] text-muted-foreground">
+                            <td className={cn(
+                              "px-1 py-1.5 text-[10px]",
+                              rowHighlight ? "text-foreground/70" : "text-muted-foreground"
+                            )}>
                             {isQualitative ? (
                                 labRefText || "—"
                               ) : labRefText && labRefText.includes(" / ") ? (
@@ -470,13 +495,16 @@ export default function EvolutionTable({ patientId, sessions, sex }: EvolutionTa
                               const textVal = textMap[marker.id]?.[s.id];
                               const displayVal = textVal || val.toString();
                               return (
-                                <td key={s.id} className="px-2 py-1.5 text-center">
+                                <td key={s.id} className={cn(
+                                  "px-2 py-1.5 text-center",
+                                  status !== "normal" && "bg-destructive/[0.06]"
+                                )}>
                                   <span
                                     className={cn(
                                       "inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-bold",
                                       status === "normal" && "bg-emerald-50 text-emerald-700",
-                                      status === "low" && "bg-red-50 text-red-700",
-                                      status === "high" && "bg-red-50 text-red-800",
+                                      status === "low" && "bg-red-100 text-red-800 ring-1 ring-red-200",
+                                      status === "high" && "bg-red-100 text-red-800 ring-1 ring-red-200",
                                     )}
                                   >
                                     {status === "low" && "↓ "}
