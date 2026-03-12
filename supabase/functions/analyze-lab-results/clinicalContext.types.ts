@@ -204,6 +204,11 @@ export interface ClinicalContext {
   structuredAnamnese?: StructuredAnamnese | null;
   /** Fonte dos dados de anamnese usados */
   anamneseSource?: AnamneseSource;
+  /**
+   * @deprecated Legacy field from `doctor_specialty_notes` table.
+   * Superseded by SOAP notes in `clinical_evolution_notes` via encounters.
+   * Kept for backward compatibility — will be removed after data migration.
+   */
   doctorNotes?: string | null;
   labs: ClinicalContextLabs;
   bodyComposition?: BodyCompositionContext | null;
