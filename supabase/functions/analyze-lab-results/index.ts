@@ -889,6 +889,8 @@ async function fetchClinicalContext(
       .single()
       .then(({ data }: { data: unknown }) => data)
       .catch((err: unknown) => { console.warn("Failed to load anamnese:", err); return null; }),
+    // DEPRECATED: doctor_specialty_notes is legacy. Kept for backward compat.
+    // Superseded by SOAP notes in clinical_evolution_notes.
     supabaseClient
       .from("doctor_specialty_notes")
       .select("*")
@@ -896,7 +898,7 @@ async function fetchClinicalContext(
       .eq("specialty_id", specialtyId)
       .single()
       .then(({ data }: { data: unknown }) => data)
-      .catch((err: unknown) => { console.warn("Failed to load doctor notes:", err); return null; }),
+      .catch((err: unknown) => { console.warn("[DEPRECATED] Failed to load doctor notes:", err); return null; }),
     shouldFetchBodyComp
       ? supabaseClient
           .from("body_composition_sessions")
@@ -976,7 +978,9 @@ async function fetchClinicalContext(
     }
   }
 
-  // Parse doctor notes
+  // Parse doctor notes — DEPRECATED: from legacy doctor_specialty_notes table.
+  // Kept for backward compat; superseded by SOAP notes in clinical_evolution_notes.
+  // TODO: Remove after data migration (see ARCHITECTURE.md).
   if (notesResult) {
     const n = notesResult as Record<string, unknown>;
     const noteLines: string[] = [];
@@ -996,7 +1000,7 @@ async function fetchClinicalContext(
     if (noteLines.length > 0) {
       result.doctorNotes = noteLines.map(l => "- " + l).join("\n");
       loaded.doctorNotes = true;
-      console.log("Doctor notes loaded: " + noteLines.length + " fields for patient " + patientId);
+      console.log("[DEPRECATED] Doctor notes loaded: " + noteLines.length + " fields for patient " + patientId);
     }
   }
 
