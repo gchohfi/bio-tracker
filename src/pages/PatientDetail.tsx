@@ -1495,82 +1495,6 @@ export default function PatientDetail() {
           <div className="flex gap-2 flex-wrap items-center">
             {/* ── Chat IA contextual ── */}
             <PatientChatPanel patientId={patient.id} patientName={patient.name} />
-            {/* ── Ações primárias ── */}
-            {sessions.length > 0 && (
-              <>
-                {/* Exportar PDF simples */}
-                <Button variant="outline" size="sm" onClick={() => openReportEdit(false)}>
-                  <FileDown className="mr-1.5 h-4 w-4" />
-                  Exportar PDF
-                </Button>
-
-                {/* Seletor de especialidade + Análise IA */}
-                <div className="flex items-center gap-1">
-                  {availableSpecialties.length > 0 && (
-                    <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
-                      <SelectTrigger className="h-8 w-auto text-xs border-indigo-200 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-50 gap-1 px-2">
-                        <SelectValue>
-                          {(() => {
-                            const sp = availableSpecialties.find(s => s.specialty_id === selectedSpecialty);
-                            return sp ? `${sp.specialty_icon} ${sp.specialty_name}` : selectedSpecialty;
-                          })()}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableSpecialties.map((sp) => (
-                          <SelectItem key={sp.specialty_id} value={sp.specialty_id}>
-                            <span className="flex items-center gap-2">
-                              <span>{sp.specialty_icon}</span>
-                              <span>{sp.specialty_name}</span>
-                              {sp.has_protocols && (
-                                <span className="text-xs text-emerald-600">(+ Protocolos)</span>
-                              )}
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleGenerateAnalysis()}
-                    disabled={isAnalyzing || isGeneratingProtocols}
-                    className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
-                    title="Gera análise clínica dos exames com IA"
-                  >
-                    {isAnalyzing ? (
-                      <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Brain className="mr-1.5 h-4 w-4" />
-                    )}
-                    {isAnalyzing ? "Analisando..." : "Análise IA"}
-                  </Button>
-                </div>
-
-                {/* Protocolos Sugeridos com IA */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateProtocols}
-                  disabled={isAnalyzing || isGeneratingProtocols}
-                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                  title="Gera recomendações de protocolos Essential com IA"
-                >
-                  {isGeneratingProtocols ? (
-                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Syringe className="mr-1.5 h-4 w-4" />
-                  )}
-                  {isGeneratingProtocols ? "Gerando..." : "Protocolos IA"}
-                </Button>
-              </>
-            )}
-
-            <Button size="sm" onClick={openNewSession}>
-              <Plus className="mr-1.5 h-4 w-4" />
-              Nova Sessão
-            </Button>
 
             {/* ── Menu secundário — ações menos frequentes e destrutivas ── */}
             <DropdownMenu>
@@ -1587,6 +1511,20 @@ export default function PatientDetail() {
                 <DropdownMenuItem onClick={() => setAliasConfigOpen(true)}>
                   <Settings2 className="mr-2 h-4 w-4" />
                   Configurar aliases
+                </DropdownMenuItem>
+                {sessions.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleGenerateProtocols} disabled={isAnalyzing || isGeneratingProtocols}>
+                      <Syringe className="mr-2 h-4 w-4" />
+                      {isGeneratingProtocols ? "Gerando Protocolos..." : "Protocolos IA"}
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={openNewSession}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nova Sessão Manual
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <AlertDialog>
@@ -1621,6 +1559,97 @@ export default function PatientDetail() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+        </div>
+
+        {/* ── Quick Actions Bar ── */}
+        <div className="flex items-center gap-2 flex-wrap mt-3 pb-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+            onClick={() => {
+              setDetailTab("clinical_evolution");
+              // Trigger new SOAP via URL param
+              const url = new URL(window.location.href);
+              url.searchParams.set("tab", "clinical_evolution");
+              url.searchParams.set("action", "new_soap");
+              window.history.replaceState({}, "", url.toString());
+              window.dispatchEvent(new Event("popstate"));
+            }}
+          >
+            <Stethoscope className="h-3.5 w-3.5" />
+            Nova Consulta
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => {
+              setDetailTab("sessions");
+              setTimeout(() => pdfInputRef.current?.click(), 200);
+            }}
+          >
+            <FileUp className="h-3.5 w-3.5" />
+            Importar Exame
+          </Button>
+
+          {sessions.length > 0 && (
+            <>
+              <div className="flex items-center gap-1">
+                {availableSpecialties.length > 0 && (
+                  <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
+                    <SelectTrigger className="h-8 w-auto text-xs border-primary/20 text-primary bg-primary/5 hover:bg-primary/10 gap-1 px-2">
+                      <SelectValue>
+                        {(() => {
+                          const sp = availableSpecialties.find(s => s.specialty_id === selectedSpecialty);
+                          return sp ? `${sp.specialty_icon} ${sp.specialty_name}` : selectedSpecialty;
+                        })()}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableSpecialties.map((sp) => (
+                        <SelectItem key={sp.specialty_id} value={sp.specialty_id}>
+                          <span className="flex items-center gap-2">
+                            <span>{sp.specialty_icon}</span>
+                            <span>{sp.specialty_name}</span>
+                            {sp.has_protocols && (
+                              <Badge variant="secondary" className="text-[9px] h-4 px-1">+ Protocolos</Badge>
+                            )}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleGenerateAnalysis()}
+                  disabled={isAnalyzing || isGeneratingProtocols}
+                  className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+                  title="Gera análise clínica dos exames com IA"
+                >
+                  {isAnalyzing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Brain className="h-3.5 w-3.5" />
+                  )}
+                  {isAnalyzing ? "Analisando..." : "Análise IA"}
+                </Button>
+              </div>
+
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => openReportEdit(false)}
+              >
+                <FileDown className="h-3.5 w-3.5" />
+                Gerar PDF
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Tabs for Sessions, Evolution and AI Analysis */}
