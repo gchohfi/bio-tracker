@@ -1806,8 +1806,11 @@ export default function PatientDetail() {
             <ClinicalEvolutionSummary
               patientId={patient.id}
               onNavigateToEncounter={(encId) => {
-                if (encId) setActiveEncounterId(encId);
-                setDetailTab("clinical_evolution");
+                if (encId) {
+                  navigate(`/patient/${patient.id}/encounter/${encId}`);
+                } else {
+                  setDetailTab("clinical_evolution");
+                }
               }}
             />
           </TabsContent>
