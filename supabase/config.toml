@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.parse-inbody-ocr]
 verify_jwt = false
+
+[functions.patient-chat]
+verify_jwt = false
+
+[functions.parse-patient-anamnese]
+verify_jwt = false
