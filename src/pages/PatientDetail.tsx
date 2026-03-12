@@ -67,6 +67,7 @@ import { ClinicalEvolutionTab } from "@/components/ClinicalEvolutionTab";
 import { ClinicalEvolutionSummary } from "@/components/ClinicalEvolutionSummary";
 import { BodyCompositionTab } from "@/components/BodyCompositionTab";
 import { ImagingReportsTab } from "@/components/ImagingReportsTab";
+import PatientChatPanel from "@/components/PatientChatPanel";
 import { generatePatientReport } from "@/lib/generateReport";
 import { exportPrescriptionCSV } from "@/lib/exportPrescriptionCSV";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
