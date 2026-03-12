@@ -111,6 +111,8 @@ export default function EncounterWorkspace() {
   const [lastSessionDate, setLastSessionDate] = useState<string | null>(null);
   const [specialtyName, setSpecialtyName] = useState<string>("");
   const [subTab, setSubTab] = useState("resumo");
+  const [stalenessReasons, setStalenessReasons] = useState<string[]>([]);
+  const [allLabSessionIds, setAllLabSessionIds] = useState<string[]>([]);
 
   const isFinalized = encounter?.status === "finalized";
 
@@ -124,7 +126,7 @@ export default function EncounterWorkspace() {
       (supabase as any).from("clinical_encounters").select("*").eq("id", encounterId).single(),
       (supabase as any).from("clinical_evolution_notes").select("*").eq("encounter_id", encounterId).single(),
       (supabase as any).from("patient_analyses").select("*").eq("encounter_id", encounterId).order("created_at", { ascending: false }).limit(1),
-      (supabase as any).from("lab_sessions").select("id, session_date").eq("patient_id", patientId).order("session_date", { ascending: false }).limit(1),
+      (supabase as any).from("lab_sessions").select("id, session_date").eq("patient_id", patientId).order("session_date", { ascending: false }),
       (supabase as any).from("analysis_prompts").select("specialty_id, specialty_name").eq("is_active", true),
     ]);
 
@@ -136,10 +138,19 @@ export default function EncounterWorkspace() {
       setNote({ encounter_id: encounterId, ...EMPTY_NOTE });
     }
 
+    // All lab sessions for staleness check
+    const allSessions = sessionsRes.data ?? [];
+    setAllLabSessionIds(allSessions.map((s: any) => s.id));
+    if (allSessions.length > 0) {
+      setLastSessionDate(allSessions[0].session_date);
+    }
+
     // Analysis linked to this encounter
     const analyses = analysisRes.data ?? [];
+    let loadedAnalysis: any = null;
     if (analyses.length > 0) {
       const a = analyses[0];
+      loadedAnalysis = a;
       setAnalysis(a);
       if (a.analysis_v2_data) {
         try {
@@ -149,6 +160,18 @@ export default function EncounterWorkspace() {
       }
     }
 
+    // Staleness detection
+    if (loadedAnalysis?.source_context) {
+      const sc = loadedAnalysis.source_context as AnalysisSourceContext;
+      const reasons = detectStaleness(sc, {
+        latestLabSessionDate: allSessions[0]?.session_date ?? null,
+        labSessionIds: allSessions.map((s: any) => s.id),
+      });
+      setStalenessReasons(reasons);
+    } else {
+      setStalenessReasons([]);
+    }
+
     // Specialty name
     if (encounterRes.data && specialtyRes.data) {
       const sp = (specialtyRes.data as any[]).find((s: any) => s.specialty_id === encounterRes.data.specialty_id);
@@ -156,12 +179,11 @@ export default function EncounterWorkspace() {
     }
 
     // Relevant markers from most recent session
-    if (sessionsRes.data && sessionsRes.data.length > 0) {
-      setLastSessionDate(sessionsRes.data[0].session_date);
+    if (allSessions.length > 0) {
       const { data: results } = await (supabase as any)
         .from("lab_historical_results")
         .select("marker_name, value, text_value, flag")
-        .eq("session_id", sessionsRes.data[0].id)
+        .eq("session_id", allSessions[0].id)
         .in("flag", ["high", "low", "critical_high", "critical_low"])
         .limit(8);
       setRelevantMarkers((results ?? []) as RelevantMarker[]);
