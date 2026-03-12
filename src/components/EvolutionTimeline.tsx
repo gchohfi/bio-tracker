@@ -82,14 +82,26 @@ export default function EvolutionTimeline({ patientId, patientName, patientSex }
   const formatCell = (cell: EvolutionCellValue | undefined) => {
     if (!cell) return <span className="text-muted-foreground/40">—</span>;
     const display = cell.text_value || (cell.value !== null ? String(cell.value) : "—");
+    const isAltered = cell.flag === "high" || cell.flag === "low";
     return (
-      <div className="flex flex-col items-center gap-0.5">
+      <div className={cn(
+        "flex flex-col items-center gap-0.5 rounded px-1 py-0.5",
+        isAltered && "bg-destructive/[0.08]"
+      )}>
         <span className={cn(
           "text-xs tabular-nums",
           cell.source === "historical" && !cell.flag && "text-muted-foreground",
-          (cell.flag === "high" || cell.flag === "low") && "text-destructive font-semibold"
+          isAltered && "font-bold"
         )}>
-          {display}
+          <span className={cn(
+            "inline-flex items-center gap-0.5 rounded-md px-1 py-0 text-[11px]",
+            isAltered && "bg-red-100 text-red-800 ring-1 ring-red-200",
+            !isAltered && cell.value !== null && "text-emerald-700"
+          )}>
+            {cell.flag === "low" && "↓ "}
+            {cell.flag === "high" && "↑ "}
+            {display}
+          </span>
         </span>
         {cell.source === "historical" && (
           <span className="text-[8px] text-muted-foreground/60" title={cell.source_lab || "histórico"}>
