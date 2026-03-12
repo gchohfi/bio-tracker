@@ -121,7 +121,7 @@ export default function DaySummaryMobile({
               <Card
                 key={enc.id}
                 className="cursor-pointer active:scale-[0.98] transition-transform"
-                onClick={() => navigate(`/patient/${enc.patient_id}?tab=clinical_evolution`)}
+                onClick={() => navigate(`/patient/${enc.patient_id}?tab=consultas`)}
               >
                 <CardContent className="flex items-center justify-between gap-2 p-3">
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -206,7 +206,7 @@ export default function DaySummaryMobile({
               <Card
                 key={pr.session_id}
                 className="cursor-pointer active:scale-[0.98] transition-transform"
-                onClick={() => navigate(`/patient/${pr.patient_id}?tab=sessions`)}
+                onClick={() => navigate(`/patient/${pr.patient_id}?tab=exames`)}
               >
                 <CardContent className="flex items-center justify-between gap-2 p-3">
                   <div className="flex items-center gap-2.5 min-w-0">

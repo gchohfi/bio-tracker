@@ -22,7 +22,7 @@ const ACTIONS: QuickAction[] = [
     label: "Nova Nota SOAP",
     description: "Registrar evolução clínica",
     icon: <FileText className="h-5 w-5" />,
-    tab: "clinical_evolution",
+    tab: "consultas",
     action: "new_soap",
   },
   {
@@ -30,7 +30,7 @@ const ACTIONS: QuickAction[] = [
     label: "Importar Exame",
     description: "Upload de PDF de laboratório",
     icon: <FileUp className="h-5 w-5" />,
-    tab: "sessions",
+    tab: "exames",
     action: "import",
   },
   {
@@ -38,7 +38,7 @@ const ACTIONS: QuickAction[] = [
     label: "Nova Consulta",
     description: "Iniciar novo atendimento",
     icon: <Stethoscope className="h-5 w-5" />,
-    tab: "clinical_evolution",
+    tab: "consultas",
     action: "new_encounter",
   },
   {

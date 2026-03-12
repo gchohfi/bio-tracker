@@ -92,14 +92,24 @@ type LabResult = Tables<"lab_results">;
 const MARKER_MAP = new Map(MARKERS.map(m => [m.id, m]));
 
 const TAB_LABELS: Record<string, string> = {
-  clinical_evolution: "Prontuário",
-  sessions: "Exames",
-  evolution: "Evolução Clínica",
-  timeline: "Evolutivo de Exames",
+  resumo: "Resumo",
+  consultas: "Consultas",
+  exames: "Exames",
+  evolutivo: "Evolutivo",
+  contexto: "Contexto",
+  // Legacy keys kept for URL backwards-compat
   analysis: "Análise IA",
-  anamnese: "Anamnese",
-  body_composition: "Composição Corporal",
-  imaging: "Laudos de Imagem",
+};
+
+/** Maps old URL ?tab= values to new tab keys for backwards compatibility */
+const LEGACY_TAB_MAP: Record<string, string> = {
+  clinical_evolution: "consultas",
+  sessions: "exames",
+  evolution: "consultas",
+  timeline: "evolutivo",
+  anamnese: "contexto",
+  body_composition: "contexto",
+  imaging: "contexto",
 };
 
 async function extractPdfText(file: File): Promise<{ fullText: string; cleanedText: string }> {
@@ -296,11 +306,13 @@ export default function PatientDetail() {
   const [markerValues, setMarkerValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   // Read initial tab from URL query param
-  const [detailTab, setDetailTab] = useState<"clinical_evolution" | "sessions" | "evolution" | "timeline" | "analysis" | "anamnese">(() => {
+  const [detailTab, setDetailTab] = useState<string>(() => {
     const params = new URLSearchParams(window.location.search);
-    const tab = params.get("tab");
-    const validTabs = ["clinical_evolution", "sessions", "evolution", "timeline", "analysis", "anamnese"];
-    return validTabs.includes(tab || "") ? (tab as any) : "clinical_evolution";
+    const rawTab = params.get("tab") ?? "";
+    // Map legacy tab keys to new structure
+    if (LEGACY_TAB_MAP[rawTab]) return LEGACY_TAB_MAP[rawTab];
+    const validTabs = ["resumo", "consultas", "exames", "evolutivo", "contexto", "analysis"];
+    return validTabs.includes(rawTab) ? rawTab : "resumo";
   });
   const [pendingDeleteSessionId, setPendingDeleteSessionId] = useState<string | null>(null);
   const [activeEncounterId, setActiveEncounterId] = useState<string | null>(null);
@@ -1569,10 +1581,10 @@ export default function PatientDetail() {
             variant="outline"
             className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
             onClick={() => {
-              setDetailTab("clinical_evolution");
+              setDetailTab("consultas");
               // Trigger new SOAP via URL param
               const url = new URL(window.location.href);
-              url.searchParams.set("tab", "clinical_evolution");
+              url.searchParams.set("tab", "consultas");
               url.searchParams.set("action", "new_soap");
               window.history.replaceState({}, "", url.toString());
               window.dispatchEvent(new Event("popstate"));
@@ -1653,53 +1665,29 @@ export default function PatientDetail() {
           )}
         </div>
 
-        {/* ── Clinical Brief ── */}
-        <PatientClinicalBrief
-          lastEncounter={encountersForFilter.length > 0 ? encountersForFilter[0] : null}
-          lastAnalysis={savedAnalyses.length > 0 ? savedAnalyses[0] : null}
-          v2Data={selectedAnalysis ? analysisV2Map[selectedAnalysis.id] ?? null : null}
-          sessionsCount={sessions.length}
-          lastSessionDate={sessions.length > 0 ? sessions[0].session_date : null}
-        />
-
-        {/* Tabs for Sessions, Evolution and AI Analysis */}
+        {/* Tabs — 5 áreas principais */}
         <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as any)}>
           <div className="overflow-x-auto -mx-1 px-1">
             <TabsList className="w-max">
-              <TabsTrigger value="clinical_evolution" className="gap-1.5">
-                <FileText className="h-3.5 w-3.5" />
-                Prontuário
+              <TabsTrigger value="resumo" className="gap-1.5">
+                <UserCircle2 className="h-3.5 w-3.5" />
+                Resumo
               </TabsTrigger>
-              <TabsTrigger value="sessions" className="gap-1.5">
+              <TabsTrigger value="consultas" className="gap-1.5">
+                <Stethoscope className="h-3.5 w-3.5" />
+                Consultas
+              </TabsTrigger>
+              <TabsTrigger value="exames" className="gap-1.5">
                 <FlaskConical className="h-3.5 w-3.5" />
                 Exames
               </TabsTrigger>
-              <TabsTrigger value="evolution" className="gap-1.5">
+              <TabsTrigger value="evolutivo" className="gap-1.5">
                 <BarChart3 className="h-3.5 w-3.5" />
-                Evolução Clínica
+                Evolutivo
               </TabsTrigger>
-              <TabsTrigger value="timeline" className="gap-1.5">
-                <Clock className="h-3.5 w-3.5" />
-                Evolutivo de Exames
-              </TabsTrigger>
-              <TabsTrigger value="analysis" className="gap-1.5">
-                <Brain className="h-3.5 w-3.5" />
-                Análise IA
-                {savedAnalyses.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{savedAnalyses.length}</Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="anamnese" className="gap-1.5">
+              <TabsTrigger value="contexto" className="gap-1.5">
                 <ClipboardList className="h-3.5 w-3.5" />
-                Anamnese
-              </TabsTrigger>
-              <TabsTrigger value="body_composition" className="gap-1.5">
-                <Scale className="h-3.5 w-3.5" />
-                Composição Corporal
-              </TabsTrigger>
-              <TabsTrigger value="imaging" className="gap-1.5">
-                <FileImage className="h-3.5 w-3.5" />
-                Laudos de Imagem
+                Contexto
               </TabsTrigger>
             </TabsList>
           </div>
@@ -1717,7 +1705,19 @@ export default function PatientDetail() {
             </div>
           )}
 
-          <TabsContent value="sessions" className="mt-4">
+          {/* ═══ RESUMO ═══ */}
+          <TabsContent value="resumo" className="mt-4">
+            <PatientClinicalBrief
+              lastEncounter={encountersForFilter.length > 0 ? encountersForFilter[0] : null}
+              lastAnalysis={savedAnalyses.length > 0 ? savedAnalyses[0] : null}
+              v2Data={selectedAnalysis ? analysisV2Map[selectedAnalysis.id] ?? null : null}
+              sessionsCount={sessions.length}
+              lastSessionDate={sessions.length > 0 ? sessions[0].session_date : null}
+            />
+          </TabsContent>
+
+          {/* ═══ EXAMES ═══ */}
+          <TabsContent value="exames" className="mt-4">
             {sessions.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -1802,20 +1802,42 @@ export default function PatientDetail() {
             </AlertDialog>
           </TabsContent>
 
-          <TabsContent value="evolution" className="mt-4">
-            <ClinicalEvolutionSummary
-              patientId={patient.id}
-              onNavigateToEncounter={(encId) => {
-                if (encId) {
-                  navigate(`/patient/${patient.id}/encounter/${encId}`);
-                } else {
-                  setDetailTab("clinical_evolution");
-                }
-              }}
-            />
+          {/* ═══ CONSULTAS (merges clinical_evolution + evolution summary) ═══ */}
+          <TabsContent value="consultas" className="mt-4 space-y-6">
+            {patient && (
+              <>
+                <ClinicalEvolutionSummary
+                  patientId={patient.id}
+                  onNavigateToEncounter={(encId) => {
+                    if (encId) {
+                      navigate(`/patient/${patient.id}/encounter/${encId}`);
+                    }
+                  }}
+                />
+                <ClinicalEvolutionTab
+                  patientId={patient.id}
+                  patientName={patient.name}
+                  specialtyId={selectedSpecialty}
+                  specialtyName={availableSpecialties.find(s => s.specialty_id === selectedSpecialty)?.specialty_name}
+                  practitionerName={user?.user_metadata?.name || user?.email || "Profissional"}
+                  onRequestAnalysis={(encounterId) => {
+                    setActiveEncounterId(encounterId);
+                    handleGenerateAnalysis(encounterId);
+                  }}
+                  onViewAnalysis={(analysisId) => {
+                    const found = savedAnalyses.find(a => a.id === analysisId);
+                    if (found) {
+                      setSelectedAnalysis(found);
+                      setDetailTab("analysis");
+                    }
+                  }}
+                />
+              </>
+            )}
           </TabsContent>
 
-          <TabsContent value="timeline" className="mt-4 overflow-hidden space-y-4">
+          {/* ═══ EVOLUTIVO ═══ */}
+          <TabsContent value="evolutivo" className="mt-4 overflow-hidden space-y-4">
             <Tabs defaultValue="table">
               <TabsList className="mb-2">
                 <TabsTrigger value="table" className="gap-1.5 text-xs">
@@ -2215,41 +2237,33 @@ export default function PatientDetail() {
               </div>
             )}
           </TabsContent>
-          <TabsContent value="anamnese" className="mt-4">
-            {patient && <AnamneseTab patient={patient} />}
-          </TabsContent>
-          {/* doctor_notes tab hidden — Fase A: data preserved, tab removed from nav */}
-          <TabsContent value="clinical_evolution" className="mt-4">
-            {patient && (
-              <ClinicalEvolutionTab
-                patientId={patient.id}
-                patientName={patient.name}
-                specialtyId={selectedSpecialty}
-                specialtyName={availableSpecialties.find(s => s.specialty_id === selectedSpecialty)?.specialty_name}
-                practitionerName={user?.user_metadata?.name || user?.email || "Profissional"}
-                onRequestAnalysis={(encounterId) => {
-                  setActiveEncounterId(encounterId);
-                  handleGenerateAnalysis(encounterId);
-                }}
-                onViewAnalysis={(analysisId) => {
-                  const found = savedAnalyses.find(a => a.id === analysisId);
-                  if (found) {
-                    setSelectedAnalysis(found);
-                    setDetailTab("analysis");
-                  }
-                }}
-              />
-            )}
-          </TabsContent>
-          <TabsContent value="imaging" className="mt-4">
-            {patient && (
-              <ImagingReportsTab patientId={patient.id} />
-            )}
-          </TabsContent>
-          <TabsContent value="body_composition" className="mt-4">
-            {patient && (
-              <BodyCompositionTab patientId={patient.id} />
-            )}
+          {/* ═══ CONTEXTO (anamnese + composição corporal + laudos de imagem) ═══ */}
+          <TabsContent value="contexto" className="mt-4 space-y-4">
+            <Tabs defaultValue="anamnese">
+              <TabsList className="mb-2">
+                <TabsTrigger value="anamnese" className="gap-1.5 text-xs">
+                  <ClipboardList className="h-3 w-3" />
+                  Anamnese
+                </TabsTrigger>
+                <TabsTrigger value="body" className="gap-1.5 text-xs">
+                  <Scale className="h-3 w-3" />
+                  Composição Corporal
+                </TabsTrigger>
+                <TabsTrigger value="imaging" className="gap-1.5 text-xs">
+                  <FileImage className="h-3 w-3" />
+                  Laudos de Imagem
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="anamnese">
+                {patient && <AnamneseTab patient={patient} />}
+              </TabsContent>
+              <TabsContent value="body">
+                {patient && <BodyCompositionTab patientId={patient.id} />}
+              </TabsContent>
+              <TabsContent value="imaging">
+                {patient && <ImagingReportsTab patientId={patient.id} />}
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
       </div>

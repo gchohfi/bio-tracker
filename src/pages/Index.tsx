@@ -455,7 +455,7 @@ export default function Index() {
                       <div
                         key={enc.id}
                         className="rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between gap-2"
-                        onClick={() => navigate(`/patient/${enc.patient_id}?tab=clinical_evolution`)}
+                        onClick={() => navigate(`/patient/${enc.patient_id}?tab=consultas`)}
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
@@ -498,7 +498,7 @@ export default function Index() {
                       <div
                         key={pr.session_id}
                         className="rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between gap-2"
-                        onClick={() => navigate(`/patient/${pr.patient_id}?tab=sessions`)}
+                        onClick={() => navigate(`/patient/${pr.patient_id}?tab=exames`)}
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
