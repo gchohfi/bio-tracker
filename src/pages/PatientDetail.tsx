@@ -2269,6 +2269,15 @@ export default function PatientDetail() {
           </TabsContent>
         </Tabs>
       </div>
+      {/* ═══ AI Side Panel ═══ */}
+      <AISidePanel
+        analysis={selectedAnalysis}
+        v2Data={selectedAnalysis ? analysisV2Map[selectedAnalysis.id] ?? null : null}
+        patientId={patient.id}
+        patientName={patient.name}
+        onOpenFullAnalysis={() => setDetailTab("analysis")}
+      />
+      </div>
       {/* Edit report dialog (before PDF export) */}
       <EditReportDialog
         open={reportEditOpen}
