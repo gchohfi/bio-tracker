@@ -92,14 +92,24 @@ type LabResult = Tables<"lab_results">;
 const MARKER_MAP = new Map(MARKERS.map(m => [m.id, m]));
 
 const TAB_LABELS: Record<string, string> = {
-  clinical_evolution: "Prontuário",
-  sessions: "Exames",
-  evolution: "Evolução Clínica",
-  timeline: "Evolutivo de Exames",
+  resumo: "Resumo",
+  consultas: "Consultas",
+  exames: "Exames",
+  evolutivo: "Evolutivo",
+  contexto: "Contexto",
+  // Legacy keys kept for URL backwards-compat
   analysis: "Análise IA",
-  anamnese: "Anamnese",
-  body_composition: "Composição Corporal",
-  imaging: "Laudos de Imagem",
+};
+
+/** Maps old URL ?tab= values to new tab keys for backwards compatibility */
+const LEGACY_TAB_MAP: Record<string, string> = {
+  clinical_evolution: "consultas",
+  sessions: "exames",
+  evolution: "consultas",
+  timeline: "evolutivo",
+  anamnese: "contexto",
+  body_composition: "contexto",
+  imaging: "contexto",
 };
 
 async function extractPdfText(file: File): Promise<{ fullText: string; cleanedText: string }> {
