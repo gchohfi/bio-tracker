@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { auditResults } from "@/lib/clinicalAudit";
 import { Trace } from "@/lib/traceability";
+import { buildSourceContext } from "@/lib/analysisSourceContext";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -820,10 +821,16 @@ export default function PatientDetail() {
       setCachedAiAnalysis(merged);
       // Salvar análise no banco
       const sp = availableSpecialties.find(s => s.specialty_id === selectedSpecialty);
+      // Build source context snapshot
+      const sourceContext = buildSourceContext({
+        sessions: sessions.map((s) => ({ id: s.id, session_date: s.session_date })),
+        labResultCount: results.length,
+      });
       const { data: savedData, error: saveError } = await (supabase as any)
         .from("patient_analyses")
         .insert({
           patient_id: patient.id,
+          practitioner_id: user?.id ?? null,
           specialty_id: selectedSpecialty,
           specialty_name: sp?.specialty_name ?? selectedSpecialty,
           mode: "full",
@@ -837,6 +844,8 @@ export default function PatientDetail() {
           prescription_table: analysis?.prescription_table ?? [],
           protocol_recommendations: merged?.protocol_recommendations ?? [],
           encounter_id: overrideEncounterId ?? activeEncounterId ?? null,
+          source_context: sourceContext,
+          generated_at: sourceContext.generated_at,
         })
         .select()
         .single();

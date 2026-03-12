@@ -714,14 +714,17 @@ export type Database = {
           created_at: string
           encounter_id: string | null
           full_text: string | null
+          generated_at: string | null
           id: string
           mode: string
           model_used: string | null
           patient_id: string
           patient_plan: string | null
           patterns: Json | null
+          practitioner_id: string | null
           prescription_table: Json | null
           protocol_recommendations: Json | null
+          source_context: Json | null
           specialty_id: string
           specialty_name: string | null
           suggestions: Json | null
@@ -735,14 +738,17 @@ export type Database = {
           created_at?: string
           encounter_id?: string | null
           full_text?: string | null
+          generated_at?: string | null
           id?: string
           mode?: string
           model_used?: string | null
           patient_id: string
           patient_plan?: string | null
           patterns?: Json | null
+          practitioner_id?: string | null
           prescription_table?: Json | null
           protocol_recommendations?: Json | null
+          source_context?: Json | null
           specialty_id?: string
           specialty_name?: string | null
           suggestions?: Json | null
@@ -756,14 +762,17 @@ export type Database = {
           created_at?: string
           encounter_id?: string | null
           full_text?: string | null
+          generated_at?: string | null
           id?: string
           mode?: string
           model_used?: string | null
           patient_id?: string
           patient_plan?: string | null
           patterns?: Json | null
+          practitioner_id?: string | null
           prescription_table?: Json | null
           protocol_recommendations?: Json | null
+          source_context?: Json | null
           specialty_id?: string
           specialty_name?: string | null
           suggestions?: Json | null

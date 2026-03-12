@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +14,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { detectStaleness, type AnalysisSourceContext } from "@/lib/analysisSourceContext";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -31,6 +32,8 @@ import {
   ClipboardList,
   LayoutDashboard,
   AlertTriangle,
+  RefreshCw,
+  Info,
 } from "lucide-react";
 import { EncounterPrescriptionEditor } from "@/components/EncounterPrescriptionEditor";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
@@ -108,6 +111,8 @@ export default function EncounterWorkspace() {
   const [lastSessionDate, setLastSessionDate] = useState<string | null>(null);
   const [specialtyName, setSpecialtyName] = useState<string>("");
   const [subTab, setSubTab] = useState("resumo");
+  const [stalenessReasons, setStalenessReasons] = useState<string[]>([]);
+  const [allLabSessionIds, setAllLabSessionIds] = useState<string[]>([]);
 
   const isFinalized = encounter?.status === "finalized";
 
@@ -121,7 +126,7 @@ export default function EncounterWorkspace() {
       (supabase as any).from("clinical_encounters").select("*").eq("id", encounterId).single(),
       (supabase as any).from("clinical_evolution_notes").select("*").eq("encounter_id", encounterId).single(),
       (supabase as any).from("patient_analyses").select("*").eq("encounter_id", encounterId).order("created_at", { ascending: false }).limit(1),
-      (supabase as any).from("lab_sessions").select("id, session_date").eq("patient_id", patientId).order("session_date", { ascending: false }).limit(1),
+      (supabase as any).from("lab_sessions").select("id, session_date").eq("patient_id", patientId).order("session_date", { ascending: false }),
       (supabase as any).from("analysis_prompts").select("specialty_id, specialty_name").eq("is_active", true),
     ]);
 
@@ -133,10 +138,19 @@ export default function EncounterWorkspace() {
       setNote({ encounter_id: encounterId, ...EMPTY_NOTE });
     }
 
+    // All lab sessions for staleness check
+    const allSessions = sessionsRes.data ?? [];
+    setAllLabSessionIds(allSessions.map((s: any) => s.id));
+    if (allSessions.length > 0) {
+      setLastSessionDate(allSessions[0].session_date);
+    }
+
     // Analysis linked to this encounter
     const analyses = analysisRes.data ?? [];
+    let loadedAnalysis: any = null;
     if (analyses.length > 0) {
       const a = analyses[0];
+      loadedAnalysis = a;
       setAnalysis(a);
       if (a.analysis_v2_data) {
         try {
@@ -146,6 +160,18 @@ export default function EncounterWorkspace() {
       }
     }
 
+    // Staleness detection
+    if (loadedAnalysis?.source_context) {
+      const sc = loadedAnalysis.source_context as AnalysisSourceContext;
+      const reasons = detectStaleness(sc, {
+        latestLabSessionDate: allSessions[0]?.session_date ?? null,
+        labSessionIds: allSessions.map((s: any) => s.id),
+      });
+      setStalenessReasons(reasons);
+    } else {
+      setStalenessReasons([]);
+    }
+
     // Specialty name
     if (encounterRes.data && specialtyRes.data) {
       const sp = (specialtyRes.data as any[]).find((s: any) => s.specialty_id === encounterRes.data.specialty_id);
@@ -153,12 +179,11 @@ export default function EncounterWorkspace() {
     }
 
     // Relevant markers from most recent session
-    if (sessionsRes.data && sessionsRes.data.length > 0) {
-      setLastSessionDate(sessionsRes.data[0].session_date);
+    if (allSessions.length > 0) {
       const { data: results } = await (supabase as any)
         .from("lab_historical_results")
         .select("marker_name, value, text_value, flag")
-        .eq("session_id", sessionsRes.data[0].id)
+        .eq("session_id", allSessions[0].id)
         .in("flag", ["high", "low", "critical_high", "critical_low"])
         .limit(8);
       setRelevantMarkers((results ?? []) as RelevantMarker[]);
@@ -324,6 +349,22 @@ export default function EncounterWorkspace() {
                     {redFlags.length > 2 && (
                       <span className="text-destructive/60">+{redFlags.length - 2} alerta{redFlags.length - 2 > 1 ? "s" : ""}</span>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* Staleness banner */}
+              {stalenessReasons.length > 0 && (
+                <div className="mt-3 flex items-start gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2">
+                  <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="text-xs text-amber-700 dark:text-amber-400 space-y-0.5">
+                    <span className="font-medium">Dados novos disponíveis desde a última análise:</span>
+                    {stalenessReasons.map((r, i) => (
+                      <div key={i}>• {r}</div>
+                    ))}
+                    <div className="mt-1 text-amber-600/70 dark:text-amber-500/70">
+                      Considere regenerar a análise para incorporar os dados mais recentes.
+                    </div>
                   </div>
                 </div>
               )}
