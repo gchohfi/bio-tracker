@@ -1716,7 +1716,8 @@ export default function PatientDetail() {
             />
           </TabsContent>
 
-          <TabsContent value="sessions" className="mt-4">
+          {/* ═══ EXAMES ═══ */}
+          <TabsContent value="exames" className="mt-4">
             {sessions.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
