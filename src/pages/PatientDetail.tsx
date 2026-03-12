@@ -1492,6 +1492,8 @@ export default function PatientDetail() {
             </div>
           </div>
           <div className="flex gap-2 flex-wrap items-center">
+            {/* ── Chat IA contextual ── */}
+            <PatientChatPanel patientId={patient.id} patientName={patient.name} />
             {/* ── Ações primárias ── */}
             {sessions.length > 0 && (
               <>
