@@ -1802,17 +1802,38 @@ export default function PatientDetail() {
             </AlertDialog>
           </TabsContent>
 
-          <TabsContent value="evolution" className="mt-4">
-            <ClinicalEvolutionSummary
-              patientId={patient.id}
-              onNavigateToEncounter={(encId) => {
-                if (encId) {
-                  navigate(`/patient/${patient.id}/encounter/${encId}`);
-                } else {
-                  setDetailTab("clinical_evolution");
-                }
-              }}
-            />
+          {/* ═══ CONSULTAS (merges clinical_evolution + evolution summary) ═══ */}
+          <TabsContent value="consultas" className="mt-4 space-y-6">
+            {patient && (
+              <>
+                <ClinicalEvolutionSummary
+                  patientId={patient.id}
+                  onNavigateToEncounter={(encId) => {
+                    if (encId) {
+                      navigate(`/patient/${patient.id}/encounter/${encId}`);
+                    }
+                  }}
+                />
+                <ClinicalEvolutionTab
+                  patientId={patient.id}
+                  patientName={patient.name}
+                  specialtyId={selectedSpecialty}
+                  specialtyName={availableSpecialties.find(s => s.specialty_id === selectedSpecialty)?.specialty_name}
+                  practitionerName={user?.user_metadata?.name || user?.email || "Profissional"}
+                  onRequestAnalysis={(encounterId) => {
+                    setActiveEncounterId(encounterId);
+                    handleGenerateAnalysis(encounterId);
+                  }}
+                  onViewAnalysis={(analysisId) => {
+                    const found = savedAnalyses.find(a => a.id === analysisId);
+                    if (found) {
+                      setSelectedAnalysis(found);
+                      setDetailTab("analysis");
+                    }
+                  }}
+                />
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="timeline" className="mt-4 overflow-hidden space-y-4">
