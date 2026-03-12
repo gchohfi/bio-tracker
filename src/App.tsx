@@ -42,6 +42,14 @@ const App = () => (
               }
             />
             <Route
+              path="/patient/:id/encounter/:encounterId"
+              element={
+                <ProtectedRoute>
+                  <EncounterWorkspace />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/prompts"
               element={
                 <ProtectedRoute>
