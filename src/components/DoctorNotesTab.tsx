@@ -1,3 +1,9 @@
+/**
+ * @deprecated LEGACY COMPONENT — uses `doctor_specialty_notes` table.
+ * Superseded by SOAP notes in `clinical_evolution_notes` via encounters.
+ * Import is already commented out in PatientDetail.tsx.
+ * Kept only for reference during data migration. DO NOT add new features here.
+ */
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
