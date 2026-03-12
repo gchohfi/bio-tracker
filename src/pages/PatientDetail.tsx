@@ -1430,7 +1430,8 @@ export default function PatientDetail() {
   // Patient detail view
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="flex gap-0">
+      <div className="flex-1 min-w-0 space-y-6">
         {/* Breadcrumb + Patient info */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
