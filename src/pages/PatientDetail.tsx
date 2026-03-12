@@ -1665,53 +1665,29 @@ export default function PatientDetail() {
           )}
         </div>
 
-        {/* ── Clinical Brief ── */}
-        <PatientClinicalBrief
-          lastEncounter={encountersForFilter.length > 0 ? encountersForFilter[0] : null}
-          lastAnalysis={savedAnalyses.length > 0 ? savedAnalyses[0] : null}
-          v2Data={selectedAnalysis ? analysisV2Map[selectedAnalysis.id] ?? null : null}
-          sessionsCount={sessions.length}
-          lastSessionDate={sessions.length > 0 ? sessions[0].session_date : null}
-        />
-
-        {/* Tabs for Sessions, Evolution and AI Analysis */}
+        {/* Tabs — 5 áreas principais */}
         <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as any)}>
           <div className="overflow-x-auto -mx-1 px-1">
             <TabsList className="w-max">
-              <TabsTrigger value="clinical_evolution" className="gap-1.5">
-                <FileText className="h-3.5 w-3.5" />
-                Prontuário
+              <TabsTrigger value="resumo" className="gap-1.5">
+                <UserCircle2 className="h-3.5 w-3.5" />
+                Resumo
               </TabsTrigger>
-              <TabsTrigger value="sessions" className="gap-1.5">
+              <TabsTrigger value="consultas" className="gap-1.5">
+                <Stethoscope className="h-3.5 w-3.5" />
+                Consultas
+              </TabsTrigger>
+              <TabsTrigger value="exames" className="gap-1.5">
                 <FlaskConical className="h-3.5 w-3.5" />
                 Exames
               </TabsTrigger>
-              <TabsTrigger value="evolution" className="gap-1.5">
+              <TabsTrigger value="evolutivo" className="gap-1.5">
                 <BarChart3 className="h-3.5 w-3.5" />
-                Evolução Clínica
+                Evolutivo
               </TabsTrigger>
-              <TabsTrigger value="timeline" className="gap-1.5">
-                <Clock className="h-3.5 w-3.5" />
-                Evolutivo de Exames
-              </TabsTrigger>
-              <TabsTrigger value="analysis" className="gap-1.5">
-                <Brain className="h-3.5 w-3.5" />
-                Análise IA
-                {savedAnalyses.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{savedAnalyses.length}</Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="anamnese" className="gap-1.5">
+              <TabsTrigger value="contexto" className="gap-1.5">
                 <ClipboardList className="h-3.5 w-3.5" />
-                Anamnese
-              </TabsTrigger>
-              <TabsTrigger value="body_composition" className="gap-1.5">
-                <Scale className="h-3.5 w-3.5" />
-                Composição Corporal
-              </TabsTrigger>
-              <TabsTrigger value="imaging" className="gap-1.5">
-                <FileImage className="h-3.5 w-3.5" />
-                Laudos de Imagem
+                Contexto
               </TabsTrigger>
             </TabsList>
           </div>
@@ -1728,6 +1704,17 @@ export default function PatientDetail() {
               />
             </div>
           )}
+
+          {/* ═══ RESUMO ═══ */}
+          <TabsContent value="resumo" className="mt-4">
+            <PatientClinicalBrief
+              lastEncounter={encountersForFilter.length > 0 ? encountersForFilter[0] : null}
+              lastAnalysis={savedAnalyses.length > 0 ? savedAnalyses[0] : null}
+              v2Data={selectedAnalysis ? analysisV2Map[selectedAnalysis.id] ?? null : null}
+              sessionsCount={sessions.length}
+              lastSessionDate={sessions.length > 0 ? sessions[0].session_date : null}
+            />
+          </TabsContent>
 
           <TabsContent value="sessions" className="mt-4">
             {sessions.length === 0 ? (
