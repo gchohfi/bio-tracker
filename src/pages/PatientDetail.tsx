@@ -1836,7 +1836,8 @@ export default function PatientDetail() {
             )}
           </TabsContent>
 
-          <TabsContent value="timeline" className="mt-4 overflow-hidden space-y-4">
+          {/* ═══ EVOLUTIVO ═══ */}
+          <TabsContent value="evolutivo" className="mt-4 overflow-hidden space-y-4">
             <Tabs defaultValue="table">
               <TabsList className="mb-2">
                 <TabsTrigger value="table" className="gap-1.5 text-xs">
