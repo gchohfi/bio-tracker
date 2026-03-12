@@ -1665,6 +1665,19 @@ export default function PatientDetail() {
             </TabsList>
           </div>
 
+          {/* AI Summary collapsible panel — visible on all tabs except analysis */}
+          {detailTab !== "analysis" && selectedAnalysis && (
+            <div className="mt-3">
+              <AISummaryPanel
+                analysis={selectedAnalysis}
+                v2Data={analysisV2Map[selectedAnalysis.id] ?? null}
+                onOpenFullAnalysis={() => {
+                  setDetailTab("analysis");
+                }}
+              />
+            </div>
+          )}
+
           <TabsContent value="sessions" className="mt-4">
             {sessions.length === 0 ? (
               <Card>
