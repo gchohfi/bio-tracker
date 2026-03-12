@@ -169,16 +169,19 @@ function PanelContent({
           icon={<CalendarCheck className="h-3.5 w-3.5" />}
           title="Follow-up"
         >
-          {followUp.recommended_interval && (
+          {followUp.suggested_return_days && (
             <div className="text-[11px] text-foreground/70">
-              <span className="font-medium">Retorno:</span> {followUp.recommended_interval}
+              <span className="font-medium">Retorno:</span> {followUp.suggested_return_days} dias
             </div>
           )}
-          {followUp.priority_exams && followUp.priority_exams.length > 0 && (
+          {followUp.suggested_exams && followUp.suggested_exams.length > 0 && (
             <div className="text-[11px] text-foreground/70">
               <span className="font-medium">Exames:</span>{" "}
-              {followUp.priority_exams.slice(0, 5).join(", ")}
+              {followUp.suggested_exams.slice(0, 5).join(", ")}
             </div>
+          )}
+          {followUp.notes && (
+            <div className="text-[11px] text-foreground/70 italic">{followUp.notes}</div>
           )}
         </Section>
       )}
