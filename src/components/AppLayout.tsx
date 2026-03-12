@@ -79,17 +79,26 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="relative hidden w-72 lg:block">
+            <div className="relative w-48 sm:w-64 lg:w-72">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                className="h-9 pl-9"
-                placeholder="Buscar paciente (mín. 2 letras)..."
+                className="h-9 pl-9 pr-8"
+                placeholder="Buscar paciente..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
+              {query.length > 0 && (
+                <button
+                  onClick={() => { setQuery(""); setResults([]); }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label="Limpar busca"
+                >
+                  ×
+                </button>
+              )}
 
               {hasSearchUi && (
-                <div className="absolute right-0 top-11 z-50 w-full rounded-md border bg-popover p-1 shadow-md">
+                <div className="absolute left-0 right-0 top-11 z-50 rounded-md border bg-popover p-1 shadow-md">
                   {searching ? (
                     <div className="px-3 py-2 text-xs text-muted-foreground">Buscando...</div>
                   ) : results.length === 0 ? (
