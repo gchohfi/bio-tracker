@@ -30,7 +30,7 @@ const ACTIONS: QuickAction[] = [
     label: "Importar Exame",
     description: "Upload de PDF de laboratório",
     icon: <FileUp className="h-5 w-5" />,
-    tab: "sessions",
+    tab: "exames",
     action: "import",
   },
   {
