@@ -1581,10 +1581,10 @@ export default function PatientDetail() {
             variant="outline"
             className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
             onClick={() => {
-              setDetailTab("clinical_evolution");
+              setDetailTab("consultas");
               // Trigger new SOAP via URL param
               const url = new URL(window.location.href);
-              url.searchParams.set("tab", "clinical_evolution");
+              url.searchParams.set("tab", "consultas");
               url.searchParams.set("action", "new_soap");
               window.history.replaceState({}, "", url.toString());
               window.dispatchEvent(new Event("popstate"));

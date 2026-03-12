@@ -38,7 +38,7 @@ const ACTIONS: QuickAction[] = [
     label: "Nova Consulta",
     description: "Iniciar novo atendimento",
     icon: <Stethoscope className="h-5 w-5" />,
-    tab: "clinical_evolution",
+    tab: "consultas",
     action: "new_encounter",
   },
   {
