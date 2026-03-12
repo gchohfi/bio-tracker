@@ -68,6 +68,7 @@ import { ClinicalEvolutionSummary } from "@/components/ClinicalEvolutionSummary"
 import { BodyCompositionTab } from "@/components/BodyCompositionTab";
 import { ImagingReportsTab } from "@/components/ImagingReportsTab";
 import PatientChatPanel from "@/components/PatientChatPanel";
+import AISidePanel from "@/components/AISidePanel";
 import AISummaryPanel from "@/components/AISummaryPanel";
 import PatientClinicalBrief from "@/components/PatientClinicalBrief";
 import { generatePatientReport } from "@/lib/generateReport";
@@ -1429,7 +1430,8 @@ export default function PatientDetail() {
   // Patient detail view
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="flex gap-0">
+      <div className="flex-1 min-w-0 space-y-6">
         {/* Breadcrumb + Patient info */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
@@ -1692,18 +1694,6 @@ export default function PatientDetail() {
             </TabsList>
           </div>
 
-          {/* AI Summary collapsible panel — visible on all tabs except analysis */}
-          {detailTab !== "analysis" && selectedAnalysis && (
-            <div className="mt-3">
-              <AISummaryPanel
-                analysis={selectedAnalysis}
-                v2Data={analysisV2Map[selectedAnalysis.id] ?? null}
-                onOpenFullAnalysis={() => {
-                  setDetailTab("analysis");
-                }}
-              />
-            </div>
-          )}
 
           {/* ═══ RESUMO ═══ */}
           <TabsContent value="resumo" className="mt-4">
@@ -2266,6 +2256,15 @@ export default function PatientDetail() {
             </Tabs>
           </TabsContent>
         </Tabs>
+      </div>
+      {/* ═══ AI Side Panel ═══ */}
+      <AISidePanel
+        analysis={selectedAnalysis}
+        v2Data={selectedAnalysis ? analysisV2Map[selectedAnalysis.id] ?? null : null}
+        patientId={patient.id}
+        patientName={patient.name}
+        onOpenFullAnalysis={() => setDetailTab("analysis")}
+      />
       </div>
       {/* Edit report dialog (before PDF export) */}
       <EditReportDialog
