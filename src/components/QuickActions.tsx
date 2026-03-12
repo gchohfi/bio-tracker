@@ -22,7 +22,7 @@ const ACTIONS: QuickAction[] = [
     label: "Nova Nota SOAP",
     description: "Registrar evolução clínica",
     icon: <FileText className="h-5 w-5" />,
-    tab: "clinical_evolution",
+    tab: "consultas",
     action: "new_soap",
   },
   {
