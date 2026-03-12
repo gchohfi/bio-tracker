@@ -24,6 +24,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MARKERS, getMarkerStatus } from "@/lib/markers";
+import QuickActions from "@/components/QuickActions";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Patient = Tables<"patients">;
