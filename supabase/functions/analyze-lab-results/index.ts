@@ -976,7 +976,9 @@ async function fetchClinicalContext(
     }
   }
 
-  // Parse doctor notes
+  // Parse doctor notes — DEPRECATED: from legacy doctor_specialty_notes table.
+  // Kept for backward compat; superseded by SOAP notes in clinical_evolution_notes.
+  // TODO: Remove after data migration (see ARCHITECTURE.md).
   if (notesResult) {
     const n = notesResult as Record<string, unknown>;
     const noteLines: string[] = [];
@@ -996,7 +998,7 @@ async function fetchClinicalContext(
     if (noteLines.length > 0) {
       result.doctorNotes = noteLines.map(l => "- " + l).join("\n");
       loaded.doctorNotes = true;
-      console.log("Doctor notes loaded: " + noteLines.length + " fields for patient " + patientId);
+      console.log("[DEPRECATED] Doctor notes loaded: " + noteLines.length + " fields for patient " + patientId);
     }
   }
 
