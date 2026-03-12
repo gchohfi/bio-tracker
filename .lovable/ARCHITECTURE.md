@@ -126,3 +126,95 @@ totalClassified = normalCount + alertCount + qualitativeCount
 - **normalCount**: `getMarkerStatusFromRef() === "normal"`
 - **alertCount**: `getMarkerStatusFromRef() !== "normal"`
 - **qualitativeCount**: `marker.qualitative === true` com `text_value`
+
+---
+
+## Modelo de Dados Clínico (v1.0)
+
+### Diagrama ER — Vínculos principais
+
+```
+┌──────────────┐
+│   patients   │  (raiz do prontuário)
+│   id (PK)    │
+└──────┬───────┘
+       │ patient_id
+       ├──────────────────────────────────────────────────────┐
+       │                                                      │
+       ▼                                                      ▼
+┌──────────────────┐                                ┌─────────────────┐
+│  lab_sessions    │                                │ clinical_       │
+│  id (PK)         │                                │ encounters      │
+│  patient_id (FK) │                                │ id (PK)         │
+│  session_date    │                                │ patient_id (FK) │
+└──────┬───────────┘                                │ encounter_date  │
+       │ session_id                                 │ status          │
+       ├──────────────┐                             └──────┬──────────┘
+       ▼              ▼                                    │ encounter_id
+┌────────────┐ ┌──────────────────┐         ┌──────────────┼──────────────┐
+│ lab_results│ │lab_historical_   │         │              │              │
+│ session_id │ │results           │         ▼              ▼              ▼
+│ marker_id  │ │session_id        │  ┌─────────────┐ ┌──────────┐ ┌──────────────┐
+│ value      │ │marker_id         │  │clinical_    │ │patient_  │ │clinical_     │
+└────────────┘ │result_date       │  │evolution_   │ │analyses  │ │prescriptions │
+               └──────────────────┘  │notes (SOAP) │ │          │ │              │
+                                     │encounter_id │ │encounter │ │encounter_id  │
+                                     └─────────────┘ │_id (FK,  │ │patient_id    │
+                                                     │nullable) │ │source_       │
+                                                     └────┬─────┘ │analysis_id   │
+                                                          │       └──────────────┘
+                                                          │ analysis_id
+                                                          ▼
+                                                   ┌──────────────┐
+                                                   │analysis_     │
+                                                   │reviews       │
+                                                   │analysis_id   │
+                                                   │patient_id    │
+                                                   │practitioner  │
+                                                   │_id           │
+                                                   └──────────────┘
+```
+
+### Tabela de vínculos
+
+| Entidade | Vínculo principal | Tipo | Observação |
+|---|---|---|---|
+| `patients` | — (raiz) | — | Entidade raiz do prontuário |
+| `clinical_encounters` | `patient_id` | FK | Consulta/atendimento datado |
+| `clinical_evolution_notes` | `encounter_id` | FK | Nota SOAP, 1:N por encounter |
+| `lab_sessions` | `patient_id` | FK | Sessão de exame, sem vínculo com encounter |
+| `lab_results` | `session_id` | FK | Resultado atual, via session → patient |
+| `lab_historical_results` | `session_id` | FK | Resultado histórico, via session → patient |
+| `patient_analyses` | `patient_id` + `encounter_id` (nullable) | FK | Análise IA; vinculada a encounter quando gerada dentro de consulta |
+| `analysis_reviews` | `analysis_id` | FK | Revisão médica; `patient_id` é desnormalizado para RLS |
+| `clinical_prescriptions` | `encounter_id` + `patient_id` | FK | Prescrição; `patient_id` desnormalizado para RLS |
+| `doctor_specialty_notes` | `patient_id` + `specialty_id` | FK | ⚠️ **LEGADO/DEPRECADO** — sem encounter_id |
+
+### Decisões arquiteturais
+
+1. **Exames pertencem ao paciente, não à consulta.**
+   `lab_sessions` → `patient_id`. Exames têm ciclo de vida independente (podem ser importados fora de consulta). A consulta *consome* exames mas não os possui.
+
+2. **Consulta organiza o conteúdo clínico do atendimento.**
+   `clinical_encounters` é o agrupador de: nota SOAP (`clinical_evolution_notes`), análise IA (`patient_analyses` via `encounter_id`) e prescrição (`clinical_prescriptions` via `encounter_id`).
+
+3. **Revisão médica deriva da análise, não da consulta.**
+   `analysis_reviews.analysis_id` → `patient_analyses.id`. O vínculo com a consulta é derivado: `review → analysis → encounter`. Campos `patient_id` e `practitioner_id` em `analysis_reviews` existem apenas para performance de RLS.
+
+4. **`doctor_specialty_notes` está DEPRECADO.**
+   Tabela legada com notas avulsas por especialidade, sem vínculo com encounter. Funcionalidade substituída por notas SOAP em `clinical_evolution_notes`. Dados existentes serão migrados na Fase C do plano de refatoração (ver `prontuario-refactor.md`).
+
+5. **Campos desnormalizados são intencionais.**
+   `patient_id` em `clinical_prescriptions` e `analysis_reviews` é redundante com o caminho via encounter/analysis, mas necessário para RLS performático sem JOINs recursivos.
+
+### Vínculos explícitos vs. implícitos
+
+| Relação | Tipo | Status |
+|---|---|---|
+| Consulta → Nota SOAP | Explícito (`encounter_id` FK) | ✅ Correto |
+| Consulta → Análise IA | Explícito (`encounter_id` FK, nullable) | ✅ Correto |
+| Consulta → Prescrição | Explícito (`encounter_id` FK) | ✅ Correto |
+| Consulta → Exames | **Não existe** | ⚠️ Intencional — exames são do paciente |
+| Análise → Revisão | Explícito (`analysis_id` FK) | ✅ Correto |
+| Prescrição → Análise origem | Explícito (`source_analysis_id` FK, nullable) | ✅ Correto |
+| Paciente → Exames | Explícito (`patient_id` via `lab_sessions`) | ✅ Correto |
