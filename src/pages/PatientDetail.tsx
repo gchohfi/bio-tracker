@@ -292,7 +292,13 @@ export default function PatientDetail() {
   const [activeCategory, setActiveCategory] = useState<Category>("Hemograma");
   const [markerValues, setMarkerValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const [detailTab, setDetailTab] = useState<"clinical_evolution" | "sessions" | "evolution" | "timeline" | "analysis" | "anamnese">("clinical_evolution");
+  // Read initial tab from URL query param
+  const [detailTab, setDetailTab] = useState<"clinical_evolution" | "sessions" | "evolution" | "timeline" | "analysis" | "anamnese">(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    const validTabs = ["clinical_evolution", "sessions", "evolution", "timeline", "analysis", "anamnese"];
+    return validTabs.includes(tab || "") ? (tab as any) : "clinical_evolution";
+  });
   const [pendingDeleteSessionId, setPendingDeleteSessionId] = useState<string | null>(null);
   const [activeEncounterId, setActiveEncounterId] = useState<string | null>(null);
   const [savedAnalyses, setSavedAnalyses] = useState<any[]>([]);

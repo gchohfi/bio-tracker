@@ -24,6 +24,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MARKERS, getMarkerStatus } from "@/lib/markers";
+import QuickActions from "@/components/QuickActions";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Patient = Tables<"patients">;
@@ -289,6 +290,14 @@ export default function Index() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div>
+          <h2 className="mb-3 text-base font-semibold flex items-center gap-2">
+            Ações Rápidas
+          </h2>
+          <QuickActions />
         </div>
 
         {/* Recent Sessions with missing-marker preview */}
