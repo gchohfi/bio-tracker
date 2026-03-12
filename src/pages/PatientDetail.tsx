@@ -306,11 +306,13 @@ export default function PatientDetail() {
   const [markerValues, setMarkerValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   // Read initial tab from URL query param
-  const [detailTab, setDetailTab] = useState<"clinical_evolution" | "sessions" | "evolution" | "timeline" | "analysis" | "anamnese">(() => {
+  const [detailTab, setDetailTab] = useState<string>(() => {
     const params = new URLSearchParams(window.location.search);
-    const tab = params.get("tab");
-    const validTabs = ["clinical_evolution", "sessions", "evolution", "timeline", "analysis", "anamnese"];
-    return validTabs.includes(tab || "") ? (tab as any) : "clinical_evolution";
+    const rawTab = params.get("tab") ?? "";
+    // Map legacy tab keys to new structure
+    if (LEGACY_TAB_MAP[rawTab]) return LEGACY_TAB_MAP[rawTab];
+    const validTabs = ["resumo", "consultas", "exames", "evolutivo", "contexto", "analysis"];
+    return validTabs.includes(rawTab) ? rawTab : "resumo";
   });
   const [pendingDeleteSessionId, setPendingDeleteSessionId] = useState<string | null>(null);
   const [activeEncounterId, setActiveEncounterId] = useState<string | null>(null);
