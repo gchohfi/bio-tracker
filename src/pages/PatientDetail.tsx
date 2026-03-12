@@ -2237,41 +2237,33 @@ export default function PatientDetail() {
               </div>
             )}
           </TabsContent>
-          <TabsContent value="anamnese" className="mt-4">
-            {patient && <AnamneseTab patient={patient} />}
-          </TabsContent>
-          {/* doctor_notes tab hidden — Fase A: data preserved, tab removed from nav */}
-          <TabsContent value="clinical_evolution" className="mt-4">
-            {patient && (
-              <ClinicalEvolutionTab
-                patientId={patient.id}
-                patientName={patient.name}
-                specialtyId={selectedSpecialty}
-                specialtyName={availableSpecialties.find(s => s.specialty_id === selectedSpecialty)?.specialty_name}
-                practitionerName={user?.user_metadata?.name || user?.email || "Profissional"}
-                onRequestAnalysis={(encounterId) => {
-                  setActiveEncounterId(encounterId);
-                  handleGenerateAnalysis(encounterId);
-                }}
-                onViewAnalysis={(analysisId) => {
-                  const found = savedAnalyses.find(a => a.id === analysisId);
-                  if (found) {
-                    setSelectedAnalysis(found);
-                    setDetailTab("analysis");
-                  }
-                }}
-              />
-            )}
-          </TabsContent>
-          <TabsContent value="imaging" className="mt-4">
-            {patient && (
-              <ImagingReportsTab patientId={patient.id} />
-            )}
-          </TabsContent>
-          <TabsContent value="body_composition" className="mt-4">
-            {patient && (
-              <BodyCompositionTab patientId={patient.id} />
-            )}
+          {/* ═══ CONTEXTO (anamnese + composição corporal + laudos de imagem) ═══ */}
+          <TabsContent value="contexto" className="mt-4 space-y-4">
+            <Tabs defaultValue="anamnese">
+              <TabsList className="mb-2">
+                <TabsTrigger value="anamnese" className="gap-1.5 text-xs">
+                  <ClipboardList className="h-3 w-3" />
+                  Anamnese
+                </TabsTrigger>
+                <TabsTrigger value="body" className="gap-1.5 text-xs">
+                  <Scale className="h-3 w-3" />
+                  Composição Corporal
+                </TabsTrigger>
+                <TabsTrigger value="imaging" className="gap-1.5 text-xs">
+                  <FileImage className="h-3 w-3" />
+                  Laudos de Imagem
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="anamnese">
+                {patient && <AnamneseTab patient={patient} />}
+              </TabsContent>
+              <TabsContent value="body">
+                {patient && <BodyCompositionTab patientId={patient.id} />}
+              </TabsContent>
+              <TabsContent value="imaging">
+                {patient && <ImagingReportsTab patientId={patient.id} />}
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
       </div>
