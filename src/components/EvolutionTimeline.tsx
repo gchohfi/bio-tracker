@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useMemo, Fragment } from "react";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -170,7 +171,15 @@ export default function EvolutionTimeline({ patientId, patientName, patientSex }
             size="sm"
             variant="outline"
             className="gap-1.5"
-            onClick={() => generateEvolutionExcel({ data, patientName: patientName || "Paciente", patientSex })}
+            onClick={async () => {
+              try {
+                await generateEvolutionExcel({ data, patientName: patientName || "Paciente", patientSex });
+                toast.success("Excel gerado com sucesso!");
+              } catch (err) {
+                console.error("Erro ao gerar Excel:", err);
+                toast.error(`Erro ao gerar Excel: ${err instanceof Error ? err.message : String(err)}`);
+              }
+            }}
           >
             <FileSpreadsheet className="h-3.5 w-3.5" />
             Excel
