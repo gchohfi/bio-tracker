@@ -65,7 +65,7 @@ import { AnamneseTab } from "@/components/AnamneseTab";
 // DoctorNotesTab hidden in Fase A — import preserved for future migration
 // import { DoctorNotesTab } from "@/components/DoctorNotesTab";
 import { ClinicalEvolutionTab } from "@/components/ClinicalEvolutionTab";
-import { ClinicalEvolutionSummary } from "@/components/ClinicalEvolutionSummary";
+// ClinicalEvolutionSummary removed — consolidated into ClinicalEvolutionTab
 import { BodyCompositionTab } from "@/components/BodyCompositionTab";
 import { ImagingReportsTab } from "@/components/ImagingReportsTab";
 import PatientChatPanel from "@/components/PatientChatPanel";
@@ -1801,37 +1801,28 @@ export default function PatientDetail() {
             </AlertDialog>
           </TabsContent>
 
-          {/* ═══ CONSULTAS (merges clinical_evolution + evolution summary) ═══ */}
-          <TabsContent value="consultas" className="mt-4 space-y-6">
+          {/* ═══ CONSULTAS (single consolidated list) ═══ */}
+          <TabsContent value="consultas" className="mt-4">
             {patient && (
-              <>
-                <ClinicalEvolutionSummary
-                  patientId={patient.id}
-                  onNavigateToEncounter={(encId) => {
-                    if (encId) {
-                      navigate(`/patient/${patient.id}/encounter/${encId}`);
-                    }
-                  }}
-                />
-                <ClinicalEvolutionTab
-                  patientId={patient.id}
-                  patientName={patient.name}
-                  specialtyId={selectedSpecialty}
-                  specialtyName={availableSpecialties.find(s => s.specialty_id === selectedSpecialty)?.specialty_name}
-                  practitionerName={user?.user_metadata?.name || user?.email || "Profissional"}
-                  onRequestAnalysis={(encounterId) => {
-                    setActiveEncounterId(encounterId);
-                    handleGenerateAnalysis(encounterId);
-                  }}
-                  onViewAnalysis={(analysisId) => {
-                    const found = savedAnalyses.find(a => a.id === analysisId);
-                    if (found) {
-                      setSelectedAnalysis(found);
-                      setDetailTab("analysis");
-                    }
-                  }}
-                />
-              </>
+              <ClinicalEvolutionTab
+                patientId={patient.id}
+                patientName={patient.name}
+                specialtyId={selectedSpecialty}
+                specialtyName={availableSpecialties.find(s => s.specialty_id === selectedSpecialty)?.specialty_name}
+                practitionerName={user?.user_metadata?.name || user?.email || "Profissional"}
+                availableSpecialties={availableSpecialties}
+                onRequestAnalysis={(encounterId) => {
+                  setActiveEncounterId(encounterId);
+                  handleGenerateAnalysis(encounterId);
+                }}
+                onViewAnalysis={(analysisId) => {
+                  const found = savedAnalyses.find(a => a.id === analysisId);
+                  if (found) {
+                    setSelectedAnalysis(found);
+                    setDetailTab("analysis");
+                  }
+                }}
+              />
             )}
           </TabsContent>
 
