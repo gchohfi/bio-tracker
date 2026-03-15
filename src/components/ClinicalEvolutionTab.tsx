@@ -1,39 +1,38 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Plus,
-  ArrowLeft,
-  Save,
   CalendarIcon,
   FileText,
   CheckCircle2,
   PenLine,
   Clock,
-  Brain,
-  ExternalLink,
+  Stethoscope,
+  ChevronRight,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { EncounterPrescriptionEditor } from "@/components/EncounterPrescriptionEditor";
 
 interface ClinicalEvolutionTabProps {
   patientId: string;
   patientName?: string;
+  /** Default specialty for creating new encounters */
   specialtyId: string;
   specialtyName?: string;
   practitionerName?: string;
+  /** Available specialties for display */
+  availableSpecialties?: Array<{ specialty_id: string; specialty_name: string; specialty_icon?: string }>;
   onRequestAnalysis?: (encounterId: string) => void;
   onViewAnalysis?: (analysisId: string) => void;
 }
@@ -43,63 +42,50 @@ interface Encounter {
   encounter_date: string;
   status: "draft" | "finalized";
   chief_complaint: string | null;
+  specialty_id: string;
   created_at: string;
   updated_at: string;
 }
 
-interface EvolutionNote {
-  id?: string;
-  encounter_id: string;
-  subjective: string;
-  objective: string;
-  assessment: string;
-  plan: string;
-  exams_requested: string;
-  medications: string;
-  free_notes: string;
-}
-
-const EMPTY_NOTE: Omit<EvolutionNote, "encounter_id"> = {
-  subjective: "",
-  objective: "",
-  assessment: "",
-  plan: "",
-  exams_requested: "",
-  medications: "",
-  free_notes: "",
-};
-
-export function ClinicalEvolutionTab({ patientId, patientName, specialtyId, specialtyName, practitionerName, onRequestAnalysis, onViewAnalysis }: ClinicalEvolutionTabProps) {
+export function ClinicalEvolutionTab({
+  patientId,
+  specialtyId,
+  availableSpecialties = [],
+}: ClinicalEvolutionTabProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [encounters, setEncounters] = useState<Encounter[]>([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<"list" | "form">("list");
-  const [activeEncounter, setActiveEncounter] = useState<Encounter | null>(null);
-  const [note, setNote] = useState<EvolutionNote & { id?: string }>({ encounter_id: "", ...EMPTY_NOTE });
-  const [saving, setSaving] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [newDate, setNewDate] = useState<Date>(new Date());
   const [newChief, setNewChief] = useState("");
-  const [linkedAnalyses, setLinkedAnalyses] = useState<any[]>([]);
+  const [saving, setSaving] = useState(false);
 
-  // ── Load encounters ──
+  // Build specialty lookup map
+  const specialtyMap = new Map(
+    availableSpecialties.map((s) => [s.specialty_id, s.specialty_name])
+  );
+
+  // ── Load ALL encounters (no specialty filter) ──
   const loadEncounters = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
     const { data, error } = await (supabase as any)
       .from("clinical_encounters")
-      .select("*")
+      .select("id, encounter_date, status, chief_complaint, specialty_id, created_at, updated_at")
       .eq("patient_id", patientId)
-      .eq("specialty_id", specialtyId)
       .eq("practitioner_id", user.id)
       .order("encounter_date", { ascending: false });
 
     if (error) console.warn("Load encounters error:", error.message);
     setEncounters(data ?? []);
     setLoading(false);
-  }, [patientId, specialtyId, user?.id]);
+  }, [patientId, user?.id]);
 
-  useEffect(() => { loadEncounters(); }, [loadEncounters]);
+  useEffect(() => {
+    loadEncounters();
+  }, [loadEncounters]);
 
   // ── Create encounter ──
   const handleCreate = async () => {
@@ -131,108 +117,78 @@ export function ClinicalEvolutionTab({ patientId, patientName, specialtyId, spec
 
     setSaving(false);
     setNewChief("");
-    await loadEncounters();
-    openEncounter(enc);
+    setShowCreateForm(false);
+    // Navigate directly to the new encounter workspace
+    navigate(`/patient/${patientId}/encounter/${enc.id}`);
   };
 
-  // ── Open encounter detail ──
-  const openEncounter = async (enc: Encounter) => {
-    setActiveEncounter(enc);
-    // Load note
-    const { data } = await (supabase as any)
-      .from("clinical_evolution_notes")
-      .select("*")
-      .eq("encounter_id", enc.id)
-      .single();
-
-    setNote(data ? { ...data } : { encounter_id: enc.id, ...EMPTY_NOTE });
-
-    // Load linked analyses
-    const { data: analyses } = await (supabase as any)
-      .from("patient_analyses")
-      .select("id, specialty_name, specialty_id, created_at, mode, prescription_table")
-      .eq("encounter_id", enc.id)
-      .order("created_at", { ascending: false });
-    setLinkedAnalyses(analyses ?? []);
-
-    setView("form");
+  const getSpecialtyLabel = (sid: string): string => {
+    return specialtyMap.get(sid) ?? sid.replace(/_/g, " ");
   };
 
-  // ── Save note ──
-  const handleSave = async () => {
-    if (!activeEncounter) return;
-    setSaving(true);
-
-    const payload = {
-      encounter_id: activeEncounter.id,
-      subjective: note.subjective || null,
-      objective: note.objective || null,
-      assessment: note.assessment || null,
-      plan: note.plan || null,
-      exams_requested: note.exams_requested || null,
-      medications: note.medications || null,
-      free_notes: note.free_notes || null,
-    };
-
-    if (note.id) {
-      await (supabase as any).from("clinical_evolution_notes").update(payload).eq("id", note.id);
-    } else {
-      const { data } = await (supabase as any).from("clinical_evolution_notes").insert(payload).select().single();
-      if (data) setNote((prev) => ({ ...prev, id: data.id }));
-    }
-
-    toast({ title: "Evolução salva" });
-    setSaving(false);
-  };
-
-  // ── Finalize ──
-  const handleFinalize = async () => {
-    if (!activeEncounter) return;
-    await handleSave();
-    await (supabase as any)
-      .from("clinical_encounters")
-      .update({ status: "finalized" })
-      .eq("id", activeEncounter.id);
-
-    setActiveEncounter({ ...activeEncounter, status: "finalized" });
-    toast({ title: "Consulta finalizada" });
-    loadEncounters();
-  };
-
-  // ── Form field helper ──
-  const Field = ({ label, field, rows = 3 }: { label: string; field: keyof typeof EMPTY_NOTE; rows?: number }) => (
-    <div className="space-y-1.5">
-      <Label className="text-xs font-medium">{label}</Label>
-      <Textarea
-        value={(note as any)[field] ?? ""}
-        onChange={(e) => setNote((prev) => ({ ...prev, [field]: e.target.value }))}
-        rows={rows}
-        disabled={activeEncounter?.status === "finalized"}
-        className="text-sm resize-none"
-        placeholder={`Registrar ${label.toLowerCase()}...`}
-      />
-    </div>
-  );
-
-  // ── LIST VIEW ──
-  if (view === "list") {
+  // ── Empty state ──
+  if (!loading && encounters.length === 0 && !showCreateForm) {
     return (
       <div className="space-y-4">
-        {/* New encounter form */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Nova Evolução Clínica
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex gap-3 items-end">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <Stethoscope className="mb-4 h-12 w-12 text-muted-foreground/40" />
+            <p className="text-lg font-medium">Nenhuma consulta registrada</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Registre a primeira consulta para iniciar o histórico clínico deste paciente.
+            </p>
+            <Button
+              className="mt-4"
+              onClick={() => setShowCreateForm(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Consulta
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header with create action */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Stethoscope className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-semibold text-foreground">Consultas</h2>
+          {!loading && (
+            <Badge variant="secondary" className="text-xs">
+              {encounters.length}
+            </Badge>
+          )}
+        </div>
+        <Button
+          size="sm"
+          variant={showCreateForm ? "ghost" : "outline"}
+          onClick={() => setShowCreateForm(!showCreateForm)}
+        >
+          {showCreateForm ? (
+            "Cancelar"
+          ) : (
+            <>
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Nova Consulta
+            </>
+          )}
+        </Button>
+      </div>
+
+      {/* Inline create form (collapsible) */}
+      {showCreateForm && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-4">
+            <div className="flex gap-3 items-end flex-wrap">
               <div className="space-y-1.5">
-                <Label className="text-xs">Data do atendimento</Label>
+                <Label className="text-xs">Data</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 w-[180px] justify-start">
+                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 w-[160px] justify-start">
                       <CalendarIcon className="h-3.5 w-3.5" />
                       {format(newDate, "dd/MM/yyyy")}
                     </Button>
@@ -242,12 +198,12 @@ export function ClinicalEvolutionTab({ patientId, patientName, specialtyId, spec
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="flex-1 space-y-1.5">
+              <div className="flex-1 min-w-[200px] space-y-1.5">
                 <Label className="text-xs">Queixa principal</Label>
                 <Input
                   value={newChief}
                   onChange={(e) => setNewChief(e.target.value)}
-                  placeholder="Ex: Retorno para acompanhamento, fadiga persistente..."
+                  placeholder="Ex: Retorno, fadiga persistente..."
                   className="h-8 text-sm"
                 />
               </div>
@@ -258,207 +214,96 @@ export function ClinicalEvolutionTab({ patientId, patientName, specialtyId, spec
             </div>
           </CardContent>
         </Card>
+      )}
 
-        {/* Encounter list */}
-        {loading ? (
-          <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>
-        ) : encounters.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <FileText className="mb-4 h-12 w-12 text-muted-foreground/50" />
-              <p className="text-lg font-medium">Nenhuma evolução registrada</p>
-              <p className="text-sm text-muted-foreground">
-                Crie uma nova evolução clínica para começar o histórico deste paciente.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {encounters.map((enc) => (
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <Clock className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
+          <span className="text-sm text-muted-foreground">Carregando consultas...</span>
+        </div>
+      )}
+
+      {/* Encounter list — single consolidated timeline */}
+      {!loading && encounters.length > 0 && (
+        <div className="space-y-2">
+          {encounters.map((enc) => {
+            const isDraft = enc.status === "draft";
+            return (
               <Card
                 key={enc.id}
-                className="cursor-pointer transition-colors hover:bg-muted/30"
-                onClick={() => openEncounter(enc)}
+                className={cn(
+                  "cursor-pointer transition-colors hover:bg-muted/30 group",
+                  isDraft && "border-l-4 border-l-amber-400"
+                )}
+                onClick={() => navigate(`/patient/${patientId}/encounter/${enc.id}`)}
               >
                 <CardContent className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Status icon */}
                     <div className={cn(
-                      "flex h-10 w-10 items-center justify-center rounded-lg",
-                      enc.status === "finalized" ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-primary/10"
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+                      isDraft
+                        ? "bg-amber-100 dark:bg-amber-900/30"
+                        : "bg-emerald-100 dark:bg-emerald-900/30"
                     )}>
-                      {enc.status === "finalized"
-                        ? <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                        : <PenLine className="h-5 w-5 text-primary" />
+                      {isDraft
+                        ? <PenLine className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                        : <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                       }
                     </div>
-                    <div>
-                      <p className="font-medium text-sm">
-                        {format(parseISO(enc.encounter_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+
+                    {/* Main info */}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-sm">
+                          {format(parseISO(enc.encounter_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                        </p>
+                        <Badge
+                          variant={isDraft ? "outline" : "default"}
+                          className={cn(
+                            "text-[10px] shrink-0",
+                            !isDraft && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border-0",
+                            isDraft && "border-amber-300 text-amber-700 dark:border-amber-600 dark:text-amber-300"
+                          )}
+                        >
+                          {isDraft ? "Rascunho" : "Finalizada"}
+                        </Badge>
+                      </div>
+
+                      {/* Specialty */}
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {getSpecialtyLabel(enc.specialty_id)}
                       </p>
-                      {enc.chief_complaint && (
-                        <p className="text-xs text-muted-foreground truncate max-w-[400px]">
+
+                      {/* Chief complaint */}
+                      {enc.chief_complaint ? (
+                        <p className="text-xs text-foreground/80 mt-1 line-clamp-1">
+                          <span className="font-medium text-muted-foreground">QP:</span>{" "}
                           {enc.chief_complaint}
                         </p>
-                      )}
+                      ) : isDraft ? (
+                        <p className="text-xs text-amber-600/70 dark:text-amber-400/60 mt-1 italic">
+                          Sem queixa principal registrada
+                        </p>
+                      ) : null}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant={enc.status === "finalized" ? "default" : "outline"}
-                      className={cn(
-                        "text-[10px]",
-                        enc.status === "finalized" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border-0"
-                      )}
-                    >
-                      {enc.status === "finalized" ? "Finalizado" : "Rascunho"}
-                    </Badge>
-                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+
+                  {/* Right side */}
+                  <div className="flex items-center gap-2 shrink-0 ml-3">
+                    <span className="text-[10px] text-muted-foreground hidden sm:flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       {format(parseISO(enc.created_at), "dd/MM HH:mm")}
                     </span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // ── FORM VIEW (SOAP) ──
-  const isFinalized = activeEncounter?.status === "finalized";
-
-  return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => { setView("list"); setActiveEncounter(null); setLinkedAnalyses([]); }} className="gap-1.5">
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </Button>
-        <div className="flex items-center gap-2">
-          {activeEncounter && (
-            <span className="text-sm font-medium">
-              {format(parseISO(activeEncounter.encounter_date), "dd/MM/yyyy")}
-            </span>
-          )}
-          <Badge
-            variant={isFinalized ? "default" : "outline"}
-            className={cn(
-              "text-[10px]",
-              isFinalized && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border-0"
-            )}
-          >
-            {isFinalized ? "Finalizado" : "Rascunho"}
-          </Badge>
-        </div>
-        <div className="flex gap-2">
-          {!isFinalized && (
-            <>
-              <Button size="sm" variant="outline" onClick={handleSave} disabled={saving}>
-                <Save className="h-3.5 w-3.5 mr-1" />
-                Salvar
-              </Button>
-              <Button size="sm" onClick={handleFinalize} disabled={saving}>
-                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                Finalizar
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Chief complaint */}
-      {activeEncounter?.chief_complaint && (
-        <div className="rounded-lg bg-muted/50 p-3 border-l-4 border-primary">
-          <p className="text-xs font-medium text-muted-foreground mb-0.5">Queixa principal</p>
-          <p className="text-sm">{activeEncounter.chief_complaint}</p>
+            );
+          })}
         </div>
       )}
-
-      {/* Linked Analyses */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-medium flex items-center gap-1.5">
-              <Brain className="h-3.5 w-3.5 text-primary" />
-              Análises vinculadas
-            </p>
-            {onRequestAnalysis && activeEncounter && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs gap-1"
-                onClick={() => onRequestAnalysis(activeEncounter.id)}
-              >
-                <Brain className="h-3 w-3" />
-                Gerar Análise IA
-              </Button>
-            )}
-          </div>
-          {linkedAnalyses.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Nenhuma análise vinculada a esta consulta.</p>
-          ) : (
-            <div className="space-y-1.5">
-              {linkedAnalyses.map((a) => (
-                <div
-                  key={a.id}
-                  className="flex items-center justify-between rounded-md border p-2 text-xs cursor-pointer hover:bg-muted/30 transition-colors"
-                  onClick={() => onViewAnalysis?.(a.id)}
-                >
-                  <div className="flex items-center gap-2">
-                    <Brain className="h-3.5 w-3.5 text-primary" />
-                    <span className="font-medium">{a.specialty_name ?? a.specialty_id}</span>
-                    <span className="text-muted-foreground">
-                      {format(parseISO(a.created_at), "dd/MM/yy HH:mm")}
-                    </span>
-                  </div>
-                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Prescription Editor */}
-      {activeEncounter && (
-        <EncounterPrescriptionEditor
-          encounterId={activeEncounter.id}
-          patientId={patientId}
-          specialtyId={specialtyId}
-          isFinalized={isFinalized}
-          patientName={patientName}
-          encounterDate={format(parseISO(activeEncounter.encounter_date), "dd/MM/yyyy")}
-          specialtyName={specialtyName}
-          practitionerName={practitionerName}
-          legacyPrescription={
-            linkedAnalyses.length > 0
-              ? (linkedAnalyses[0].prescription_table as any[] | undefined) ?? undefined
-              : undefined
-          }
-        />
-      )}
-
-      {/* SOAP Fields */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
-          <Field label="Subjetivo (S)" field="subjective" rows={4} />
-          <Separator />
-          <Field label="Objetivo (O)" field="objective" rows={4} />
-          <Separator />
-          <Field label="Avaliação (A)" field="assessment" rows={4} />
-          <Separator />
-          <Field label="Plano (P)" field="plan" rows={4} />
-          <Separator />
-          <Field label="Exames solicitados" field="exams_requested" rows={2} />
-          <Separator />
-          <Field label="Medicações / Conduta" field="medications" rows={2} />
-          <Separator />
-          <Field label="Observações livres" field="free_notes" rows={3} />
-        </CardContent>
-      </Card>
     </div>
   );
 }
