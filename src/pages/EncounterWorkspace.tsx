@@ -312,7 +312,7 @@ export default function EncounterWorkspace() {
                       {encounter.chief_complaint && (
                         <>
                           <span>•</span>
-                          <span className="truncate max-w-[200px]">{encounter.chief_complaint}</span>
+                          <span className="truncate max-w-[300px]" title={encounter.chief_complaint}>{encounter.chief_complaint}</span>
                         </>
                       )}
                     </div>

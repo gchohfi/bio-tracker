@@ -97,9 +97,9 @@ export default function AISummaryPanel({ analysis, v2Data, onOpenFullAnalysis }:
               <span>{analysis.model_used ?? ""}</span>
             </div>
 
-            {/* Executive Summary */}
+            {/* Executive Summary — expanded, no truncation */}
             {executiveSummary && (
-              <p className="text-xs leading-relaxed text-foreground/90 line-clamp-4">
+              <p className="text-xs leading-relaxed text-foreground/90">
                 {executiveSummary}
               </p>
             )}
@@ -118,7 +118,7 @@ export default function AISummaryPanel({ analysis, v2Data, onOpenFullAnalysis }:
                   >
                     <span className="font-medium">{rf.finding}</span>
                     {rf.suggested_action && (
-                      <span className="text-destructive/70 ml-1">— {rf.suggested_action}</span>
+                      <span className="text-destructive/70 block mt-0.5 text-[10px]">→ {rf.suggested_action}</span>
                     )}
                   </div>
                 ))}

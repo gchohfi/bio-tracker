@@ -15,7 +15,6 @@ import {
   CalendarCheck,
   ChevronLeft,
   ChevronRight,
-  MessageCircle,
   ExternalLink,
   Sparkles,
 } from "lucide-react";
@@ -47,11 +46,11 @@ function PanelContent({
 }: AISidePanelProps) {
   if (!analysis) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-        <Brain className="h-10 w-10 text-muted-foreground/30 mb-3" />
-        <p className="text-sm font-medium text-muted-foreground">Nenhuma análise IA</p>
-        <p className="text-xs text-muted-foreground/70 mt-1">
-          Importe exames e gere uma análise para ver insights aqui.
+      <div className="flex flex-col items-center justify-center py-8 text-center px-4">
+        <Brain className="h-8 w-8 text-muted-foreground/30 mb-2" />
+        <p className="text-xs font-medium text-muted-foreground">Nenhuma análise IA</p>
+        <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+          Gere uma análise para ver insights aqui.
         </p>
       </div>
     );
@@ -79,9 +78,9 @@ function PanelContent({
         <span>{format(parseISO(analysis.created_at), "dd/MM HH:mm", { locale: ptBR })}</span>
       </div>
 
-      {/* Executive Summary */}
+      {/* Executive Summary — full text, no truncation */}
       {executiveSummary && (
-        <p className="text-xs leading-relaxed text-foreground/80 line-clamp-4">
+        <p className="text-xs leading-relaxed text-foreground/80">
           {executiveSummary}
         </p>
       )}
@@ -242,23 +241,22 @@ function Section({
   );
 }
 
-/** Desktop sidebar (collapsible) */
+/** Desktop sidebar (collapsible, auto-collapses when no analysis) */
 function DesktopSidebar(props: AISidePanelProps & { open: boolean; onToggle: () => void }) {
   const { open, onToggle, ...rest } = props;
+  const hasAnalysis = !!props.analysis;
 
   return (
     <div
       className={cn(
         "relative shrink-0 transition-all duration-300 ease-in-out border-l bg-card",
-        open ? "w-72 xl:w-80" : "w-10"
+        open ? "w-80 xl:w-[22rem]" : "w-10"
       )}
     >
       {/* Toggle button */}
       <button
         onClick={onToggle}
-        className={cn(
-          "absolute -left-3 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-background shadow-sm hover:bg-accent transition-colors",
-        )}
+        className="absolute -left-3 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-background shadow-sm hover:bg-accent transition-colors"
         title={open ? "Recolher painel IA" : "Expandir painel IA"}
       >
         {open ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
@@ -267,9 +265,9 @@ function DesktopSidebar(props: AISidePanelProps & { open: boolean; onToggle: () 
       {/* Collapsed indicator */}
       {!open && (
         <div className="flex flex-col items-center gap-3 pt-12">
-          <Brain className="h-4 w-4 text-primary/60" />
+          <Brain className={cn("h-4 w-4", hasAnalysis ? "text-primary/60" : "text-muted-foreground/30")} />
           <span className="text-[9px] text-muted-foreground [writing-mode:vertical-lr] rotate-180">
-            Assistente IA
+            {hasAnalysis ? "Assistente IA" : "Sem análise"}
           </span>
           {props.v2Data?.red_flags && props.v2Data.red_flags.length > 0 && (
             <Badge variant="destructive" className="text-[8px] h-4 w-4 p-0 flex items-center justify-center">
@@ -282,7 +280,7 @@ function DesktopSidebar(props: AISidePanelProps & { open: boolean; onToggle: () 
       {/* Expanded content */}
       {open && (
         <ScrollArea className="h-[calc(100vh-8rem)]">
-          <div className="p-3">
+          <div className="p-4">
             <PanelContent {...rest} />
           </div>
         </ScrollArea>
@@ -294,9 +292,14 @@ function DesktopSidebar(props: AISidePanelProps & { open: boolean; onToggle: () 
 /** Main export: renders desktop sidebar or mobile sheet */
 export default function AISidePanel(props: AISidePanelProps) {
   const isMobile = useIsMobile();
-  const [desktopOpen, setDesktopOpen] = useState(true);
+  const hasAnalysis = !!props.analysis;
+  // Auto-collapse when no analysis
+  const [desktopOpen, setDesktopOpen] = useState(hasAnalysis);
 
   if (isMobile) {
+    // On mobile, don't show FAB when no analysis
+    if (!hasAnalysis) return null;
+
     return (
       <Sheet>
         <SheetTrigger asChild>
@@ -314,14 +317,14 @@ export default function AISidePanel(props: AISidePanelProps) {
             )}
           </Button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="h-[75vh] rounded-t-2xl">
+        <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2 text-sm">
               <Brain className="h-4 w-4 text-primary" />
               Assistente IA
             </SheetTitle>
           </SheetHeader>
-          <ScrollArea className="h-[calc(75vh-4rem)] mt-2">
+          <ScrollArea className="h-[calc(80vh-4rem)] mt-2">
             <div className="pr-2">
               <PanelContent {...props} />
             </div>
