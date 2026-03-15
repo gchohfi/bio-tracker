@@ -65,7 +65,7 @@ import { AnamneseTab } from "@/components/AnamneseTab";
 // DoctorNotesTab hidden in Fase A — import preserved for future migration
 // import { DoctorNotesTab } from "@/components/DoctorNotesTab";
 import { ClinicalEvolutionTab } from "@/components/ClinicalEvolutionTab";
-import { ClinicalEvolutionSummary } from "@/components/ClinicalEvolutionSummary";
+// ClinicalEvolutionSummary removed — consolidated into ClinicalEvolutionTab
 import { BodyCompositionTab } from "@/components/BodyCompositionTab";
 import { ImagingReportsTab } from "@/components/ImagingReportsTab";
 import PatientChatPanel from "@/components/PatientChatPanel";
