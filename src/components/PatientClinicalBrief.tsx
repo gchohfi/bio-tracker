@@ -166,7 +166,7 @@ function BriefCard({
         {value}
       </p>
       {sub && (
-        <p className="text-[11px] text-muted-foreground mt-1 line-clamp-3 leading-snug">{sub}</p>
+        <p className="text-[11px] text-muted-foreground mt-1 line-clamp-3 leading-snug" title={sub}>{sub}</p>
       )}
     </div>
   );

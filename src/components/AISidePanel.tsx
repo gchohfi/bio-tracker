@@ -250,24 +250,27 @@ function DesktopSidebar(props: AISidePanelProps & { open: boolean; onToggle: () 
     <div
       className={cn(
         "relative shrink-0 transition-all duration-300 ease-in-out border-l bg-card",
-        open ? "w-[22rem] xl:w-96" : "w-10"
+        open ? "w-[22rem] xl:w-96" : hasAnalysis ? "w-10" : "w-2.5"
       )}
     >
       {/* Toggle button */}
       <button
         onClick={onToggle}
-        className="absolute -left-3 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-background shadow-sm hover:bg-accent transition-colors"
+        className={cn(
+          "absolute -left-3 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-background shadow-sm hover:bg-accent transition-colors",
+          !hasAnalysis && !open && "opacity-0 hover:opacity-100"
+        )}
         title={open ? "Recolher painel IA" : "Expandir painel IA"}
       >
         {open ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
       </button>
 
       {/* Collapsed indicator */}
-      {!open && (
+      {!open && hasAnalysis && (
         <div className="flex flex-col items-center gap-3 pt-12">
-          <Brain className={cn("h-4 w-4", hasAnalysis ? "text-primary/60" : "text-muted-foreground/30")} />
+          <Brain className="h-4 w-4 text-primary/60" />
           <span className="text-[9px] text-muted-foreground [writing-mode:vertical-lr] rotate-180">
-            {hasAnalysis ? "Assistente IA" : "Sem análise"}
+            Assistente IA
           </span>
           {props.v2Data?.red_flags && props.v2Data.red_flags.length > 0 && (
             <Badge variant="destructive" className="text-[8px] h-4 w-4 p-0 flex items-center justify-center">
