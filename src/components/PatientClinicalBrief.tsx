@@ -7,7 +7,6 @@ import {
   CalendarCheck,
   Brain,
   TrendingUp,
-  Clock,
   FlaskConical,
 } from "lucide-react";
 import type { AnalysisV2Data } from "@/components/ClinicalReportV2";
@@ -147,13 +146,13 @@ function BriefCard({
 }) {
   return (
     <div
-      className={`rounded-lg border px-3 py-2 ${
+      className={`rounded-lg border px-3 py-2.5 ${
         variant === "destructive"
           ? "border-destructive/30 bg-destructive/5"
           : "border-border bg-card"
       }`}
     >
-      <div className="flex items-center gap-1.5 mb-0.5">
+      <div className="flex items-center gap-1.5 mb-1">
         {icon}
         <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
           {label}
@@ -167,7 +166,7 @@ function BriefCard({
         {value}
       </p>
       {sub && (
-        <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{sub}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2 leading-snug">{sub}</p>
       )}
     </div>
   );
