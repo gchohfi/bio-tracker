@@ -573,6 +573,7 @@ export default function EncounterWorkspace() {
                     patientId={patient.id}
                     specialtyId={encounter.specialty_id}
                     isFinalized={isFinalized}
+                    legacyPrescription={analysis?.prescription_table as any[] | undefined}
                     patientName={patient.name}
                     practitionerName=""
                   />
