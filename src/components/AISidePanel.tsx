@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -250,7 +250,7 @@ function DesktopSidebar(props: AISidePanelProps & { open: boolean; onToggle: () 
     <div
       className={cn(
         "relative shrink-0 transition-all duration-300 ease-in-out border-l bg-card",
-        open ? "w-80 xl:w-[22rem]" : "w-10"
+        open ? "w-[22rem] xl:w-96" : "w-10"
       )}
     >
       {/* Toggle button */}
@@ -293,8 +293,13 @@ function DesktopSidebar(props: AISidePanelProps & { open: boolean; onToggle: () 
 export default function AISidePanel(props: AISidePanelProps) {
   const isMobile = useIsMobile();
   const hasAnalysis = !!props.analysis;
-  // Auto-collapse when no analysis
+
+  // Auto-collapse when no analysis, auto-expand when analysis arrives
   const [desktopOpen, setDesktopOpen] = useState(hasAnalysis);
+
+  useEffect(() => {
+    setDesktopOpen(hasAnalysis);
+  }, [hasAnalysis]);
 
   if (isMobile) {
     // On mobile, don't show FAB when no analysis

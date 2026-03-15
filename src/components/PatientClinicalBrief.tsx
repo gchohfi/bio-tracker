@@ -49,7 +49,7 @@ export default function PatientClinicalBrief({
   if (!hasAnyContent) return null;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 mt-3">
       {/* Last encounter */}
       <BriefCard
         icon={<CalendarCheck className="h-3.5 w-3.5 text-primary" />}
@@ -146,13 +146,13 @@ function BriefCard({
 }) {
   return (
     <div
-      className={`rounded-lg border px-3 py-2.5 ${
+      className={`rounded-lg border px-3 py-3 ${
         variant === "destructive"
           ? "border-destructive/30 bg-destructive/5"
           : "border-border bg-card"
       }`}
     >
-      <div className="flex items-center gap-1.5 mb-1">
+      <div className="flex items-center gap-1.5 mb-1.5">
         {icon}
         <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
           {label}
@@ -166,7 +166,7 @@ function BriefCard({
         {value}
       </p>
       {sub && (
-        <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2 leading-snug">{sub}</p>
+        <p className="text-[11px] text-muted-foreground mt-1 line-clamp-3 leading-snug">{sub}</p>
       )}
     </div>
   );
