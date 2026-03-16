@@ -214,7 +214,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "cadmio",          range: { M: [0, 1.2], F: [0, 1.2] },           unit: "" },  // IFM: <1.2
 
   // ═══════════════════════════════════════════════════════════════════
-  // AUTOIMUNIDADE  (IFM_final — Anti-Transglutaminase agora numérico)
+  // AUTOIMUNIDADE  (IFM_final_2 — Anti-Transglutaminase agora numérico)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "anti_transglutaminase_iga", range: { M: [0, 7], F: [0, 7] },     unit: "U/mL" },  // IFM: <7
 
