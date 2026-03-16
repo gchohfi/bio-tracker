@@ -219,7 +219,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "anti_transglutaminase_iga", range: { M: [0, 7], F: [0, 7] },     unit: "U/mL" },  // IFM: <7
 
   // ═══════════════════════════════════════════════════════════════════
-  // COPROLÓGICO  (IFM_final — pH numérico, demais são qualitativos)
+  // COPROLÓGICO  (IFM_final_2 — pH numérico, demais são qualitativos)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "copro_ph",        range: { M: [6.5, 7.5], F: [6.5, 7.5] },       unit: "" },
 
