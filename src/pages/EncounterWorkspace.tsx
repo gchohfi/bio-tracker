@@ -445,6 +445,14 @@ export default function EncounterWorkspace() {
 
             {/* ═══ RESUMO ═══ */}
             <TabsContent value="resumo" className="mt-4 space-y-4">
+              {/* Previous encounter context — always visible in Resumo */}
+              {encounter && user && (
+                <PreviousEncounterContext
+                  patientId={patient.id}
+                  currentEncounterId={encounter.id}
+                  practitionerId={user.id}
+                />
+              )}
               {/* Quick overview cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* SOAP preview */}
