@@ -1,11 +1,13 @@
 /**
  * EncounterTimelineCard — Card resumido de consulta na timeline.
  * Mostra data, especialidade, QP, achados, conduta e status de análise/prescrição.
+ * Expande inline com animação suave ao clicar.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -15,6 +17,7 @@ import {
   Brain,
   Pill,
   FileText,
+  X,
 } from "lucide-react";
 
 interface EncounterTimelineCardProps {
@@ -29,6 +32,7 @@ interface EncounterTimelineCardProps {
   specialtyLabel: string;
   isExpanded: boolean;
   onToggle: () => void;
+  onClose: () => void;
   children?: React.ReactNode;
 }
 
@@ -50,13 +54,14 @@ export function EncounterTimelineCard({
   specialtyLabel,
   isExpanded,
   onToggle,
+  onClose,
   children,
 }: EncounterTimelineCardProps) {
   const [noteSummary, setNoteSummary] = useState<NoteSummary | null>(null);
   const [statusInfo, setStatusInfo] = useState<StatusInfo>({ hasAnalysis: false, hasPrescription: false });
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Fetch note summary + analysis/prescription status in parallel
     const fetchNote = (supabase as any)
       .from("clinical_evolution_notes")
       .select("assessment, plan, objective, exams_requested")
@@ -71,21 +76,17 @@ export function EncounterTimelineCard({
       .select("id")
       .eq("encounter_id", encounter.id)
       .limit(1)
-      .then(({ data }: any) => {
-        return { hasAnalysis: (data?.length ?? 0) > 0 };
-      });
+      .then(({ data }: any) => ({ hasAnalysis: (data?.length ?? 0) > 0 }));
 
     const fetchPrescription = (supabase as any)
       .from("clinical_prescriptions")
       .select("id, status")
       .eq("encounter_id", encounter.id)
       .limit(1)
-      .then(({ data }: any) => {
-        return {
-          hasPrescription: (data?.length ?? 0) > 0,
-          prescriptionStatus: data?.[0]?.status,
-        };
-      });
+      .then(({ data }: any) => ({
+        hasPrescription: (data?.length ?? 0) > 0,
+        prescriptionStatus: data?.[0]?.status,
+      }));
 
     Promise.all([fetchNote, fetchAnalysis, fetchPrescription]).then(
       ([, analysisResult, prescriptionResult]) => {
@@ -98,26 +99,42 @@ export function EncounterTimelineCard({
     );
   }, [encounter.id]);
 
+  // Scroll into view when expanded
+  useEffect(() => {
+    if (isExpanded && cardRef.current) {
+      setTimeout(() => {
+        cardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }, 150);
+    }
+  }, [isExpanded]);
+
   const isDraft = encounter.status === "draft";
   const hasContent = noteSummary && (noteSummary.assessment || noteSummary.plan || noteSummary.objective);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={cardRef}>
       {/* Timeline dot + line */}
       <div className="absolute left-4 top-0 bottom-0 w-px bg-border" />
       <div
         className={cn(
-          "absolute left-2.5 top-5 h-3 w-3 rounded-full border-2 border-background z-10",
-          isDraft ? "bg-amber-400" : "bg-emerald-500"
+          "absolute left-2.5 top-5 h-3 w-3 rounded-full border-2 z-10 transition-colors",
+          isExpanded
+            ? "bg-primary border-primary"
+            : isDraft
+              ? "bg-amber-400 border-background"
+              : "bg-emerald-500 border-background"
         )}
       />
 
       <div className="pl-10">
         <Card
           className={cn(
-            "cursor-pointer transition-all hover:shadow-sm",
-            isExpanded && "ring-1 ring-primary/20",
-            isDraft && "border-l-2 border-l-amber-400"
+            "cursor-pointer transition-all duration-200",
+            isExpanded
+              ? "ring-2 ring-primary/30 shadow-md border-primary/20"
+              : "hover:shadow-sm"
+            ,
+            isDraft && !isExpanded && "border-l-2 border-l-amber-400"
           )}
           onClick={onToggle}
         >
@@ -126,7 +143,10 @@ export function EncounterTimelineCard({
               <div className="min-w-0 flex-1">
                 {/* Date + status */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-semibold text-foreground">
+                  <span className={cn(
+                    "text-sm font-semibold",
+                    isExpanded ? "text-primary" : "text-foreground"
+                  )}>
                     {format(parseISO(encounter.encounter_date), "dd 'de' MMM yyyy", { locale: ptBR })}
                   </span>
                   <Badge
@@ -176,8 +196,8 @@ export function EncounterTimelineCard({
                   </div>
                 )}
 
-                {/* Status badges — analysis & prescription */}
-                {(statusInfo.hasAnalysis || statusInfo.hasPrescription || (noteSummary?.exams_requested)) && (
+                {/* Status badges */}
+                {(statusInfo.hasAnalysis || statusInfo.hasPrescription || noteSummary?.exams_requested) && (
                   <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                     {statusInfo.hasAnalysis && (
                       <Badge variant="secondary" className="text-[9px] h-4 px-1.5 gap-0.5">
@@ -207,10 +227,19 @@ export function EncounterTimelineCard({
                 )}
               </div>
 
-              {/* Expand icon */}
+              {/* Expand / close icon */}
               <div className="shrink-0 mt-1 text-muted-foreground">
                 {isExpanded ? (
-                  <ChevronDown className="h-4 w-4" />
+                  <button
+                    className="p-0.5 rounded hover:bg-muted transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClose();
+                    }}
+                    aria-label="Fechar detalhe"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 ) : (
                   <ChevronRight className="h-4 w-4" />
                 )}
@@ -219,8 +248,12 @@ export function EncounterTimelineCard({
           </CardContent>
         </Card>
 
-        {/* Inline detail — rendered as children */}
-        {isExpanded && children}
+        {/* Inline detail — animated */}
+        <Collapsible open={isExpanded}>
+          <CollapsibleContent className="overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:slide-in-from-top-2 data-[state=closed]:slide-out-to-top-2 duration-200">
+            {isExpanded && children}
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </div>
   );
