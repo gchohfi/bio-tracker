@@ -91,4 +91,20 @@ describe("pending functional fixes", () => {
       expect(r.result!.refText).toBe("Negativo");
     });
   });
+
+  describe("Insulina Jejum (µIU/mL func vs µU/mL canonical)", () => {
+    it("matchFunctionalRef returns filled=true with < 7", () => {
+      const r = matchFunctionalRef("insulina_jejum", "Insulina Jejum", 5, "F", "µU/mL");
+      expect(r.log.filled).toBe(true);
+      expect(r.result).not.toBeNull();
+      expect(r.result!.refText).toContain("7");
+      expect(r.result!.status).toBe("normal");
+    });
+
+    it("flags high insulina as fora", () => {
+      const r = matchFunctionalRef("insulina_jejum", "Insulina Jejum", 12, "M", "µU/mL");
+      expect(r.result).not.toBeNull();
+      expect(r.result!.status).toBe("fora");
+    });
+  });
 });
