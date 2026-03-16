@@ -213,6 +213,7 @@ const UNIT_COMPAT_GROUPS: string[][] = [
   ["meq/l", "mmol/l"], // for Na, K, Cl (monovalent ions)
   ["µg/ml", "mg/l"],
   ["µg/l", "mcg/l"],
+  ["ui/ml", "iu/ml", "u/ml"],
 ];
 
 function normalizeUnitForCompat(u: string): string {
