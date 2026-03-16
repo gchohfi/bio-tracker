@@ -77,7 +77,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "peptideo_c",      range: { M: [1.5, 3.0], F: [1.5, 3.0] },       unit: "ng/mL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // PERFIL LIPÍDICO  (IFM_final)
+  // PERFIL LIPÍDICO  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   // colesterol_total: removido intencionalmente — sem referência funcional por decisão clínica (Blank is Blank)
   { marker_id: "hdl",             range: { M: [40, 9999], F: [46, 9999] },       unit: "mg/dL" },
