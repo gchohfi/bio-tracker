@@ -1,6 +1,6 @@
 /**
  * EncounterTimelineCard — Card resumido de consulta na timeline.
- * Mostra data, especialidade, QP, achados e conduta resumida.
+ * Mostra data, especialidade, QP, achados, conduta e status de análise/prescrição.
  */
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,10 +10,11 @@ import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  PenLine,
-  CheckCircle2,
   ChevronDown,
   ChevronRight,
+  Brain,
+  Pill,
+  FileText,
 } from "lucide-react";
 
 interface EncounterTimelineCardProps {
@@ -38,6 +39,12 @@ interface NoteSummary {
   exams_requested: string | null;
 }
 
+interface StatusInfo {
+  hasAnalysis: boolean;
+  hasPrescription: boolean;
+  prescriptionStatus?: "draft" | "finalized";
+}
+
 export function EncounterTimelineCard({
   encounter,
   specialtyLabel,
@@ -46,9 +53,11 @@ export function EncounterTimelineCard({
   children,
 }: EncounterTimelineCardProps) {
   const [noteSummary, setNoteSummary] = useState<NoteSummary | null>(null);
+  const [statusInfo, setStatusInfo] = useState<StatusInfo>({ hasAnalysis: false, hasPrescription: false });
 
   useEffect(() => {
-    (supabase as any)
+    // Fetch note summary + analysis/prescription status in parallel
+    const fetchNote = (supabase as any)
       .from("clinical_evolution_notes")
       .select("assessment, plan, objective, exams_requested")
       .eq("encounter_id", encounter.id)
@@ -56,6 +65,37 @@ export function EncounterTimelineCard({
       .then(({ data }: any) => {
         if (data) setNoteSummary(data);
       });
+
+    const fetchAnalysis = (supabase as any)
+      .from("patient_analyses")
+      .select("id")
+      .eq("encounter_id", encounter.id)
+      .limit(1)
+      .then(({ data }: any) => {
+        return { hasAnalysis: (data?.length ?? 0) > 0 };
+      });
+
+    const fetchPrescription = (supabase as any)
+      .from("clinical_prescriptions")
+      .select("id, status")
+      .eq("encounter_id", encounter.id)
+      .limit(1)
+      .then(({ data }: any) => {
+        return {
+          hasPrescription: (data?.length ?? 0) > 0,
+          prescriptionStatus: data?.[0]?.status,
+        };
+      });
+
+    Promise.all([fetchNote, fetchAnalysis, fetchPrescription]).then(
+      ([, analysisResult, prescriptionResult]) => {
+        setStatusInfo({
+          hasAnalysis: analysisResult.hasAnalysis,
+          hasPrescription: prescriptionResult.hasPrescription,
+          prescriptionStatus: prescriptionResult.prescriptionStatus,
+        });
+      }
+    );
   }, [encounter.id]);
 
   const isDraft = encounter.status === "draft";
@@ -115,6 +155,12 @@ export function EncounterTimelineCard({
                 {/* Quick summary — only when collapsed */}
                 {!isExpanded && hasContent && (
                   <div className="mt-2 space-y-0.5">
+                    {noteSummary.objective && (
+                      <p className="text-[11px] text-foreground/70 line-clamp-1">
+                        <span className="font-medium text-muted-foreground">Achados:</span>{" "}
+                        {noteSummary.objective}
+                      </p>
+                    )}
                     {noteSummary.assessment && (
                       <p className="text-[11px] text-foreground/70 line-clamp-1">
                         <span className="font-medium text-muted-foreground">Avaliação:</span>{" "}
@@ -126,6 +172,36 @@ export function EncounterTimelineCard({
                         <span className="font-medium text-muted-foreground">Conduta:</span>{" "}
                         {noteSummary.plan}
                       </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Status badges — analysis & prescription */}
+                {(statusInfo.hasAnalysis || statusInfo.hasPrescription || (noteSummary?.exams_requested)) && (
+                  <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                    {statusInfo.hasAnalysis && (
+                      <Badge variant="secondary" className="text-[9px] h-4 px-1.5 gap-0.5">
+                        <Brain className="h-2.5 w-2.5" />
+                        Análise IA
+                      </Badge>
+                    )}
+                    {statusInfo.hasPrescription && (
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          "text-[9px] h-4 px-1.5 gap-0.5",
+                          statusInfo.prescriptionStatus === "finalized" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                        )}
+                      >
+                        <Pill className="h-2.5 w-2.5" />
+                        Prescrição
+                      </Badge>
+                    )}
+                    {noteSummary?.exams_requested && (
+                      <Badge variant="outline" className="text-[9px] h-4 px-1.5 gap-0.5">
+                        <FileText className="h-2.5 w-2.5" />
+                        Exames
+                      </Badge>
                     )}
                   </div>
                 )}
