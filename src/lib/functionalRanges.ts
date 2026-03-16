@@ -664,6 +664,13 @@ const UNIT_CONVERSIONS: ConversionRule[] = [
   { from: "UI/mL",  to: "IU/mL", factor: 1 },
   { from: "IU/L",   to: "UI/L",  factor: 1 },
   { from: "UI/L",   to: "IU/L",  factor: 1 },
+  // µIU/mL ↔ µU/mL ↔ uIU/mL: micro-international-units per mL (insulina)
+  { from: "µIU/mL", to: "µU/mL", factor: 1 },
+  { from: "µU/mL",  to: "µIU/mL", factor: 1 },
+  { from: "uIU/mL", to: "µU/mL", factor: 1 },
+  { from: "µU/mL",  to: "uIU/mL", factor: 1 },
+  { from: "mUI/L",  to: "µU/mL", factor: 1 },
+  { from: "µU/mL",  to: "mUI/L", factor: 1 },
 ];
 
 function normalizeUnit(u: string): string {
