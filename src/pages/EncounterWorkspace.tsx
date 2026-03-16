@@ -456,6 +456,10 @@ export default function EncounterWorkspace() {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
+                  <Button size="sm" variant="outline" onClick={handleExportEncounterPdf} className="gap-1.5">
+                    <FileDown className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">PDF</span>
+                  </Button>
                   {!isFinalized && (
                     <>
                       <Button size="sm" variant="outline" onClick={handleSave} disabled={saving} className="gap-1.5">
