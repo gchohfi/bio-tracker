@@ -268,6 +268,13 @@ export default function Index() {
 
   return (
     <AppLayout>
+      {isMobile ? (
+        <DaySummaryMobile
+          criticalPatients={criticalPatients}
+          draftEncounters={draftEncounters}
+          recentImports={filteredImports}
+        />
+      ) : (
       <div className="space-y-6 pb-8">
         {/* ── HEADER — no inline search (use global header search) ── */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
