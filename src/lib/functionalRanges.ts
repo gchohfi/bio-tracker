@@ -467,7 +467,7 @@ export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
   },
 
   // ═══════════════════════════════════════════════════════════════════
-  // COPROLÓGICO  (IFM_final)
+  // COPROLÓGICO  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   {
     marker_id: "copro_parasitas",
