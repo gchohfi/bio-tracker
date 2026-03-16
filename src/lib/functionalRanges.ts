@@ -27,7 +27,7 @@
  * Alterar SOMENTE quando o XLSX canônico for atualizado.
  * Documentar a mudança em .lovable/functional-ranges-baseline.md e CHANGELOG.md.
  */
-export const FUNCTIONAL_RANGES_VERSION = "FUNC_REF_V2_IFM_FINAL_2026_03_14";
+export const FUNCTIONAL_RANGES_VERSION = "FUNC_REF_V3_IFM_FINAL2_2026_03_16";
 
 export interface FunctionalRange {
   marker_id: string;
