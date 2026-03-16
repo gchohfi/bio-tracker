@@ -90,7 +90,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "amilase",         range: { M: [28, 110], F: [28, 110] },         unit: "U/L" },  // IFM: was 30
   { marker_id: "lipase",          range: { M: [0, 80], F: [0, 80] },             unit: "U/L" },
 
-  // ── Relações lipídicas (IFM_final) ──
+  // ── Relações lipídicas (IFM_final_2) ──
   { marker_id: "relacao_ct_hdl",  range: { M: [0, 3.5], F: [0, 3.5] },           unit: "" },
   { marker_id: "relacao_tg_hdl",  range: { M: [0, 2.0], F: [0, 2.0] },           unit: "" },
   { marker_id: "relacao_apob_apoa1", range: { M: [0, 0.89], F: [0, 0.99] },      unit: "" },  // IFM: F<0.99, M<0.89
