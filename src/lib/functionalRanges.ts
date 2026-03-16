@@ -371,10 +371,10 @@ const BDL_MARKER_OVERRIDES: Record<string, string> = {
 
 /**
  * Tabela de referências funcionais qualitativas.
- * Fonte ÚNICA: IFM_final.xlsx
+ * Fonte ÚNICA: IFM_final_2.xlsx
  *
  * NOTA: Anti-TPO, Anti-TG, TRAb, Anti-Transglutaminase IgA e Metais Pesados
- * foram movidos para FUNCTIONAL_RANGES (numérico) pois IFM_final traz cutoffs numéricos.
+ * foram movidos para FUNCTIONAL_RANGES (numérico) pois IFM_final_2 traz cutoffs numéricos.
  * Eles permanecem aqui como fallback qualitativo para laudos que trazem resultado textual.
  */
 export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
