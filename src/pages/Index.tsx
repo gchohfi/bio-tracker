@@ -28,6 +28,7 @@ import { format, parseISO, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import QuickActions from "@/components/QuickActions";
 import { useIsMobile } from "@/hooks/use-mobile";
+import DaySummaryMobile from "@/components/DaySummaryMobile";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Patient = Tables<"patients">;
@@ -267,6 +268,13 @@ export default function Index() {
 
   return (
     <AppLayout>
+      {isMobile ? (
+        <DaySummaryMobile
+          criticalPatients={criticalPatients}
+          draftEncounters={draftEncounters}
+          recentImports={filteredImports}
+        />
+      ) : (
       <div className="space-y-6 pb-8">
         {/* ── HEADER — no inline search (use global header search) ── */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -641,6 +649,7 @@ export default function Index() {
           </div>
         )}
       </div>
+      )}
     </AppLayout>
   );
 }
