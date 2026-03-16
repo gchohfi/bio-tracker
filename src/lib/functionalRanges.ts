@@ -129,7 +129,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "tsh",             range: { M: [0.3, 2.5], F: [0.3, 2.5] },       unit: "µIU/mL" },
   { marker_id: "t4_livre",        range: { M: [0.9, 1.5], F: [0.9, 1.5] },       unit: "ng/dL" },
   { marker_id: "t3_livre",        range: { M: [2.3, 4.2], F: [2.3, 4.2] },       unit: "pg/mL" },
-  { marker_id: "t3_reverso",      range: { M: [8, 25], F: [8, 25] },             unit: "ng/dL" },  // IFM_final-2: "8-25 ng/dL ou 0,06-0,26 ng/mL"
+  { marker_id: "t3_reverso",      range: { M: [8, 25], F: [8, 25] },             unit: "ng/dL" },  // IFM_final_2: "8-25 ng/dL ou 0,06-0,26 ng/mL"
   // IFM agora traz cutoffs numéricos para Anti-TPO, Anti-TG e TRAb:
   { marker_id: "anti_tpo",        range: { M: [0, 35], F: [0, 35] },             unit: "IU/mL" },  // IFM: <35
   { marker_id: "anti_tg",         range: { M: [0, 40], F: [0, 40] },             unit: "IU/mL" },  // IFM: <40
