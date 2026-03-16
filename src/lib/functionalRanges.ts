@@ -59,7 +59,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "plaquetas",       range: { M: [150000, 300000], F: [150000, 300000] }, unit: "/mm³" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // FERRO E METABOLISMO  (IFM_final)
+  // FERRO E METABOLISMO  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "ferritina",       range: { M: [70, 200], F: [50, 150] },         unit: "ng/mL" },
   { marker_id: "ferro_serico",    range: { M: [80, 120], F: [80, 120] },         unit: "mcg/dL" },
