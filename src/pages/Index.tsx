@@ -28,6 +28,7 @@ import { format, parseISO, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import QuickActions from "@/components/QuickActions";
 import { useIsMobile } from "@/hooks/use-mobile";
+import DaySummaryMobile from "@/components/DaySummaryMobile";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Patient = Tables<"patients">;
