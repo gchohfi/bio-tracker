@@ -40,6 +40,7 @@ import {
 import { EncounterPrescriptionEditor } from "@/components/EncounterPrescriptionEditor";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
 import { PreviousEncounterContext } from "@/components/encounter/PreviousEncounterContext";
+import { EncounterAIInlineSummary } from "@/components/encounter/EncounterAIInlineSummary";
 
 // ── Types ──
 
@@ -582,18 +583,12 @@ export default function EncounterWorkspace() {
                 </Card>
               )}
 
-              {/* Executive summary from AI */}
-              {v2Data?.executive_summary && (
-                <Card className="border-primary/20">
-                  <CardContent className="py-3 px-5">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Brain className="h-3.5 w-3.5 text-primary" />
-                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Resumo IA</span>
-                    </div>
-                    <p className="text-xs leading-relaxed text-foreground/80">{v2Data.executive_summary}</p>
-                  </CardContent>
-                </Card>
-              )}
+              {/* AI Analysis inline summary */}
+              <EncounterAIInlineSummary
+                v2Data={v2Data}
+                analysisId={analysis?.id}
+                onOpenFullAnalysis={() => setSubTab("ia")}
+              />
             </TabsContent>
 
             {/* ═══ EVOLUÇÃO ═══ */}
