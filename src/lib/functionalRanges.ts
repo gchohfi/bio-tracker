@@ -184,11 +184,9 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   // ═══════════════════════════════════════════════════════════════════
   // ADRENAIS E OUTROS  (IFM_final-2)
   // Nota: Eletrólitos (Na, K, Cl, Ca iônico) removidos — ausentes no XLSX (Blank is Blank)
+  // PTH mantido — presente no XLSX (linha 116)
   // ═══════════════════════════════════════════════════════════════════
-
-  // ═══════════════════════════════════════════════════════════════════
-  // ADRENAIS E OUTROS  (IFM_final)
-  // ═══════════════════════════════════════════════════════════════════
+  { marker_id: "pth",             range: { M: [15, 50], F: [15, 50] },           unit: "pg/mL" },
   { marker_id: "cortisol",        range: { M: [10, 15], F: [10, 15] },           unit: "µg/dL" },  // IFM: "Cortisol Salivar" sem unidade, mantém µg/dL
   { marker_id: "aldosterona",     range: { M: [5, 15], F: [5, 15] },             unit: "ng/dL" },  // IFM: "Aldosterona Supina"
   { marker_id: "acth",            range: { M: [10, 46], F: [10, 46] },           unit: "pg/mL" },
