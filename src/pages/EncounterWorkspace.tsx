@@ -309,6 +309,62 @@ export default function EncounterWorkspace() {
       navigate(`/patient/${encounter.patient_id}?tab=consultas`);
     }
   };
+  // ── Export encounter PDF ──
+  const handleExportEncounterPdf = async () => {
+    if (!encounter || !patient) return;
+
+    // Fetch prescription items
+    let prescriptionItems: PrescriptionItem[] = [];
+    const { data: rxData } = await (supabase as any)
+      .from("clinical_prescriptions")
+      .select("prescription_json")
+      .eq("encounter_id", encounter.id)
+      .limit(1)
+      .single();
+    if (rxData?.prescription_json) {
+      prescriptionItems = rxData.prescription_json as PrescriptionItem[];
+    }
+
+    // Build reviewed report if v2Data exists
+    let reviewedReport = null;
+    if (v2Data && analysis?.id) {
+      const { data: reviewData } = await (supabase as any)
+        .from("analysis_reviews")
+        .select("review_state_json")
+        .eq("analysis_id", analysis.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .single();
+      const reviewState = reviewData?.review_state_json ?? {};
+      reviewedReport = buildReviewedReport(v2Data, reviewState);
+    }
+
+    generateEncounterPdf({
+      patientName: patient.name,
+      patientSex: patient.sex,
+      patientBirthDate: patient.birth_date
+        ? format(parseISO(patient.birth_date), "dd/MM/yyyy")
+        : null,
+      encounterDate: format(parseISO(encounter.encounter_date), "dd/MM/yyyy"),
+      specialtyName,
+      status: encounter.status,
+      chiefComplaint: encounter.chief_complaint,
+      soap: {
+        subjective: note.subjective || null,
+        objective: note.objective || null,
+        assessment: note.assessment || null,
+        plan: note.plan || null,
+        exams_requested: note.exams_requested || null,
+        medications: note.medications || null,
+        free_notes: note.free_notes || null,
+      },
+      reviewedReport,
+      prescriptionItems,
+      relevantMarkers,
+    });
+
+    toast({ title: "PDF da consulta gerado" });
+  };
 
 
   if (loading) {
