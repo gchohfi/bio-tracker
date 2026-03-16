@@ -352,6 +352,28 @@ export default function EncounterWorkspace() {
                       </Button>
                     </>
                   )}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 gap-1.5">
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Excluir</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir consulta?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação é irreversível. A consulta, notas SOAP, prescrições e análises vinculadas serão removidas permanentemente.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
 
