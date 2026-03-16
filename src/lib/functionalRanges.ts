@@ -153,7 +153,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "dihidrotestosterona", range: { M: [25, 99], F: [0, 46] },         unit: "ng/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // HORMÔNIOS MASCULINOS  (IFM_final)
+  // HORMÔNIOS MASCULINOS  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "fsh",             range: { M: [0, 10], F: [0, 9999] },           unit: "mUI/mL" },  // IFM F: sem ref (fase-dependente)
   { marker_id: "lh",              range: { M: [0, 9], F: [0, 9999] },             unit: "mUI/mL" },  // IFM F: sem ref
