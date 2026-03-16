@@ -655,6 +655,11 @@ const UNIT_CONVERSIONS: ConversionRule[] = [
   { from: "mmol/L", to: "mEq/L", factor: 1 },
   { from: "mcg/dL", to: "µg/dL", factor: 1 },
   { from: "µg/dL", to: "mcg/dL", factor: 1 },
+  // mg/L ↔ µg/L: Vitamina A (retinol) — labs podem usar µg/L ou mcg/L
+  { from: "mg/L",  to: "µg/L",  factor: 1000 },
+  { from: "µg/L",  to: "mg/L",  factor: 0.001 },
+  { from: "mcg/L", to: "mg/L",  factor: 0.001 },
+  { from: "mg/L",  to: "mcg/L", factor: 1000 },
   { from: "/mm³",   to: "/µL",   factor: 1 },
   { from: "/µL",    to: "/mm³",  factor: 1 },
   { from: "mil/µL", to: "/mm³",  factor: 1000 },
