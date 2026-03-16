@@ -204,12 +204,14 @@ totalClassified = normalCount + alertCount + qualitativeCount
 4. **`doctor_specialty_notes` está DEPRECADO.**
    Tabela legada com notas avulsas por especialidade, sem vínculo com encounter. Funcionalidade substituída por notas SOAP em `clinical_evolution_notes`. Dados existentes serão migrados na Fase C do plano de refatoração (ver `prontuario-refactor.md`).
 
-   **Status de deprecação (atualizado):**
+   **Status de deprecação (atualizado 2026-03-16):**
    - `src/components/DoctorNotesTab.tsx` — componente marcado como `@deprecated`, import comentado em `PatientDetail.tsx`
    - `supabase/functions/analyze-lab-results/index.ts` — fetch da tabela mantido como fallback read-only, marcado `[DEPRECATED]`
+   - **GUARD ATIVO**: legacy `doctorNotes` é IGNORADO no prompt de IA quando existem notas SOAP (`clinicalHistory.previousEncounter`)
    - `clinicalContext.types.ts` — campo `doctorNotes` marcado `@deprecated`
    - **Nenhuma nova escrita** é feita pela UI principal
    - **Nenhum novo componente** deve referenciar esta tabela
+   - **Próximo passo**: Fase C — migrar dados existentes para `clinical_evolution_notes`, depois remover tabela
    - A tabela e seus dados **não serão removidos** até a migração formal
 
 5. **Campos desnormalizados são intencionais.**
