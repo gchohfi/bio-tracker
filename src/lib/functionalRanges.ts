@@ -161,7 +161,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "psa_livre_total", range: { M: [0, 25], F: [0, 9999] },           unit: "%" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // VITAMINAS  (IFM_final)
+  // VITAMINAS  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "vitamina_d",      range: { M: [45, 100], F: [45, 100] },         unit: "ng/mL" },  // IFM: was 40
   { marker_id: "vitamina_b12",    range: { M: [650, 9999], F: [650, 9999] },     unit: "pg/mL" },
