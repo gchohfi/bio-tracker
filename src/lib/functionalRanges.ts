@@ -549,7 +549,7 @@ export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
   },
 
   // ═══════════════════════════════════════════════════════════════════
-  // AUTOIMUNIDADE qualitativa  (IFM_final)
+  // AUTOIMUNIDADE qualitativa  (IFM_final_2)
   // Anti-TPO/Anti-TG/TRAb agora também têm cutoff numérico acima,
   // mas mantidos aqui para laudos que reportam como texto.
   // ═══════════════════════════════════════════════════════════════════
