@@ -139,7 +139,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "tireoglobulina",  range: { M: [10, 15], F: [10, 15] },           unit: "ng/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // HORMÔNIOS FEMININOS  (IFM_final)
+  // HORMÔNIOS FEMININOS  (IFM_final_2)
   // Marcadores com "—" na coluna masculina → sentinel [0, 9999] para M
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "testosterona_total", range: { M: [600, 1000], F: [25, 50] },     unit: "ng/dL" },  // IFM M: was 900
