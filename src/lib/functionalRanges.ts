@@ -67,7 +67,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "tibc",            range: { M: [300, 400], F: [300, 400] },       unit: "mcg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // GLICEMIA E METABOLISMO  (IFM_final)
+  // GLICEMIA E METABOLISMO  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "glicose_jejum",   range: { M: [75, 90], F: [75, 90] },           unit: "mg/dL" },
   { marker_id: "hba1c",           range: { M: [0, 5.5], F: [0, 5.5] },           unit: "%" },  // IFM: <5,5
