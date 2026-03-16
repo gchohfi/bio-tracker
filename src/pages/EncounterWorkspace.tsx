@@ -91,6 +91,60 @@ const EMPTY_NOTE: Omit<EvolutionNote, "encounter_id"> = {
   free_notes: "",
 };
 
+// ── EvolutionField — reusable field with color-coded label ──
+
+function EvolutionField({
+  label,
+  hint,
+  value,
+  onChange,
+  disabled,
+  placeholder,
+  rows = 3,
+  color = "text-muted-foreground",
+  important,
+  optional,
+}: {
+  label: string;
+  hint?: string;
+  value: string;
+  onChange: (v: string) => void;
+  disabled: boolean;
+  placeholder: string;
+  rows?: number;
+  color?: string;
+  important?: boolean;
+  optional?: boolean;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        <label className={cn("text-[11px] font-semibold uppercase tracking-wide", color)}>
+          {label}
+        </label>
+        {important && <span className="text-[9px] text-primary font-medium">●</span>}
+        {optional && <span className="text-[9px] text-muted-foreground">(opcional)</span>}
+      </div>
+      {hint && <p className="text-[10px] text-muted-foreground -mt-0.5 mb-1">{hint}</p>}
+      {disabled ? (
+        value ? (
+          <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{value}</p>
+        ) : (
+          <p className="text-sm text-muted-foreground italic">—</p>
+        )
+      ) : (
+        <Textarea
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          rows={rows}
+          className="text-sm resize-y min-h-[40px]"
+          placeholder={placeholder}
+        />
+      )}
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // COMPONENT
 // ══════════════════════════════════════════════════════════════════════
