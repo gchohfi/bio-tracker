@@ -96,7 +96,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "relacao_apob_apoa1", range: { M: [0, 0.89], F: [0, 0.99] },      unit: "" },  // IFM: F<0.99, M<0.89
 
   // ═══════════════════════════════════════════════════════════════════
-  // INFLAMAÇÃO E RISCO CARDIOVASCULAR  (IFM_final)
+  // INFLAMAÇÃO E RISCO CARDIOVASCULAR  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "homocisteina",    range: { M: [0, 8], F: [0, 8] },               unit: "µmol/L" },  // IFM: was 7
   { marker_id: "pcr",             range: { M: [0, 1.1], F: [0, 1.1] },           unit: "mg/L" },    // IFM: was 1.0
