@@ -708,7 +708,7 @@ export function resolveFunctionalRef(
   let displayUnit = fr.unit;
 
   // Convert functional range to canonical unit if different
-  if (normalizeUnit(fr.unit) !== normalizeUnit(canonicalUnit) && canonicalUnit) {
+  if (fr.unit && canonicalUnit && normalizeUnit(fr.unit) !== normalizeUnit(canonicalUnit)) {
     const converted = convertRange(rawRange, fr.unit, canonicalUnit);
     if (!converted) return null; // Can't convert — don't show
     effectiveRange = converted;
