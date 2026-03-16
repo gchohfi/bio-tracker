@@ -226,3 +226,19 @@ totalClassified = normalCount + alertCount + qualitativeCount
 | Análise → Revisão | Explícito (`analysis_id` FK) | ✅ Correto |
 | Prescrição → Análise origem | Explícito (`source_analysis_id` FK, nullable) | ✅ Correto |
 | Paciente → Exames | Explícito (`patient_id` via `lab_sessions`) | ✅ Correto |
+| Paciente → Anamnese | Explícito (`patient_id` FK) | ✅ Correto |
+| Paciente → Imagem | Explícito (`patient_id` FK) | ✅ Correto |
+| Paciente → Composição corporal | Explícito (`patient_id` FK) | ✅ Correto |
+| Análise → Snapshot de revisão | Explícito (`analysis_id` FK) | ✅ Correto |
+
+### Entidades complementares
+
+| Entidade | Vínculo principal | Tipo | Observação |
+|---|---|---|---|
+| `patient_anamneses` | `patient_id` + `specialty_id` | FK | Anamnese estruturada por especialidade |
+| `imaging_reports` | `patient_id` + `practitioner_id` | FK | Laudos de imagem (US, RM, TC etc.) |
+| `body_composition_sessions` | `patient_id` + `practitioner_id` | FK | Sessões InBody/bioimpedância |
+| `review_snapshots` | `analysis_id` + `patient_id` | FK | Histórico de auto-save de revisões (auditoria) |
+| `ai_call_logs` | `practitioner_id` + `patient_id` (nullable) | FK | Telemetria de chamadas IA (insert-only) |
+| `analysis_prompts` | — (global) | — | Prompts por especialidade; sem vínculo com paciente |
+| `profiles` | `id` = `auth.users.id` | PK | Perfil do praticante; criado via trigger `handle_new_user` |
