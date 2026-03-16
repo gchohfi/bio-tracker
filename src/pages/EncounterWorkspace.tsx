@@ -424,7 +424,7 @@ export default function EncounterWorkspace() {
                 </TabsTrigger>
                 <TabsTrigger value="soap" className="gap-1.5 text-xs">
                   <FileText className="h-3.5 w-3.5" />
-                  SOAP
+                  Evolução
                 </TabsTrigger>
                 <TabsTrigger value="prescricao" className="gap-1.5 text-xs">
                   <Pill className="h-3.5 w-3.5" />
