@@ -79,7 +79,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   // ═══════════════════════════════════════════════════════════════════
   // PERFIL LIPÍDICO  (IFM_final)
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "colesterol_total", range: { M: [160, 200], F: [160, 200] },      unit: "mg/dL" },
+  // colesterol_total: removido intencionalmente — sem referência funcional por decisão clínica (Blank is Blank)
   { marker_id: "hdl",             range: { M: [40, 9999], F: [46, 9999] },       unit: "mg/dL" },
   { marker_id: "ldl",             range: { M: [0, 115], F: [0, 115] },           unit: "mg/dL" },
   { marker_id: "vldl",            range: { M: [0, 15], F: [0, 15] },             unit: "mg/dL" },
