@@ -124,7 +124,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "relacao_ureia_creatinina", range: { M: [10, 20], F: [10, 20] },   unit: "" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // TIREOIDE  (IFM_final)
+  // TIREOIDE  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "tsh",             range: { M: [0.3, 2.5], F: [0.3, 2.5] },       unit: "µIU/mL" },
   { marker_id: "t4_livre",        range: { M: [0.9, 1.5], F: [0.9, 1.5] },       unit: "ng/dL" },
