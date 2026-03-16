@@ -224,7 +224,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "copro_ph",        range: { M: [6.5, 7.5], F: [6.5, 7.5] },       unit: "" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // NÃO IMPLEMENTADOS nesta versão (IFM_final):
+  // NÃO IMPLEMENTADOS nesta versão (IFM_final_2):
   //   - Progesterona M "<33" sem unidade → impreciso
   //   - DHEA-S: IFM sem ref numérica F/M
   //   - Estradiol F: sem fase do ciclo
