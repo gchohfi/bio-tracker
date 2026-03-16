@@ -193,7 +193,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "igfbp3",          range: { M: [3.0, 5.0], F: [3.0, 5.0] },       unit: "mg/L" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // OUTROS MARCADORES  (IFM_final)
+  // OUTROS MARCADORES  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "ck",              range: { M: [0, 200], F: [0, 150] },           unit: "U/L" },  // IFM: was F<100,M<150
   { marker_id: "ldh",             range: { M: [135, 180], F: [135, 180] },       unit: "U/L" },
