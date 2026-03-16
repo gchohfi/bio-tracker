@@ -107,4 +107,37 @@ describe("pending functional fixes", () => {
       expect(r.result!.status).toBe("fora");
     });
   });
+
+  describe("Vitamina A (mg/L func vs µg/L lab)", () => {
+    it("resolves when lab reports in mg/L (same unit)", () => {
+      const result = resolveFunctionalRef("vitamina_a", 0.6, "F", "mg/L");
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe("normal");
+    });
+
+    it("resolves when lab reports in µg/L (needs conversion)", () => {
+      const result = resolveFunctionalRef("vitamina_a", 600, "F", "µg/L");
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe("normal");
+    });
+
+    it("resolves when lab reports in mcg/L", () => {
+      const result = resolveFunctionalRef("vitamina_a", 600, "M", "mcg/L");
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe("normal");
+    });
+
+    it("flags low vitamina A as fora (µg/L)", () => {
+      const result = resolveFunctionalRef("vitamina_a", 400, "F", "µg/L");
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe("fora");
+    });
+
+    it("matchFunctionalRef works with µg/L", () => {
+      const r = matchFunctionalRef("vitamina_a", "Vitamina A", 600, "F", "µg/L");
+      expect(r.log.filled).toBe(true);
+      expect(r.result).not.toBeNull();
+      expect(r.result!.status).toBe("normal");
+    });
+  });
 });
