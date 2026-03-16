@@ -42,7 +42,7 @@ export interface FunctionalRange {
  */
 export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   // ═══════════════════════════════════════════════════════════════════
-  // HEMOGRAMA  (IFM_final)
+  // HEMOGRAMA  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "hemoglobina",     range: { M: [13.5, 17.5], F: [12, 15.5] },     unit: "g/dL" },
   { marker_id: "hematocrito",     range: { M: [40, 50], F: [35, 45] },           unit: "%" },
