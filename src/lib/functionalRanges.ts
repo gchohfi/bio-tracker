@@ -170,7 +170,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "vitamina_c",      range: { M: [1.0, 9999], F: [1.0, 9999] },     unit: "mg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // MINERAIS  (IFM_final)
+  // MINERAIS  (IFM_final_2)
   // NOTA: IFM usa "mcg/L" para Zinco e Cobre mas os valores (90–120, 90–130)
   // só fazem sentido clínico em µg/dL. É um erro tipográfico conhecido.
   // Selênio em mcg/L (= µg/L) está correto.
