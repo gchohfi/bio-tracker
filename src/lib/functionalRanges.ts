@@ -379,7 +379,7 @@ const BDL_MARKER_OVERRIDES: Record<string, string> = {
  */
 export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
   // ═══════════════════════════════════════════════════════════════════
-  // URINA  (IFM_final: "Urina I = Normal")
+  // URINA  (IFM_final_2: "Urina I = Normal")
   // ═══════════════════════════════════════════════════════════════════
   {
     marker_id: "urina_nitritos",
