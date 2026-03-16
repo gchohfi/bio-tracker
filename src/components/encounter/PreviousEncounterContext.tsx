@@ -63,15 +63,16 @@ export function PreviousEncounterContext({
       if (!current) { setLoading(false); return; }
 
       // Find the most recent encounter BEFORE this one
-      const { data: prevEnc } = await (supabase as any)
+      const { data: prevList } = await (supabase as any)
         .from("clinical_encounters")
         .select("id, encounter_date, chief_complaint")
         .eq("patient_id", patientId)
         .eq("practitioner_id", practitionerId)
         .lt("encounter_date", current.encounter_date)
         .order("encounter_date", { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
+
+      const prevEnc = prevList?.[0] ?? null;
 
       if (!prevEnc) { setLoading(false); return; }
 
