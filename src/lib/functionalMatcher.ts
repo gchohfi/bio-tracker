@@ -208,7 +208,7 @@ const NAME_ALIASES: Record<string, string> = {
 const UNIT_COMPAT_GROUPS: string[][] = [
   ["/mm³", "/µl", "/ul", "/mm3"],
   ["mcg/dl", "µg/dl", "ug/dl"],
-  ["mui/l", "µiu/ml", "uiu/ml", "miu/ml"],
+  ["mui/l", "µiu/ml", "uiu/ml", "miu/ml", "µu/ml", "uu/ml"],
   ["mil/µl", "mil/ul", "x10³/µl", "x10^3/µl"],
   ["meq/l", "mmol/l"], // for Na, K, Cl (monovalent ions)
   ["µg/ml", "mg/l"],
