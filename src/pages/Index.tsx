@@ -229,9 +229,16 @@ export default function Index() {
     [recentImports, priorityPatientIds]
   );
 
+  // Cascade: exclude imports patients from "Últimos Acessados" too
+  const importPatientIds = useMemo(() => {
+    const ids = new Set(priorityPatientIds);
+    filteredImports.forEach(imp => ids.add(imp.patient_id));
+    return ids;
+  }, [filteredImports, priorityPatientIds]);
+
   const filteredRecents = useMemo(
-    () => recentPatients.filter(rp => !priorityPatientIds.has(rp.id)),
-    [recentPatients, priorityPatientIds]
+    () => recentPatients.filter(rp => !importPatientIds.has(rp.id)),
+    [recentPatients, importPatientIds]
   );
 
   // Greeting
