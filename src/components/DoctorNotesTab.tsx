@@ -1,7 +1,14 @@
 /**
- * @deprecated LEGACY COMPONENT — uses `doctor_specialty_notes` table.
+ * @deprecated LEGACY COMPONENT — DO NOT USE IN NEW CODE.
+ * Uses `doctor_specialty_notes` table which is officially deprecated.
  * Superseded by SOAP notes in `clinical_evolution_notes` via encounters.
- * Import is already commented out in PatientDetail.tsx.
+ * Import is commented out in PatientDetail.tsx since Fase A.
+ * 
+ * DEPRECATION STATUS (2026-03-16):
+ * - UI: Hidden from navigation (import commented out)
+ * - Backend: Edge function skips legacy notes when SOAP encounter exists
+ * - Data: NOT migrated yet — table preserved for backward compatibility
+ * - Next step: Migrate existing data to clinical_evolution_notes, then remove
  * Kept only for reference during data migration. DO NOT add new features here.
  */
 import { useState, useEffect } from "react";
