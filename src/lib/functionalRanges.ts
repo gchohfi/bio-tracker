@@ -182,13 +182,9 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "calcio_total",    range: { M: [8.6, 10.3], F: [8.6, 10.3] },     unit: "mg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // ELETRÓLITOS  (IFM_final)
+  // ADRENAIS E OUTROS  (IFM_final-2)
+  // Nota: Eletrólitos (Na, K, Cl, Ca iônico) removidos — ausentes no XLSX (Blank is Blank)
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "sodio",           range: { M: [134, 140], F: [134, 140] },       unit: "mEq/L" },
-  { marker_id: "potassio",        range: { M: [4.5, 5.1], F: [4.5, 5.1] },       unit: "mEq/L" },
-  { marker_id: "cloro",           range: { M: [100, 106], F: [100, 106] },       unit: "mEq/L" },
-  { marker_id: "calcio_ionico",   range: { M: [4.8, 5.2], F: [4.8, 5.2] },       unit: "mg/dL" },
-  { marker_id: "pth",             range: { M: [15, 50], F: [15, 50] },           unit: "pg/mL" },
 
   // ═══════════════════════════════════════════════════════════════════
   // ADRENAIS E OUTROS  (IFM_final)
