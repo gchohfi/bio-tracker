@@ -36,6 +36,7 @@ import {
   RefreshCw,
   Info,
   Trash2,
+  FileDown,
 } from "lucide-react";
 import { EncounterPrescriptionEditor } from "@/components/EncounterPrescriptionEditor";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
