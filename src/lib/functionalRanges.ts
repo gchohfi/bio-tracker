@@ -659,6 +659,11 @@ const UNIT_CONVERSIONS: ConversionRule[] = [
   { from: "/µL",    to: "/mm³",  factor: 1 },
   { from: "mil/µL", to: "/mm³",  factor: 1000 },
   { from: "/mm³",   to: "mil/µL", factor: 0.001 },
+  // IU/mL ↔ UI/mL: mesma unidade, abreviações diferentes (International Units)
+  { from: "IU/mL",  to: "UI/mL", factor: 1 },
+  { from: "UI/mL",  to: "IU/mL", factor: 1 },
+  { from: "IU/L",   to: "UI/L",  factor: 1 },
+  { from: "UI/L",   to: "IU/L",  factor: 1 },
 ];
 
 function normalizeUnit(u: string): string {
