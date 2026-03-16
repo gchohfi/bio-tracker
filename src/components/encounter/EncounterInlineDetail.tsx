@@ -1,6 +1,6 @@
 /**
  * EncounterInlineDetail — Detalhe expandido inline de uma consulta.
- * Mostra todos os campos SOAP com labels práticos, read-only.
+ * Mostra campos com labels práticos, read-only, com visual compacto.
  */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, ExternalLink } from "lucide-react";
+import { Loader2, ExternalLink, PenLine } from "lucide-react";
 
 interface EncounterInlineDetailProps {
   encounterId: string;
@@ -26,14 +26,14 @@ interface FullNote {
   free_notes: string | null;
 }
 
-const FIELD_LABELS: { key: keyof FullNote; label: string }[] = [
-  { key: "subjective", label: "O que mudou desde a última consulta" },
-  { key: "objective", label: "Achados objetivos" },
-  { key: "assessment", label: "Avaliação clínica" },
-  { key: "plan", label: "Conduta / Plano" },
-  { key: "exams_requested", label: "Exames pedidos / Próximos passos" },
-  { key: "medications", label: "Medicações" },
-  { key: "free_notes", label: "Observações" },
+const FIELD_LABELS: { key: keyof FullNote; label: string; color: string }[] = [
+  { key: "subjective", label: "O que mudou desde a última consulta", color: "text-blue-600 dark:text-blue-400" },
+  { key: "objective", label: "Achados objetivos", color: "text-violet-600 dark:text-violet-400" },
+  { key: "assessment", label: "Avaliação clínica", color: "text-amber-600 dark:text-amber-400" },
+  { key: "plan", label: "Conduta / Plano", color: "text-emerald-600 dark:text-emerald-400" },
+  { key: "exams_requested", label: "Exames pedidos / Próximos passos", color: "text-cyan-600 dark:text-cyan-400" },
+  { key: "medications", label: "Medicações", color: "text-pink-600 dark:text-pink-400" },
+  { key: "free_notes", label: "Observações", color: "text-muted-foreground" },
 ];
 
 export function EncounterInlineDetail({
@@ -66,20 +66,21 @@ export function EncounterInlineDetail({
     );
   }
 
-  const hasAnyContent = note && FIELD_LABELS.some(({ key }) => note[key]);
+  const filledFields = FIELD_LABELS.filter(({ key }) => note && note[key]);
+  const hasAnyContent = filledFields.length > 0;
 
   return (
-    <Card className="mt-2 border-dashed">
-      <CardContent className="p-4 space-y-3">
+    <Card className="mt-2 border-dashed bg-muted/30">
+      <CardContent className="p-3 sm:p-4 space-y-2.5">
         {!hasAnyContent ? (
           <p className="text-xs text-muted-foreground italic">Nenhuma anotação registrada nesta consulta.</p>
         ) : (
-          FIELD_LABELS.filter(({ key }) => note && note[key]).map(({ key, label }) => (
-            <div key={key}>
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-0.5">
+          filledFields.map(({ key, label, color }) => (
+            <div key={key} className="group">
+              <p className={`text-[10px] font-semibold uppercase tracking-wide mb-0.5 ${color}`}>
                 {label}
               </p>
-              <p className="text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">
+              <p className="text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed line-clamp-4">
                 {note![key]}
               </p>
             </div>
@@ -88,18 +89,27 @@ export function EncounterInlineDetail({
 
         <Separator />
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
           <Button
             size="sm"
-            variant="outline"
-            className="gap-1.5 text-xs"
+            variant={isFinalized ? "outline" : "default"}
+            className="gap-1.5 text-xs h-7"
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/patient/${patientId}/encounter/${encounterId}`);
             }}
           >
-            <ExternalLink className="h-3 w-3" />
-            Abrir consulta completa
+            {isFinalized ? (
+              <>
+                <ExternalLink className="h-3 w-3" />
+                Ver consulta
+              </>
+            ) : (
+              <>
+                <PenLine className="h-3 w-3" />
+                Continuar editando
+              </>
+            )}
           </Button>
         </div>
       </CardContent>
