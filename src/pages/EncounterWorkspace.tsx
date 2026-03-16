@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/AppLayout";
 import AISidePanel from "@/components/AISidePanel";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -34,6 +35,7 @@ import {
   AlertTriangle,
   RefreshCw,
   Info,
+  Trash2,
 } from "lucide-react";
 import { EncounterPrescriptionEditor } from "@/components/EncounterPrescriptionEditor";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
@@ -230,7 +232,25 @@ export default function EncounterWorkspace() {
     toast({ title: "Consulta finalizada" });
   };
 
-  // ── Loading / error ──
+  // ── Delete encounter ──
+  const handleDelete = async () => {
+    if (!encounter) return;
+    // Delete related records first (evolution notes, prescriptions, analyses)
+    await Promise.all([
+      (supabase as any).from("clinical_evolution_notes").delete().eq("encounter_id", encounter.id),
+      (supabase as any).from("clinical_prescriptions").delete().eq("encounter_id", encounter.id),
+      (supabase as any).from("patient_analyses").delete().eq("encounter_id", encounter.id),
+    ]);
+    const { error } = await (supabase as any).from("clinical_encounters").delete().eq("id", encounter.id);
+    if (error) {
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Consulta excluída" });
+      navigate(`/patient/${encounter.patient_id}?tab=consultas`);
+    }
+  };
+
+
   if (loading) {
     return (
       <AppLayout>
@@ -332,6 +352,28 @@ export default function EncounterWorkspace() {
                       </Button>
                     </>
                   )}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 gap-1.5">
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Excluir</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir consulta?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação é irreversível. A consulta, notas SOAP, prescrições e análises vinculadas serão removidas permanentemente.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
 
