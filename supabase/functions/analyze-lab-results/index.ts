@@ -1219,8 +1219,14 @@ function buildUserPrompt(
     // Fallback: texto legado
     prompt += "\nANAMNESE DO PACIENTE (" + activeSpecialty.replace(/_/g, " ") + ") — TEXTO LEGADO:\n" + clinicalContext.anamnese + "\n";
   }
-  if (clinicalContext.doctorNotes) {
-    prompt += "\nNOTAS CLINICAS DO MEDICO (" + activeSpecialty.replace(/_/g, " ") + "):\n" + clinicalContext.doctorNotes + "\n";
+  // DEPRECATED: doctorNotes from legacy doctor_specialty_notes table.
+  // Only inject if NO SOAP notes exist (clinicalHistory has encounter data).
+  // Once data migration is complete, remove this block entirely.
+  if (clinicalContext.doctorNotes && !clinicalContext.clinicalHistory?.previousEncounter) {
+    prompt += "\nNOTAS CLINICAS DO MEDICO [LEGADO] (" + activeSpecialty.replace(/_/g, " ") + "):\n" + clinicalContext.doctorNotes + "\n";
+    console.log("[DEPRECATED] Legacy doctor notes injected into prompt (no SOAP encounter found)");
+  } else if (clinicalContext.doctorNotes) {
+    console.log("[DEPRECATED] Legacy doctor notes SKIPPED — SOAP encounter exists, using clinicalHistory instead");
   }
 
   // ── Clinical history (previous encounter + analysis) ──
