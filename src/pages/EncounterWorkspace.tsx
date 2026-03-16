@@ -553,57 +553,132 @@ export default function EncounterWorkspace() {
                 />
               )}
 
+              {/* ── Chief complaint (editable on encounter) ── */}
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="py-3 px-5">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <ClipboardList className="h-3.5 w-3.5 text-primary" />
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-primary">
+                      Motivo / Queixa principal
+                    </label>
+                  </div>
+                  {isFinalized ? (
+                    <p className="text-sm text-foreground/80">{encounter?.chief_complaint || <span className="text-muted-foreground italic">Não informado</span>}</p>
+                  ) : (
+                    <input
+                      type="text"
+                      value={encounter?.chief_complaint || ""}
+                      onChange={(e) => setEncounter((prev) => prev ? { ...prev, chief_complaint: e.target.value } : prev)}
+                      onBlur={async () => {
+                        if (encounter) {
+                          await (supabase as any).from("clinical_encounters").update({ chief_complaint: encounter.chief_complaint || null }).eq("id", encounter.id);
+                        }
+                      }}
+                      className="w-full bg-transparent border-0 border-b border-primary/20 focus:border-primary focus:outline-none text-sm py-1 placeholder:text-muted-foreground/60"
+                      placeholder="Ex: Retorno, fadiga persistente, cefaleia..."
+                    />
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* ── Main clinical fields ── */}
               <Card>
-                <CardContent className="py-4 px-5 space-y-4">
+                <CardContent className="py-4 px-5 space-y-5">
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-primary" />
                     <h2 className="text-sm font-semibold text-foreground">Evolução Clínica</h2>
+                    {isFinalized && (
+                      <Badge variant="secondary" className="text-[9px] h-4 px-1.5">Somente leitura</Badge>
+                    )}
                   </div>
 
-                  {([
-                    { key: "subjective", label: "O que mudou desde a última consulta", placeholder: "Relato do paciente, evolução dos sintomas..." },
-                    { key: "objective", label: "Achados objetivos relevantes", placeholder: "Exame físico, sinais vitais, dados mensuráveis..." },
-                    { key: "assessment", label: "Avaliação clínica", placeholder: "Impressão diagnóstica, correlações clínicas..." },
-                    { key: "plan", label: "Conduta / Plano", placeholder: "Tratamento, ajustes, orientações..." },
-                  ] as const).map(({ key, label, placeholder }) => (
-                    <div key={key} className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">{label}</label>
-                      <Textarea
-                        value={(note as any)[key] || ""}
-                        onChange={(e) => setNote((prev) => ({ ...prev, [key]: e.target.value }))}
-                        disabled={isFinalized}
-                        rows={3}
-                        className="text-sm resize-y min-h-[60px]"
-                        placeholder={placeholder}
-                      />
-                    </div>
-                  ))}
+                  {/* Subjective — what changed */}
+                  <EvolutionField
+                    label="O que mudou desde a última consulta"
+                    hint="Relato do paciente sobre evolução, sintomas novos ou melhorados"
+                    value={note.subjective}
+                    onChange={(v) => setNote((prev) => ({ ...prev, subjective: v }))}
+                    disabled={isFinalized}
+                    placeholder="Relato do paciente, evolução dos sintomas..."
+                    rows={3}
+                    color="text-blue-600 dark:text-blue-400"
+                  />
+
+                  {/* Objective — findings */}
+                  <EvolutionField
+                    label="Achados objetivos relevantes"
+                    hint="Exame físico, sinais vitais, dados mensuráveis"
+                    value={note.objective}
+                    onChange={(v) => setNote((prev) => ({ ...prev, objective: v }))}
+                    disabled={isFinalized}
+                    placeholder="PA, FC, exame físico dirigido, dados mensuráveis..."
+                    rows={3}
+                    color="text-violet-600 dark:text-violet-400"
+                  />
 
                   <Separator />
 
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Exames pedidos / Próximos passos</label>
-                    <Textarea
-                      value={note.exams_requested || ""}
-                      onChange={(e) => setNote((prev) => ({ ...prev, exams_requested: e.target.value }))}
-                      disabled={isFinalized}
-                      rows={2}
-                      className="text-sm resize-y min-h-[40px]"
-                      placeholder="Exames a solicitar, retorno, encaminhamentos..."
-                    />
-                  </div>
+                  {/* Assessment */}
+                  <EvolutionField
+                    label="Avaliação clínica"
+                    hint="Impressão diagnóstica, hipóteses, correlações"
+                    value={note.assessment}
+                    onChange={(v) => setNote((prev) => ({ ...prev, assessment: v }))}
+                    disabled={isFinalized}
+                    placeholder="Impressão diagnóstica, correlações clínicas..."
+                    rows={3}
+                    color="text-amber-600 dark:text-amber-400"
+                    important
+                  />
 
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Observações adicionais</label>
-                    <Textarea
-                      value={note.free_notes || ""}
-                      onChange={(e) => setNote((prev) => ({ ...prev, free_notes: e.target.value }))}
-                      disabled={isFinalized}
-                      rows={2}
-                      className="text-sm resize-y min-h-[40px]"
-                      placeholder="Notas livres, lembretes..."
-                    />
-                  </div>
+                  {/* Plan */}
+                  <EvolutionField
+                    label="Conduta / Plano"
+                    hint="Tratamento, ajustes terapêuticos, orientações"
+                    value={note.plan}
+                    onChange={(v) => setNote((prev) => ({ ...prev, plan: v }))}
+                    disabled={isFinalized}
+                    placeholder="Tratamento, ajustes, orientações..."
+                    rows={3}
+                    color="text-emerald-600 dark:text-emerald-400"
+                    important
+                  />
+
+                  <Separator />
+
+                  {/* Exams requested */}
+                  <EvolutionField
+                    label="Exames pedidos / Próximos passos"
+                    value={note.exams_requested}
+                    onChange={(v) => setNote((prev) => ({ ...prev, exams_requested: v }))}
+                    disabled={isFinalized}
+                    placeholder="Exames a solicitar, retorno, encaminhamentos..."
+                    rows={2}
+                    color="text-cyan-600 dark:text-cyan-400"
+                  />
+
+                  {/* Medications */}
+                  <EvolutionField
+                    label="Medicações"
+                    value={note.medications}
+                    onChange={(v) => setNote((prev) => ({ ...prev, medications: v }))}
+                    disabled={isFinalized}
+                    placeholder="Medicamentos prescritos ou ajustados..."
+                    rows={2}
+                    color="text-pink-600 dark:text-pink-400"
+                  />
+
+                  {/* Free notes */}
+                  <EvolutionField
+                    label="Observações"
+                    value={note.free_notes}
+                    onChange={(v) => setNote((prev) => ({ ...prev, free_notes: v }))}
+                    disabled={isFinalized}
+                    placeholder="Notas livres, lembretes, contexto adicional..."
+                    rows={2}
+                    color="text-muted-foreground"
+                    optional
+                  />
 
                   {!isFinalized && (
                     <div className="flex justify-end">
