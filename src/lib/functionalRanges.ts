@@ -199,7 +199,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "ldh",             range: { M: [135, 180], F: [135, 180] },       unit: "U/L" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // BILIRRUBINAS  (IFM_final — NOVO)
+  // BILIRRUBINAS  (IFM_final_2 — NOVO)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "bilirrubina_direta",  range: { M: [0, 0.3], F: [0, 0.3] },       unit: "mg/dL" },
   { marker_id: "bilirrubina_indireta", range: { M: [0.2, 0.8], F: [0.2, 0.8] },  unit: "mg/dL" },
