@@ -220,6 +220,7 @@ export function ClinicalEvolutionTab({
               specialtyLabel={getSpecialtyLabel(enc.specialty_id)}
               isExpanded={expandedId === enc.id}
               onToggle={() => setExpandedId(expandedId === enc.id ? null : enc.id)}
+              onClose={() => setExpandedId(null)}
             >
               <EncounterInlineDetail
                 encounterId={enc.id}
