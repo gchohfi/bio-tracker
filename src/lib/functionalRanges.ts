@@ -182,7 +182,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "calcio_total",    range: { M: [8.6, 10.3], F: [8.6, 10.3] },     unit: "mg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // ADRENAIS E OUTROS  (IFM_final-2)
+  // ADRENAIS E OUTROS  (IFM_final_2)
   // Nota: Eletrólitos (Na, K, Cl, Ca iônico) removidos — ausentes no XLSX (Blank is Blank)
   // PTH mantido — presente no XLSX (linha 116)
   // ═══════════════════════════════════════════════════════════════════
