@@ -103,7 +103,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "fibrinogenio",    range: { M: [0, 300], F: [0, 300] },           unit: "mg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // FUNÇÃO HEPÁTICA  (IFM_final)
+  // FUNÇÃO HEPÁTICA  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "ggt",             range: { M: [0, 35], F: [0, 35] },             unit: "U/L" },
   { marker_id: "tgp_alt",         range: { M: [0, 35], F: [0, 31] },             unit: "U/L" },  // IFM: M<35, F<31
