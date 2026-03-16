@@ -232,7 +232,25 @@ export default function EncounterWorkspace() {
     toast({ title: "Consulta finalizada" });
   };
 
-  // ── Loading / error ──
+  // ── Delete encounter ──
+  const handleDelete = async () => {
+    if (!encounter) return;
+    // Delete related records first (evolution notes, prescriptions, analyses)
+    await Promise.all([
+      (supabase as any).from("clinical_evolution_notes").delete().eq("encounter_id", encounter.id),
+      (supabase as any).from("clinical_prescriptions").delete().eq("encounter_id", encounter.id),
+      (supabase as any).from("patient_analyses").delete().eq("encounter_id", encounter.id),
+    ]);
+    const { error } = await (supabase as any).from("clinical_encounters").delete().eq("id", encounter.id);
+    if (error) {
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Consulta excluída" });
+      navigate(`/patient/${encounter.patient_id}?tab=consultas`);
+    }
+  };
+
+
   if (loading) {
     return (
       <AppLayout>
