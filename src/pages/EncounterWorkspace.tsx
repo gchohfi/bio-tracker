@@ -452,7 +452,7 @@ export default function EncounterWorkspace() {
                   <CardContent className="py-3 px-4">
                     <div className="flex items-center gap-2 mb-2">
                       <FileText className="h-3.5 w-3.5 text-primary" />
-                      <span className="text-xs font-medium">Nota SOAP</span>
+                      <span className="text-xs font-medium">Evolução Clínica</span>
                       {note.subjective || note.objective || note.assessment || note.plan ? (
                         <Badge variant="secondary" className="text-[9px] h-4 px-1">Preenchida</Badge>
                       ) : (
