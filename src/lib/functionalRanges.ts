@@ -38,7 +38,7 @@ export interface FunctionalRange {
 
 /**
  * Tabela de referências funcionais.
- * Fonte ÚNICA: IFM_final.xlsx
+ * Fonte ÚNICA: IFM_final_2.xlsx
  */
 export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   // ═══════════════════════════════════════════════════════════════════
