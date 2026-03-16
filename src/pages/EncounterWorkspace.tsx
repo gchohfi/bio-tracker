@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { EncounterPrescriptionEditor } from "@/components/EncounterPrescriptionEditor";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
+import { PreviousEncounterContext } from "@/components/encounter/PreviousEncounterContext";
 
 // ── Types ──
 
@@ -423,7 +424,7 @@ export default function EncounterWorkspace() {
                 </TabsTrigger>
                 <TabsTrigger value="soap" className="gap-1.5 text-xs">
                   <FileText className="h-3.5 w-3.5" />
-                  SOAP
+                  Evolução
                 </TabsTrigger>
                 <TabsTrigger value="prescricao" className="gap-1.5 text-xs">
                   <Pill className="h-3.5 w-3.5" />
@@ -451,7 +452,7 @@ export default function EncounterWorkspace() {
                   <CardContent className="py-3 px-4">
                     <div className="flex items-center gap-2 mb-2">
                       <FileText className="h-3.5 w-3.5 text-primary" />
-                      <span className="text-xs font-medium">Nota SOAP</span>
+                      <span className="text-xs font-medium">Evolução Clínica</span>
                       {note.subjective || note.objective || note.assessment || note.plan ? (
                         <Badge variant="secondary" className="text-[9px] h-4 px-1">Preenchida</Badge>
                       ) : (
@@ -533,60 +534,66 @@ export default function EncounterWorkspace() {
               )}
             </TabsContent>
 
-            {/* ═══ SOAP ═══ */}
-            <TabsContent value="soap" className="mt-4">
+            {/* ═══ EVOLUÇÃO ═══ */}
+            <TabsContent value="soap" className="mt-4 space-y-3">
+              {/* Context from previous encounter */}
+              {encounter && user && (
+                <PreviousEncounterContext
+                  patientId={patient.id}
+                  currentEncounterId={encounter.id}
+                  practitionerId={user.id}
+                />
+              )}
+
               <Card>
                 <CardContent className="py-4 px-5 space-y-4">
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-primary" />
-                    <h2 className="text-sm font-semibold text-foreground">Nota SOAP</h2>
+                    <h2 className="text-sm font-semibold text-foreground">Evolução Clínica</h2>
                   </div>
 
-                  {(["subjective", "objective", "assessment", "plan"] as const).map((field) => {
-                    const labels: Record<string, string> = {
-                      subjective: "S — Subjetivo",
-                      objective: "O — Objetivo",
-                      assessment: "A — Avaliação",
-                      plan: "P — Plano",
-                    };
-                    return (
-                      <div key={field} className="space-y-1">
-                        <label className="text-xs font-medium text-muted-foreground">{labels[field]}</label>
-                        <Textarea
-                          value={(note as any)[field] || ""}
-                          onChange={(e) => setNote((prev) => ({ ...prev, [field]: e.target.value }))}
-                          disabled={isFinalized}
-                          rows={3}
-                          className="text-sm resize-y min-h-[60px]"
-                          placeholder={`${labels[field]}...`}
-                        />
-                      </div>
-                    );
-                  })}
+                  {([
+                    { key: "subjective", label: "O que mudou desde a última consulta", placeholder: "Relato do paciente, evolução dos sintomas..." },
+                    { key: "objective", label: "Achados objetivos relevantes", placeholder: "Exame físico, sinais vitais, dados mensuráveis..." },
+                    { key: "assessment", label: "Avaliação clínica", placeholder: "Impressão diagnóstica, correlações clínicas..." },
+                    { key: "plan", label: "Conduta / Plano", placeholder: "Tratamento, ajustes, orientações..." },
+                  ] as const).map(({ key, label, placeholder }) => (
+                    <div key={key} className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+                      <Textarea
+                        value={(note as any)[key] || ""}
+                        onChange={(e) => setNote((prev) => ({ ...prev, [key]: e.target.value }))}
+                        disabled={isFinalized}
+                        rows={3}
+                        className="text-sm resize-y min-h-[60px]"
+                        placeholder={placeholder}
+                      />
+                    </div>
+                  ))}
 
                   <Separator />
 
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Exames Solicitados</label>
+                    <label className="text-xs font-medium text-muted-foreground">Exames pedidos / Próximos passos</label>
                     <Textarea
                       value={note.exams_requested || ""}
                       onChange={(e) => setNote((prev) => ({ ...prev, exams_requested: e.target.value }))}
                       disabled={isFinalized}
                       rows={2}
                       className="text-sm resize-y min-h-[40px]"
-                      placeholder="Exames a solicitar..."
+                      placeholder="Exames a solicitar, retorno, encaminhamentos..."
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Notas Livres</label>
+                    <label className="text-xs font-medium text-muted-foreground">Observações adicionais</label>
                     <Textarea
                       value={note.free_notes || ""}
                       onChange={(e) => setNote((prev) => ({ ...prev, free_notes: e.target.value }))}
                       disabled={isFinalized}
                       rows={2}
                       className="text-sm resize-y min-h-[40px]"
-                      placeholder="Observações adicionais..."
+                      placeholder="Notas livres, lembretes..."
                     />
                   </div>
 

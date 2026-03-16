@@ -8,30 +8,25 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Plus,
   CalendarIcon,
-  FileText,
-  CheckCircle2,
-  PenLine,
   Clock,
   Stethoscope,
-  ChevronRight,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { EncounterTimelineCard } from "@/components/encounter/EncounterTimelineCard";
+import { EncounterInlineDetail } from "@/components/encounter/EncounterInlineDetail";
 
 interface ClinicalEvolutionTabProps {
   patientId: string;
   patientName?: string;
-  /** Default specialty for creating new encounters */
   specialtyId: string;
   specialtyName?: string;
   practitionerName?: string;
-  /** Available specialties for display */
   availableSpecialties?: Array<{ specialty_id: string; specialty_name: string; specialty_icon?: string }>;
   onRequestAnalysis?: (encounterId: string) => void;
   onViewAnalysis?: (analysisId: string) => void;
@@ -61,13 +56,12 @@ export function ClinicalEvolutionTab({
   const [newDate, setNewDate] = useState<Date>(new Date());
   const [newChief, setNewChief] = useState("");
   const [saving, setSaving] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Build specialty lookup map
   const specialtyMap = new Map(
     availableSpecialties.map((s) => [s.specialty_id, s.specialty_name])
   );
 
-  // ── Load ALL encounters (no specialty filter) ──
   const loadEncounters = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
@@ -87,7 +81,6 @@ export function ClinicalEvolutionTab({
     loadEncounters();
   }, [loadEncounters]);
 
-  // ── Create encounter ──
   const handleCreate = async () => {
     if (!user?.id) return;
     setSaving(true);
@@ -110,7 +103,6 @@ export function ClinicalEvolutionTab({
       return;
     }
 
-    // Create empty note
     await (supabase as any)
       .from("clinical_evolution_notes")
       .insert({ encounter_id: enc.id });
@@ -118,7 +110,6 @@ export function ClinicalEvolutionTab({
     setSaving(false);
     setNewChief("");
     setShowCreateForm(false);
-    // Navigate directly to the new encounter workspace
     navigate(`/patient/${patientId}/encounter/${enc.id}`);
   };
 
@@ -137,10 +128,7 @@ export function ClinicalEvolutionTab({
             <p className="text-sm text-muted-foreground mt-1">
               Registre a primeira consulta para iniciar o histórico clínico deste paciente.
             </p>
-            <Button
-              className="mt-4"
-              onClick={() => setShowCreateForm(true)}
-            >
+            <Button className="mt-4" onClick={() => setShowCreateForm(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Nova Consulta
             </Button>
@@ -152,7 +140,7 @@ export function ClinicalEvolutionTab({
 
   return (
     <div className="space-y-4">
-      {/* Header with create action */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Stethoscope className="h-5 w-5 text-primary" />
@@ -168,9 +156,7 @@ export function ClinicalEvolutionTab({
           variant={showCreateForm ? "ghost" : "outline"}
           onClick={() => setShowCreateForm(!showCreateForm)}
         >
-          {showCreateForm ? (
-            "Cancelar"
-          ) : (
+          {showCreateForm ? "Cancelar" : (
             <>
               <Plus className="h-3.5 w-3.5 mr-1" />
               Nova Consulta
@@ -179,7 +165,7 @@ export function ClinicalEvolutionTab({
         </Button>
       </div>
 
-      {/* Inline create form (collapsible) */}
+      {/* Create form */}
       {showCreateForm && (
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="p-4">
@@ -224,84 +210,24 @@ export function ClinicalEvolutionTab({
         </div>
       )}
 
-      {/* Encounter list — single consolidated timeline */}
+      {/* Timeline */}
       {!loading && encounters.length > 0 && (
-        <div className="space-y-2">
-          {encounters.map((enc) => {
-            const isDraft = enc.status === "draft";
-            return (
-              <Card
-                key={enc.id}
-                className={cn(
-                  "cursor-pointer transition-colors hover:bg-muted/30 group",
-                  isDraft && "border-l-4 border-l-amber-400"
-                )}
-                onClick={() => navigate(`/patient/${patientId}/encounter/${enc.id}`)}
-              >
-                <CardContent className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    {/* Status icon */}
-                    <div className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-                      isDraft
-                        ? "bg-amber-100 dark:bg-amber-900/30"
-                        : "bg-emerald-100 dark:bg-emerald-900/30"
-                    )}>
-                      {isDraft
-                        ? <PenLine className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                        : <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                      }
-                    </div>
-
-                    {/* Main info */}
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-sm">
-                          {format(parseISO(enc.encounter_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                        </p>
-                        <Badge
-                          variant={isDraft ? "outline" : "default"}
-                          className={cn(
-                            "text-[10px] shrink-0",
-                            !isDraft && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border-0",
-                            isDraft && "border-amber-300 text-amber-700 dark:border-amber-600 dark:text-amber-300"
-                          )}
-                        >
-                          {isDraft ? "Rascunho" : "Finalizada"}
-                        </Badge>
-                      </div>
-
-                      {/* Specialty */}
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {getSpecialtyLabel(enc.specialty_id)}
-                      </p>
-
-                      {/* Chief complaint */}
-                      {enc.chief_complaint ? (
-                        <p className="text-xs text-foreground/80 mt-1 line-clamp-1">
-                          <span className="font-medium text-muted-foreground">QP:</span>{" "}
-                          {enc.chief_complaint}
-                        </p>
-                      ) : isDraft ? (
-                        <p className="text-xs text-amber-600/70 dark:text-amber-400/60 mt-1 italic">
-                          Sem queixa principal registrada
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {/* Right side */}
-                  <div className="flex items-center gap-2 shrink-0 ml-3">
-                    <span className="text-[10px] text-muted-foreground hidden sm:flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {format(parseISO(enc.created_at), "dd/MM HH:mm")}
-                    </span>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+        <div className="space-y-1 relative">
+          {encounters.map((enc) => (
+            <EncounterTimelineCard
+              key={enc.id}
+              encounter={enc}
+              specialtyLabel={getSpecialtyLabel(enc.specialty_id)}
+              isExpanded={expandedId === enc.id}
+              onToggle={() => setExpandedId(expandedId === enc.id ? null : enc.id)}
+            >
+              <EncounterInlineDetail
+                encounterId={enc.id}
+                patientId={patientId}
+                isFinalized={enc.status === "finalized"}
+              />
+            </EncounterTimelineCard>
+          ))}
         </div>
       )}
     </div>
