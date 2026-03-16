@@ -116,7 +116,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "relacao_tgo_tgp", range: { M: [0.8, 2.0], F: [0.8, 2.0] },       unit: "" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // FUNÇÃO RENAL  (IFM_final)
+  // FUNÇÃO RENAL  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "ureia",           range: { M: [13, 25], F: [13, 25] },           unit: "mg/dL" },
   { marker_id: "creatinina",      range: { M: [0.7, 1.1], F: [0.7, 1.1] },       unit: "mg/dL" },
