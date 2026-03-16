@@ -27,7 +27,7 @@
  * Alterar SOMENTE quando o XLSX canônico for atualizado.
  * Documentar a mudança em .lovable/functional-ranges-baseline.md e CHANGELOG.md.
  */
-export const FUNCTIONAL_RANGES_VERSION = "FUNC_REF_V2_IFM_FINAL_2026_03_14";
+export const FUNCTIONAL_RANGES_VERSION = "FUNC_REF_V3_IFM_FINAL2_2026_03_16";
 
 export interface FunctionalRange {
   marker_id: string;
@@ -129,7 +129,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "tsh",             range: { M: [0.3, 2.5], F: [0.3, 2.5] },       unit: "µIU/mL" },
   { marker_id: "t4_livre",        range: { M: [0.9, 1.5], F: [0.9, 1.5] },       unit: "ng/dL" },
   { marker_id: "t3_livre",        range: { M: [2.3, 4.2], F: [2.3, 4.2] },       unit: "pg/mL" },
-  { marker_id: "t3_reverso",      range: { M: [11, 18], F: [11, 18] },           unit: "ng/dL" },  // IFM: "8-25 ng/dL" mas keep funcional 11-18
+  { marker_id: "t3_reverso",      range: { M: [8, 25], F: [8, 25] },             unit: "ng/dL" },  // IFM_final-2: "8-25 ng/dL ou 0,06-0,26 ng/mL"
   // IFM agora traz cutoffs numéricos para Anti-TPO, Anti-TG e TRAb:
   { marker_id: "anti_tpo",        range: { M: [0, 35], F: [0, 35] },             unit: "IU/mL" },  // IFM: <35
   { marker_id: "anti_tg",         range: { M: [0, 40], F: [0, 40] },             unit: "IU/mL" },  // IFM: <40
@@ -182,17 +182,11 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "calcio_total",    range: { M: [8.6, 10.3], F: [8.6, 10.3] },     unit: "mg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // ELETRÓLITOS  (IFM_final)
+  // ADRENAIS E OUTROS  (IFM_final-2)
+  // Nota: Eletrólitos (Na, K, Cl, Ca iônico) removidos — ausentes no XLSX (Blank is Blank)
+  // PTH mantido — presente no XLSX (linha 116)
   // ═══════════════════════════════════════════════════════════════════
-  { marker_id: "sodio",           range: { M: [134, 140], F: [134, 140] },       unit: "mEq/L" },
-  { marker_id: "potassio",        range: { M: [4.5, 5.1], F: [4.5, 5.1] },       unit: "mEq/L" },
-  { marker_id: "cloro",           range: { M: [100, 106], F: [100, 106] },       unit: "mEq/L" },
-  { marker_id: "calcio_ionico",   range: { M: [4.8, 5.2], F: [4.8, 5.2] },       unit: "mg/dL" },
   { marker_id: "pth",             range: { M: [15, 50], F: [15, 50] },           unit: "pg/mL" },
-
-  // ═══════════════════════════════════════════════════════════════════
-  // ADRENAIS E OUTROS  (IFM_final)
-  // ═══════════════════════════════════════════════════════════════════
   { marker_id: "cortisol",        range: { M: [10, 15], F: [10, 15] },           unit: "µg/dL" },  // IFM: "Cortisol Salivar" sem unidade, mantém µg/dL
   { marker_id: "aldosterona",     range: { M: [5, 15], F: [5, 15] },             unit: "ng/dL" },  // IFM: "Aldosterona Supina"
   { marker_id: "acth",            range: { M: [10, 46], F: [10, 46] },           unit: "pg/mL" },
