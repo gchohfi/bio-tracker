@@ -7,7 +7,7 @@
  *
  * ╔══════════════════════════════════════════════════════════════════════╗
  * ║  FONTE DE VERDADE ÚNICA:                                           ║
- * ║  IFM_final.xlsx                                                    ║
+ * ║  IFM_final_2.xlsx                                                  ║
  * ║  Planilhas anteriores são apenas referência histórica.             ║
  * ║  Se o XLSX deixa um campo em branco, ele fica em branco aqui.      ║
  * ╚══════════════════════════════════════════════════════════════════════╝
@@ -38,11 +38,11 @@ export interface FunctionalRange {
 
 /**
  * Tabela de referências funcionais.
- * Fonte ÚNICA: IFM_final.xlsx
+ * Fonte ÚNICA: IFM_final_2.xlsx
  */
 export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   // ═══════════════════════════════════════════════════════════════════
-  // HEMOGRAMA  (IFM_final)
+  // HEMOGRAMA  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "hemoglobina",     range: { M: [13.5, 17.5], F: [12, 15.5] },     unit: "g/dL" },
   { marker_id: "hematocrito",     range: { M: [40, 50], F: [35, 45] },           unit: "%" },
@@ -59,7 +59,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "plaquetas",       range: { M: [150000, 300000], F: [150000, 300000] }, unit: "/mm³" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // FERRO E METABOLISMO  (IFM_final)
+  // FERRO E METABOLISMO  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "ferritina",       range: { M: [70, 200], F: [50, 150] },         unit: "ng/mL" },
   { marker_id: "ferro_serico",    range: { M: [80, 120], F: [80, 120] },         unit: "mcg/dL" },
@@ -67,7 +67,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "tibc",            range: { M: [300, 400], F: [300, 400] },       unit: "mcg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // GLICEMIA E METABOLISMO  (IFM_final)
+  // GLICEMIA E METABOLISMO  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "glicose_jejum",   range: { M: [75, 90], F: [75, 90] },           unit: "mg/dL" },
   { marker_id: "hba1c",           range: { M: [0, 5.5], F: [0, 5.5] },           unit: "%" },  // IFM: <5,5
@@ -77,7 +77,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "peptideo_c",      range: { M: [1.5, 3.0], F: [1.5, 3.0] },       unit: "ng/mL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // PERFIL LIPÍDICO  (IFM_final)
+  // PERFIL LIPÍDICO  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   // colesterol_total: removido intencionalmente — sem referência funcional por decisão clínica (Blank is Blank)
   { marker_id: "hdl",             range: { M: [40, 9999], F: [46, 9999] },       unit: "mg/dL" },
@@ -90,20 +90,20 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "amilase",         range: { M: [28, 110], F: [28, 110] },         unit: "U/L" },  // IFM: was 30
   { marker_id: "lipase",          range: { M: [0, 80], F: [0, 80] },             unit: "U/L" },
 
-  // ── Relações lipídicas (IFM_final) ──
+  // ── Relações lipídicas (IFM_final_2) ──
   { marker_id: "relacao_ct_hdl",  range: { M: [0, 3.5], F: [0, 3.5] },           unit: "" },
   { marker_id: "relacao_tg_hdl",  range: { M: [0, 2.0], F: [0, 2.0] },           unit: "" },
   { marker_id: "relacao_apob_apoa1", range: { M: [0, 0.89], F: [0, 0.99] },      unit: "" },  // IFM: F<0.99, M<0.89
 
   // ═══════════════════════════════════════════════════════════════════
-  // INFLAMAÇÃO E RISCO CARDIOVASCULAR  (IFM_final)
+  // INFLAMAÇÃO E RISCO CARDIOVASCULAR  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "homocisteina",    range: { M: [0, 8], F: [0, 8] },               unit: "µmol/L" },  // IFM: was 7
   { marker_id: "pcr",             range: { M: [0, 1.1], F: [0, 1.1] },           unit: "mg/L" },    // IFM: was 1.0
   { marker_id: "fibrinogenio",    range: { M: [0, 300], F: [0, 300] },           unit: "mg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // FUNÇÃO HEPÁTICA  (IFM_final)
+  // FUNÇÃO HEPÁTICA  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "ggt",             range: { M: [0, 35], F: [0, 35] },             unit: "U/L" },
   { marker_id: "tgp_alt",         range: { M: [0, 35], F: [0, 31] },             unit: "U/L" },  // IFM: M<35, F<31
@@ -116,7 +116,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "relacao_tgo_tgp", range: { M: [0.8, 2.0], F: [0.8, 2.0] },       unit: "" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // FUNÇÃO RENAL  (IFM_final)
+  // FUNÇÃO RENAL  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "ureia",           range: { M: [13, 25], F: [13, 25] },           unit: "mg/dL" },
   { marker_id: "creatinina",      range: { M: [0.7, 1.1], F: [0.7, 1.1] },       unit: "mg/dL" },
@@ -124,12 +124,12 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "relacao_ureia_creatinina", range: { M: [10, 20], F: [10, 20] },   unit: "" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // TIREOIDE  (IFM_final)
+  // TIREOIDE  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "tsh",             range: { M: [0.3, 2.5], F: [0.3, 2.5] },       unit: "µIU/mL" },
   { marker_id: "t4_livre",        range: { M: [0.9, 1.5], F: [0.9, 1.5] },       unit: "ng/dL" },
   { marker_id: "t3_livre",        range: { M: [2.3, 4.2], F: [2.3, 4.2] },       unit: "pg/mL" },
-  { marker_id: "t3_reverso",      range: { M: [8, 25], F: [8, 25] },             unit: "ng/dL" },  // IFM_final-2: "8-25 ng/dL ou 0,06-0,26 ng/mL"
+  { marker_id: "t3_reverso",      range: { M: [8, 25], F: [8, 25] },             unit: "ng/dL" },  // IFM_final_2: "8-25 ng/dL ou 0,06-0,26 ng/mL"
   // IFM agora traz cutoffs numéricos para Anti-TPO, Anti-TG e TRAb:
   { marker_id: "anti_tpo",        range: { M: [0, 35], F: [0, 35] },             unit: "IU/mL" },  // IFM: <35
   { marker_id: "anti_tg",         range: { M: [0, 40], F: [0, 40] },             unit: "IU/mL" },  // IFM: <40
@@ -139,7 +139,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "tireoglobulina",  range: { M: [10, 15], F: [10, 15] },           unit: "ng/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // HORMÔNIOS FEMININOS  (IFM_final)
+  // HORMÔNIOS FEMININOS  (IFM_final_2)
   // Marcadores com "—" na coluna masculina → sentinel [0, 9999] para M
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "testosterona_total", range: { M: [600, 1000], F: [25, 50] },     unit: "ng/dL" },  // IFM M: was 900
@@ -153,7 +153,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "dihidrotestosterona", range: { M: [25, 99], F: [0, 46] },         unit: "ng/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // HORMÔNIOS MASCULINOS  (IFM_final)
+  // HORMÔNIOS MASCULINOS  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "fsh",             range: { M: [0, 10], F: [0, 9999] },           unit: "mUI/mL" },  // IFM F: sem ref (fase-dependente)
   { marker_id: "lh",              range: { M: [0, 9], F: [0, 9999] },             unit: "mUI/mL" },  // IFM F: sem ref
@@ -161,7 +161,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "psa_livre_total", range: { M: [0, 25], F: [0, 9999] },           unit: "%" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // VITAMINAS  (IFM_final)
+  // VITAMINAS  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "vitamina_d",      range: { M: [45, 100], F: [45, 100] },         unit: "ng/mL" },  // IFM: was 40
   { marker_id: "vitamina_b12",    range: { M: [650, 9999], F: [650, 9999] },     unit: "pg/mL" },
@@ -170,7 +170,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "vitamina_c",      range: { M: [1.0, 9999], F: [1.0, 9999] },     unit: "mg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // MINERAIS  (IFM_final)
+  // MINERAIS  (IFM_final_2)
   // NOTA: IFM usa "mcg/L" para Zinco e Cobre mas os valores (90–120, 90–130)
   // só fazem sentido clínico em µg/dL. É um erro tipográfico conhecido.
   // Selênio em mcg/L (= µg/L) está correto.
@@ -182,7 +182,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "calcio_total",    range: { M: [8.6, 10.3], F: [8.6, 10.3] },     unit: "mg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // ADRENAIS E OUTROS  (IFM_final-2)
+  // ADRENAIS E OUTROS  (IFM_final_2)
   // Nota: Eletrólitos (Na, K, Cl, Ca iônico) removidos — ausentes no XLSX (Blank is Blank)
   // PTH mantido — presente no XLSX (linha 116)
   // ═══════════════════════════════════════════════════════════════════
@@ -193,20 +193,20 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "igfbp3",          range: { M: [3.0, 5.0], F: [3.0, 5.0] },       unit: "mg/L" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // OUTROS MARCADORES  (IFM_final)
+  // OUTROS MARCADORES  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "ck",              range: { M: [0, 200], F: [0, 150] },           unit: "U/L" },  // IFM: was F<100,M<150
   { marker_id: "ldh",             range: { M: [135, 180], F: [135, 180] },       unit: "U/L" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // BILIRRUBINAS  (IFM_final — NOVO)
+  // BILIRRUBINAS  (IFM_final_2 — NOVO)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "bilirrubina_direta",  range: { M: [0, 0.3], F: [0, 0.3] },       unit: "mg/dL" },
   { marker_id: "bilirrubina_indireta", range: { M: [0.2, 0.8], F: [0.2, 0.8] },  unit: "mg/dL" },
   { marker_id: "bilirrubina_total",   range: { M: [0.2, 1.1], F: [0.2, 1.1] },   unit: "mg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // METAIS PESADOS  (IFM_final — agora numéricos com cutoffs)
+  // METAIS PESADOS  (IFM_final_2 — agora numéricos com cutoffs)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "mercurio",        range: { M: [0, 5.9], F: [0, 5.9] },           unit: "" },  // IFM: <5.9 (sem unidade definida)
   { marker_id: "chumbo",          range: { M: [0, 3.5], F: [0, 3.5] },           unit: "" },  // IFM: <3.5
@@ -214,17 +214,17 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "cadmio",          range: { M: [0, 1.2], F: [0, 1.2] },           unit: "" },  // IFM: <1.2
 
   // ═══════════════════════════════════════════════════════════════════
-  // AUTOIMUNIDADE  (IFM_final — Anti-Transglutaminase agora numérico)
+  // AUTOIMUNIDADE  (IFM_final_2 — Anti-Transglutaminase agora numérico)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "anti_transglutaminase_iga", range: { M: [0, 7], F: [0, 7] },     unit: "U/mL" },  // IFM: <7
 
   // ═══════════════════════════════════════════════════════════════════
-  // COPROLÓGICO  (IFM_final — pH numérico, demais são qualitativos)
+  // COPROLÓGICO  (IFM_final_2 — pH numérico, demais são qualitativos)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "copro_ph",        range: { M: [6.5, 7.5], F: [6.5, 7.5] },       unit: "" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // NÃO IMPLEMENTADOS nesta versão (IFM_final):
+  // NÃO IMPLEMENTADOS nesta versão (IFM_final_2):
   //   - Progesterona M "<33" sem unidade → impreciso
   //   - DHEA-S: IFM sem ref numérica F/M
   //   - Estradiol F: sem fase do ciclo
@@ -371,15 +371,15 @@ const BDL_MARKER_OVERRIDES: Record<string, string> = {
 
 /**
  * Tabela de referências funcionais qualitativas.
- * Fonte ÚNICA: IFM_final.xlsx
+ * Fonte ÚNICA: IFM_final_2.xlsx
  *
  * NOTA: Anti-TPO, Anti-TG, TRAb, Anti-Transglutaminase IgA e Metais Pesados
- * foram movidos para FUNCTIONAL_RANGES (numérico) pois IFM_final traz cutoffs numéricos.
+ * foram movidos para FUNCTIONAL_RANGES (numérico) pois IFM_final_2 traz cutoffs numéricos.
  * Eles permanecem aqui como fallback qualitativo para laudos que trazem resultado textual.
  */
 export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
   // ═══════════════════════════════════════════════════════════════════
-  // URINA  (IFM_final: "Urina I = Normal")
+  // URINA  (IFM_final_2: "Urina I = Normal")
   // ═══════════════════════════════════════════════════════════════════
   {
     marker_id: "urina_nitritos",
@@ -467,7 +467,7 @@ export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
   },
 
   // ═══════════════════════════════════════════════════════════════════
-  // COPROLÓGICO  (IFM_final)
+  // COPROLÓGICO  (IFM_final_2)
   // ═══════════════════════════════════════════════════════════════════
   {
     marker_id: "copro_parasitas",
@@ -549,7 +549,7 @@ export const QUALITATIVE_FUNCTIONAL_RANGES: QualitativeFunctionalRef[] = [
   },
 
   // ═══════════════════════════════════════════════════════════════════
-  // AUTOIMUNIDADE qualitativa  (IFM_final)
+  // AUTOIMUNIDADE qualitativa  (IFM_final_2)
   // Anti-TPO/Anti-TG/TRAb agora também têm cutoff numérico acima,
   // mas mantidos aqui para laudos que reportam como texto.
   // ═══════════════════════════════════════════════════════════════════
