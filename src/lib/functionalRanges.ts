@@ -206,7 +206,7 @@ export const FUNCTIONAL_RANGES: FunctionalRange[] = [
   { marker_id: "bilirrubina_total",   range: { M: [0.2, 1.1], F: [0.2, 1.1] },   unit: "mg/dL" },
 
   // ═══════════════════════════════════════════════════════════════════
-  // METAIS PESADOS  (IFM_final — agora numéricos com cutoffs)
+  // METAIS PESADOS  (IFM_final_2 — agora numéricos com cutoffs)
   // ═══════════════════════════════════════════════════════════════════
   { marker_id: "mercurio",        range: { M: [0, 5.9], F: [0, 5.9] },           unit: "" },  // IFM: <5.9 (sem unidade definida)
   { marker_id: "chumbo",          range: { M: [0, 3.5], F: [0, 3.5] },           unit: "" },  // IFM: <3.5
