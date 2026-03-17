@@ -47,6 +47,7 @@ import { PreviousEncounterContext } from "@/components/encounter/PreviousEncount
 import { EncounterAIInlineSummary } from "@/components/encounter/EncounterAIInlineSummary";
 import { generateEncounterPdf, type EncounterPdfParams } from "@/lib/generateEncounterPdf";
 import { LinkedExamsSection } from "@/components/encounter/LinkedExamsSection";
+import { GenerateAnalysisDialog } from "@/components/encounter/GenerateAnalysisDialog";
 import { buildReviewedReport } from "@/lib/buildReviewedReport";
 import type { PrescriptionItem } from "@/components/EncounterPrescriptionEditor";
 
