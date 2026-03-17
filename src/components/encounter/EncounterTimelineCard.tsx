@@ -234,6 +234,32 @@ export function EncounterTimelineCard({
                     )}
                   </div>
                 )}
+
+                {/* PDF export button */}
+                <button
+                  className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors mt-2 px-1.5 py-0.5 rounded hover:bg-muted"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    setExportingPdf(true);
+                    try {
+                      await exportEncounterPdfStandalone({
+                        encounterId: encounter.id,
+                        patientId,
+                        specialtyName: specialtyLabel,
+                      });
+                      toast({ title: "PDF da consulta gerado" });
+                    } catch {
+                      toast({ title: "Erro ao gerar PDF", variant: "destructive" });
+                    } finally {
+                      setExportingPdf(false);
+                    }
+                  }}
+                  disabled={exportingPdf}
+                  aria-label="Exportar PDF da consulta"
+                >
+                  {exportingPdf ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileDown className="h-3 w-3" />}
+                  PDF
+                </button>
               </div>
 
               {/* Expand / close icon */}
