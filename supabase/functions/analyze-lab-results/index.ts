@@ -599,6 +599,11 @@ const ESSENTIA_PROTOCOLS: EssentiaProtocol[] = [
   { id: "IM 15.1", name: "Protocolo IM adjuvante Saúde do Sistema Respiratório", category: "Saúde Respiratória", via: "Intramuscular",
     composition: "Nanomicelas de Quercetina 15mg, NAC 300mg",
     actives_contained: ["nac"] },
+
+  // ── INJETÁVEIS AVULSOS ──
+  { id: "INJ_BAIBA", name: "L-BAIBA (ácido L-β-aminoisobutírico) 100mg/1mL", category: "Metabolismo", via: "Endovenoso",
+    composition: "L-BAIBA (ácido L-β-aminoisobutírico) 100mg/1mL — diluir em 250mL SF 0,9%, EV lento 45-60min, 1x/semana, 8-10 sessões. Também disponível IM (ventroglúteo/dorsoglúteo).",
+    actives_contained: ["l_baiba"] },
 ];
 
 // ══════════════════════════════════════════════════════════════════════════════
