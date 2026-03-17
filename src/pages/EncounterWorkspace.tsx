@@ -579,6 +579,8 @@ export default function EncounterWorkspace() {
       setSubTab(step);
     }
   };
+
+  return (
     <AppLayout>
       <div className="flex gap-0">
         {/* ══════════════════════════════════════════════
