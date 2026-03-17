@@ -32,6 +32,7 @@ interface EncounterTimelineCardProps {
     chief_complaint: string | null;
     specialty_id: string;
     created_at: string;
+    patient_id?: string;
   };
   specialtyLabel: string;
   isExpanded: boolean;
