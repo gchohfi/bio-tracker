@@ -36,6 +36,7 @@ interface EncounterTimelineCardProps {
   };
   specialtyLabel: string;
   patientId: string;
+  isExpanded: boolean;
   onToggle: () => void;
   onClose: () => void;
   children?: React.ReactNode;
