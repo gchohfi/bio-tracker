@@ -688,13 +688,19 @@ export default function EncounterWorkspace() {
             <TabsContent value="resumo" className="mt-4 space-y-4">
               {/* Longitudinal patient context */}
               {encounter && user && (
-                <PatientLongitudinalContext
-                  patientId={patient.id}
-                  currentEncounterId={encounter.id}
-                  practitionerId={user.id}
-                />
+                <>
+                  <PatientLongitudinalContext
+                    patientId={patient.id}
+                    currentEncounterId={encounter.id}
+                    practitionerId={user.id}
+                  />
+                  <PreviousEncounterContext
+                    patientId={patient.id}
+                    currentEncounterId={encounter.id}
+                    practitionerId={user.id}
+                  />
+                </>
               )}
-              {/* Quick overview cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* SOAP preview */}
                 <Card className="cursor-pointer hover:border-primary/30 transition-colors" onClick={() => setSubTab("soap")}>
