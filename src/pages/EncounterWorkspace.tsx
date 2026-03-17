@@ -43,7 +43,7 @@ import {
 import { EncounterPrescriptionEditor } from "@/components/EncounterPrescriptionEditor";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
 import { PreviousEncounterContext } from "@/components/encounter/PreviousEncounterContext";
-import { EncounterAIInlineSummary } from "@/components/encounter/EncounterAIInlineSummary";
+import { PatientLongitudinalContext } from "@/components/encounter/PatientLongitudinalContext";
 import { generateEncounterPdf, type EncounterPdfParams } from "@/lib/generateEncounterPdf";
 import { buildReviewedReport } from "@/lib/buildReviewedReport";
 import type { PrescriptionItem } from "@/components/EncounterPrescriptionEditor";
