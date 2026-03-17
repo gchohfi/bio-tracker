@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Beaker, LogOut, Search, Sliders } from "lucide-react";
+import { Beaker, LogOut, Search, Sliders, Users } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -65,6 +65,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <span className="text-lg font-semibold tracking-tight">LabTrack</span>
             </button>
             <nav className="hidden items-center gap-1 md:flex">
+              <Button
+                variant={location.pathname === "/patients" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => navigate("/patients")}
+                className="gap-1.5 text-sm"
+              >
+                <Users className="h-3.5 w-3.5" />
+                Pacientes
+              </Button>
               <Button
                 variant={location.pathname === "/prompts" ? "secondary" : "ghost"}
                 size="sm"

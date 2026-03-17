@@ -85,7 +85,7 @@ export default function Index() {
   const [newBirthDate, setNewBirthDate] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [showAllPatients, setShowAllPatients] = useState(false);
+  
 
   const [criticalPatients, setCriticalPatients] = useState<CriticalPatient[]>([]);
   const [draftEncounters, setDraftEncounters] = useState<DraftEncounter[]>([]);
@@ -558,96 +558,19 @@ export default function Index() {
           </section>
         )}
 
-        {/* ── PATIENT LIST (toggle) ── */}
-        {showAllPatients && (
-          <>
-            <Separator />
-            <section>
-              <h2 className="mb-3 text-sm sm:text-base font-semibold flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                Todos os Pacientes
-                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{patients.length}</Badge>
-              </h2>
-
-              {patients.length === 0 ? (
-                <Card>
-                  <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                    <Users className="mb-4 h-12 w-12 text-muted-foreground/50" />
-                    <p className="text-lg font-medium">Nenhum paciente cadastrado</p>
-                    <p className="text-sm text-muted-foreground">
-                      Clique em "Novo Paciente" para começar
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {patients.map((p) => {
-                    const age = p.birth_date ? (() => {
-                      const today = new Date();
-                      const birth = new Date(p.birth_date);
-                      return today.getFullYear() - birth.getFullYear() -
-                        (today < new Date(today.getFullYear(), birth.getMonth(), birth.getDate()) ? 1 : 0);
-                    })() : null;
-
-                    return (
-                      <Card
-                        key={p.id}
-                        className="cursor-pointer hover:bg-muted/50 active:scale-[0.98] transition-all"
-                        onClick={() => navigate(`/patient/${p.id}`)}
-                      >
-                        <CardContent className="flex items-center gap-3 p-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                            {p.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{p.name}</p>
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <span>{p.sex === "M" ? "Masc" : "Fem"}</span>
-                              {age !== null && (
-                                <>
-                                  <span>•</span>
-                                  <span>{age} anos</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-          </>
-        )}
-
-        {/* Show all patients toggle */}
-        {!showAllPatients && (
-          <div className="flex justify-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1.5 text-xs text-muted-foreground"
-              onClick={() => setShowAllPatients(true)}
-            >
-              <Users className="h-3.5 w-3.5" />
-              Ver todos os {patients.length} pacientes
-            </Button>
-          </div>
-        )}
-        {showAllPatients && (
-          <div className="flex justify-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1.5 text-xs text-muted-foreground"
-              onClick={() => setShowAllPatients(false)}
-            >
-              Recolher lista
-            </Button>
-          </div>
-        )}
+        {/* Link to full patients list */}
+        <div className="flex justify-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-xs text-muted-foreground"
+            onClick={() => navigate("/patients")}
+          >
+            <Users className="h-3.5 w-3.5" />
+            Ver todos os {patients.length} pacientes
+            <ChevronRight className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
       )}
     </AppLayout>
