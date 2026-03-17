@@ -15,7 +15,8 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { detectStaleness, type AnalysisSourceContext } from "@/lib/analysisSourceContext";
+import { detectStaleness, buildSourceContext, type AnalysisSourceContext } from "@/lib/analysisSourceContext";
+import { MARKERS } from "@/lib/markers";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -37,6 +38,7 @@ import {
   Info,
   Trash2,
   FileDown,
+  Sparkles,
 } from "lucide-react";
 import { EncounterPrescriptionEditor } from "@/components/EncounterPrescriptionEditor";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
@@ -175,6 +177,7 @@ export default function EncounterWorkspace() {
   const [subTab, setSubTab] = useState("resumo");
   const [stalenessReasons, setStalenessReasons] = useState<string[]>([]);
   const [allLabSessionIds, setAllLabSessionIds] = useState<string[]>([]);
+  const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
 
   const isFinalized = encounter?.status === "finalized";
 
@@ -367,6 +370,114 @@ export default function EncounterWorkspace() {
   };
 
 
+  // ── Generate AI analysis for this encounter ──
+  const handleGenerateEncounterAnalysis = async () => {
+    if (!patient || !encounter || !user?.id) return;
+    setIsGeneratingAnalysis(true);
+    toast({ title: "Gerando análise IA...", description: "Aguarde alguns segundos." });
+
+    try {
+      // Fetch lab sessions & results
+      const { data: sessionsData } = await (supabase as any)
+        .from("lab_sessions")
+        .select("id, session_date")
+        .eq("patient_id", patient.id)
+        .order("session_date", { ascending: false });
+      const sessions = sessionsData ?? [];
+      if (sessions.length === 0) {
+        toast({ title: "Sem dados", description: "Nenhuma sessão de exames encontrada para este paciente.", variant: "destructive" });
+        setIsGeneratingAnalysis(false);
+        return;
+      }
+
+      const sessionIds = sessions.map((s: any) => s.id);
+      const { data: labData } = await supabase.from("lab_results").select("*").in("session_id", sessionIds);
+      const results = (labData || []).map((r) => {
+        const marker = MARKERS.find((m) => m.id === r.marker_id);
+        return {
+          ...r,
+          marker_name: marker?.name ?? r.marker_id,
+          category: marker?.category ?? "Outros",
+          unit: marker?.unit ?? "",
+        };
+      });
+
+      if (results.length === 0) {
+        toast({ title: "Sem dados", description: "Nenhum resultado laboratorial encontrado.", variant: "destructive" });
+        setIsGeneratingAnalysis(false);
+        return;
+      }
+
+      const { data: analysisData, error } = await supabase.functions.invoke("analyze-lab-results", {
+        body: {
+          patient_id: patient.id,
+          patient_name: patient.name,
+          sex: patient.sex,
+          birth_date: patient.birth_date,
+          sessions: sessions.map((s: any) => ({ id: s.id, session_date: s.session_date })),
+          results,
+          mode: "full",
+          specialty_id: encounter.specialty_id,
+        },
+      });
+      if (error) throw error;
+
+      const analysisResult = analysisData?.analysis;
+      const v2 = analysisData?.analysis_v2 as AnalysisV2Data | undefined;
+      const sourceContext = buildSourceContext({
+        sessions: sessions.map((s: any) => ({ id: s.id, session_date: s.session_date })),
+        labResultCount: results.length,
+      });
+
+      const { data: savedData } = await (supabase as any)
+        .from("patient_analyses")
+        .insert({
+          patient_id: patient.id,
+          practitioner_id: user.id,
+          specialty_id: encounter.specialty_id,
+          specialty_name: specialtyName,
+          mode: "full",
+          summary: analysisResult?.summary ?? null,
+          patterns: analysisResult?.patterns ?? [],
+          trends: analysisResult?.trends ?? [],
+          suggestions: analysisResult?.suggestions ?? [],
+          full_text: analysisResult?.full_text ?? null,
+          technical_analysis: analysisResult?.technical_analysis ?? null,
+          patient_plan: analysisResult?.patient_plan ?? null,
+          prescription_table: analysisResult?.prescription_table ?? [],
+          protocol_recommendations: analysisResult?.protocol_recommendations ?? [],
+          encounter_id: encounter.id,
+          source_context: sourceContext,
+          generated_at: sourceContext.generated_at,
+          model_used: analysisData?.model_used ?? null,
+        })
+        .select()
+        .single();
+
+      if (savedData && v2) {
+        await (supabase as any)
+          .from("patient_analyses")
+          .update({ analysis_v2_data: v2 })
+          .eq("id", savedData.id);
+        savedData.analysis_v2_data = v2;
+      }
+
+      if (savedData) {
+        setAnalysis(savedData);
+        if (v2) setV2Data(v2);
+        setStalenessReasons([]);
+      }
+
+      toast({ title: "Análise IA gerada", description: "A análise foi vinculada a esta consulta." });
+      setSubTab("ia");
+    } catch (err: any) {
+      console.error("[EncounterWorkspace] AI analysis error:", err);
+      toast({ title: "Erro ao gerar análise", description: err.message || "Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsGeneratingAnalysis(false);
+    }
+  };
+
   if (loading) {
     return (
       <AppLayout>
@@ -553,12 +664,10 @@ export default function EncounterWorkspace() {
                   <FlaskConical className="h-3.5 w-3.5" />
                   Exames
                 </TabsTrigger>
-                {v2Data && (
-                  <TabsTrigger value="ia" className="gap-1.5 text-xs">
-                    <Brain className="h-3.5 w-3.5" />
-                    IA Completa
-                  </TabsTrigger>
-                )}
+                <TabsTrigger value="ia" className="gap-1.5 text-xs">
+                  <Brain className="h-3.5 w-3.5" />
+                  {v2Data ? "IA Completa" : "Análise IA"}
+                </TabsTrigger>
               </TabsList>
             </div>
 
@@ -652,6 +761,8 @@ export default function EncounterWorkspace() {
                 v2Data={v2Data}
                 analysisId={analysis?.id}
                 onOpenFullAnalysis={() => setSubTab("ia")}
+                onRequestGenerate={handleGenerateEncounterAnalysis}
+                isGenerating={isGeneratingAnalysis}
               />
             </TabsContent>
 
@@ -891,17 +1002,64 @@ export default function EncounterWorkspace() {
             </TabsContent>
 
             {/* ═══ IA COMPLETA ═══ */}
-            {v2Data && (
-              <TabsContent value="ia" className="mt-4">
-                <ClinicalReportV2
-                  data={v2Data}
-                  patientName={patient.name}
-                  analysisId={analysis?.id}
-                  patientId={patient.id}
-                  specialtyId={encounter.specialty_id}
-                />
-              </TabsContent>
-            )}
+            <TabsContent value="ia" className="mt-4">
+              {v2Data ? (
+                <>
+                  <ClinicalReportV2
+                    data={v2Data}
+                    patientName={patient.name}
+                    analysisId={analysis?.id}
+                    patientId={patient.id}
+                    specialtyId={encounter.specialty_id}
+                  />
+                  {/* Regenerate button */}
+                  <div className="mt-4 flex justify-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateEncounterAnalysis}
+                      disabled={isGeneratingAnalysis}
+                      className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+                    >
+                      {isGeneratingAnalysis ? (
+                        <><Loader2 className="h-3.5 w-3.5 animate-spin" />Regenerando...</>
+                      ) : (
+                        <><RefreshCw className="h-3.5 w-3.5" />Regenerar análise</>
+                      )}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <Card className="border-dashed border-muted-foreground/30">
+                  <CardContent className="py-12 flex flex-col items-center text-center gap-4">
+                    <div className="flex items-center justify-center h-14 w-14 rounded-full bg-primary/10">
+                      <Brain className="h-7 w-7 text-primary" />
+                    </div>
+                    <div className="max-w-sm">
+                      <h3 className="text-base font-semibold text-foreground">Nenhuma análise IA nesta consulta</h3>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Gere uma análise inteligente para obter insights clínicos, hipóteses diagnósticas, alertas críticos e sugestões de conduta baseadas nos exames do paciente.
+                      </p>
+                    </div>
+                    <Button
+                      size="lg"
+                      onClick={handleGenerateEncounterAnalysis}
+                      disabled={isGeneratingAnalysis}
+                      className="gap-2 mt-2"
+                    >
+                      {isGeneratingAnalysis ? (
+                        <><Loader2 className="h-4 w-4 animate-spin" />Gerando análise...</>
+                      ) : (
+                        <><Sparkles className="h-4 w-4" />Gerar Análise IA para esta Consulta</>
+                      )}
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground max-w-xs">
+                      A análise será vinculada a esta consulta e poderá ser revisada, editada e incluída no PDF.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
           </Tabs>
         </div>
 
