@@ -470,7 +470,7 @@ export default function EncounterWorkspace() {
       const analysisResult = analysisData?.analysis;
       const v2 = analysisData?.analysis_v2 as AnalysisV2Data | undefined;
       const sourceContext = buildSourceContext({
-        sessions: sessions.map((s: any) => ({ id: s.id, session_date: s.session_date })),
+        sessions: sessionsForAnalysis.map((s: any) => ({ id: s.id, session_date: s.session_date })),
         labResultCount: results.length,
       });
 
