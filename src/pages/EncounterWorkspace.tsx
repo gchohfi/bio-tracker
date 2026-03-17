@@ -46,6 +46,7 @@ import { PatientLongitudinalContext } from "@/components/encounter/PatientLongit
 import { PreviousEncounterContext } from "@/components/encounter/PreviousEncounterContext";
 import { EncounterAIInlineSummary } from "@/components/encounter/EncounterAIInlineSummary";
 import { generateEncounterPdf, type EncounterPdfParams } from "@/lib/generateEncounterPdf";
+import { LinkedExamsSection } from "@/components/encounter/LinkedExamsSection";
 import { buildReviewedReport } from "@/lib/buildReviewedReport";
 import type { PrescriptionItem } from "@/components/EncounterPrescriptionEditor";
 
