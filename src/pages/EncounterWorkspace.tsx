@@ -187,6 +187,15 @@ export default function EncounterWorkspace() {
   const [hasPrescription, setHasPrescription] = useState(false);
 
   const isFinalized = encounter?.status === "finalized";
+  const hasNote = !!(note.subjective || note.objective || note.assessment || note.plan);
+
+  const stepStatus: StepStatus = useMemo(() => ({
+    exams: linkedExamsCount > 0,
+    soap: hasNote,
+    analysis: !!v2Data,
+    prescription: hasPrescription,
+    finalized: !!isFinalized,
+  }), [linkedExamsCount, hasNote, v2Data, hasPrescription, isFinalized]);
 
   // ── Load all data ──
   const loadData = useCallback(async () => {
