@@ -1166,7 +1166,7 @@ export default function EncounterWorkspace() {
                     </div>
                     <Button
                       size="lg"
-                      onClick={handleGenerateEncounterAnalysis}
+                      onClick={() => setShowGenerateDialog(true)}
                       disabled={isGeneratingAnalysis}
                       className="gap-2 mt-2"
                     >
