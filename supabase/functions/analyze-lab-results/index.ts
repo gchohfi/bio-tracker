@@ -1261,6 +1261,35 @@ function buildUserPrompt(
     if (p.restrictions) prompt += "- Restricoes/alergias: " + p.restrictions + "\n";
   }
 
+  // ── Current encounter context (SOAP notes from THIS consultation) ──
+  const ec = encounterCtx;
+  if (ec?.soap) {
+    const s = ec.soap;
+    const hasContent = s.chief_complaint || s.subjective || s.objective || s.assessment || s.plan;
+    if (hasContent) {
+      prompt += "\nCONSULTA ATUAL (" + ec.encounter_date + ") — NOTAS CLINICAS DO ATENDIMENTO EM ANDAMENTO:\n";
+      prompt += "IMPORTANTE: Esta e a consulta ativa. A analise deve ser direcionada ao contexto desta consulta especifica. Considere a queixa principal, os achados e a conduta ja registrada pelo medico.\n";
+      if (s.chief_complaint) prompt += "- Queixa principal: " + s.chief_complaint + "\n";
+      if (s.subjective) prompt += "- Subjetivo (relato do paciente): " + s.subjective.slice(0, 500) + "\n";
+      if (s.objective) prompt += "- Objetivo (achados): " + s.objective.slice(0, 500) + "\n";
+      if (s.assessment) prompt += "- Avaliacao clinica: " + s.assessment.slice(0, 500) + "\n";
+      if (s.plan) prompt += "- Conduta/Plano: " + s.plan.slice(0, 500) + "\n";
+      if (s.exams_requested) prompt += "- Exames solicitados: " + s.exams_requested.slice(0, 300) + "\n";
+      if (s.medications) prompt += "- Medicacoes: " + s.medications.slice(0, 300) + "\n";
+      if (s.free_notes) prompt += "- Observacoes: " + s.free_notes.slice(0, 300) + "\n";
+    }
+    // Log linked data sources
+    const linkedSources: string[] = [];
+    if (ec.linked_lab_session_ids?.length) linkedSources.push(ec.linked_lab_session_ids.length + " sessao(oes) lab");
+    if (ec.linked_body_composition_ids?.length) linkedSources.push(ec.linked_body_composition_ids.length + " comp. corporal");
+    if (ec.linked_imaging_report_ids?.length) linkedSources.push(ec.linked_imaging_report_ids.length + " laudo(s) imagem");
+    if (linkedSources.length > 0) {
+      prompt += "\nFONTES VINCULADAS A ESTA CONSULTA: " + linkedSources.join(", ") + "\n";
+      prompt += "Os exames laboratoriais, composicao corporal e laudos de imagem abaixo foram explicitamente selecionados pelo medico para este atendimento.\n";
+    }
+    prompt += "\n";
+  }
+
   // ── Clinical context sections: Anamnese ──
   const sa = clinicalContext.structuredAnamnese;
   if (sa && clinicalContext.anamneseSource === "structured") {
