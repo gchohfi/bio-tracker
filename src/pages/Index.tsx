@@ -373,98 +373,86 @@ export default function Index() {
           </div>
         )}
 
-        {/* ── PRIORITY ZONE — unified wrapper ── */}
-        {hasPriority && (
-          <div className="rounded-xl border border-destructive/15 bg-destructive/[0.02] p-4 space-y-5">
+        {/* ── RED FLAGS — clinical urgency ── */}
+        {criticalPatients.length > 0 && (
+          <section className="rounded-xl border border-destructive/20 bg-destructive/[0.03] p-4 space-y-3">
             <h2 className="text-sm sm:text-base font-bold flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-4 w-4" />
-              Atenção Prioritária
+              Alertas Críticos
               <Badge variant="destructive" className="text-[10px] h-4 px-1.5 ml-auto">
-                {criticalPatients.length + draftEncounters.length}
+                {criticalPatients.length}
               </Badge>
             </h2>
-
-            {/* Critical alerts — highest urgency, always first */}
-            {criticalPatients.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-destructive/70">
-                  Red Flags
-                </p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {criticalPatients.map((cp) => (
-                    <Card
-                      key={cp.patient_id}
-                      className="cursor-pointer border-destructive/20 bg-destructive/5 hover:bg-destructive/10 active:scale-[0.98] transition-all"
-                      onClick={() => navigate(`/patient/${cp.patient_id}?tab=resumo`)}
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-[10px] font-bold text-destructive">
-                              {cp.patient_name.charAt(0).toUpperCase()}
-                            </div>
-                            <span className="text-sm font-medium truncate">{cp.patient_name}</span>
-                          </div>
-                          <span className="text-[10px] text-muted-foreground shrink-0">
-                            {formatDistanceToNow(parseISO(cp.analysis_date), { addSuffix: true, locale: ptBR })}
-                          </span>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {criticalPatients.map((cp) => (
+                <Card
+                  key={cp.patient_id}
+                  className="cursor-pointer border-destructive/20 bg-destructive/5 hover:bg-destructive/10 active:scale-[0.98] transition-all"
+                  onClick={() => navigate(`/patient/${cp.patient_id}?tab=resumo`)}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-[10px] font-bold text-destructive">
+                          {cp.patient_name.charAt(0).toUpperCase()}
                         </div>
-                        {cp.red_flags.map((rf, i) => (
-                          <div key={i} className="flex items-start gap-1.5 text-[11px] text-destructive/80 ml-9">
-                            <span className="mt-0.5 shrink-0">⚠</span>
-                            <span className="line-clamp-1">{rf.finding}</span>
-                          </div>
-                        ))}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
+                        <span className="text-sm font-medium truncate">{cp.patient_name}</span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        {formatDistanceToNow(parseISO(cp.analysis_date), { addSuffix: true, locale: ptBR })}
+                      </span>
+                    </div>
+                    {cp.red_flags.map((rf, i) => (
+                      <div key={i} className="flex items-start gap-1.5 text-[11px] text-destructive/80 ml-9">
+                        <span className="mt-0.5 shrink-0">⚠</span>
+                        <span className="line-clamp-1">{rf.finding}</span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
 
-            {/* Drafts — lower urgency but actionable */}
-            {draftEncounters.length > 0 && (
-              <div className="space-y-2">
-                {criticalPatients.length > 0 && (
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                    Rascunhos em aberto
-                  </p>
-                )}
-                {criticalPatients.length === 0 && (
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                    Rascunhos em aberto
-                  </p>
-                )}
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {draftEncounters.map((enc) => (
-                    <Card
-                      key={enc.id}
-                      className="cursor-pointer border-l-4 border-l-amber-400 hover:bg-muted/50 active:scale-[0.98] transition-all"
-                      onClick={() => navigate(`/patient/${enc.patient_id}/encounter/${enc.id}`)}
-                    >
-                      <CardContent className="flex items-center justify-between gap-2 p-3">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 text-[10px] font-bold text-amber-700 dark:text-amber-300">
-                            {enc.patient_name.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">{enc.patient_name}</p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {format(parseISO(enc.encounter_date), "dd/MM/yyyy", { locale: ptBR })}
-                              {enc.chief_complaint && (
-                                <span className="ml-1 text-foreground/70">• {enc.chief_complaint}</span>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+        {/* ── DRAFTS — administrative pending ── */}
+        {draftEncounters.length > 0 && (
+          <section className="rounded-xl border border-amber-300/30 bg-amber-50/50 dark:bg-amber-950/10 p-4 space-y-3">
+            <h2 className="text-sm sm:text-base font-bold flex items-center gap-2 text-amber-700 dark:text-amber-400">
+              <FileEdit className="h-4 w-4" />
+              Rascunhos em Aberto
+              <Badge className="text-[10px] h-4 px-1.5 ml-auto bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-300/50">
+                {draftEncounters.length}
+              </Badge>
+            </h2>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {draftEncounters.map((enc) => (
+                <Card
+                  key={enc.id}
+                  className="cursor-pointer border-l-4 border-l-amber-400 hover:bg-amber-50/80 dark:hover:bg-amber-950/20 active:scale-[0.98] transition-all"
+                  onClick={() => navigate(`/patient/${enc.patient_id}/encounter/${enc.id}`)}
+                >
+                  <CardContent className="flex items-center justify-between gap-2 p-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 text-[10px] font-bold text-amber-700 dark:text-amber-300">
+                        {enc.patient_name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{enc.patient_name}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {format(parseISO(enc.encounter_date), "dd/MM/yyyy", { locale: ptBR })}
+                          {enc.chief_complaint && (
+                            <span className="ml-1 text-foreground/70">• {enc.chief_complaint}</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
         )}
 
         {/* ── RECENT IMPORTS — pending review signal ── */}
