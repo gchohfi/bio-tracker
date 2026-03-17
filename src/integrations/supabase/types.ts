@@ -175,6 +175,7 @@ export type Database = {
           created_at: string
           device_model: string | null
           ecw_tbw_ratio: number | null
+          encounter_id: string | null
           hip_cm: number | null
           id: string
           notes: string | null
@@ -198,6 +199,7 @@ export type Database = {
           created_at?: string
           device_model?: string | null
           ecw_tbw_ratio?: number | null
+          encounter_id?: string | null
           hip_cm?: number | null
           id?: string
           notes?: string | null
@@ -221,6 +223,7 @@ export type Database = {
           created_at?: string
           device_model?: string | null
           ecw_tbw_ratio?: number | null
+          encounter_id?: string | null
           hip_cm?: number | null
           id?: string
           notes?: string | null
@@ -237,6 +240,13 @@ export type Database = {
           weight_kg?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "body_composition_sessions_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_encounters"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "body_composition_sessions_patient_id_fkey"
             columns: ["patient_id"]
@@ -477,6 +487,7 @@ export type Database = {
           classifications: string | null
           conclusion: string | null
           created_at: string
+          encounter_id: string | null
           exam_region: string | null
           exam_type: string
           findings: string | null
@@ -499,6 +510,7 @@ export type Database = {
           classifications?: string | null
           conclusion?: string | null
           created_at?: string
+          encounter_id?: string | null
           exam_region?: string | null
           exam_type: string
           findings?: string | null
@@ -521,6 +533,7 @@ export type Database = {
           classifications?: string | null
           conclusion?: string | null
           created_at?: string
+          encounter_id?: string | null
           exam_region?: string | null
           exam_type?: string
           findings?: string | null
@@ -540,6 +553,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "imaging_reports_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_encounters"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "imaging_reports_patient_id_fkey"
             columns: ["patient_id"]
@@ -673,6 +693,7 @@ export type Database = {
       lab_sessions: {
         Row: {
           created_at: string
+          encounter_id: string | null
           extraction_issues: Json | null
           id: string
           patient_id: string
@@ -682,6 +703,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          encounter_id?: string | null
           extraction_issues?: Json | null
           id?: string
           patient_id: string
@@ -691,6 +713,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          encounter_id?: string | null
           extraction_issues?: Json | null
           id?: string
           patient_id?: string
@@ -699,6 +722,13 @@ export type Database = {
           specialty_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "lab_sessions_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_encounters"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lab_sessions_patient_id_fkey"
             columns: ["patient_id"]
