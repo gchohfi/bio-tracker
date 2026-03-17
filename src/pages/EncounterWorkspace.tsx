@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 import { EncounterPrescriptionEditor } from "@/components/EncounterPrescriptionEditor";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
-import { PreviousEncounterContext } from "@/components/encounter/PreviousEncounterContext";
+import { PatientLongitudinalContext } from "@/components/encounter/PatientLongitudinalContext";
 import { EncounterAIInlineSummary } from "@/components/encounter/EncounterAIInlineSummary";
 import { generateEncounterPdf, type EncounterPdfParams } from "@/lib/generateEncounterPdf";
 import { buildReviewedReport } from "@/lib/buildReviewedReport";
@@ -673,9 +673,9 @@ export default function EncounterWorkspace() {
 
             {/* ═══ RESUMO ═══ */}
             <TabsContent value="resumo" className="mt-4 space-y-4">
-              {/* Previous encounter context — always visible in Resumo */}
+              {/* Longitudinal patient context */}
               {encounter && user && (
-                <PreviousEncounterContext
+                <PatientLongitudinalContext
                   patientId={patient.id}
                   currentEncounterId={encounter.id}
                   practitionerId={user.id}
@@ -768,9 +768,9 @@ export default function EncounterWorkspace() {
 
             {/* ═══ EVOLUÇÃO ═══ */}
             <TabsContent value="soap" className="mt-4 space-y-3">
-              {/* Context from previous encounter */}
+              {/* Longitudinal patient context in SOAP tab */}
               {encounter && user && (
-                <PreviousEncounterContext
+                <PatientLongitudinalContext
                   patientId={patient.id}
                   currentEncounterId={encounter.id}
                   practitionerId={user.id}
