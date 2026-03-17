@@ -1515,7 +1515,10 @@ function buildUserPrompt(
   if (labs.derivedMarkers.length > 0) {
     prompt += "\nMARCADORES DERIVADOS/CALCULADOS (" + labs.derivedMarkers.length + "):\n";
     for (const r of labs.derivedMarkers) {
-      const statusLabel = r.status !== "normal" ? (" " + (r.status === "high" ? "ALTO" : r.status === "low" ? "BAIXO" : r.status.toUpperCase())) : "";
+      const status = typeof r.status === "string" ? r.status : "unknown";
+      const statusLabel = status !== "normal"
+        ? (" " + (status === "high" ? "ALTO" : status === "low" ? "BAIXO" : status.toUpperCase()))
+        : "";
       prompt += "- " + r.marker_name + ": " + (r.value !== null ? r.value + " " + r.unit : r.text_value ?? "--") + statusLabel + " [" + r.session_date + "]\n";
     }
   }
