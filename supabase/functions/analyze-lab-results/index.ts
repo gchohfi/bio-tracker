@@ -28,6 +28,31 @@ interface PatientProfile {
   restrictions?: string | null;
 }
 
+/** SOAP notes from the current encounter */
+interface EncounterSOAP {
+  chief_complaint?: string | null;
+  subjective?: string | null;
+  objective?: string | null;
+  assessment?: string | null;
+  plan?: string | null;
+  exams_requested?: string | null;
+  medications?: string | null;
+  free_notes?: string | null;
+}
+
+/** Context explicitly linked to the current encounter */
+interface EncounterContext {
+  encounter_id: string;
+  encounter_date: string;
+  soap?: EncounterSOAP | null;
+  /** IDs of lab sessions linked to this encounter */
+  linked_lab_session_ids?: string[];
+  /** IDs of body composition sessions linked to this encounter */
+  linked_body_composition_ids?: string[];
+  /** IDs of imaging reports linked to this encounter */
+  linked_imaging_report_ids?: string[];
+}
+
 interface AnalysisRequest {
   patient_name: string;
   patient_id?: string;
@@ -38,6 +63,7 @@ interface AnalysisRequest {
   mode?: "full" | "analysis_only" | "protocols_only";
   patient_profile?: PatientProfile | null;
   specialty_id?: string; // ID da especialidade para carregar o prompt do banco
+  encounter_context?: EncounterContext | null;
 }
 
 interface ProtocolRecommendation {
@@ -850,6 +876,7 @@ async function fetchClinicalContext(
   specialtyId: string,
   patientProfile: PatientProfile | null | undefined,
   results: MarkerResult[],
+  encounterCtx?: EncounterContext | null,
 ): Promise<{ context: ClinicalContext; loaded: ContextLoaded }> {
   // Build labs context deterministically from results
   const labs = buildLabsContext(results);
@@ -894,6 +921,10 @@ async function fetchClinicalContext(
   const shouldFetchBodyComp = bodyCompSpecialties.includes(specialtyId);
   const shouldFetchImaging = imagingSpecialties.includes(specialtyId);
 
+  // If encounter context has linked IDs, prefer those; otherwise fall back to latest
+  const linkedBodyIds = encounterCtx?.linked_body_composition_ids ?? [];
+  const linkedImagingIds = encounterCtx?.linked_imaging_report_ids ?? [];
+
   const [anamneseResult, notesResult, bodyCompResult, imagingResult, encountersResult, analysesResult] = await Promise.all([
     supabaseClient
       .from("patient_anamneses")
@@ -904,7 +935,6 @@ async function fetchClinicalContext(
       .then(({ data }: { data: unknown }) => data)
       .catch((err: unknown) => { console.warn("Failed to load anamnese:", err); return null; }),
     // DEPRECATED: doctor_specialty_notes is legacy. Kept for backward compat.
-    // Superseded by SOAP notes in clinical_evolution_notes.
     supabaseClient
       .from("doctor_specialty_notes")
       .select("*")
@@ -913,15 +943,45 @@ async function fetchClinicalContext(
       .single()
       .then(({ data }: { data: unknown }) => data)
       .catch((err: unknown) => { console.warn("[DEPRECATED] Failed to load doctor notes:", err); return null; }),
+    // Body composition: prefer linked IDs, fallback to latest
     shouldFetchBodyComp
-      ? supabaseClient
-          .from("body_composition_sessions")
-          .select("session_date, weight_kg, bmi, skeletal_muscle_kg, body_fat_kg, body_fat_pct, visceral_fat_level, total_body_water_l, ecw_tbw_ratio, bmr_kcal, waist_cm, hip_cm, waist_hip_ratio")
-          .eq("patient_id", patientId)
-          .order("session_date", { ascending: false })
-          .limit(2)
-          .then(({ data }: { data: unknown }) => data)
-          .catch((err: unknown) => { console.warn("Failed to load body composition:", err); return null; })
+      ? (linkedBodyIds.length > 0
+          ? supabaseClient
+              .from("body_composition_sessions")
+              .select("session_date, weight_kg, bmi, skeletal_muscle_kg, body_fat_kg, body_fat_pct, visceral_fat_level, total_body_water_l, ecw_tbw_ratio, bmr_kcal, waist_cm, hip_cm, waist_hip_ratio")
+              .in("id", linkedBodyIds)
+              .order("session_date", { ascending: false })
+              .then(({ data }: { data: unknown }) => data)
+              .catch((err: unknown) => { console.warn("Failed to load linked body composition:", err); return null; })
+          : supabaseClient
+              .from("body_composition_sessions")
+              .select("session_date, weight_kg, bmi, skeletal_muscle_kg, body_fat_kg, body_fat_pct, visceral_fat_level, total_body_water_l, ecw_tbw_ratio, bmr_kcal, waist_cm, hip_cm, waist_hip_ratio")
+              .eq("patient_id", patientId)
+              .order("session_date", { ascending: false })
+              .limit(2)
+              .then(({ data }: { data: unknown }) => data)
+              .catch((err: unknown) => { console.warn("Failed to load body composition:", err); return null; })
+        )
+      : Promise.resolve(null),
+    // Imaging reports: prefer linked IDs, fallback to latest
+    shouldFetchImaging
+      ? (linkedImagingIds.length > 0
+          ? supabaseClient
+              .from("imaging_reports")
+              .select("id, report_date, exam_type, exam_region, findings, conclusion, recommendations, incidental_findings, classifications, source_lab, source_type, specialty_id")
+              .in("id", linkedImagingIds)
+              .order("report_date", { ascending: false })
+              .then(({ data }: { data: unknown }) => data)
+              .catch((err: unknown) => { console.warn("Failed to load linked imaging reports:", err); return null; })
+          : supabaseClient
+              .from("imaging_reports")
+              .select("id, report_date, exam_type, exam_region, findings, conclusion, recommendations, incidental_findings, classifications, source_lab, source_type, specialty_id")
+              .eq("patient_id", patientId)
+              .order("report_date", { ascending: false })
+              .limit(6)
+              .then(({ data }: { data: unknown }) => data)
+              .catch((err: unknown) => { console.warn("Failed to load imaging reports:", err); return null; })
+        )
       : Promise.resolve(null),
     shouldFetchImaging
       ? supabaseClient
@@ -1169,7 +1229,8 @@ function buildUserPrompt(
   scoredActives: ScoredActive[],
   matchedProtocols: Array<{ protocol: EssentiaProtocol; coverage: number; matched_actives: string[] }>,
   clinicalContext: ClinicalContext,
-  specialtyIdOverride?: string
+  specialtyIdOverride?: string,
+  encounterCtx?: EncounterContext | null,
 ): string {
   const activeSpecialty = specialtyIdOverride ?? req.specialty_id ?? "medicina_funcional";
   const useFunctionalRefs = activeSpecialty === "nutrologia";
@@ -1198,6 +1259,35 @@ function buildUserPrompt(
     if (p.sport_modality) prompt += "- Modalidade: " + p.sport_modality + "\n";
     if (p.main_complaints) prompt += "- Queixas: " + p.main_complaints + "\n";
     if (p.restrictions) prompt += "- Restricoes/alergias: " + p.restrictions + "\n";
+  }
+
+  // ── Current encounter context (SOAP notes from THIS consultation) ──
+  const ec = encounterCtx;
+  if (ec?.soap) {
+    const s = ec.soap;
+    const hasContent = s.chief_complaint || s.subjective || s.objective || s.assessment || s.plan;
+    if (hasContent) {
+      prompt += "\nCONSULTA ATUAL (" + ec.encounter_date + ") — NOTAS CLINICAS DO ATENDIMENTO EM ANDAMENTO:\n";
+      prompt += "IMPORTANTE: Esta e a consulta ativa. A analise deve ser direcionada ao contexto desta consulta especifica. Considere a queixa principal, os achados e a conduta ja registrada pelo medico.\n";
+      if (s.chief_complaint) prompt += "- Queixa principal: " + s.chief_complaint + "\n";
+      if (s.subjective) prompt += "- Subjetivo (relato do paciente): " + s.subjective.slice(0, 500) + "\n";
+      if (s.objective) prompt += "- Objetivo (achados): " + s.objective.slice(0, 500) + "\n";
+      if (s.assessment) prompt += "- Avaliacao clinica: " + s.assessment.slice(0, 500) + "\n";
+      if (s.plan) prompt += "- Conduta/Plano: " + s.plan.slice(0, 500) + "\n";
+      if (s.exams_requested) prompt += "- Exames solicitados: " + s.exams_requested.slice(0, 300) + "\n";
+      if (s.medications) prompt += "- Medicacoes: " + s.medications.slice(0, 300) + "\n";
+      if (s.free_notes) prompt += "- Observacoes: " + s.free_notes.slice(0, 300) + "\n";
+    }
+    // Log linked data sources
+    const linkedSources: string[] = [];
+    if (ec.linked_lab_session_ids?.length) linkedSources.push(ec.linked_lab_session_ids.length + " sessao(oes) lab");
+    if (ec.linked_body_composition_ids?.length) linkedSources.push(ec.linked_body_composition_ids.length + " comp. corporal");
+    if (ec.linked_imaging_report_ids?.length) linkedSources.push(ec.linked_imaging_report_ids.length + " laudo(s) imagem");
+    if (linkedSources.length > 0) {
+      prompt += "\nFONTES VINCULADAS A ESTA CONSULTA: " + linkedSources.join(", ") + "\n";
+      prompt += "Os exames laboratoriais, composicao corporal e laudos de imagem abaixo foram explicitamente selecionados pelo medico para este atendimento.\n";
+    }
+    prompt += "\n";
   }
 
   // ── Clinical context sections: Anamnese ──
@@ -1648,12 +1738,14 @@ serve(async (req) => {
     }
 
     // ── Fetch clinical context (anamnese + doctor notes + labs) ──
+    const encounterCtx = body.encounter_context ?? null;
     const { context: clinicalContext, loaded: contextLoaded } = await fetchClinicalContext(
       serviceClient,
       body.patient_id,
       specialtyId,
       body.patient_profile,
       body.results,
+      encounterCtx,
     );
 
     // Camada 1+2: Score de ativos terapeuticos (using labs.outOfRange from context)
@@ -1671,7 +1763,7 @@ serve(async (req) => {
     const effectiveMode = !specialtyHasProtocols ? "analysis_only" : (body.mode ?? "full");
     const bodyWithMode = { ...body, mode: effectiveMode };
 
-    const userPrompt = buildUserPrompt(bodyWithMode, scoredActives, matchedProtocols, clinicalContext, specialtyId);
+    const userPrompt = buildUserPrompt(bodyWithMode, scoredActives, matchedProtocols, clinicalContext, specialtyId, encounterCtx);
     console.log(
       "Analyzing " + body.results.length + " markers for " + body.patient_name + " | specialty: " + specialtyId + " | " +
       "labs: " + contextLoaded.labs.total + " total, " + contextLoaded.labs.outOfRange + " OOR, " +

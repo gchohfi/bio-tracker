@@ -379,20 +379,43 @@ export default function EncounterWorkspace() {
     toast({ title: "Gerando análise IA...", description: "Aguarde alguns segundos." });
 
     try {
-      // Fetch lab sessions & results
-      const { data: sessionsData } = await (supabase as any)
-        .from("lab_sessions")
-        .select("id, session_date")
-        .eq("patient_id", patient.id)
-        .order("session_date", { ascending: false });
-      const sessions = sessionsData ?? [];
-      if (sessions.length === 0) {
+      // Fetch linked items + all lab sessions in parallel
+      const [linkedLabRes, linkedBodyRes, linkedImgRes, allSessionsRes] = await Promise.all([
+        (supabase as any)
+          .from("lab_sessions")
+          .select("id, session_date, encounter_id")
+          .eq("patient_id", patient.id)
+          .order("session_date", { ascending: false }),
+        (supabase as any)
+          .from("body_composition_sessions")
+          .select("id")
+          .eq("encounter_id", encounter.id),
+        (supabase as any)
+          .from("imaging_reports")
+          .select("id")
+          .eq("encounter_id", encounter.id),
+        // We still need all sessions for lab results
+        (supabase as any)
+          .from("lab_sessions")
+          .select("id, session_date")
+          .eq("patient_id", patient.id)
+          .order("session_date", { ascending: false }),
+      ]);
+
+      // Determine which lab sessions to use: linked first, fallback to all
+      const allSessions = allSessionsRes.data ?? [];
+      const linkedLabSessions = (linkedLabRes.data ?? []).filter((s: any) => s.encounter_id === encounter.id);
+      
+      // Use linked lab sessions if any, otherwise use all patient sessions
+      const sessionsForAnalysis = linkedLabSessions.length > 0 ? linkedLabSessions : allSessions;
+      
+      if (sessionsForAnalysis.length === 0) {
         toast({ title: "Sem dados", description: "Nenhuma sessão de exames encontrada para este paciente.", variant: "destructive" });
         setIsGeneratingAnalysis(false);
         return;
       }
 
-      const sessionIds = sessions.map((s: any) => s.id);
+      const sessionIds = sessionsForAnalysis.map((s: any) => s.id);
       const { data: labData } = await supabase.from("lab_results").select("*").in("session_id", sessionIds);
       const results = (labData || []).map((r) => {
         const marker = MARKERS.find((m) => m.id === r.marker_id);
@@ -410,16 +433,36 @@ export default function EncounterWorkspace() {
         return;
       }
 
+      // Build encounter context with SOAP notes and linked item IDs
+      const encounterContext = {
+        encounter_id: encounter.id,
+        encounter_date: encounter.encounter_date,
+        soap: {
+          chief_complaint: encounter.chief_complaint,
+          subjective: note.subjective || null,
+          objective: note.objective || null,
+          assessment: note.assessment || null,
+          plan: note.plan || null,
+          exams_requested: note.exams_requested || null,
+          medications: note.medications || null,
+          free_notes: note.free_notes || null,
+        },
+        linked_lab_session_ids: linkedLabSessions.map((s: any) => s.id),
+        linked_body_composition_ids: (linkedBodyRes.data ?? []).map((b: any) => b.id),
+        linked_imaging_report_ids: (linkedImgRes.data ?? []).map((i: any) => i.id),
+      };
+
       const { data: analysisData, error } = await supabase.functions.invoke("analyze-lab-results", {
         body: {
           patient_id: patient.id,
           patient_name: patient.name,
           sex: patient.sex,
           birth_date: patient.birth_date,
-          sessions: sessions.map((s: any) => ({ id: s.id, session_date: s.session_date })),
+          sessions: sessionsForAnalysis.map((s: any) => ({ id: s.id, session_date: s.session_date })),
           results,
           mode: "full",
           specialty_id: encounter.specialty_id,
+          encounter_context: encounterContext,
         },
       });
       if (error) throw error;
@@ -427,7 +470,7 @@ export default function EncounterWorkspace() {
       const analysisResult = analysisData?.analysis;
       const v2 = analysisData?.analysis_v2 as AnalysisV2Data | undefined;
       const sourceContext = buildSourceContext({
-        sessions: sessions.map((s: any) => ({ id: s.id, session_date: s.session_date })),
+        sessions: sessionsForAnalysis.map((s: any) => ({ id: s.id, session_date: s.session_date })),
         labResultCount: results.length,
       });
 
