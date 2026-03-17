@@ -480,6 +480,7 @@ export default function EncounterWorkspace() {
     }
   };
 
+  if (loading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center py-24">
