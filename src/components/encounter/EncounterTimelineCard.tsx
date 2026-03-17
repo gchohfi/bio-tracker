@@ -17,8 +17,12 @@ import {
   Brain,
   Pill,
   FileText,
+  FileDown,
+  Loader2,
   X,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { exportEncounterPdfStandalone } from "@/lib/exportEncounterPdfStandalone";
 
 interface EncounterTimelineCardProps {
   encounter: {
