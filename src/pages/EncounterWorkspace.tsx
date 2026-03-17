@@ -48,6 +48,7 @@ import { EncounterAIInlineSummary } from "@/components/encounter/EncounterAIInli
 import { generateEncounterPdf, type EncounterPdfParams } from "@/lib/generateEncounterPdf";
 import { LinkedExamsSection } from "@/components/encounter/LinkedExamsSection";
 import { GenerateAnalysisDialog } from "@/components/encounter/GenerateAnalysisDialog";
+import { EncounterProgressTracker, type StepStatus } from "@/components/encounter/EncounterProgressTracker";
 import { buildReviewedReport } from "@/lib/buildReviewedReport";
 import type { PrescriptionItem } from "@/components/EncounterPrescriptionEditor";
 
