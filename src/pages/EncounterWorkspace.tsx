@@ -214,6 +214,10 @@ export default function EncounterWorkspace() {
       setNote({ encounter_id: encounterId, ...EMPTY_NOTE });
     }
 
+    // Linked items count
+    setLinkedExamsCount((linkedLabRes.count ?? 0) + (linkedBodyRes.count ?? 0) + (linkedImgRes.count ?? 0));
+    setHasPrescription((prescriptionRes.count ?? 0) > 0);
+
     // All lab sessions for staleness check
     const allSessions = sessionsRes.data ?? [];
     setAllLabSessionIds(allSessions.map((s: any) => s.id));
