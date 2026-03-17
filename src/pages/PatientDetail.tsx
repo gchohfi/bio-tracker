@@ -509,7 +509,7 @@ export default function PatientDetail() {
   }, [sessions]);
 
 
-    setEditingSessionId(null);
+    const openNewSession = () => {
     setSessionDate(new Date());
     setMarkerValues({});
     setImportedPdfCount(0);
