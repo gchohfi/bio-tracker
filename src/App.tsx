@@ -13,6 +13,7 @@ import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import PromptManager from "./pages/PromptManager";
 import Patients from "./pages/Patients";
+import Landing from "./pages/Landing";
 
 const queryClient = new QueryClient();
 
