@@ -921,6 +921,10 @@ async function fetchClinicalContext(
   const shouldFetchBodyComp = bodyCompSpecialties.includes(specialtyId);
   const shouldFetchImaging = imagingSpecialties.includes(specialtyId);
 
+  // If encounter context has linked IDs, prefer those; otherwise fall back to latest
+  const linkedBodyIds = encounterCtx?.linked_body_composition_ids ?? [];
+  const linkedImagingIds = encounterCtx?.linked_imaging_report_ids ?? [];
+
   const [anamneseResult, notesResult, bodyCompResult, imagingResult, encountersResult, analysesResult] = await Promise.all([
     supabaseClient
       .from("patient_anamneses")
@@ -931,7 +935,6 @@ async function fetchClinicalContext(
       .then(({ data }: { data: unknown }) => data)
       .catch((err: unknown) => { console.warn("Failed to load anamnese:", err); return null; }),
     // DEPRECATED: doctor_specialty_notes is legacy. Kept for backward compat.
-    // Superseded by SOAP notes in clinical_evolution_notes.
     supabaseClient
       .from("doctor_specialty_notes")
       .select("*")
@@ -940,15 +943,45 @@ async function fetchClinicalContext(
       .single()
       .then(({ data }: { data: unknown }) => data)
       .catch((err: unknown) => { console.warn("[DEPRECATED] Failed to load doctor notes:", err); return null; }),
+    // Body composition: prefer linked IDs, fallback to latest
     shouldFetchBodyComp
-      ? supabaseClient
-          .from("body_composition_sessions")
-          .select("session_date, weight_kg, bmi, skeletal_muscle_kg, body_fat_kg, body_fat_pct, visceral_fat_level, total_body_water_l, ecw_tbw_ratio, bmr_kcal, waist_cm, hip_cm, waist_hip_ratio")
-          .eq("patient_id", patientId)
-          .order("session_date", { ascending: false })
-          .limit(2)
-          .then(({ data }: { data: unknown }) => data)
-          .catch((err: unknown) => { console.warn("Failed to load body composition:", err); return null; })
+      ? (linkedBodyIds.length > 0
+          ? supabaseClient
+              .from("body_composition_sessions")
+              .select("session_date, weight_kg, bmi, skeletal_muscle_kg, body_fat_kg, body_fat_pct, visceral_fat_level, total_body_water_l, ecw_tbw_ratio, bmr_kcal, waist_cm, hip_cm, waist_hip_ratio")
+              .in("id", linkedBodyIds)
+              .order("session_date", { ascending: false })
+              .then(({ data }: { data: unknown }) => data)
+              .catch((err: unknown) => { console.warn("Failed to load linked body composition:", err); return null; })
+          : supabaseClient
+              .from("body_composition_sessions")
+              .select("session_date, weight_kg, bmi, skeletal_muscle_kg, body_fat_kg, body_fat_pct, visceral_fat_level, total_body_water_l, ecw_tbw_ratio, bmr_kcal, waist_cm, hip_cm, waist_hip_ratio")
+              .eq("patient_id", patientId)
+              .order("session_date", { ascending: false })
+              .limit(2)
+              .then(({ data }: { data: unknown }) => data)
+              .catch((err: unknown) => { console.warn("Failed to load body composition:", err); return null; })
+        )
+      : Promise.resolve(null),
+    // Imaging reports: prefer linked IDs, fallback to latest
+    shouldFetchImaging
+      ? (linkedImagingIds.length > 0
+          ? supabaseClient
+              .from("imaging_reports")
+              .select("id, report_date, exam_type, exam_region, findings, conclusion, recommendations, incidental_findings, classifications, source_lab, source_type, specialty_id")
+              .in("id", linkedImagingIds)
+              .order("report_date", { ascending: false })
+              .then(({ data }: { data: unknown }) => data)
+              .catch((err: unknown) => { console.warn("Failed to load linked imaging reports:", err); return null; })
+          : supabaseClient
+              .from("imaging_reports")
+              .select("id, report_date, exam_type, exam_region, findings, conclusion, recommendations, incidental_findings, classifications, source_lab, source_type, specialty_id")
+              .eq("patient_id", patientId)
+              .order("report_date", { ascending: false })
+              .limit(6)
+              .then(({ data }: { data: unknown }) => data)
+              .catch((err: unknown) => { console.warn("Failed to load imaging reports:", err); return null; })
+        )
       : Promise.resolve(null),
     shouldFetchImaging
       ? supabaseClient
