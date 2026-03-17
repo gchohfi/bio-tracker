@@ -876,6 +876,7 @@ async function fetchClinicalContext(
   specialtyId: string,
   patientProfile: PatientProfile | null | undefined,
   results: MarkerResult[],
+  encounterCtx?: EncounterContext | null,
 ): Promise<{ context: ClinicalContext; loaded: ContextLoaded }> {
   // Build labs context deterministically from results
   const labs = buildLabsContext(results);
