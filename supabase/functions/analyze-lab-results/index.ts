@@ -1229,7 +1229,8 @@ function buildUserPrompt(
   scoredActives: ScoredActive[],
   matchedProtocols: Array<{ protocol: EssentiaProtocol; coverage: number; matched_actives: string[] }>,
   clinicalContext: ClinicalContext,
-  specialtyIdOverride?: string
+  specialtyIdOverride?: string,
+  encounterCtx?: EncounterContext | null,
 ): string {
   const activeSpecialty = specialtyIdOverride ?? req.specialty_id ?? "medicina_funcional";
   const useFunctionalRefs = activeSpecialty === "nutrologia";
