@@ -761,6 +761,8 @@ export default function EncounterWorkspace() {
                 v2Data={v2Data}
                 analysisId={analysis?.id}
                 onOpenFullAnalysis={() => setSubTab("ia")}
+                onRequestGenerate={handleGenerateEncounterAnalysis}
+                isGenerating={isGeneratingAnalysis}
               />
             </TabsContent>
 
