@@ -17,8 +17,12 @@ import {
   Brain,
   Pill,
   FileText,
+  FileDown,
+  Loader2,
   X,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { exportEncounterPdfStandalone } from "@/lib/exportEncounterPdfStandalone";
 
 interface EncounterTimelineCardProps {
   encounter: {
@@ -28,8 +32,10 @@ interface EncounterTimelineCardProps {
     chief_complaint: string | null;
     specialty_id: string;
     created_at: string;
+    patient_id?: string;
   };
   specialtyLabel: string;
+  patientId: string;
   isExpanded: boolean;
   onToggle: () => void;
   onClose: () => void;
@@ -52,11 +58,14 @@ interface StatusInfo {
 export function EncounterTimelineCard({
   encounter,
   specialtyLabel,
+  patientId,
   isExpanded,
   onToggle,
   onClose,
   children,
 }: EncounterTimelineCardProps) {
+  const { toast } = useToast();
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [noteSummary, setNoteSummary] = useState<NoteSummary | null>(null);
   const [statusInfo, setStatusInfo] = useState<StatusInfo>({ hasAnalysis: false, hasPrescription: false });
   const cardRef = useRef<HTMLDivElement>(null);
@@ -225,6 +234,32 @@ export function EncounterTimelineCard({
                     )}
                   </div>
                 )}
+
+                {/* PDF export button */}
+                <button
+                  className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors mt-2 px-1.5 py-0.5 rounded hover:bg-muted"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    setExportingPdf(true);
+                    try {
+                      await exportEncounterPdfStandalone({
+                        encounterId: encounter.id,
+                        patientId,
+                        specialtyName: specialtyLabel,
+                      });
+                      toast({ title: "PDF da consulta gerado" });
+                    } catch {
+                      toast({ title: "Erro ao gerar PDF", variant: "destructive" });
+                    } finally {
+                      setExportingPdf(false);
+                    }
+                  }}
+                  disabled={exportingPdf}
+                  aria-label="Exportar PDF da consulta"
+                >
+                  {exportingPdf ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileDown className="h-3 w-3" />}
+                  PDF
+                </button>
               </div>
 
               {/* Expand / close icon */}
