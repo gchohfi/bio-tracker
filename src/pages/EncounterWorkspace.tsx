@@ -370,7 +370,116 @@ export default function EncounterWorkspace() {
   };
 
 
-  if (loading) {
+  // ── Generate AI analysis for this encounter ──
+  const handleGenerateEncounterAnalysis = async () => {
+    if (!patient || !encounter || !user?.id) return;
+    setIsGeneratingAnalysis(true);
+    toast({ title: "Gerando análise IA...", description: "Aguarde alguns segundos." });
+
+    try {
+      // Fetch lab sessions & results
+      const { data: sessionsData } = await (supabase as any)
+        .from("lab_sessions")
+        .select("id, session_date")
+        .eq("patient_id", patient.id)
+        .order("session_date", { ascending: false });
+      const sessions = sessionsData ?? [];
+      if (sessions.length === 0) {
+        toast({ title: "Sem dados", description: "Nenhuma sessão de exames encontrada para este paciente.", variant: "destructive" });
+        setIsGeneratingAnalysis(false);
+        return;
+      }
+
+      const sessionIds = sessions.map((s: any) => s.id);
+      const { data: labData } = await supabase.from("lab_results").select("*").in("session_id", sessionIds);
+      const results = (labData || []).map((r) => {
+        const marker = MARKERS.find((m) => m.id === r.marker_id);
+        return {
+          ...r,
+          marker_name: marker?.name ?? r.marker_id,
+          category: marker?.category ?? "Outros",
+          unit: marker?.unit ?? "",
+          conventional_min: marker?.conventional_min ?? null,
+          conventional_max: marker?.conventional_max ?? null,
+        };
+      });
+
+      if (results.length === 0) {
+        toast({ title: "Sem dados", description: "Nenhum resultado laboratorial encontrado.", variant: "destructive" });
+        setIsGeneratingAnalysis(false);
+        return;
+      }
+
+      const { data: analysisData, error } = await supabase.functions.invoke("analyze-lab-results", {
+        body: {
+          patient_id: patient.id,
+          patient_name: patient.name,
+          sex: patient.sex,
+          birth_date: patient.birth_date,
+          sessions: sessions.map((s: any) => ({ id: s.id, session_date: s.session_date })),
+          results,
+          mode: "full",
+          specialty_id: encounter.specialty_id,
+        },
+      });
+      if (error) throw error;
+
+      const analysisResult = analysisData?.analysis;
+      const v2 = analysisData?.analysis_v2 as AnalysisV2Data | undefined;
+      const sourceContext = buildSourceContext({
+        sessions: sessions.map((s: any) => ({ id: s.id, session_date: s.session_date })),
+        labResultCount: results.length,
+      });
+
+      const { data: savedData } = await (supabase as any)
+        .from("patient_analyses")
+        .insert({
+          patient_id: patient.id,
+          practitioner_id: user.id,
+          specialty_id: encounter.specialty_id,
+          specialty_name: specialtyName,
+          mode: "full",
+          summary: analysisResult?.summary ?? null,
+          patterns: analysisResult?.patterns ?? [],
+          trends: analysisResult?.trends ?? [],
+          suggestions: analysisResult?.suggestions ?? [],
+          full_text: analysisResult?.full_text ?? null,
+          technical_analysis: analysisResult?.technical_analysis ?? null,
+          patient_plan: analysisResult?.patient_plan ?? null,
+          prescription_table: analysisResult?.prescription_table ?? [],
+          protocol_recommendations: analysisResult?.protocol_recommendations ?? [],
+          encounter_id: encounter.id,
+          source_context: sourceContext,
+          generated_at: sourceContext.generated_at,
+          model_used: analysisData?.model_used ?? null,
+        })
+        .select()
+        .single();
+
+      if (savedData && v2) {
+        await (supabase as any)
+          .from("patient_analyses")
+          .update({ analysis_v2_data: v2 })
+          .eq("id", savedData.id);
+        savedData.analysis_v2_data = v2;
+      }
+
+      if (savedData) {
+        setAnalysis(savedData);
+        if (v2) setV2Data(v2);
+        setStalenessReasons([]);
+      }
+
+      toast({ title: "Análise IA gerada", description: "A análise foi vinculada a esta consulta." });
+      setSubTab("ia");
+    } catch (err: any) {
+      console.error("[EncounterWorkspace] AI analysis error:", err);
+      toast({ title: "Erro ao gerar análise", description: err.message || "Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsGeneratingAnalysis(false);
+    }
+  };
+
     return (
       <AppLayout>
         <div className="flex items-center justify-center py-24">
