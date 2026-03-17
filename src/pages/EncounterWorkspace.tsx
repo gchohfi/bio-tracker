@@ -178,11 +178,13 @@ export default function EncounterWorkspace() {
   const [relevantMarkers, setRelevantMarkers] = useState<RelevantMarker[]>([]);
   const [lastSessionDate, setLastSessionDate] = useState<string | null>(null);
   const [specialtyName, setSpecialtyName] = useState<string>("");
-  const [subTab, setSubTab] = useState("resumo");
+  const [subTab, setSubTab] = useState("exames");
   const [stalenessReasons, setStalenessReasons] = useState<string[]>([]);
   const [allLabSessionIds, setAllLabSessionIds] = useState<string[]>([]);
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
+  const [linkedExamsCount, setLinkedExamsCount] = useState(0);
+  const [hasPrescription, setHasPrescription] = useState(false);
 
   const isFinalized = encounter?.status === "finalized";
 
