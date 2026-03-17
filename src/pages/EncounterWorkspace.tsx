@@ -959,6 +959,16 @@ export default function EncounterWorkspace() {
 
             {/* ═══ EXAMES RELEVANTES ═══ */}
             <TabsContent value="exames" className="mt-4 space-y-4">
+              {/* Linked exams section */}
+              {encounter && user && (
+                <LinkedExamsSection
+                  encounterId={encounter.id}
+                  patientId={patient.id}
+                  practitionerId={user.id}
+                  encounterDate={encounter.encounter_date}
+                  isFinalized={isFinalized}
+                />
+              )}
               <Card>
                 <CardContent className="py-4 px-5">
                   <div className="flex items-center justify-between mb-3">
