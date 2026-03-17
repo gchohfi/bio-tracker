@@ -181,6 +181,7 @@ export default function EncounterWorkspace() {
   const [stalenessReasons, setStalenessReasons] = useState<string[]>([]);
   const [allLabSessionIds, setAllLabSessionIds] = useState<string[]>([]);
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
+  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
 
   const isFinalized = encounter?.status === "finalized";
 
