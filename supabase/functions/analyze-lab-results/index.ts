@@ -276,6 +276,15 @@ const THERAPEUTIC_ACTIVES: ActiveTherapeutic[] = [
     markers_any: [],
     objectives_boost: ["energia_disposicao", "performance_esportiva"],
   },
+  {
+    id: "l_baiba",
+    name: "L-BAIBA (Ácido L-β-Aminoisobutírico)",
+    mechanism: "Miocina derivada do catabolismo da valina via PGC-1α; ativa AMPK, promove browning do tecido adiposo, β-oxidação de ácidos graxos, biogênese mitocondrial, ação anti-inflamatória (inibe NF-κB), antioxidante (via Nrf2), neuroprotetor e sensibilizador de insulina.",
+    markers_high: ["pcr", "vhs", "triglicerides", "glicose_jejum", "insulina_jejum", "homa_ir", "hba1c", "colesterol_total", "ldl"],
+    markers_low: ["hdl", "vitamina_d"],
+    markers_any: [],
+    objectives_boost: ["emagrecimento", "desinflamacao", "longevidade", "performance_esportiva", "energia_disposicao"],
+  },
 ];
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -590,6 +599,11 @@ const ESSENTIA_PROTOCOLS: EssentiaProtocol[] = [
   { id: "IM 15.1", name: "Protocolo IM adjuvante Saúde do Sistema Respiratório", category: "Saúde Respiratória", via: "Intramuscular",
     composition: "Nanomicelas de Quercetina 15mg, NAC 300mg",
     actives_contained: ["nac"] },
+
+  // ── INJETÁVEIS AVULSOS ──
+  { id: "INJ_BAIBA", name: "L-BAIBA (ácido L-β-aminoisobutírico) 100mg/1mL", category: "Metabolismo", via: "Endovenoso",
+    composition: "L-BAIBA (ácido L-β-aminoisobutírico) 100mg/1mL — diluir em 250mL SF 0,9%, EV lento 45-60min, 1x/semana, 8-10 sessões. Também disponível IM (ventroglúteo/dorsoglúteo).",
+    actives_contained: ["l_baiba"] },
 ];
 
 // ══════════════════════════════════════════════════════════════════════════════
