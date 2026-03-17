@@ -276,6 +276,15 @@ const THERAPEUTIC_ACTIVES: ActiveTherapeutic[] = [
     markers_any: [],
     objectives_boost: ["energia_disposicao", "performance_esportiva"],
   },
+  {
+    id: "l_baiba",
+    name: "L-BAIBA (Ácido L-β-Aminoisobutírico)",
+    mechanism: "Miocina derivada do catabolismo da valina via PGC-1α; ativa AMPK, promove browning do tecido adiposo, β-oxidação de ácidos graxos, biogênese mitocondrial, ação anti-inflamatória (inibe NF-κB), antioxidante (via Nrf2), neuroprotetor e sensibilizador de insulina.",
+    markers_high: ["pcr", "vhs", "triglicerides", "glicose_jejum", "insulina_jejum", "homa_ir", "hba1c", "colesterol_total", "ldl"],
+    markers_low: ["hdl", "vitamina_d"],
+    markers_any: [],
+    objectives_boost: ["emagrecimento", "desinflamacao", "longevidade", "performance_esportiva", "energia_disposicao"],
+  },
 ];
 
 // ══════════════════════════════════════════════════════════════════════════════
