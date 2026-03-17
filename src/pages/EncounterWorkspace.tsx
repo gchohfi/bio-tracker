@@ -1002,17 +1002,64 @@ export default function EncounterWorkspace() {
             </TabsContent>
 
             {/* ═══ IA COMPLETA ═══ */}
-            {v2Data && (
-              <TabsContent value="ia" className="mt-4">
-                <ClinicalReportV2
-                  data={v2Data}
-                  patientName={patient.name}
-                  analysisId={analysis?.id}
-                  patientId={patient.id}
-                  specialtyId={encounter.specialty_id}
-                />
-              </TabsContent>
-            )}
+            <TabsContent value="ia" className="mt-4">
+              {v2Data ? (
+                <>
+                  <ClinicalReportV2
+                    data={v2Data}
+                    patientName={patient.name}
+                    analysisId={analysis?.id}
+                    patientId={patient.id}
+                    specialtyId={encounter.specialty_id}
+                  />
+                  {/* Regenerate button */}
+                  <div className="mt-4 flex justify-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateEncounterAnalysis}
+                      disabled={isGeneratingAnalysis}
+                      className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+                    >
+                      {isGeneratingAnalysis ? (
+                        <><Loader2 className="h-3.5 w-3.5 animate-spin" />Regenerando...</>
+                      ) : (
+                        <><RefreshCw className="h-3.5 w-3.5" />Regenerar análise</>
+                      )}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <Card className="border-dashed border-muted-foreground/30">
+                  <CardContent className="py-12 flex flex-col items-center text-center gap-4">
+                    <div className="flex items-center justify-center h-14 w-14 rounded-full bg-primary/10">
+                      <Brain className="h-7 w-7 text-primary" />
+                    </div>
+                    <div className="max-w-sm">
+                      <h3 className="text-base font-semibold text-foreground">Nenhuma análise IA nesta consulta</h3>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Gere uma análise inteligente para obter insights clínicos, hipóteses diagnósticas, alertas críticos e sugestões de conduta baseadas nos exames do paciente.
+                      </p>
+                    </div>
+                    <Button
+                      size="lg"
+                      onClick={handleGenerateEncounterAnalysis}
+                      disabled={isGeneratingAnalysis}
+                      className="gap-2 mt-2"
+                    >
+                      {isGeneratingAnalysis ? (
+                        <><Loader2 className="h-4 w-4 animate-spin" />Gerando análise...</>
+                      ) : (
+                        <><Sparkles className="h-4 w-4" />Gerar Análise IA para esta Consulta</>
+                      )}
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground max-w-xs">
+                      A análise será vinculada a esta consulta e poderá ser revisada, editada e incluída no PDF.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
           </Tabs>
         </div>
 
