@@ -670,6 +670,12 @@ export default function EncounterWorkspace() {
                     IA Completa
                   </TabsTrigger>
                 )}
+                {!v2Data && (
+                  <TabsTrigger value="ia" className="gap-1.5 text-xs">
+                    <Brain className="h-3.5 w-3.5" />
+                    Análise IA
+                  </TabsTrigger>
+                )}
               </TabsList>
             </div>
 
