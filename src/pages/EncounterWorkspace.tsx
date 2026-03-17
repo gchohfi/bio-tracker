@@ -38,6 +38,7 @@ import {
   Info,
   Trash2,
   FileDown,
+  Sparkles,
 } from "lucide-react";
 import { EncounterPrescriptionEditor } from "@/components/EncounterPrescriptionEditor";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
