@@ -28,6 +28,31 @@ interface PatientProfile {
   restrictions?: string | null;
 }
 
+/** SOAP notes from the current encounter */
+interface EncounterSOAP {
+  chief_complaint?: string | null;
+  subjective?: string | null;
+  objective?: string | null;
+  assessment?: string | null;
+  plan?: string | null;
+  exams_requested?: string | null;
+  medications?: string | null;
+  free_notes?: string | null;
+}
+
+/** Context explicitly linked to the current encounter */
+interface EncounterContext {
+  encounter_id: string;
+  encounter_date: string;
+  soap?: EncounterSOAP | null;
+  /** IDs of lab sessions linked to this encounter */
+  linked_lab_session_ids?: string[];
+  /** IDs of body composition sessions linked to this encounter */
+  linked_body_composition_ids?: string[];
+  /** IDs of imaging reports linked to this encounter */
+  linked_imaging_report_ids?: string[];
+}
+
 interface AnalysisRequest {
   patient_name: string;
   patient_id?: string;
@@ -38,6 +63,7 @@ interface AnalysisRequest {
   mode?: "full" | "analysis_only" | "protocols_only";
   patient_profile?: PatientProfile | null;
   specialty_id?: string; // ID da especialidade para carregar o prompt do banco
+  encounter_context?: EncounterContext | null;
 }
 
 interface ProtocolRecommendation {
