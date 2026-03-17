@@ -664,18 +664,10 @@ export default function EncounterWorkspace() {
                   <FlaskConical className="h-3.5 w-3.5" />
                   Exames
                 </TabsTrigger>
-                {v2Data && (
-                  <TabsTrigger value="ia" className="gap-1.5 text-xs">
-                    <Brain className="h-3.5 w-3.5" />
-                    IA Completa
-                  </TabsTrigger>
-                )}
-                {!v2Data && (
-                  <TabsTrigger value="ia" className="gap-1.5 text-xs">
-                    <Brain className="h-3.5 w-3.5" />
-                    Análise IA
-                  </TabsTrigger>
-                )}
+                <TabsTrigger value="ia" className="gap-1.5 text-xs">
+                  <Brain className="h-3.5 w-3.5" />
+                  {v2Data ? "IA Completa" : "Análise IA"}
+                </TabsTrigger>
               </TabsList>
             </div>
 
