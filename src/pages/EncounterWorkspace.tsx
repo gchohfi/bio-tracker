@@ -768,9 +768,9 @@ export default function EncounterWorkspace() {
 
             {/* ═══ EVOLUÇÃO ═══ */}
             <TabsContent value="soap" className="mt-4 space-y-3">
-              {/* Context from previous encounter */}
+              {/* Longitudinal patient context in SOAP tab */}
               {encounter && user && (
-                <PreviousEncounterContext
+                <PatientLongitudinalContext
                   patientId={patient.id}
                   currentEncounterId={encounter.id}
                   practitionerId={user.id}
