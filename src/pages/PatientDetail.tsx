@@ -299,6 +299,7 @@ export default function PatientDetail() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [sessions, setSessions] = useState<LabSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sessionSummaries, setSessionSummaries] = useState<Record<string, { total: number; flagged: Array<{ name: string; flag: string }>; quality: number | null }>>({});
 
   // Session form state
   const [formOpen, setFormOpen] = useState(false);
