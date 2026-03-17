@@ -1355,10 +1355,11 @@ function buildUserPrompt(
 
     if (ch.previousAnalysis) {
       const pa = ch.previousAnalysis;
-      prompt += "\nAnalise IA anterior (" + pa.created_at.slice(0, 10) + "):\n";
+      const paDate = pa.created_at ? pa.created_at.slice(0, 10) : "data desconhecida";
+      prompt += "\nAnalise IA anterior (" + paDate + "):\n";
       if (pa.summary) prompt += "  Resumo: " + pa.summary.slice(0, 600) + "\n";
-      if (pa.patterns.length > 0) prompt += "  Padroes identificados: " + pa.patterns.slice(0, 5).join("; ") + "\n";
-      if (pa.suggestions.length > 0) prompt += "  Sugestoes anteriores: " + pa.suggestions.slice(0, 5).join("; ") + "\n";
+      if (pa.patterns && pa.patterns.length > 0) prompt += "  Padroes identificados: " + pa.patterns.slice(0, 5).join("; ") + "\n";
+      if (pa.suggestions && pa.suggestions.length > 0) prompt += "  Sugestoes anteriores: " + pa.suggestions.slice(0, 5).join("; ") + "\n";
     }
 
     if (ch.totalEncounters > 1) {
