@@ -15,7 +15,8 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { detectStaleness, type AnalysisSourceContext } from "@/lib/analysisSourceContext";
+import { detectStaleness, buildSourceContext, type AnalysisSourceContext } from "@/lib/analysisSourceContext";
+import { MARKERS } from "@/lib/markers";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
