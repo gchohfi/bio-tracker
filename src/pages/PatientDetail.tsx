@@ -474,8 +474,41 @@ export default function PatientDetail() {
     setSessions(sessionsRes.data || []);
     setLoading(false);
   };
+  // Load session summaries (marker counts + flagged markers) when sessions change
+  useEffect(() => {
+    if (sessions.length === 0) return;
+    const loadSummaries = async () => {
+      const sessionIds = sessions.map(s => s.id);
+      const { data: results } = await supabase
+        .from("lab_results")
+        .select("session_id, marker_id, value, text_value")
+        .in("session_id", sessionIds);
+      const { data: histResults } = await (supabase as any)
+        .from("lab_historical_results")
+        .select("session_id, marker_name, value, flag")
+        .in("session_id", sessionIds)
+        .in("flag", ["high", "low", "critical_high", "critical_low"])
+        .limit(200);
 
-  const openNewSession = () => {
+      const summaries: Record<string, { total: number; flagged: Array<{ name: string; flag: string }>; quality: number | null }> = {};
+      for (const s of sessions) {
+        const sessionResults = (results ?? []).filter(r => r.session_id === s.id);
+        const sessionFlagged = (histResults ?? [])
+          .filter((r: any) => r.session_id === s.id && r.marker_name)
+          .slice(0, 3)
+          .map((r: any) => ({ name: r.marker_name, flag: r.flag }));
+        summaries[s.id] = {
+          total: sessionResults.length,
+          flagged: sessionFlagged,
+          quality: s.quality_score,
+        };
+      }
+      setSessionSummaries(summaries);
+    };
+    loadSummaries();
+  }, [sessions]);
+
+
     setEditingSessionId(null);
     setSessionDate(new Date());
     setMarkerValues({});
