@@ -66,6 +66,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </button>
             <nav className="hidden items-center gap-1 md:flex">
               <Button
+                variant={location.pathname === "/patients" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => navigate("/patients")}
+                className="gap-1.5 text-sm"
+              >
+                <Users className="h-3.5 w-3.5" />
+                Pacientes
+              </Button>
+              <Button
                 variant={location.pathname === "/prompts" ? "secondary" : "ghost"}
                 size="sm"
                 onClick={() => navigate("/prompts")}
