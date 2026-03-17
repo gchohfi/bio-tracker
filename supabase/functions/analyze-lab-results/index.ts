@@ -1763,7 +1763,7 @@ serve(async (req) => {
     const effectiveMode = !specialtyHasProtocols ? "analysis_only" : (body.mode ?? "full");
     const bodyWithMode = { ...body, mode: effectiveMode };
 
-    const userPrompt = buildUserPrompt(bodyWithMode, scoredActives, matchedProtocols, clinicalContext, specialtyId);
+    const userPrompt = buildUserPrompt(bodyWithMode, scoredActives, matchedProtocols, clinicalContext, specialtyId, encounterCtx);
     console.log(
       "Analyzing " + body.results.length + " markers for " + body.patient_name + " | specialty: " + specialtyId + " | " +
       "labs: " + contextLoaded.labs.total + " total, " + contextLoaded.labs.outOfRange + " OOR, " +
