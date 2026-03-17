@@ -32,7 +32,7 @@ import {
   FileText,
   Pill,
   ClipboardList,
-  LayoutDashboard,
+  
   AlertTriangle,
   RefreshCw,
   Info,
