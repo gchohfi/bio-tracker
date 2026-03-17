@@ -562,8 +562,23 @@ export default function EncounterWorkspace() {
 
   // ── Derived ──
   const redFlags = v2Data?.red_flags ?? [];
+  const hasNote = !!(note.subjective || note.objective || note.assessment || note.plan);
 
-  return (
+  const stepStatus: StepStatus = useMemo(() => ({
+    exams: linkedExamsCount > 0,
+    soap: hasNote,
+    analysis: !!v2Data,
+    prescription: hasPrescription,
+    finalized: isFinalized,
+  }), [linkedExamsCount, hasNote, v2Data, hasPrescription, isFinalized]);
+
+  const handleStepClick = (step: string) => {
+    if (step === "finalizar") {
+      setSubTab("finalizar");
+    } else {
+      setSubTab(step);
+    }
+  };
     <AppLayout>
       <div className="flex gap-0">
         {/* ══════════════════════════════════════════════
