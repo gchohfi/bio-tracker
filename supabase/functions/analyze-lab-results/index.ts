@@ -1738,12 +1738,14 @@ serve(async (req) => {
     }
 
     // ── Fetch clinical context (anamnese + doctor notes + labs) ──
+    const encounterCtx = body.encounter_context ?? null;
     const { context: clinicalContext, loaded: contextLoaded } = await fetchClinicalContext(
       serviceClient,
       body.patient_id,
       specialtyId,
       body.patient_profile,
       body.results,
+      encounterCtx,
     );
 
     // Camada 1+2: Score de ativos terapeuticos (using labs.outOfRange from context)
