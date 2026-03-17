@@ -727,30 +727,12 @@ export default function EncounterWorkspace() {
             </CardContent>
           </Card>
 
-          {/* ── Prominent CTA: Generate AI Analysis ── */}
-          {!v2Data && !isGeneratingAnalysis && (
-            <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="py-3 px-5 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex items-center justify-center h-9 w-9 rounded-full bg-primary/10 shrink-0">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground">Análise IA disponível</p>
-                    <p className="text-[11px] text-muted-foreground">Gere insights clínicos, hipóteses e sugestões para esta consulta</p>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => setShowGenerateDialog(true)}
-                  className="gap-1.5 shrink-0"
-                >
-                  <Brain className="h-3.5 w-3.5" />
-                  Gerar Análise
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          {/* ── Progress Tracker ── */}
+          <EncounterProgressTracker
+            status={stepStatus}
+            activeStep={subTab}
+            onStepClick={handleStepClick}
+          />
 
           {/* Generate Analysis Dialog */}
           <GenerateAnalysisDialog
@@ -775,32 +757,16 @@ export default function EncounterWorkspace() {
             isGenerating={isGeneratingAnalysis}
           />
 
-          {/* ── SUB-TABS ── */}
-          <Tabs value={subTab} onValueChange={setSubTab}>
-            <div className="overflow-x-auto -mx-1 px-1">
-              <TabsList className="w-max">
-                <TabsTrigger value="resumo" className="gap-1.5 text-xs">
-                  <LayoutDashboard className="h-3.5 w-3.5" />
-                  Resumo
-                </TabsTrigger>
-                <TabsTrigger value="soap" className="gap-1.5 text-xs">
-                  <FileText className="h-3.5 w-3.5" />
-                  Evolução
-                </TabsTrigger>
-                <TabsTrigger value="prescricao" className="gap-1.5 text-xs">
-                  <Pill className="h-3.5 w-3.5" />
-                  Prescrição
-                </TabsTrigger>
-                <TabsTrigger value="exames" className="gap-1.5 text-xs">
-                  <FlaskConical className="h-3.5 w-3.5" />
-                  Exames
-                </TabsTrigger>
-                <TabsTrigger value="ia" className="gap-1.5 text-xs">
-                  <Brain className="h-3.5 w-3.5" />
-                  {v2Data ? "IA Completa" : "Análise IA"}
-                </TabsTrigger>
-              </TabsList>
-            </div>
+          {/* ── STEP CONTENT ── */}
+          <Tabs value={subTab} onValueChange={setSubTab} className="mt-0">
+            {/* Hidden TabsList — navigation is via ProgressTracker */}
+            <TabsList className="hidden">
+              <TabsTrigger value="exames" />
+              <TabsTrigger value="soap" />
+              <TabsTrigger value="ia" />
+              <TabsTrigger value="prescricao" />
+              <TabsTrigger value="finalizar" />
+            </TabsList>
 
             {/* ═══ RESUMO ═══ */}
             <TabsContent value="resumo" className="mt-4 space-y-4">
