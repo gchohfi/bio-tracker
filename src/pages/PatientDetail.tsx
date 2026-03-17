@@ -53,6 +53,7 @@ import {
   Clock,
   ChevronRight,
   MoreVertical,
+  AlertTriangle,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
 import EvolutionTimeline from "@/components/EvolutionTimeline";
@@ -299,6 +300,7 @@ export default function PatientDetail() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [sessions, setSessions] = useState<LabSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sessionSummaries, setSessionSummaries] = useState<Record<string, { total: number; flagged: Array<{ name: string; flag: string }>; quality: number | null }>>({});
 
   // Session form state
   const [formOpen, setFormOpen] = useState(false);
@@ -473,9 +475,42 @@ export default function PatientDetail() {
     setSessions(sessionsRes.data || []);
     setLoading(false);
   };
+  // Load session summaries (marker counts + flagged markers) when sessions change
+  useEffect(() => {
+    if (sessions.length === 0) return;
+    const loadSummaries = async () => {
+      const sessionIds = sessions.map(s => s.id);
+      const { data: results } = await supabase
+        .from("lab_results")
+        .select("session_id, marker_id, value, text_value")
+        .in("session_id", sessionIds);
+      const { data: histResults } = await (supabase as any)
+        .from("lab_historical_results")
+        .select("session_id, marker_name, value, flag")
+        .in("session_id", sessionIds)
+        .in("flag", ["high", "low", "critical_high", "critical_low"])
+        .limit(200);
 
-  const openNewSession = () => {
-    setEditingSessionId(null);
+      const summaries: Record<string, { total: number; flagged: Array<{ name: string; flag: string }>; quality: number | null }> = {};
+      for (const s of sessions) {
+        const sessionResults = (results ?? []).filter(r => r.session_id === s.id);
+        const sessionFlagged = (histResults ?? [])
+          .filter((r: any) => r.session_id === s.id && r.marker_name)
+          .slice(0, 3)
+          .map((r: any) => ({ name: r.marker_name, flag: r.flag }));
+        summaries[s.id] = {
+          total: sessionResults.length,
+          flagged: sessionFlagged,
+          quality: s.quality_score,
+        };
+      }
+      setSessionSummaries(summaries);
+    };
+    loadSummaries();
+  }, [sessions]);
+
+
+    const openNewSession = () => {
     setSessionDate(new Date());
     setMarkerValues({});
     setImportedPdfCount(0);
@@ -1736,41 +1771,87 @@ export default function PatientDetail() {
               </Card>
             ) : (
               <div className="space-y-3">
-                {sessions.map((session) => (
-                  <Card
-                    key={session.id}
-                    className="group cursor-pointer transition-colors hover:bg-accent/50"
-                    onClick={() => openEditSession(session)}
-                  >
-                    <CardContent className="flex items-center justify-between p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                          <CalendarIcon className="h-5 w-5 text-primary" />
+                {sessions.map((session) => {
+                  const summary = sessionSummaries[session.id];
+                  return (
+                    <Card
+                      key={session.id}
+                      className="group cursor-pointer transition-colors hover:bg-accent/50"
+                      onClick={() => openEditSession(session)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                              <FlaskConical className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">
+                                {format(parseISO(session.session_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                              </p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                {summary ? (
+                                  <>
+                                    <span>{summary.total} marcador{summary.total !== 1 ? "es" : ""}</span>
+                                    {summary.flagged.length > 0 && (
+                                      <>
+                                        <span>•</span>
+                                        <span className="text-destructive font-medium">
+                                          {summary.flagged.length} alterado{summary.flagged.length !== 1 ? "s" : ""}
+                                        </span>
+                                      </>
+                                    )}
+                                    {summary.quality != null && (
+                                      <>
+                                        <span>•</span>
+                                        <span>Qualidade: {Math.round(summary.quality * 100)}%</span>
+                                      </>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span>Criado em {format(parseISO(session.created_at), "dd/MM/yyyy HH:mm")}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => { e.stopPropagation(); setPendingDeleteSessionId(session.id); }}
+                              title="Excluir sessão"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">
-                            {format(parseISO(session.session_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Criado em {format(parseISO(session.created_at), "dd/MM/yyyy HH:mm")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => { e.stopPropagation(); setPendingDeleteSessionId(session.id); }}
-                          title="Excluir sessão"
-                          className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+
+                        {/* Flagged markers preview */}
+                        {summary && summary.flagged.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2.5 ml-[52px]">
+                            {summary.flagged.map((f, i) => (
+                              <Badge
+                                key={i}
+                                variant="outline"
+                                className={cn(
+                                  "text-[10px] h-5 px-1.5 gap-1",
+                                  f.flag.startsWith("critical")
+                                    ? "border-destructive/40 text-destructive bg-destructive/5"
+                                    : "border-amber-400/40 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20"
+                                )}
+                              >
+                                {f.flag.startsWith("critical") && <AlertTriangle className="h-2.5 w-2.5" />}
+                                {f.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
 
