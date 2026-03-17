@@ -85,7 +85,7 @@ export default function Index() {
   const [newBirthDate, setNewBirthDate] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [showAllPatients, setShowAllPatients] = useState(false);
+  
 
   const [criticalPatients, setCriticalPatients] = useState<CriticalPatient[]>([]);
   const [draftEncounters, setDraftEncounters] = useState<DraftEncounter[]>([]);
