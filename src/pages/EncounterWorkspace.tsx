@@ -630,13 +630,25 @@ export default function EncounterWorkspace() {
               {stalenessReasons.length > 0 && (
                 <div className="mt-3 flex items-start gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2">
                   <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                  <div className="text-xs text-amber-700 dark:text-amber-400 space-y-0.5">
+                  <div className="flex-1 text-xs text-amber-700 dark:text-amber-400 space-y-0.5">
                     <span className="font-medium">Dados novos disponíveis desde a última análise:</span>
                     {stalenessReasons.map((r, i) => (
                       <div key={i}>• {r}</div>
                     ))}
-                    <div className="mt-1 text-amber-600/70 dark:text-amber-500/70">
-                      Considere regenerar a análise para incorporar os dados mais recentes.
+                    <div className="mt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleGenerateEncounterAnalysis}
+                        disabled={isGeneratingAnalysis}
+                        className="h-7 gap-1.5 text-xs border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
+                      >
+                        {isGeneratingAnalysis ? (
+                          <><Loader2 className="h-3 w-3 animate-spin" />Regenerando...</>
+                        ) : (
+                          <><RefreshCw className="h-3 w-3" />Regenerar análise com dados atualizados</>
+                        )}
+                      </Button>
                     </div>
                   </div>
                 </div>
