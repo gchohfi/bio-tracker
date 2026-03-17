@@ -47,6 +47,7 @@ import { PreviousEncounterContext } from "@/components/encounter/PreviousEncount
 import { EncounterAIInlineSummary } from "@/components/encounter/EncounterAIInlineSummary";
 import { generateEncounterPdf, type EncounterPdfParams } from "@/lib/generateEncounterPdf";
 import { LinkedExamsSection } from "@/components/encounter/LinkedExamsSection";
+import { GenerateAnalysisDialog } from "@/components/encounter/GenerateAnalysisDialog";
 import { buildReviewedReport } from "@/lib/buildReviewedReport";
 import type { PrescriptionItem } from "@/components/EncounterPrescriptionEditor";
 
@@ -180,6 +181,7 @@ export default function EncounterWorkspace() {
   const [stalenessReasons, setStalenessReasons] = useState<string[]>([]);
   const [allLabSessionIds, setAllLabSessionIds] = useState<string[]>([]);
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
+  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
 
   const isFinalized = encounter?.status === "finalized";
 
@@ -701,6 +703,54 @@ export default function EncounterWorkspace() {
             </CardContent>
           </Card>
 
+          {/* ── Prominent CTA: Generate AI Analysis ── */}
+          {!v2Data && !isGeneratingAnalysis && (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="py-3 px-5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center justify-center h-9 w-9 rounded-full bg-primary/10 shrink-0">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">Análise IA disponível</p>
+                    <p className="text-[11px] text-muted-foreground">Gere insights clínicos, hipóteses e sugestões para esta consulta</p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => setShowGenerateDialog(true)}
+                  className="gap-1.5 shrink-0"
+                >
+                  <Brain className="h-3.5 w-3.5" />
+                  Gerar Análise
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Generate Analysis Dialog */}
+          <GenerateAnalysisDialog
+            open={showGenerateDialog}
+            onOpenChange={setShowGenerateDialog}
+            encounterId={encounter.id}
+            patientId={patient.id}
+            encounterDate={encounter.encounter_date}
+            specialtyId={encounter.specialty_id}
+            specialtyName={specialtyName}
+            note={{
+              subjective: note.subjective,
+              objective: note.objective,
+              assessment: note.assessment,
+              plan: note.plan,
+              exams_requested: note.exams_requested,
+              medications: note.medications,
+              free_notes: note.free_notes,
+            }}
+            chiefComplaint={encounter.chief_complaint}
+            onConfirm={handleGenerateEncounterAnalysis}
+            isGenerating={isGeneratingAnalysis}
+          />
+
           {/* ── SUB-TABS ── */}
           <Tabs value={subTab} onValueChange={setSubTab}>
             <div className="overflow-x-auto -mx-1 px-1">
@@ -824,7 +874,7 @@ export default function EncounterWorkspace() {
                 v2Data={v2Data}
                 analysisId={analysis?.id}
                 onOpenFullAnalysis={() => setSubTab("ia")}
-                onRequestGenerate={handleGenerateEncounterAnalysis}
+                onRequestGenerate={() => setShowGenerateDialog(true)}
                 isGenerating={isGeneratingAnalysis}
               />
             </TabsContent>
@@ -1116,7 +1166,7 @@ export default function EncounterWorkspace() {
                     </div>
                     <Button
                       size="lg"
-                      onClick={handleGenerateEncounterAnalysis}
+                      onClick={() => setShowGenerateDialog(true)}
                       disabled={isGeneratingAnalysis}
                       className="gap-2 mt-2"
                     >
