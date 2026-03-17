@@ -32,22 +32,24 @@ import {
   FileText,
   Pill,
   ClipboardList,
-  LayoutDashboard,
+  
   AlertTriangle,
   RefreshCw,
   Info,
   Trash2,
   FileDown,
   Sparkles,
+  Circle,
 } from "lucide-react";
 import { EncounterPrescriptionEditor } from "@/components/EncounterPrescriptionEditor";
 import ClinicalReportV2, { type AnalysisV2Data } from "@/components/ClinicalReportV2";
 import { PatientLongitudinalContext } from "@/components/encounter/PatientLongitudinalContext";
 import { PreviousEncounterContext } from "@/components/encounter/PreviousEncounterContext";
-import { EncounterAIInlineSummary } from "@/components/encounter/EncounterAIInlineSummary";
+
 import { generateEncounterPdf, type EncounterPdfParams } from "@/lib/generateEncounterPdf";
 import { LinkedExamsSection } from "@/components/encounter/LinkedExamsSection";
 import { GenerateAnalysisDialog } from "@/components/encounter/GenerateAnalysisDialog";
+import { EncounterProgressTracker, type StepStatus } from "@/components/encounter/EncounterProgressTracker";
 import { buildReviewedReport } from "@/lib/buildReviewedReport";
 import type { PrescriptionItem } from "@/components/EncounterPrescriptionEditor";
 
@@ -177,26 +179,41 @@ export default function EncounterWorkspace() {
   const [relevantMarkers, setRelevantMarkers] = useState<RelevantMarker[]>([]);
   const [lastSessionDate, setLastSessionDate] = useState<string | null>(null);
   const [specialtyName, setSpecialtyName] = useState<string>("");
-  const [subTab, setSubTab] = useState("resumo");
+  const [subTab, setSubTab] = useState("exames");
   const [stalenessReasons, setStalenessReasons] = useState<string[]>([]);
   const [allLabSessionIds, setAllLabSessionIds] = useState<string[]>([]);
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
+  const [linkedExamsCount, setLinkedExamsCount] = useState(0);
+  const [hasPrescription, setHasPrescription] = useState(false);
 
   const isFinalized = encounter?.status === "finalized";
+  const hasNote = !!(note.subjective || note.objective || note.assessment || note.plan);
+
+  const stepStatus: StepStatus = useMemo(() => ({
+    exams: linkedExamsCount > 0,
+    soap: hasNote,
+    analysis: !!v2Data,
+    prescription: hasPrescription,
+    finalized: !!isFinalized,
+  }), [linkedExamsCount, hasNote, v2Data, hasPrescription, isFinalized]);
 
   // ── Load all data ──
   const loadData = useCallback(async () => {
     if (!user?.id || !patientId || !encounterId) return;
     setLoading(true);
 
-    const [patientRes, encounterRes, noteRes, analysisRes, sessionsRes, specialtyRes] = await Promise.all([
+    const [patientRes, encounterRes, noteRes, analysisRes, sessionsRes, specialtyRes, linkedLabRes, linkedBodyRes, linkedImgRes, prescriptionRes] = await Promise.all([
       supabase.from("patients").select("id, name, sex, birth_date").eq("id", patientId).single(),
       (supabase as any).from("clinical_encounters").select("*").eq("id", encounterId).single(),
       (supabase as any).from("clinical_evolution_notes").select("*").eq("encounter_id", encounterId).single(),
       (supabase as any).from("patient_analyses").select("*").eq("encounter_id", encounterId).order("created_at", { ascending: false }).limit(1),
       (supabase as any).from("lab_sessions").select("id, session_date").eq("patient_id", patientId).order("session_date", { ascending: false }),
       (supabase as any).from("analysis_prompts").select("specialty_id, specialty_name").eq("is_active", true),
+      (supabase as any).from("lab_sessions").select("id", { count: "exact", head: true }).eq("encounter_id", encounterId),
+      (supabase as any).from("body_composition_sessions").select("id", { count: "exact", head: true }).eq("encounter_id", encounterId),
+      (supabase as any).from("imaging_reports").select("id", { count: "exact", head: true }).eq("encounter_id", encounterId),
+      (supabase as any).from("clinical_prescriptions").select("id", { count: "exact", head: true }).eq("encounter_id", encounterId),
     ]);
 
     if (patientRes.data) setPatient(patientRes.data as Patient);
@@ -206,6 +223,10 @@ export default function EncounterWorkspace() {
     } else {
       setNote({ encounter_id: encounterId, ...EMPTY_NOTE });
     }
+
+    // Linked items count
+    setLinkedExamsCount((linkedLabRes.count ?? 0) + (linkedBodyRes.count ?? 0) + (linkedImgRes.count ?? 0));
+    setHasPrescription((prescriptionRes.count ?? 0) > 0);
 
     // All lab sessions for staleness check
     const allSessions = sessionsRes.data ?? [];
@@ -549,8 +570,12 @@ export default function EncounterWorkspace() {
     );
   }
 
-  // ── Derived ──
+  // ── Derived (non-hook) ──
   const redFlags = v2Data?.red_flags ?? [];
+
+  const handleStepClick = (step: string) => {
+    setSubTab(step);
+  };
 
   return (
     <AppLayout>
@@ -703,30 +728,12 @@ export default function EncounterWorkspace() {
             </CardContent>
           </Card>
 
-          {/* ── Prominent CTA: Generate AI Analysis ── */}
-          {!v2Data && !isGeneratingAnalysis && (
-            <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="py-3 px-5 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex items-center justify-center h-9 w-9 rounded-full bg-primary/10 shrink-0">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground">Análise IA disponível</p>
-                    <p className="text-[11px] text-muted-foreground">Gere insights clínicos, hipóteses e sugestões para esta consulta</p>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => setShowGenerateDialog(true)}
-                  className="gap-1.5 shrink-0"
-                >
-                  <Brain className="h-3.5 w-3.5" />
-                  Gerar Análise
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          {/* ── Progress Tracker ── */}
+          <EncounterProgressTracker
+            status={stepStatus}
+            activeStep={subTab}
+            onStepClick={handleStepClick}
+          />
 
           {/* Generate Analysis Dialog */}
           <GenerateAnalysisDialog
@@ -751,137 +758,20 @@ export default function EncounterWorkspace() {
             isGenerating={isGeneratingAnalysis}
           />
 
-          {/* ── SUB-TABS ── */}
-          <Tabs value={subTab} onValueChange={setSubTab}>
-            <div className="overflow-x-auto -mx-1 px-1">
-              <TabsList className="w-max">
-                <TabsTrigger value="resumo" className="gap-1.5 text-xs">
-                  <LayoutDashboard className="h-3.5 w-3.5" />
-                  Resumo
-                </TabsTrigger>
-                <TabsTrigger value="soap" className="gap-1.5 text-xs">
-                  <FileText className="h-3.5 w-3.5" />
-                  Evolução
-                </TabsTrigger>
-                <TabsTrigger value="prescricao" className="gap-1.5 text-xs">
-                  <Pill className="h-3.5 w-3.5" />
-                  Prescrição
-                </TabsTrigger>
-                <TabsTrigger value="exames" className="gap-1.5 text-xs">
-                  <FlaskConical className="h-3.5 w-3.5" />
-                  Exames
-                </TabsTrigger>
-                <TabsTrigger value="ia" className="gap-1.5 text-xs">
-                  <Brain className="h-3.5 w-3.5" />
-                  {v2Data ? "IA Completa" : "Análise IA"}
-                </TabsTrigger>
-              </TabsList>
-            </div>
+          {/* ── STEP CONTENT ── */}
+          <Tabs value={subTab} onValueChange={setSubTab} className="mt-0">
+            {/* Hidden TabsList — navigation is via ProgressTracker */}
+            <TabsList className="hidden">
+              <TabsTrigger value="exames" />
+              <TabsTrigger value="soap" />
+              <TabsTrigger value="ia" />
+              <TabsTrigger value="prescricao" />
+              <TabsTrigger value="finalizar" />
+            </TabsList>
 
-            {/* ═══ RESUMO ═══ */}
-            <TabsContent value="resumo" className="mt-4 space-y-4">
-              {/* Longitudinal patient context */}
-              {encounter && user && (
-                <>
-                  <PatientLongitudinalContext
-                    patientId={patient.id}
-                    currentEncounterId={encounter.id}
-                    practitionerId={user.id}
-                  />
-                  <PreviousEncounterContext
-                    patientId={patient.id}
-                    currentEncounterId={encounter.id}
-                    practitionerId={user.id}
-                  />
-                </>
-              )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* SOAP preview */}
-                <Card className="cursor-pointer hover:border-primary/30 transition-colors" onClick={() => setSubTab("soap")}>
-                  <CardContent className="py-3 px-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <FileText className="h-3.5 w-3.5 text-primary" />
-                      <span className="text-xs font-medium">Evolução Clínica</span>
-                      {note.subjective || note.objective || note.assessment || note.plan ? (
-                        <Badge variant="secondary" className="text-[9px] h-4 px-1">Preenchida</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-[9px] h-4 px-1">Pendente</Badge>
-                      )}
-                    </div>
-                    {note.assessment ? (
-                      <p className="text-[11px] text-foreground/70 line-clamp-2">{note.assessment}</p>
-                    ) : (
-                      <p className="text-[11px] text-muted-foreground">Clique para preencher</p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Prescription preview */}
-                <Card className="cursor-pointer hover:border-primary/30 transition-colors" onClick={() => setSubTab("prescricao")}>
-                  <CardContent className="py-3 px-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Pill className="h-3.5 w-3.5 text-primary" />
-                      <span className="text-xs font-medium">Prescrição</span>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground">Ver ou editar prescrição da consulta</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Relevant exams inline */}
-              {(relevantMarkers.length > 0 || lastSessionDate) && (
-                <Card>
-                  <CardContent className="py-3 px-5">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <FlaskConical className="h-3.5 w-3.5 text-primary" />
-                        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-                          Exames Relevantes
-                        </span>
-                      </div>
-                      {lastSessionDate && (
-                        <span className="text-[10px] text-muted-foreground">
-                          Sessão: {format(parseISO(lastSessionDate), "dd/MM/yyyy", { locale: ptBR })}
-                        </span>
-                      )}
-                    </div>
-                    {relevantMarkers.length > 0 ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {relevantMarkers.map((m, i) => (
-                          <div
-                            key={i}
-                            className={cn(
-                              "rounded-md px-2.5 py-1.5 text-[11px]",
-                              m.flag?.startsWith("critical") ? "bg-destructive/10 text-destructive" : "bg-accent text-foreground"
-                            )}
-                          >
-                            <span className="font-medium">{m.marker_name}</span>
-                            <span className="ml-1 text-muted-foreground">
-                              {m.value != null ? m.value : m.text_value}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">Sem marcadores alterados na última sessão.</p>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* AI Analysis inline summary */}
-              <EncounterAIInlineSummary
-                v2Data={v2Data}
-                analysisId={analysis?.id}
-                onOpenFullAnalysis={() => setSubTab("ia")}
-                onRequestGenerate={() => setShowGenerateDialog(true)}
-                isGenerating={isGeneratingAnalysis}
-              />
-            </TabsContent>
-
-            {/* ═══ EVOLUÇÃO ═══ */}
-            <TabsContent value="soap" className="mt-4 space-y-3">
-              {/* Longitudinal patient context in SOAP tab */}
+            {/* ═══ STEP 1: EXAMES ═══ */}
+            <TabsContent value="exames" className="mt-4 space-y-4">
+              {/* Longitudinal context */}
               {encounter && user && (
                 <PatientLongitudinalContext
                   patientId={patient.id}
@@ -889,169 +779,6 @@ export default function EncounterWorkspace() {
                   practitionerId={user.id}
                 />
               )}
-
-              {/* ── Chief complaint (editable on encounter) ── */}
-              <Card className="border-primary/20 bg-primary/5">
-                <CardContent className="py-3 px-5">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <ClipboardList className="h-3.5 w-3.5 text-primary" />
-                    <label className="text-[10px] font-semibold uppercase tracking-wide text-primary">
-                      Motivo / Queixa principal
-                    </label>
-                  </div>
-                  {isFinalized ? (
-                    <p className="text-sm text-foreground/80">{encounter?.chief_complaint || <span className="text-muted-foreground italic">Não informado</span>}</p>
-                  ) : (
-                    <input
-                      type="text"
-                      value={encounter?.chief_complaint || ""}
-                      onChange={(e) => setEncounter((prev) => prev ? { ...prev, chief_complaint: e.target.value } : prev)}
-                      onBlur={async () => {
-                        if (encounter) {
-                          await (supabase as any).from("clinical_encounters").update({ chief_complaint: encounter.chief_complaint || null }).eq("id", encounter.id);
-                        }
-                      }}
-                      className="w-full bg-transparent border-0 border-b border-primary/20 focus:border-primary focus:outline-none text-sm py-1 placeholder:text-muted-foreground/60"
-                      placeholder="Ex: Retorno, fadiga persistente, cefaleia..."
-                    />
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* ── Main clinical fields ── */}
-              <Card>
-                <CardContent className="py-4 px-5 space-y-5">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-primary" />
-                    <h2 className="text-sm font-semibold text-foreground">Evolução Clínica</h2>
-                    {isFinalized && (
-                      <Badge variant="secondary" className="text-[9px] h-4 px-1.5">Somente leitura</Badge>
-                    )}
-                  </div>
-
-                  {/* Subjective — what changed */}
-                  <EvolutionField
-                    label="O que mudou desde a última consulta"
-                    hint="Relato do paciente sobre evolução, sintomas novos ou melhorados"
-                    value={note.subjective}
-                    onChange={(v) => setNote((prev) => ({ ...prev, subjective: v }))}
-                    disabled={isFinalized}
-                    placeholder="Relato do paciente, evolução dos sintomas..."
-                    rows={3}
-                    color="text-blue-600 dark:text-blue-400"
-                  />
-
-                  {/* Objective — findings */}
-                  <EvolutionField
-                    label="Achados objetivos relevantes"
-                    hint="Exame físico, sinais vitais, dados mensuráveis"
-                    value={note.objective}
-                    onChange={(v) => setNote((prev) => ({ ...prev, objective: v }))}
-                    disabled={isFinalized}
-                    placeholder="PA, FC, exame físico dirigido, dados mensuráveis..."
-                    rows={3}
-                    color="text-violet-600 dark:text-violet-400"
-                  />
-
-                  <Separator />
-
-                  {/* Assessment */}
-                  <EvolutionField
-                    label="Avaliação clínica"
-                    hint="Impressão diagnóstica, hipóteses, correlações"
-                    value={note.assessment}
-                    onChange={(v) => setNote((prev) => ({ ...prev, assessment: v }))}
-                    disabled={isFinalized}
-                    placeholder="Impressão diagnóstica, correlações clínicas..."
-                    rows={3}
-                    color="text-amber-600 dark:text-amber-400"
-                    important
-                  />
-
-                  {/* Plan */}
-                  <EvolutionField
-                    label="Conduta / Plano"
-                    hint="Tratamento, ajustes terapêuticos, orientações"
-                    value={note.plan}
-                    onChange={(v) => setNote((prev) => ({ ...prev, plan: v }))}
-                    disabled={isFinalized}
-                    placeholder="Tratamento, ajustes, orientações..."
-                    rows={3}
-                    color="text-emerald-600 dark:text-emerald-400"
-                    important
-                  />
-
-                  <Separator />
-
-                  {/* Exams requested */}
-                  <EvolutionField
-                    label="Exames pedidos / Próximos passos"
-                    value={note.exams_requested}
-                    onChange={(v) => setNote((prev) => ({ ...prev, exams_requested: v }))}
-                    disabled={isFinalized}
-                    placeholder="Exames a solicitar, retorno, encaminhamentos..."
-                    rows={2}
-                    color="text-cyan-600 dark:text-cyan-400"
-                  />
-
-                  {/* Medications */}
-                  <EvolutionField
-                    label="Medicações"
-                    value={note.medications}
-                    onChange={(v) => setNote((prev) => ({ ...prev, medications: v }))}
-                    disabled={isFinalized}
-                    placeholder="Medicamentos prescritos ou ajustados..."
-                    rows={2}
-                    color="text-pink-600 dark:text-pink-400"
-                  />
-
-                  {/* Free notes */}
-                  <EvolutionField
-                    label="Observações"
-                    value={note.free_notes}
-                    onChange={(v) => setNote((prev) => ({ ...prev, free_notes: v }))}
-                    disabled={isFinalized}
-                    placeholder="Notas livres, lembretes, contexto adicional..."
-                    rows={2}
-                    color="text-muted-foreground"
-                    optional
-                  />
-
-                  {!isFinalized && (
-                    <div className="flex justify-end">
-                      <Button size="sm" variant="outline" onClick={handleSave} disabled={saving} className="gap-1.5">
-                        {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                        Salvar nota
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* ═══ PRESCRIÇÃO ═══ */}
-            <TabsContent value="prescricao" className="mt-4">
-              <Card>
-                <CardContent className="py-4 px-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Pill className="h-4 w-4 text-primary" />
-                    <h2 className="text-sm font-semibold text-foreground">Prescrição</h2>
-                  </div>
-                  <EncounterPrescriptionEditor
-                    encounterId={encounter.id}
-                    patientId={patient.id}
-                    specialtyId={encounter.specialty_id}
-                    isFinalized={isFinalized}
-                    legacyPrescription={analysis?.prescription_table as any[] | undefined}
-                    patientName={patient.name}
-                    practitionerName=""
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* ═══ EXAMES RELEVANTES ═══ */}
-            <TabsContent value="exames" className="mt-4 space-y-4">
               {/* Linked exams section */}
               {encounter && user && (
                 <LinkedExamsSection
@@ -1101,31 +828,106 @@ export default function EncounterWorkspace() {
                     <p className="text-sm text-muted-foreground">Sem marcadores alterados na última sessão.</p>
                   )}
                   <div className="mt-3 flex gap-2">
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="text-xs h-auto p-0 text-primary"
-                      onClick={() => navigate(`/patient/${patientId}?tab=evolutivo`)}
-                    >
-                      Ver evolutivo completo
-                      <ChevronRight className="h-3 w-3 ml-0.5" />
+                    <Button variant="link" size="sm" className="text-xs h-auto p-0 text-primary" onClick={() => navigate(`/patient/${patientId}?tab=evolutivo`)}>
+                      Ver evolutivo completo <ChevronRight className="h-3 w-3 ml-0.5" />
                     </Button>
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="text-xs h-auto p-0 text-primary"
-                      onClick={() => navigate(`/patient/${patientId}?tab=exames`)}
-                    >
-                      Ver todos os exames
-                      <ChevronRight className="h-3 w-3 ml-0.5" />
+                    <Button variant="link" size="sm" className="text-xs h-auto p-0 text-primary" onClick={() => navigate(`/patient/${patientId}?tab=exames`)}>
+                      Ver todos os exames <ChevronRight className="h-3 w-3 ml-0.5" />
                     </Button>
                   </div>
                 </CardContent>
               </Card>
+              {/* Next step */}
+              <div className="flex justify-end">
+                <Button size="sm" onClick={() => setSubTab("soap")} className="gap-1.5">
+                  Próximo: Evolução Clínica <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </TabsContent>
 
-            {/* ═══ IA COMPLETA ═══ */}
-            <TabsContent value="ia" className="mt-4">
+            {/* ═══ STEP 2: EVOLUÇÃO ═══ */}
+            <TabsContent value="soap" className="mt-4 space-y-3">
+              {encounter && user && (
+                <PreviousEncounterContext
+                  patientId={patient.id}
+                  currentEncounterId={encounter.id}
+                  practitionerId={user.id}
+                />
+              )}
+
+              {/* Chief complaint */}
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="py-3 px-5">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <ClipboardList className="h-3.5 w-3.5 text-primary" />
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-primary">
+                      Motivo / Queixa principal
+                    </label>
+                  </div>
+                  {isFinalized ? (
+                    <p className="text-sm text-foreground/80">{encounter?.chief_complaint || <span className="text-muted-foreground italic">Não informado</span>}</p>
+                  ) : (
+                    <input
+                      type="text"
+                      value={encounter?.chief_complaint || ""}
+                      onChange={(e) => setEncounter((prev) => prev ? { ...prev, chief_complaint: e.target.value } : prev)}
+                      onBlur={async () => {
+                        if (encounter) {
+                          await (supabase as any).from("clinical_encounters").update({ chief_complaint: encounter.chief_complaint || null }).eq("id", encounter.id);
+                        }
+                      }}
+                      className="w-full bg-transparent border-0 border-b border-primary/20 focus:border-primary focus:outline-none text-sm py-1 placeholder:text-muted-foreground/60"
+                      placeholder="Ex: Retorno, fadiga persistente, cefaleia..."
+                    />
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Main clinical fields */}
+              <Card>
+                <CardContent className="py-4 px-5 space-y-5">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <h2 className="text-sm font-semibold text-foreground">Evolução Clínica</h2>
+                    {isFinalized && (
+                      <Badge variant="secondary" className="text-[9px] h-4 px-1.5">Somente leitura</Badge>
+                    )}
+                  </div>
+
+                  <EvolutionField label="O que mudou desde a última consulta" hint="Relato do paciente sobre evolução, sintomas novos ou melhorados" value={note.subjective} onChange={(v) => setNote((prev) => ({ ...prev, subjective: v }))} disabled={isFinalized} placeholder="Relato do paciente, evolução dos sintomas..." rows={3} color="text-blue-600 dark:text-blue-400" />
+                  <EvolutionField label="Achados objetivos relevantes" hint="Exame físico, sinais vitais, dados mensuráveis" value={note.objective} onChange={(v) => setNote((prev) => ({ ...prev, objective: v }))} disabled={isFinalized} placeholder="PA, FC, exame físico dirigido, dados mensuráveis..." rows={3} color="text-violet-600 dark:text-violet-400" />
+                  <Separator />
+                  <EvolutionField label="Avaliação clínica" hint="Impressão diagnóstica, hipóteses, correlações" value={note.assessment} onChange={(v) => setNote((prev) => ({ ...prev, assessment: v }))} disabled={isFinalized} placeholder="Impressão diagnóstica, correlações clínicas..." rows={3} color="text-amber-600 dark:text-amber-400" important />
+                  <EvolutionField label="Conduta / Plano" hint="Tratamento, ajustes terapêuticos, orientações" value={note.plan} onChange={(v) => setNote((prev) => ({ ...prev, plan: v }))} disabled={isFinalized} placeholder="Tratamento, ajustes, orientações..." rows={3} color="text-emerald-600 dark:text-emerald-400" important />
+                  <Separator />
+                  <EvolutionField label="Exames pedidos / Próximos passos" value={note.exams_requested} onChange={(v) => setNote((prev) => ({ ...prev, exams_requested: v }))} disabled={isFinalized} placeholder="Exames a solicitar, retorno, encaminhamentos..." rows={2} color="text-cyan-600 dark:text-cyan-400" />
+                  <EvolutionField label="Medicações" value={note.medications} onChange={(v) => setNote((prev) => ({ ...prev, medications: v }))} disabled={isFinalized} placeholder="Medicamentos prescritos ou ajustados..." rows={2} color="text-pink-600 dark:text-pink-400" />
+                  <EvolutionField label="Observações" value={note.free_notes} onChange={(v) => setNote((prev) => ({ ...prev, free_notes: v }))} disabled={isFinalized} placeholder="Notas livres, lembretes, contexto adicional..." rows={2} color="text-muted-foreground" optional />
+
+                  {!isFinalized && (
+                    <div className="flex justify-between">
+                      <Button size="sm" variant="outline" onClick={handleSave} disabled={saving} className="gap-1.5">
+                        {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                        Salvar nota
+                      </Button>
+                      <Button size="sm" onClick={() => { handleSave(); setSubTab("ia"); }} className="gap-1.5">
+                        Próximo: Análise IA <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                  {isFinalized && (
+                    <div className="flex justify-end">
+                      <Button size="sm" onClick={() => setSubTab("ia")} className="gap-1.5">
+                        Próximo: Análise IA <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* ═══ STEP 3: ANÁLISE IA ═══ */}
+            <TabsContent value="ia" className="mt-4 space-y-4">
               {v2Data ? (
                 <>
                   <ClinicalReportV2
@@ -1135,8 +937,7 @@ export default function EncounterWorkspace() {
                     patientId={patient.id}
                     specialtyId={encounter.specialty_id}
                   />
-                  {/* Regenerate button */}
-                  <div className="mt-4 flex justify-center">
+                  <div className="flex items-center justify-between">
                     <Button
                       variant="outline"
                       size="sm"
@@ -1150,6 +951,9 @@ export default function EncounterWorkspace() {
                         <><RefreshCw className="h-3.5 w-3.5" />Regenerar análise</>
                       )}
                     </Button>
+                    <Button size="sm" onClick={() => setSubTab("prescricao")} className="gap-1.5">
+                      Próximo: Prescrição <ChevronRight className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </>
               ) : (
@@ -1161,7 +965,7 @@ export default function EncounterWorkspace() {
                     <div className="max-w-sm">
                       <h3 className="text-base font-semibold text-foreground">Nenhuma análise IA nesta consulta</h3>
                       <p className="text-sm text-muted-foreground mt-2">
-                        Gere uma análise inteligente para obter insights clínicos, hipóteses diagnósticas, alertas críticos e sugestões de conduta baseadas nos exames do paciente.
+                        Gere uma análise inteligente para obter insights clínicos, hipóteses diagnósticas, alertas críticos e sugestões de conduta.
                       </p>
                     </div>
                     <Button
@@ -1173,15 +977,126 @@ export default function EncounterWorkspace() {
                       {isGeneratingAnalysis ? (
                         <><Loader2 className="h-4 w-4 animate-spin" />Gerando análise...</>
                       ) : (
-                        <><Sparkles className="h-4 w-4" />Gerar Análise IA para esta Consulta</>
+                        <><Sparkles className="h-4 w-4" />Gerar Análise IA</>
                       )}
                     </Button>
-                    <p className="text-[10px] text-muted-foreground max-w-xs">
-                      A análise será vinculada a esta consulta e poderá ser revisada, editada e incluída no PDF.
-                    </p>
+                    <div className="flex justify-end w-full mt-4">
+                      <Button size="sm" variant="outline" onClick={() => setSubTab("prescricao")} className="gap-1.5">
+                        Pular para Prescrição <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               )}
+            </TabsContent>
+
+            {/* ═══ STEP 4: PRESCRIÇÃO ═══ */}
+            <TabsContent value="prescricao" className="mt-4 space-y-4">
+              <Card>
+                <CardContent className="py-4 px-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Pill className="h-4 w-4 text-primary" />
+                    <h2 className="text-sm font-semibold text-foreground">Prescrição</h2>
+                  </div>
+                  <EncounterPrescriptionEditor
+                    encounterId={encounter.id}
+                    patientId={patient.id}
+                    specialtyId={encounter.specialty_id}
+                    isFinalized={isFinalized}
+                    legacyPrescription={analysis?.prescription_table as any[] | undefined}
+                    patientName={patient.name}
+                    practitionerName=""
+                  />
+                </CardContent>
+              </Card>
+              <div className="flex justify-end">
+                <Button size="sm" onClick={() => setSubTab("finalizar")} className="gap-1.5">
+                  Próximo: Finalizar <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </TabsContent>
+
+            {/* ═══ STEP 5: FINALIZAR ═══ */}
+            <TabsContent value="finalizar" className="mt-4 space-y-4">
+              <Card>
+                <CardContent className="py-5 px-5 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                    <h2 className="text-base font-semibold text-foreground">Resumo do Atendimento</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Revise o status de cada etapa antes de finalizar a consulta.
+                  </p>
+
+                  <div className="space-y-2">
+                    {[
+                      { label: "Exames vinculados", done: stepStatus.exams, step: "exames", detail: stepStatus.exams ? `${linkedExamsCount} item(ns) vinculado(s)` : "Nenhum exame vinculado" },
+                      { label: "Evolução clínica", done: stepStatus.soap, step: "soap", detail: stepStatus.soap ? "Nota SOAP preenchida" : "Nenhum campo preenchido" },
+                      { label: "Análise IA", done: stepStatus.analysis, step: "ia", detail: stepStatus.analysis ? "Análise gerada" : "Ainda não gerada" },
+                      { label: "Prescrição", done: stepStatus.prescription, step: "prescricao", detail: stepStatus.prescription ? "Prescrição criada" : "Sem prescrição" },
+                    ].map((item) => (
+                      <button
+                        key={item.step}
+                        onClick={() => setSubTab(item.step)}
+                        className={cn(
+                          "w-full flex items-center gap-3 rounded-md px-4 py-3 text-left transition-colors hover:bg-accent/50",
+                          item.done ? "bg-emerald-500/5" : "bg-muted/30"
+                        )}
+                      >
+                        {item.done ? (
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                        ) : (
+                          <Circle className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-foreground">{item.label}</div>
+                          <div className="text-[11px] text-muted-foreground">{item.detail}</div>
+                        </div>
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+
+                  <Separator />
+
+                  {isFinalized ? (
+                    <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 px-4 py-3">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Consulta finalizada</p>
+                        <p className="text-[11px] text-muted-foreground">Esta consulta foi encerrada e está em modo somente leitura.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Pronto para finalizar?</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Após finalizar, a consulta ficará em modo somente leitura.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button size="sm" variant="outline" onClick={handleSave} disabled={saving} className="gap-1.5">
+                          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                          Salvar
+                        </Button>
+                        <Button size="sm" onClick={handleFinalize} className="gap-1.5">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Finalizar Consulta
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Export */}
+              <div className="flex justify-center">
+                <Button variant="outline" size="sm" onClick={handleExportEncounterPdf} className="gap-1.5">
+                  <FileDown className="h-3.5 w-3.5" />
+                  Exportar PDF da Consulta
+                </Button>
+              </div>
             </TabsContent>
           </Tabs>
         </div>
