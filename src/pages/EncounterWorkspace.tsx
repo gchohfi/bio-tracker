@@ -673,9 +673,9 @@ export default function EncounterWorkspace() {
 
             {/* ═══ RESUMO ═══ */}
             <TabsContent value="resumo" className="mt-4 space-y-4">
-              {/* Previous encounter context — always visible in Resumo */}
+              {/* Longitudinal patient context */}
               {encounter && user && (
-                <PreviousEncounterContext
+                <PatientLongitudinalContext
                   patientId={patient.id}
                   currentEncounterId={encounter.id}
                   practitionerId={user.id}
