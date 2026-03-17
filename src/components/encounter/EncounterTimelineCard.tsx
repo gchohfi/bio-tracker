@@ -58,11 +58,14 @@ interface StatusInfo {
 export function EncounterTimelineCard({
   encounter,
   specialtyLabel,
+  patientId,
   isExpanded,
   onToggle,
   onClose,
   children,
 }: EncounterTimelineCardProps) {
+  const { toast } = useToast();
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [noteSummary, setNoteSummary] = useState<NoteSummary | null>(null);
   const [statusInfo, setStatusInfo] = useState<StatusInfo>({ hasAnalysis: false, hasPrescription: false });
   const cardRef = useRef<HTMLDivElement>(null);
