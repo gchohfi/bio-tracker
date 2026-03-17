@@ -399,8 +399,6 @@ export default function EncounterWorkspace() {
           marker_name: marker?.name ?? r.marker_id,
           category: marker?.category ?? "Outros",
           unit: marker?.unit ?? "",
-          conventional_min: marker?.conventional_min ?? null,
-          conventional_max: marker?.conventional_max ?? null,
         };
       });
 
