@@ -53,6 +53,7 @@ import {
   Clock,
   ChevronRight,
   MoreVertical,
+  AlertTriangle,
 } from "lucide-react";
 import EvolutionTable from "@/components/EvolutionTable";
 import EvolutionTimeline from "@/components/EvolutionTimeline";
