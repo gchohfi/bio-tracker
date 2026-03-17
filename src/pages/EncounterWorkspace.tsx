@@ -193,13 +193,17 @@ export default function EncounterWorkspace() {
     if (!user?.id || !patientId || !encounterId) return;
     setLoading(true);
 
-    const [patientRes, encounterRes, noteRes, analysisRes, sessionsRes, specialtyRes] = await Promise.all([
+    const [patientRes, encounterRes, noteRes, analysisRes, sessionsRes, specialtyRes, linkedLabRes, linkedBodyRes, linkedImgRes, prescriptionRes] = await Promise.all([
       supabase.from("patients").select("id, name, sex, birth_date").eq("id", patientId).single(),
       (supabase as any).from("clinical_encounters").select("*").eq("id", encounterId).single(),
       (supabase as any).from("clinical_evolution_notes").select("*").eq("encounter_id", encounterId).single(),
       (supabase as any).from("patient_analyses").select("*").eq("encounter_id", encounterId).order("created_at", { ascending: false }).limit(1),
       (supabase as any).from("lab_sessions").select("id, session_date").eq("patient_id", patientId).order("session_date", { ascending: false }),
       (supabase as any).from("analysis_prompts").select("specialty_id, specialty_name").eq("is_active", true),
+      (supabase as any).from("lab_sessions").select("id", { count: "exact", head: true }).eq("encounter_id", encounterId),
+      (supabase as any).from("body_composition_sessions").select("id", { count: "exact", head: true }).eq("encounter_id", encounterId),
+      (supabase as any).from("imaging_reports").select("id", { count: "exact", head: true }).eq("encounter_id", encounterId),
+      (supabase as any).from("clinical_prescriptions").select("id", { count: "exact", head: true }).eq("encounter_id", encounterId),
     ]);
 
     if (patientRes.data) setPatient(patientRes.data as Patient);
