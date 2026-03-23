@@ -203,11 +203,24 @@ export function useEncounterActions({
       const { data: labData } = await supabase.from("lab_results").select("*").in("session_id", sessionIds);
       const results = (labData || []).map((r) => {
         const marker = MARKERS.find((m) => m.id === r.marker_id);
+        const unit = marker?.unit ?? "";
+        // Compute status to avoid undefined reaching backend .toUpperCase()
+        let status: string = "unknown";
+        if (r.text_value && r.value == null) {
+          status = "qualitative";
+        } else if (r.value != null && marker) {
+          const fMin = marker.functionalMin;
+          const fMax = marker.functionalMax;
+          if (fMin != null && r.value < fMin) status = "low";
+          else if (fMax != null && r.value > fMax) status = "high";
+          else status = "normal";
+        }
         return {
           ...r,
           marker_name: marker?.name ?? r.marker_id,
           category: marker?.category ?? "Outros",
-          unit: marker?.unit ?? "",
+          unit,
+          status,
         };
       });
 
