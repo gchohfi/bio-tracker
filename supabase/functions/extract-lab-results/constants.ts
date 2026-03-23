@@ -132,6 +132,7 @@ export const MARKER_LIST = [
   { id: "pth", name: "PTH", unit: "pg/mL" },
   { id: "calcitonina", name: "Calcitonina", unit: "pg/mL" },
   { id: "pcr", name: "PCR", unit: "mg/L" },
+  { id: "pcr_us", name: "PCR Ultra Sensível", unit: "mg/L" },
   { id: "vhs", name: "VHS", unit: "mm/h" },
   { id: "homocisteina", name: "Homocisteína", unit: "µmol/L" },
   { id: "fibrinogenio", name: "Fibrinogênio", unit: "mg/dL" },
