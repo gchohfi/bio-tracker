@@ -197,8 +197,13 @@ ${prescriptionContext || "Sem prescrição registrada."}
 --- ANAMNESE ---
 ${anamneseContext || "Sem anamnese registrada."}`;
 
-    // 4. Call Lovable AI with streaming
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // 4. Call Lovable AI with streaming (60s timeout)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+    let aiResponse: Response;
+    try {
+      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        signal: controller.signal,
       method: "POST",
       headers: {
         Authorization: "Bearer " + lovableKey,
