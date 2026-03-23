@@ -104,8 +104,9 @@ serve(async (req) => {
 
     // Format encounters
     let encountersContext = "";
-    if (encountersRes.data?.length) {
-      encountersContext = encountersRes.data.map((e: any) => {
+    const encountersList = Array.isArray(encountersRes) ? encountersRes : [];
+    if (encountersList.length) {
+      encountersContext = encountersList.map((e: any) => {
         const notes = e.clinical_evolution_notes?.[0];
         let text = "Consulta " + e.encounter_date + " (" + e.status + ")";
         if (e.chief_complaint) text += "\nQueixa: " + e.chief_complaint;
