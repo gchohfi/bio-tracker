@@ -84,7 +84,7 @@ serve(async (req) => {
         .select("marker_id, value, text_value, session_id")
         .in("session_id", sessionIds);
 
-      const sessionDateMap = new Map(labRes.data.map((s: any) => [s.id, s.session_date]));
+      const sessionDateMap = new Map(labSessions.map((s: any) => [s.id, s.session_date]));
       if (results?.length) {
         const grouped = new Map<string, string[]>();
         for (const r of results) {
