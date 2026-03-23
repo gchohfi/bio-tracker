@@ -76,8 +76,9 @@ serve(async (req) => {
 
     // Fetch lab results for the sessions
     let labContext = "";
-    if (labRes.data?.length) {
-      const sessionIds = labRes.data.map((s: any) => s.id);
+    const labSessions = Array.isArray(labRes) ? labRes : (labRes as any)?.data ?? [];
+    if (labSessions.length) {
+      const sessionIds = labSessions.map((s: any) => s.id);
       const { data: results } = await supabase
         .from("lab_results")
         .select("marker_id, value, text_value, session_id")
