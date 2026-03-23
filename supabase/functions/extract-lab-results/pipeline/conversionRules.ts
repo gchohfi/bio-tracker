@@ -195,6 +195,16 @@ export const CONVERSION_RULES: Record<string, ConversionRuleDef[]> = {
       description: "Albumina urinária g/L → mg/L (×1000)",
     },
   ],
+
+  calcio_ionico: [
+    {
+      from_unit_pattern: "mg\\/d",
+      from_unit_label: "mg/dL",
+      to_unit: "mmol/L",
+      factor: 0.2495,
+      description: "Cálcio Iônico mg/dL → mmol/L (÷4.008)",
+    },
+  ],
 };
 
 // ---------------------------------------------------------------------------
