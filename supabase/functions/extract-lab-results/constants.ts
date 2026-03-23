@@ -276,7 +276,7 @@ export const MARKER_TEXT_TERMS: Record<string, string[]> = {
   ferritina: ['ferritina', 'ferritin'],
   transferrina: ['transferrina', 'transferrin'],
   sat_transferrina: ['saturação de transferrina', 'saturacao de transferrina', 'sat. transferrina', 'sat transferrina', 'índice de saturação', 'ist '],
-  tibc: ['tibc', 'ctff', 'capacidade ferropéxica', 'capacidade ferroxica', 'capacidade total de ligação', 'ctlf'],
+  tibc: ['tibc', 'ctff', 'capacidade ferropéxica', 'capacidade ferroxica', 'capacidade total de ligação', 'capacidade total de combinação', 'ctlf', 'capacidade total de combinacao do ferro'],
   ferro_metabolismo: ['metabolismo do ferro', 'ferro sérico', 'ferro serico'],
   glicose_jejum: ['glicose', 'glicemia', 'glucose', 'glycemia'],
   hba1c: ['hba1c', 'hemoglobina glicada', 'hemoglobina glicosilada', 'a1c', 'hb glicada'],
