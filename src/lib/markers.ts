@@ -642,6 +642,15 @@ export const MARKERS: MarkerDef[] = [
   { id: "urina_muco",      name: "Muco/Filamentos (urina)", unit: "",      category: "Urina",
     labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
 
+  { id: "urina_deposito", name: "Depósito (urina)", unit: "",             category: "Urina",
+    labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
+
+  { id: "urina_leveduras", name: "Leveduras (urina)", unit: "",           category: "Urina",
+    labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
+
+  { id: "urina_protozoarios", name: "Protozoários (urina)", unit: "",     category: "Urina",
+    labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
+
   { id: "urina_albumina",  name: "Albumina (urina)", unit: "mg/L",         category: "Urina",
     labRange: { M: [0, 20], F: [0, 20] }, panel: "Padrão" },
 
