@@ -136,8 +136,9 @@ serve(async (req) => {
 
     // Format prescriptions
     let prescriptionContext = "";
-    if (prescriptionsRes.data?.length) {
-      const p = prescriptionsRes.data[0] as any;
+    const prescriptionsList = Array.isArray(prescriptionsRes) ? prescriptionsRes : [];
+    if (prescriptionsList.length) {
+      const p = prescriptionsList[0] as any;
       const items = Array.isArray(p.prescription_json) ? p.prescription_json : [];
       if (items.length) {
         prescriptionContext = "Prescrição (" + p.created_at?.substring(0, 10) + ", " + p.status + "):\n" +
