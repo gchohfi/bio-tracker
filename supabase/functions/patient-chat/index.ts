@@ -38,7 +38,10 @@ serve(async (req) => {
       .single();
     if (patErr || !patient) throw new Error("Patient not found or access denied");
 
-    // 2. Assemble clinical context in parallel
+    // 2. Assemble clinical context in parallel (resilient — individual failures don't crash the whole chat)
+    const safeQuery = <T>(promise: Promise<{ data: T; error: any }>): Promise<T | null> =>
+      promise.then(({ data, error }) => { if (error) console.warn("Context query failed:", error.message); return data; }).catch((err) => { console.warn("Context query exception:", err); return null; });
+
     const [labRes, encountersRes, analysesRes, prescriptionsRes, anamneseRes] = await Promise.all([
       // Last 3 lab sessions with results
       supabase
