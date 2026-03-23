@@ -38,54 +38,53 @@ serve(async (req) => {
       .single();
     if (patErr || !patient) throw new Error("Patient not found or access denied");
 
-    // 2. Assemble clinical context in parallel
+    // 2. Assemble clinical context in parallel (resilient — individual failures don't crash the whole chat)
+    const safeQuery = <T>(promise: Promise<{ data: T; error: any }>): Promise<T | null> =>
+      promise.then(({ data, error }) => { if (error) console.warn("Context query failed:", error.message); return data; }).catch((err) => { console.warn("Context query exception:", err); return null; });
+
     const [labRes, encountersRes, analysesRes, prescriptionsRes, anamneseRes] = await Promise.all([
-      // Last 3 lab sessions with results
-      supabase
+      safeQuery(supabase
         .from("lab_sessions")
         .select("id, session_date")
         .eq("patient_id", patient_id)
         .order("session_date", { ascending: false })
-        .limit(3),
-      // Last 3 encounters with SOAP notes
-      supabase
+        .limit(3)),
+      safeQuery(supabase
         .from("clinical_encounters")
         .select("id, encounter_date, chief_complaint, status, clinical_evolution_notes(subjective, objective, assessment, plan, medications, exams_requested)")
         .eq("patient_id", patient_id)
         .order("encounter_date", { ascending: false })
-        .limit(3),
-      // Last 2 analyses
-      supabase
+        .limit(3)),
+      safeQuery(supabase
         .from("patient_analyses")
         .select("id, created_at, summary, technical_analysis, patient_plan, specialty_name")
         .eq("patient_id", patient_id)
         .order("created_at", { ascending: false })
-        .limit(2),
-      // Last prescription
-      supabase
+        .limit(2)),
+      safeQuery(supabase
         .from("clinical_prescriptions")
         .select("id, created_at, prescription_json, status, specialty_id")
         .eq("patient_id", patient_id)
         .order("created_at", { ascending: false })
-        .limit(1),
-      // Anamnese
-      supabase
+        .limit(1)),
+      safeQuery(supabase
         .from("patient_anamneses")
         .select("anamnese_text, structured_data, specialty_id")
         .eq("patient_id", patient_id)
-        .limit(1),
+        .limit(1)),
     ]);
 
     // Fetch lab results for the sessions
     let labContext = "";
-    if (labRes.data?.length) {
-      const sessionIds = labRes.data.map((s: any) => s.id);
+    const labSessions = Array.isArray(labRes) ? labRes : (labRes as any)?.data ?? [];
+    if (labSessions.length) {
+      const sessionIds = labSessions.map((s: any) => s.id);
       const { data: results } = await supabase
         .from("lab_results")
         .select("marker_id, value, text_value, session_id")
         .in("session_id", sessionIds);
 
-      const sessionDateMap = new Map(labRes.data.map((s: any) => [s.id, s.session_date]));
+      const sessionDateMap = new Map(labSessions.map((s: any) => [s.id, s.session_date]));
       if (results?.length) {
         const grouped = new Map<string, string[]>();
         for (const r of results) {
@@ -105,8 +104,9 @@ serve(async (req) => {
 
     // Format encounters
     let encountersContext = "";
-    if (encountersRes.data?.length) {
-      encountersContext = encountersRes.data.map((e: any) => {
+    const encountersList = Array.isArray(encountersRes) ? encountersRes : [];
+    if (encountersList.length) {
+      encountersContext = encountersList.map((e: any) => {
         const notes = e.clinical_evolution_notes?.[0];
         let text = "Consulta " + e.encounter_date + " (" + e.status + ")";
         if (e.chief_complaint) text += "\nQueixa: " + e.chief_complaint;
@@ -123,8 +123,9 @@ serve(async (req) => {
 
     // Format analyses
     let analysesContext = "";
-    if (analysesRes.data?.length) {
-      analysesContext = analysesRes.data.map((a: any) => {
+    const analysesList = Array.isArray(analysesRes) ? analysesRes : [];
+    if (analysesList.length) {
+      analysesContext = analysesList.map((a: any) => {
         let text = "Análise IA (" + a.created_at?.substring(0, 10) + ", " + (a.specialty_name || "geral") + ")";
         if (a.summary) text += "\nResumo: " + a.summary;
         if (a.technical_analysis) text += "\nAnálise técnica: " + a.technical_analysis.substring(0, 1500);
@@ -135,8 +136,9 @@ serve(async (req) => {
 
     // Format prescriptions
     let prescriptionContext = "";
-    if (prescriptionsRes.data?.length) {
-      const p = prescriptionsRes.data[0] as any;
+    const prescriptionsList = Array.isArray(prescriptionsRes) ? prescriptionsRes : [];
+    if (prescriptionsList.length) {
+      const p = prescriptionsList[0] as any;
       const items = Array.isArray(p.prescription_json) ? p.prescription_json : [];
       if (items.length) {
         prescriptionContext = "Prescrição (" + p.created_at?.substring(0, 10) + ", " + p.status + "):\n" +
@@ -146,8 +148,9 @@ serve(async (req) => {
 
     // Format anamnese
     let anamneseContext = "";
-    if (anamneseRes.data?.length) {
-      const a = anamneseRes.data[0] as any;
+    const anamneseList = Array.isArray(anamneseRes) ? anamneseRes : [];
+    if (anamneseList.length) {
+      const a = anamneseList[0] as any;
       if (a.anamnese_text) anamneseContext = "Anamnese:\n" + a.anamnese_text.substring(0, 2000);
     }
 
@@ -194,22 +197,38 @@ ${prescriptionContext || "Sem prescrição registrada."}
 --- ANAMNESE ---
 ${anamneseContext || "Sem anamnese registrada."}`;
 
-    // 4. Call Lovable AI with streaming
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // 4. Call Lovable AI with streaming (60s timeout)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+    let aiResponse: Response;
+    try {
+      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        signal: controller.signal,
       method: "POST",
       headers: {
         Authorization: "Bearer " + lovableKey,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages,
-        ],
-        stream: true,
-      }),
-    });
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...messages,
+          ],
+          stream: true,
+        }),
+      });
+    } catch (fetchErr: any) {
+      clearTimeout(timeout);
+      if (fetchErr.name === "AbortError") {
+        return new Response(JSON.stringify({ error: "Tempo limite atingido. Tente uma pergunta mais curta." }), {
+          status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      throw fetchErr;
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!aiResponse.ok) {
       const status = aiResponse.status;

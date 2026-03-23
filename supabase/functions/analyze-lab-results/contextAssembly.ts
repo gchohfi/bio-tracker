@@ -188,7 +188,7 @@ export async function fetchClinicalContext(
               .in("id", linkedBodyIds)
               .order("session_date", { ascending: false })
               .then(({ data }: { data: unknown }) => data)
-              .catch(() => null)
+              .catch((err: unknown) => { console.warn("Failed to load linked body comp:", err); return null; })
           : supabaseClient
               .from("body_composition_sessions")
               .select("*")
@@ -196,7 +196,7 @@ export async function fetchClinicalContext(
               .order("session_date", { ascending: false })
               .limit(2)
               .then(({ data }: { data: unknown }) => data)
-              .catch(() => null))
+              .catch((err: unknown) => { console.warn("Failed to load body comp:", err); return null; }))
       : Promise.resolve(null),
     shouldFetchImaging
       ? (linkedImagingIds.length > 0
@@ -206,7 +206,7 @@ export async function fetchClinicalContext(
               .in("id", linkedImagingIds)
               .order("report_date", { ascending: false })
               .then(({ data }: { data: unknown }) => data)
-              .catch(() => null)
+              .catch((err: unknown) => { console.warn("Failed to load linked imaging:", err); return null; })
           : supabaseClient
               .from("imaging_reports")
               .select("*")
@@ -214,7 +214,7 @@ export async function fetchClinicalContext(
               .order("report_date", { ascending: false })
               .limit(5)
               .then(({ data }: { data: unknown }) => data)
-              .catch(() => null))
+              .catch((err: unknown) => { console.warn("Failed to load imaging:", err); return null; }))
       : Promise.resolve(null),
     supabaseClient
       .from("clinical_encounters")

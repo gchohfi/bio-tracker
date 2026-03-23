@@ -203,11 +203,24 @@ export function useEncounterActions({
       const { data: labData } = await supabase.from("lab_results").select("*").in("session_id", sessionIds);
       const results = (labData || []).map((r) => {
         const marker = MARKERS.find((m) => m.id === r.marker_id);
+        const unit = marker?.unit ?? "";
+        // Compute status to avoid undefined reaching backend .toUpperCase()
+        let status: string = "unknown";
+        if (r.text_value && r.value == null) {
+          status = "qualitative";
+        } else if (r.value != null && marker) {
+          const sex = (patient?.sex === "F" ? "F" : "M") as "M" | "F";
+          const [fMin, fMax] = marker.labRange?.[sex] ?? [0, 0];
+          if (fMin != null && r.value < fMin) status = "low";
+          else if (fMax != null && r.value > fMax) status = "high";
+          else status = "normal";
+        }
         return {
           ...r,
           marker_name: marker?.name ?? r.marker_id,
           category: marker?.category ?? "Outros",
-          unit: marker?.unit ?? "",
+          unit,
+          status,
         };
       });
 
@@ -257,7 +270,7 @@ export function useEncounterActions({
         labResultCount: results.length,
       });
 
-      const { data: savedData } = await (supabase as any)
+      const { data: savedData, error: saveErr } = await (supabase as any)
         .from("patient_analyses")
         .insert({
           patient_id: patient.id,
@@ -282,12 +295,22 @@ export function useEncounterActions({
         .select()
         .single();
 
+      if (saveErr) {
+        console.error("[EncounterWorkspace] Failed to save analysis:", saveErr);
+        toast({ title: "Análise gerada mas falhou ao salvar", description: saveErr.message, variant: "destructive" });
+        return null;
+      }
+
       if (savedData && v2) {
-        await (supabase as any)
+        const { error: v2Err } = await (supabase as any)
           .from("patient_analyses")
           .update({ analysis_v2_data: v2 })
           .eq("id", savedData.id);
-        savedData.analysis_v2_data = v2;
+        if (v2Err) {
+          console.error("[EncounterWorkspace] Failed to save V2 data:", v2Err);
+        } else {
+          savedData.analysis_v2_data = v2;
+        }
       }
 
       if (savedData) {
