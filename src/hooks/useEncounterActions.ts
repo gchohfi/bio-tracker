@@ -209,8 +209,8 @@ export function useEncounterActions({
         if (r.text_value && r.value == null) {
           status = "qualitative";
         } else if (r.value != null && marker) {
-          const fMin = marker.functionalMin;
-          const fMax = marker.functionalMax;
+          const sex = (patient?.sex === "F" ? "F" : "M") as "M" | "F";
+          const [fMin, fMax] = marker.labRange?.[sex] ?? [0, 0];
           if (fMin != null && r.value < fMin) status = "low";
           else if (fMax != null && r.value > fMax) status = "high";
           else status = "normal";
