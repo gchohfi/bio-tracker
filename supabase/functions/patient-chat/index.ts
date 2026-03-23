@@ -43,40 +43,35 @@ serve(async (req) => {
       promise.then(({ data, error }) => { if (error) console.warn("Context query failed:", error.message); return data; }).catch((err) => { console.warn("Context query exception:", err); return null; });
 
     const [labRes, encountersRes, analysesRes, prescriptionsRes, anamneseRes] = await Promise.all([
-      // Last 3 lab sessions with results
-      supabase
+      safeQuery(supabase
         .from("lab_sessions")
         .select("id, session_date")
         .eq("patient_id", patient_id)
         .order("session_date", { ascending: false })
-        .limit(3),
-      // Last 3 encounters with SOAP notes
-      supabase
+        .limit(3)),
+      safeQuery(supabase
         .from("clinical_encounters")
         .select("id, encounter_date, chief_complaint, status, clinical_evolution_notes(subjective, objective, assessment, plan, medications, exams_requested)")
         .eq("patient_id", patient_id)
         .order("encounter_date", { ascending: false })
-        .limit(3),
-      // Last 2 analyses
-      supabase
+        .limit(3)),
+      safeQuery(supabase
         .from("patient_analyses")
         .select("id, created_at, summary, technical_analysis, patient_plan, specialty_name")
         .eq("patient_id", patient_id)
         .order("created_at", { ascending: false })
-        .limit(2),
-      // Last prescription
-      supabase
+        .limit(2)),
+      safeQuery(supabase
         .from("clinical_prescriptions")
         .select("id, created_at, prescription_json, status, specialty_id")
         .eq("patient_id", patient_id)
         .order("created_at", { ascending: false })
-        .limit(1),
-      // Anamnese
-      supabase
+        .limit(1)),
+      safeQuery(supabase
         .from("patient_anamneses")
         .select("anamnese_text, structured_data, specialty_id")
         .eq("patient_id", patient_id)
-        .limit(1),
+        .limit(1)),
     ]);
 
     // Fetch lab results for the sessions
