@@ -295,7 +295,7 @@ export const MARKER_TEXT_TERMS: Record<string, string[]> = {
   t3_livre: ['t3 livre', 't3l', 'triiodotironina livre', 'ft3', 'free t3', 'triiodotironina (t3) livre', 'triiodotironina(t3) livre'],
   t3_total: ['t3 total', 'triiodotironina total', 'triiodotironina (t3)', 'tt3'],
   t3_reverso: ['t3 reverso', 't3r', 'reverse t3', 'triiodotironina reversa', 'rt3'],
-  anti_tpo: ['anti-tpo', 'anti tpo', 'anticorpo anti tpo', 'anti-peroxidase', 'atpo', 'peroxidase tireoidiana', 'peroxidase tiroidiana'],
+  anti_tpo: ['anti-tpo', 'anti tpo', 'anticorpo anti tpo', 'anti-peroxidase', 'anti peroxidase', 'antiperoxidase', 'atpo', 'peroxidase tireoidiana', 'peroxidase tiroidiana'],
   anti_tg: ['anti-tg', 'anti tg', 'anti-tireoglobulina', 'anti tireoglobulina', 'antitiroglobulina', 'atg', 'tgab'],
   trab: ['trab', 'anti-receptor de tsh', 'anti receptor tsh', 'anti receptor de tsh', 'anticorpos anti receptores de tsh'],
   tiroglobulina: ['tireoglobulina', 'tiroglobulina'],
