@@ -367,6 +367,7 @@ export const MARKER_TEXT_TERMS: Record<string, string[]> = {
   pth: ['pth', 'paratormônio', 'paratormonio', 'paratireoidiano', 'parathormônio'],
   calcitonina: ['calcitonina', 'calcitonin'],
   pcr: ['pcr', 'proteína c reativa', 'proteina c reativa', 'proteina c-reativa', 'c-reactive', 'pcrhs', 'pcr-us', 'pcr ultra'],
+  pcr_us: ['pcr ultra sensível', 'pcr ultra sensivel', 'pcr-us', 'pcrhs', 'pcr ultrassensível', 'pcr ultrassensivel', 'pcr us', 'proteína c reativa ultra'],
   vhs: ['vhs', 'v.h.s', 'velocidade de hemossedimentação', 'velocidade de eritrossedimentação', 'eritrossedimentacao'],
   homocisteina: ['homocisteína', 'homocisteina', 'homocysteine'],
   fibrinogenio: ['fibrinogênio', 'fibrinogenio', 'fator i', 'clauss'],
