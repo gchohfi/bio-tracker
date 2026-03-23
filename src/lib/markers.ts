@@ -99,6 +99,27 @@ export const MARKERS: MarkerDef[] = [
   { id: "vpm",             name: "VPM",             unit: "fL",           category: "Hemograma",
     labRange: { M: [7.5, 12.5], F: [7.5, 12.5] }, panel: "Adicional" },
 
+  { id: "mielocitos",     name: "Mielócitos",      unit: "%",            category: "Hemograma",
+    labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
+
+  { id: "metamielocitos", name: "Metamielócitos",   unit: "%",            category: "Hemograma",
+    labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
+
+  { id: "linfocitos_reativos", name: "Linfócitos Reativos", unit: "%",   category: "Hemograma",
+    labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
+
+  { id: "outras_celulas", name: "Outras Células",   unit: "",             category: "Hemograma",
+    labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
+
+  { id: "caracteres_morfo_tintoriais", name: "Caracteres Morfo-Tintoriais", unit: "", category: "Hemograma",
+    labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
+
+  { id: "caracteres_morfologicos", name: "Caracteres Morfológicos", unit: "", category: "Hemograma",
+    labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
+
+  { id: "pcr_us",          name: "PCR Ultra Sensível", unit: "mg/L",      category: "Inflamação",
+    labRange: { M: [0, 3.0], F: [0, 3.0] }, panel: "Padrão" },
+
   { id: "pcr",             name: "PCR",             unit: "mg/L",         category: "Inflamação",
     labRange: { M: [0, 5.0], F: [0, 5.0] }, panel: "Padrão" },
 
@@ -619,6 +640,15 @@ export const MARKERS: MarkerDef[] = [
     labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Padrão" },
 
   { id: "urina_muco",      name: "Muco/Filamentos (urina)", unit: "",      category: "Urina",
+    labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
+
+  { id: "urina_deposito", name: "Depósito (urina)", unit: "",             category: "Urina",
+    labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
+
+  { id: "urina_leveduras", name: "Leveduras (urina)", unit: "",           category: "Urina",
+    labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
+
+  { id: "urina_protozoarios", name: "Protozoários (urina)", unit: "",     category: "Urina",
     labRange: { M: [0, 0], F: [0, 0] }, qualitative: true, panel: "Adicional" },
 
   { id: "urina_albumina",  name: "Albumina (urina)", unit: "mg/L",         category: "Urina",
