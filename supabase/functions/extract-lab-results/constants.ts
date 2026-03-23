@@ -338,7 +338,7 @@ export const MARKER_TEXT_TERMS: Record<string, string[]> = {
   chumbo: ['chumbo', 'plumbemia', 'lead', 'pb '],
   tgo_ast: ['tgo', 'ast', 'aspartato aminotransferase', 'transaminase oxalacética', 'transaminase oxalacetica'],
   tgp_alt: ['tgp', 'alt', 'alanina aminotransferase', 'transaminase pirúvica', 'transaminase piruvica'],
-  ggt: ['ggt', 'gama glutamil', 'gama-glutamil', 'γ-glutamil', 'gamaglutamil'],
+  ggt: ['ggt', 'gama glutamil', 'gama-glutamil', 'γ-glutamil', 'gamaglutamil', 'gama gt', 'gama-gt'],
   fosfatase_alcalina: ['fosfatase alcalina', 'alkaline phosphatase', 'fa '],
   bilirrubina_total: ['bilirrubina total', 'bilirrubinas'],
   bilirrubina_direta: ['bilirrubina direta', 'bilirrubinas'],
