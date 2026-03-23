@@ -270,7 +270,7 @@ export function useEncounterActions({
         labResultCount: results.length,
       });
 
-      const { data: savedData } = await (supabase as any)
+      const { data: savedData, error: saveErr } = await (supabase as any)
         .from("patient_analyses")
         .insert({
           patient_id: patient.id,
@@ -295,12 +295,22 @@ export function useEncounterActions({
         .select()
         .single();
 
+      if (saveErr) {
+        console.error("[EncounterWorkspace] Failed to save analysis:", saveErr);
+        toast({ title: "Análise gerada mas falhou ao salvar", description: saveErr.message, variant: "destructive" });
+        return null;
+      }
+
       if (savedData && v2) {
-        await (supabase as any)
+        const { error: v2Err } = await (supabase as any)
           .from("patient_analyses")
           .update({ analysis_v2_data: v2 })
           .eq("id", savedData.id);
-        savedData.analysis_v2_data = v2;
+        if (v2Err) {
+          console.error("[EncounterWorkspace] Failed to save V2 data:", v2Err);
+        } else {
+          savedData.analysis_v2_data = v2;
+        }
       }
 
       if (savedData) {
