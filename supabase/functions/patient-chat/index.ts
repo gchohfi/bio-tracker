@@ -123,8 +123,9 @@ serve(async (req) => {
 
     // Format analyses
     let analysesContext = "";
-    if (analysesRes.data?.length) {
-      analysesContext = analysesRes.data.map((a: any) => {
+    const analysesList = Array.isArray(analysesRes) ? analysesRes : [];
+    if (analysesList.length) {
+      analysesContext = analysesList.map((a: any) => {
         let text = "Análise IA (" + a.created_at?.substring(0, 10) + ", " + (a.specialty_name || "geral") + ")";
         if (a.summary) text += "\nResumo: " + a.summary;
         if (a.technical_analysis) text += "\nAnálise técnica: " + a.technical_analysis.substring(0, 1500);
