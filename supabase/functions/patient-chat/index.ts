@@ -148,8 +148,9 @@ serve(async (req) => {
 
     // Format anamnese
     let anamneseContext = "";
-    if (anamneseRes.data?.length) {
-      const a = anamneseRes.data[0] as any;
+    const anamneseList = Array.isArray(anamneseRes) ? anamneseRes : [];
+    if (anamneseList.length) {
+      const a = anamneseList[0] as any;
       if (a.anamnese_text) anamneseContext = "Anamnese:\n" + a.anamnese_text.substring(0, 2000);
     }
 
