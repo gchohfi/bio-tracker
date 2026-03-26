@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Beaker, LogOut, Search, Sliders, Users } from "lucide-react";
+import { Beaker, Home, LogOut, Search, Sliders, Users } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { Tables } from "@/integrations/supabase/types";
 
 type PatientSearchRow = Pick<Tables<"patients">, "id" | "name" | "sex">;
