@@ -15,6 +15,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PatientSearchRow[]>([]);
