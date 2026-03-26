@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Beaker, LogOut, Search, Sliders, Users } from "lucide-react";
+import { Beaker, Home, LogOut, Search, Sliders, Users } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { Tables } from "@/integrations/supabase/types";
 
 type PatientSearchRow = Pick<Tables<"patients">, "id" | "name" | "sex">;
@@ -14,6 +15,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PatientSearchRow[]>([]);
@@ -139,7 +141,42 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="container min-h-0 flex-1 overflow-y-auto py-6">{children}</main>
+      <main className="container min-h-0 flex-1 overflow-y-auto py-6 pb-20 md:pb-6">{children}</main>
+
+      {isMobile && (
+        <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex items-center justify-around py-2">
+            <button
+              onClick={() => navigate("/")}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1 text-[11px] transition-colors ${location.pathname === "/" ? "text-primary" : "text-muted-foreground"}`}
+            >
+              <Home className="h-5 w-5" />
+              Início
+            </button>
+            <button
+              onClick={() => navigate("/patients")}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1 text-[11px] transition-colors ${location.pathname === "/patients" ? "text-primary" : "text-muted-foreground"}`}
+            >
+              <Users className="h-5 w-5" />
+              Pacientes
+            </button>
+            <button
+              onClick={() => navigate("/prompts")}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1 text-[11px] transition-colors ${location.pathname === "/prompts" ? "text-primary" : "text-muted-foreground"}`}
+            >
+              <Sliders className="h-5 w-5" />
+              Prompts
+            </button>
+            <button
+              onClick={signOut}
+              className="flex flex-col items-center gap-0.5 px-3 py-1 text-[11px] text-muted-foreground transition-colors"
+            >
+              <LogOut className="h-5 w-5" />
+              Sair
+            </button>
+          </div>
+        </nav>
+      )}
     </div>
   );
 }
