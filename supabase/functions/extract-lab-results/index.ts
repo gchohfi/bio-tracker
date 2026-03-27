@@ -202,6 +202,13 @@ serve(async (req) => {
     const beforeFallbackIds = new Set<string>(validResults.map((r: any) => r.marker_id));
     validResults = regexFallback(pdfText, validResults);
 
+    // ── 6b. POST-EXTRACTION VALIDATION: detecta omissões críticas ────────
+    const criticalMissing = detectCriticalOmissions(pdfText, validResults);
+    if (criticalMissing.length > 0) {
+      console.log(`[POST-EXTRACT] Critical omissions detected: ${criticalMissing.map(r => r.marker_id).join(', ')}`);
+      validResults = [...validResults, ...criticalMissing];
+    }
+
     // Processar marcadores adicionados pelo fallback pelo mesmo pipeline
     const fallbackAdded = validResults.filter((r: any) => !beforeFallbackIds.has(r.marker_id));
     if (fallbackAdded.length > 0) {
