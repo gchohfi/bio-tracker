@@ -260,9 +260,11 @@ serve(async (req) => {
 
     // ── 6b. POST-EXTRACTION VALIDATION: detecta omissões críticas ────────
     const criticalMissing = detectCriticalOmissions(pdfText, validResults);
+    const rescuedByPostExtract = new Set<string>();
     if (criticalMissing.length > 0) {
       console.log(`[POST-EXTRACT] Critical omissions detected: ${criticalMissing.map(r => r.marker_id).join(', ')}`);
       validResults = [...validResults, ...criticalMissing];
+      criticalMissing.forEach(r => rescuedByPostExtract.add(r.marker_id));
     }
 
     // Processar marcadores adicionados pelo fallback pelo mesmo pipeline
@@ -287,7 +289,7 @@ serve(async (req) => {
     validResults = enrichDheaReference(validResults, patientAge, patientSex);
     validResults = guardVldlReference(validResults);
     validResults = sanitizeLabReferences(validResults);
-    validResults = crossCheckAllMarkers(validResults, pdfText, beforeFallbackIds);
+    validResults = crossCheckAllMarkers(validResults, pdfText, beforeFallbackIds, rescuedByPostExtract);
     validResults = applyReferenceOverrides(validResults);
 
     // ── 8. STRUCTURAL VALIDATION ────────────────────────────────────────────

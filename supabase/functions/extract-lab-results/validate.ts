@@ -381,13 +381,14 @@ export function sanitizeLabReferences(results: any[]): any[] {
 // crossCheckAllMarkers — Anti-hallucination cross-check against PDF
 // ════════════════════════════════════════════════════════════════════
 
-export function crossCheckAllMarkers(validResults: any[], pdfText: string, beforeFallbackIds: Set<string>): any[] {
+export function crossCheckAllMarkers(validResults: any[], pdfText: string, beforeFallbackIds: Set<string>, rescuedIds?: Set<string>): any[] {
   const pdfTextLower = pdfText.toLowerCase();
 
   // Cross-check all markers: verify marker names appear in PDF text
   const crossChecked = validResults.filter((r: any) => {
-    // Skip markers added by fallback (already validated) and calculated markers
+    // Skip markers added by fallback (already validated), calculated markers, and rescued markers
     if (!beforeFallbackIds.has(r.marker_id) || CALCULATED_MARKERS.has(r.marker_id)) return true;
+    if (rescuedIds?.has(r.marker_id)) return true;
 
     const terms = MARKER_TEXT_TERMS[r.marker_id];
     if (!terms || terms.length === 0) return true; // No search terms defined — keep
