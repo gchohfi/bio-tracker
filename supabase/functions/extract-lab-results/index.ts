@@ -158,6 +158,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         temperature: 0,
+        max_tokens: 16384,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: buildUserMessage(textToSend, patientAge, patientSex) },
