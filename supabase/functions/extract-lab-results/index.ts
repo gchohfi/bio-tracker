@@ -289,7 +289,7 @@ serve(async (req) => {
     validResults = enrichDheaReference(validResults, patientAge, patientSex);
     validResults = guardVldlReference(validResults);
     validResults = sanitizeLabReferences(validResults);
-    validResults = crossCheckAllMarkers(validResults, pdfText, beforeFallbackIds);
+    validResults = crossCheckAllMarkers(validResults, pdfText, beforeFallbackIds, rescuedByPostExtract);
     validResults = applyReferenceOverrides(validResults);
 
     // ── 8. STRUCTURAL VALIDATION ────────────────────────────────────────────
