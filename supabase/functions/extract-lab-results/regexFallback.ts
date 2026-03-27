@@ -320,9 +320,16 @@ export function regexFallback(pdfText: string, aiResults: any[]): any[] {
   tryGeneric('calcitonina', [/(?:Calcitonina)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i]);
   tryGeneric('anti_tpo', [
     /(?:Anti[- ]?TPO|ANTI[- ]?PEROXIDASE(?:\s+TI(?:R|REOI)DIANA)?|ANTICORPOS?\s+ANTI[- ]?PEROXIDASE|ATPO|TPO[- ]?Ab)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i,
+    /(?:Peroxidase\s+Tireoidiana|ANTI[- ]?TIREOPEROXIDASE)[\s\S]{0,150}?([\d,\.]+)\s*(?:UI\/mL|U\/mL)/i,
   ]);
   tryGeneric('anti_tg', [
     /(?:Anti[- ]?TG|ANTICORPOS?\s+ANTI[- ]?TIREOGLOBULINA|ANTICORPOS?\s+ANTITIROGLOBULINA|ANTITIROGLOBULINA|ATG|TgAb)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i,
+    /(?:Anticorpos?\s+Anti[- ]?Tireoglobulina|Anti[- ]?Tiroglobulina)[\s\S]{0,150}?([\d,\.]+)\s*(?:UI\/mL|U\/mL)/i,
+  ]);
+  // Lipoproteína(a) — commonly missed by LLM
+  tryGeneric('lipoproteina_a', [
+    /(?:Lipoprote[íi]na\s*\(?a\)?|LP\s*\(?a\)?|Lp\s*\(?a\)?)[\s:.\-]*?([\d,\.]+)\s*(?:nmol\/L|mg\/dL|mg\/L)/i,
+    /(?:Lipoprote[íi]na\s*\(?a\)?|LP\s*\(?a\)?|Lp\s*\(?a\)?)[\s:.\-]*?([\d,\.]+)/i,
   ]);
   tryGeneric('trab', [/(?:TRAb|TRAB)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i]);
   tryGeneric('tiroglobulina', [
