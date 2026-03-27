@@ -105,8 +105,9 @@ export function regexFallback(pdfText: string, aiResults: any[]): any[] {
   tryFleury('potassio', 'POT[AÁ]SSIO', NUM);
   tryFleury('fosforo', 'F[OÓ]SFORO', NUM);
   tryFleury('calcitonina', 'CALCITONINA', OP_NUM);
-  tryFleury('anti_tpo', 'ANTICORPOS?\\s+ANTI[- ]?PEROXIDASE(?:\\s+TI(?:R|REOI)DIANA)?|ANTI[- ]?PEROXIDASE', OP_NUM);
-  tryFleury('anti_tg', 'ANTICORPOS?\\s+ANTI[- ]?TIREOGLOBULINA|ANTICORPOS?\\s+ANTITIROGLOBULINA|ANTITIROGLOBULINA', OP_NUM);
+  tryFleury('anti_tpo', 'ANTICORPOS?\\s+ANTI[- ]?PEROXIDASE(?:\\s+TI(?:R|REOI)DIANA)?|ANTI[- ]?PEROXIDASE|PEROXIDASE\\s+TIREOIDIANA', OP_NUM);
+  tryFleury('anti_tg', 'ANTICORPOS?\\s+ANTI[- ]?TIREOGLOBULINA|ANTICORPOS?\\s+ANTITIROGLOBULINA|ANTITIROGLOBULINA|ANTI[- ]?TIROGLOBULINA', OP_NUM);
+  tryFleury('lipoproteina_a', 'LIPOPROTE[IÍ]NA\\s*\\(?A\\)?|LP\\s*\\(?A\\)?', NUM);
   tryFleury('trab', 'ANTI[- ]?RECEPTOR\\s+DE\\s+TSH', OP_NUM);
   tryFleury('tiroglobulina', 'TIREOGLOBULINA(?!\\s*ANTI)|TIROGLOBULINA(?!\\s*ANTI)', NUM);
   tryFleury('glicose_jejum', 'GLICOSE[\\s,]{0,20}(?:plasma|soro)', NUM);
