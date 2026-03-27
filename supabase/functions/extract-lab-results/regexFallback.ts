@@ -105,8 +105,9 @@ export function regexFallback(pdfText: string, aiResults: any[]): any[] {
   tryFleury('potassio', 'POT[AÁ]SSIO', NUM);
   tryFleury('fosforo', 'F[OÓ]SFORO', NUM);
   tryFleury('calcitonina', 'CALCITONINA', OP_NUM);
-  tryFleury('anti_tpo', 'ANTICORPOS?\\s+ANTI[- ]?PEROXIDASE(?:\\s+TI(?:R|REOI)DIANA)?|ANTI[- ]?PEROXIDASE', OP_NUM);
-  tryFleury('anti_tg', 'ANTICORPOS?\\s+ANTI[- ]?TIREOGLOBULINA|ANTICORPOS?\\s+ANTITIROGLOBULINA|ANTITIROGLOBULINA', OP_NUM);
+  tryFleury('anti_tpo', 'ANTICORPOS?\\s+ANTI[- ]?PEROXIDASE(?:\\s+TI(?:R|REOI)DIANA)?|ANTI[- ]?PEROXIDASE|PEROXIDASE\\s+TIREOIDIANA', OP_NUM);
+  tryFleury('anti_tg', 'ANTICORPOS?\\s+ANTI[- ]?TIREOGLOBULINA|ANTICORPOS?\\s+ANTITIROGLOBULINA|ANTITIROGLOBULINA|ANTI[- ]?TIROGLOBULINA', OP_NUM);
+  tryFleury('lipoproteina_a', 'LIPOPROTE[IÍ]NA\\s*\\(?A\\)?|LP\\s*\\(?A\\)?', NUM);
   tryFleury('trab', 'ANTI[- ]?RECEPTOR\\s+DE\\s+TSH', OP_NUM);
   tryFleury('tiroglobulina', 'TIREOGLOBULINA(?!\\s*ANTI)|TIROGLOBULINA(?!\\s*ANTI)', NUM);
   tryFleury('glicose_jejum', 'GLICOSE[\\s,]{0,20}(?:plasma|soro)', NUM);
@@ -320,9 +321,16 @@ export function regexFallback(pdfText: string, aiResults: any[]): any[] {
   tryGeneric('calcitonina', [/(?:Calcitonina)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i]);
   tryGeneric('anti_tpo', [
     /(?:Anti[- ]?TPO|ANTI[- ]?PEROXIDASE(?:\s+TI(?:R|REOI)DIANA)?|ANTICORPOS?\s+ANTI[- ]?PEROXIDASE|ATPO|TPO[- ]?Ab)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i,
+    /(?:Peroxidase\s+Tireoidiana|ANTI[- ]?TIREOPEROXIDASE)[\s\S]{0,150}?([\d,\.]+)\s*(?:UI\/mL|U\/mL)/i,
   ]);
   tryGeneric('anti_tg', [
     /(?:Anti[- ]?TG|ANTICORPOS?\s+ANTI[- ]?TIREOGLOBULINA|ANTICORPOS?\s+ANTITIROGLOBULINA|ANTITIROGLOBULINA|ATG|TgAb)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i,
+    /(?:Anticorpos?\s+Anti[- ]?Tireoglobulina|Anti[- ]?Tiroglobulina)[\s\S]{0,150}?([\d,\.]+)\s*(?:UI\/mL|U\/mL)/i,
+  ]);
+  // Lipoproteína(a) — commonly missed by LLM
+  tryGeneric('lipoproteina_a', [
+    /(?:Lipoprote[íi]na\s*\(?a\)?|LP\s*\(?a\)?|Lp\s*\(?a\)?)[\s:.\-]*?([\d,\.]+)\s*(?:nmol\/L|mg\/dL|mg\/L)/i,
+    /(?:Lipoprote[íi]na\s*\(?a\)?|LP\s*\(?a\)?|Lp\s*\(?a\)?)[\s:.\-]*?([\d,\.]+)/i,
   ]);
   tryGeneric('trab', [/(?:TRAb|TRAB)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i]);
   tryGeneric('tiroglobulina', [
@@ -649,6 +657,9 @@ export function regexFallback(pdfText: string, aiResults: any[]): any[] {
     ['fosfatase_alcalina', ['FOSFATASE ALCALINA', 'FOSFATASE']],
     ['sodio', ['SODIO', 'SÓDIO']],
     ['potassio', ['POTASSIO', 'POTÁSSIO']],
+    ['anti_tpo', ['ANTI-PEROXIDASE', 'ANTI-TPO', 'ANTICORPOS ANTI-PEROXIDASE', 'ATPO', 'PEROXIDASE TIREOIDIANA']],
+    ['anti_tg', ['ANTI-TIREOGLOBULINA', 'ANTITIROGLOBULINA', 'ANTI-TG', 'ATG']],
+    ['lipoproteina_a', ['LIPOPROTEINA(A)', 'LIPOPROTEÍNA(A)', 'LP(A)', 'LIPOPROTEINA (A)', 'LIPOPROTEÍNA (A)']],
   ];
   const textUpper = pdfText.toUpperCase();
   for (const [markerId, searchTerms] of criticalMarkers) {

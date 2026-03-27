@@ -126,6 +126,62 @@ function processPipeline(results: any[], patientSex?: string, patientAge?: numbe
   return r;
 }
 
+/**
+ * Post-extraction validation: detecta marcadores críticos presentes no PDF
+ * mas omitidos pela LLM e pelo regex fallback.
+ * Usa regex de alta confiança com unidade obrigatória para evitar falsos positivos.
+ */
+function detectCriticalOmissions(pdfText: string, currentResults: any[]): any[] {
+  const found = new Set(currentResults.map((r: any) => r.marker_id));
+  const rescued: any[] = [];
+
+  const criticalPatterns: Array<{
+    id: string;
+    patterns: RegExp[];
+    sanity?: { min: number; max: number };
+  }> = [
+    {
+      id: 'anti_tpo',
+      patterns: [
+        /(?:Anti[- ]?TPO|ANTI[- ]?PEROXIDASE|Peroxidase\s+Tireoidiana|ANTICORPOS?\s+ANTI[- ]?PEROXIDASE)[\s\S]{0,300}?([\d]+[,.][\d]+|\d+)\s*(?:UI\/mL|U\/mL)/i,
+      ],
+      sanity: { min: 0, max: 2000 },
+    },
+    {
+      id: 'anti_tg',
+      patterns: [
+        /(?:Anti[- ]?Tireoglobulina|ANTICORPOS?\s+ANTI[- ]?TIREOGLOBULINA|ANTITIROGLOBULINA|Anti[- ]?TG)[\s\S]{0,300}?([\d]+[,.][\d]+|\d+)\s*(?:UI\/mL|U\/mL)/i,
+      ],
+      sanity: { min: 0, max: 5000 },
+    },
+    {
+      id: 'lipoproteina_a',
+      patterns: [
+        /(?:Lipoprote[íi]na\s*\(?[Aa]\)?|LP\s*\(?[Aa]\)?|Lp\s*\(?[Aa]\)?)[\s\S]{0,300}?([\d]+[,.][\d]+|\d+)\s*(?:nmol\/L|mg\/dL|mg\/L)/i,
+      ],
+      sanity: { min: 0, max: 1000 },
+    },
+  ];
+
+  for (const { id, patterns, sanity } of criticalPatterns) {
+    if (found.has(id)) continue;
+    for (const pat of patterns) {
+      const m = pdfText.match(pat);
+      if (m && m[1]) {
+        const num = parseFloat(m[1].replace(',', '.'));
+        if (!isNaN(num) && (!sanity || (num >= sanity.min && num <= sanity.max))) {
+          rescued.push({ marker_id: id, value: num });
+          found.add(id);
+          console.log("[POST-EXTRACT] Rescued " + id + ": " + num);
+          break;
+        }
+      }
+    }
+  }
+
+  return rescued;
+}
+
 // ─── Endpoint principal ──────────────────────────────────────────────────────
 
 serve(async (req) => {
@@ -158,6 +214,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         temperature: 0,
+        max_tokens: 16384,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: buildUserMessage(textToSend, patientAge, patientSex) },
@@ -200,6 +257,13 @@ serve(async (req) => {
     // ── 6. REGEX FALLBACK: marcadores perdidos pela IA ──────────────────────
     const beforeFallbackIds = new Set<string>(validResults.map((r: any) => r.marker_id));
     validResults = regexFallback(pdfText, validResults);
+
+    // ── 6b. POST-EXTRACTION VALIDATION: detecta omissões críticas ────────
+    const criticalMissing = detectCriticalOmissions(pdfText, validResults);
+    if (criticalMissing.length > 0) {
+      console.log(`[POST-EXTRACT] Critical omissions detected: ${criticalMissing.map(r => r.marker_id).join(', ')}`);
+      validResults = [...validResults, ...criticalMissing];
+    }
 
     // Processar marcadores adicionados pelo fallback pelo mesmo pipeline
     const fallbackAdded = validResults.filter((r: any) => !beforeFallbackIds.has(r.marker_id));
