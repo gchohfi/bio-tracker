@@ -1,9 +1,9 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { regexFallback } from "./regexFallback.ts";
 
-Deno.test("regexFallback rescues Anti-TPO from Anti-TPO with IU/mL", () => {
+Deno.test("regexFallback rescues Anti-TPO from TPOAb with result line", () => {
   const pdfText = `
-    Anti-TPO
+    TPOAb
     Resultado: 34 IU/mL
   `;
 
@@ -13,9 +13,9 @@ Deno.test("regexFallback rescues Anti-TPO from Anti-TPO with IU/mL", () => {
   assertEquals(antiTpo?.value, 34);
 });
 
-Deno.test("regexFallback rescues Anti-TG from Anti-TG with IU/mL", () => {
+Deno.test("regexFallback rescues Anti-TG from TgAb with result line", () => {
   const pdfText = `
-    Anti-TG
+    TgAb
     Resultado: 18 IU/mL
   `;
 

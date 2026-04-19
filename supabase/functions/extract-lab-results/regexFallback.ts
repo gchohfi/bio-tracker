@@ -320,12 +320,12 @@ export function regexFallback(pdfText: string, aiResults: any[]): any[] {
   tryGeneric('fosforo', [/(?:F[óoÓO]sforo)[\s:.\-]*?(\d[.,]\d)/i]);
   tryGeneric('calcitonina', [/(?:Calcitonina)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i]);
   tryGeneric('anti_tpo', [
-    /(?:Anti[- ]?TPO|ANTI[- ]?PEROXIDASE(?:\s+TI(?:R|REOI)DIANA)?|ANTICORPOS?\s+ANTI[- ]?PEROXIDASE|ATPO|TPO[- ]?Ab|TPOAb)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i,
-    /(?:Peroxidase\s+Tireoidiana|ANTI[- ]?TIREOPEROXIDASE|Anticorpo\s+Anti[- ]?Tireoperoxidase)[\s\S]{0,150}?([\d,\.]+)\s*(?:IU\/mL|UI\/mL|U\/mL)/i,
+    /(?:Anti[- ]?TPO|ANTI[- ]?PEROXIDASE(?:\s+TI(?:R|REOI)DIANA)?|ANTICORPOS?\s+ANTI[- ]?PEROXIDASE|ATPO|TPO[- ]?Ab|TPOAb)[\s\S]{0,80}?(?:RESULTADO\s*[:\-]?\s*)?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i,
+    /(?:Peroxidase\s+Tireoidiana|ANTI[- ]?TIREOPEROXIDASE|Anticorpo\s+Anti[- ]?Tireoperoxidase)[\s\S]{0,150}?(?:RESULTADO\s*[:\-]?\s*)?([\d,\.]+)\s*(?:IU\/mL|UI\/mL|U\/mL)/i,
   ]);
   tryGeneric('anti_tg', [
-    /(?:Anti[- ]?TG|ANTICORPOS?\s+ANTI[- ]?TIREOGLOBULINA|ANTICORPOS?\s+ANTI[- ]?TIROGLOBULINA|ANTICORPOS?\s+ANTITIROGLOBULINA|ANTITIROGLOBULINA|ATG|TgAb|TG[- ]?Ab)[\s:.\-]*?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i,
-    /(?:Anticorpos?\s+Anti[- ]?Tireoglobulina|Anticorpo\s+Anti[- ]?Tireoglobulina|Anti[- ]?Tiroglobulina)[\s\S]{0,150}?([\d,\.]+)\s*(?:IU\/mL|UI\/mL|U\/mL)/i,
+    /(?:Anti[- ]?TG|ANTICORPOS?\s+ANTI[- ]?TIREOGLOBULINA|ANTICORPOS?\s+ANTI[- ]?TIROGLOBULINA|ANTICORPOS?\s+ANTITIROGLOBULINA|ANTITIROGLOBULINA|ATG|TgAb|TG[- ]?Ab)[\s\S]{0,80}?(?:RESULTADO\s*[:\-]?\s*)?(inferior\s+a\s+[\d,\.]+|[<>]\s*\d+[.,]?\d*|\d+[.,]?\d*)/i,
+    /(?:Anticorpos?\s+Anti[- ]?Tireoglobulina|Anticorpo\s+Anti[- ]?Tireoglobulina|Anti[- ]?Tiroglobulina)[\s\S]{0,150}?(?:RESULTADO\s*[:\-]?\s*)?([\d,\.]+)\s*(?:IU\/mL|UI\/mL|U\/mL)/i,
   ]);
   // Lipoproteína(a) — commonly missed by LLM
   tryGeneric('lipoproteina_a', [
