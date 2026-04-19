@@ -122,6 +122,16 @@ export const CONVERSION_RULES: Record<string, ConversionRuleDef[]> = {
     },
   ],
 
+  t3_reverso: [
+    {
+      from_unit_pattern: "ng\\/m[lL]",
+      from_unit_label: "ng/mL",
+      to_unit: "ng/dL",
+      factor: 100,
+      description: "T3 Reverso ng/mL → ng/dL (×100)",
+    },
+  ],
+
   zinco: [
     {
       from_unit_pattern: "[uµ]g\\/m[lL]",
