@@ -143,14 +143,14 @@ function detectCriticalOmissions(pdfText: string, currentResults: any[]): any[] 
     {
       id: 'anti_tpo',
       patterns: [
-        /(?:Anti[- ]?TPO|ANTI[- ]?PEROXIDASE|Peroxidase\s+Tireoidiana|ANTICORPOS?\s+ANTI[- ]?PEROXIDASE)[\s\S]{0,300}?([\d]+[,.][\d]+|\d+)\s*(?:UI\/mL|U\/mL)/i,
+        /(?:Anti[- ]?TPO|ANTI[- ]?PEROXIDASE|Peroxidase\s+Tireoidiana|ANTICORPOS?\s+ANTI[- ]?PEROXIDASE|TPO[- ]?Ab|TPOAb|ANTI[- ]?TIREOPEROXIDASE)[\s\S]{0,300}?([\d]+[,.][\d]+|\d+)\s*(?:IU\/mL|UI\/mL|U\/mL)/i,
       ],
       sanity: { min: 0, max: 2000 },
     },
     {
       id: 'anti_tg',
       patterns: [
-        /(?:Anti[- ]?Tireoglobulina|ANTICORPOS?\s+ANTI[- ]?TIREOGLOBULINA|ANTITIROGLOBULINA|Anti[- ]?TG)[\s\S]{0,300}?([\d]+[,.][\d]+|\d+)\s*(?:UI\/mL|U\/mL)/i,
+        /(?:Anti[- ]?Tireoglobulina|ANTICORPOS?\s+ANTI[- ]?TIREOGLOBULINA|ANTICORPOS?\s+ANTI[- ]?TIROGLOBULINA|ANTITIROGLOBULINA|Anti[- ]?TG|TgAb|TG[- ]?Ab)[\s\S]{0,300}?([\d]+[,.][\d]+|\d+)\s*(?:IU\/mL|UI\/mL|U\/mL)/i,
       ],
       sanity: { min: 0, max: 5000 },
     },
