@@ -657,8 +657,8 @@ export function regexFallback(pdfText: string, aiResults: any[]): any[] {
     ['fosfatase_alcalina', ['FOSFATASE ALCALINA', 'FOSFATASE']],
     ['sodio', ['SODIO', 'SÓDIO']],
     ['potassio', ['POTASSIO', 'POTÁSSIO']],
-    ['anti_tpo', ['ANTI-PEROXIDASE', 'ANTI-TPO', 'ANTICORPOS ANTI-PEROXIDASE', 'ATPO', 'PEROXIDASE TIREOIDIANA']],
-    ['anti_tg', ['ANTI-TIREOGLOBULINA', 'ANTITIROGLOBULINA', 'ANTI-TG', 'ATG']],
+    ['anti_tpo', ['ANTI-PEROXIDASE', 'ANTI-TPO', 'ANTICORPOS ANTI-PEROXIDASE', 'ATPO', 'TPOAB', 'TPO-AB', 'ANTI-TIREOPEROXIDASE', 'PEROXIDASE TIREOIDIANA']],
+    ['anti_tg', ['ANTI-TIREOGLOBULINA', 'ANTI-TIROGLOBULINA', 'ANTITIROGLOBULINA', 'ANTI-TG', 'ATG', 'TGAB', 'TG-AB']],
     ['lipoproteina_a', ['LIPOPROTEINA(A)', 'LIPOPROTEÍNA(A)', 'LP(A)', 'LIPOPROTEINA (A)', 'LIPOPROTEÍNA (A)']],
   ];
   const textUpper = pdfText.toUpperCase();
